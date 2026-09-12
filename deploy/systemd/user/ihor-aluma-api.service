@@ -1,0 +1,80 @@
+# ALUMA fx-api — gunicorn перед api/handler.py. КОРИСТУВАЦЬКИЙ юніт (systemctl --user).
+#
+# Системна версія — ../aluma-api.service (потребує root). Ця — для менеджера
+# користувача ihor: root не потрібен, linger у ihor увімкнено, тож сервіс живе й
+# без входу в систему і піднімається після перезавантаження машини.
+#
+# Установку й оновлення робить агент деплою (deploy/agent/pullagent.py): юніти версії копіює в
+# ~/.config/systemd/user/, робить daemon-reload і перезапускає цей сервіс. Перший перехід — docs/DELIVERY.md.
+# Журнал: journalctl --user -u ihor-aluma-api. Відкат: systemctl --user disable --now ihor-aluma-api.
+#
+# Відмінності від системної версії — кожна свідомо:
+#   * нема User=/Group= — менеджер користувача й так запускає від ihor, а User=
+#     у ньому — помилка;
+#   * WantedBy=default.target — multi-user.target у менеджера користувача нема;
+#   * нема After=/Wants=network-online.target — це системна ціль, користувацький
+#     юніт від неї залежати не може. Слухаємо 127.0.0.1, мережа ззовні не потрібна;
+#   * EnvironmentFile=%h/.config/aluma/aluma.env, а не /etc/aluma: у /etc нема прав,
+#     а в /opt/ihor/aluma-table йому не місце — секрети тримаємо поза деревом коду;
+#   * прибрано PrivateTmp, ProtectSystem, ProtectHome, ReadWritePaths — див. нижче.
+#
+# ПОРТ 8005, лише 127.0.0.1 (реєстр ~/maestro/PORTS.md). Другий кінець —
+# reverse_proxy у deploy/caddy/aluma.Caddyfile. Міняти ТІЛЬКИ разом.
+
+[Unit]
+Description=ALUMA fx-api — leads/events/admin (gunicorn, user unit)
+Documentation=file:///opt/ihor/aluma-table/current/deploy/README.md
+
+[Service]
+Type=simple
+# current -> releases/vX.Y.Z — каталог поставленої версії (research.md R10); перемикає агент.
+WorkingDirectory=/opt/ihor/aluma-table/current
+
+# Секрети (ADMIN_PASS, IP_SALT, TELEGRAM_BOT_TOKEN) — тільки тут, ніколи в git.
+# Файл 0600, тека 0700; пише його scripts/box_env.py, склад — deploy/aluma.env.example.
+EnvironmentFile=%h/.config/aluma/aluma.env
+# Номер і sha версії (APP_VERSION, GIT_SHA) — з архіву релізу. ПІСЛЯ aluma.env: пізніше значення перемагає,
+# тож файл із секретами агент не править ніколи (FR-019).
+EnvironmentFile=/opt/ihor/aluma-table/current/RELEASE.env
+
+# --no-control-socket — НЕ ПРИБИРАТИ. У менеджері користувача XDG_RUNTIME_DIR
+# задано, тож без прапорця gunicorn 26 зніс би /run/user/1001/gunicorn.ctl —
+# сокет, спільний на всіх gunicorn під ihor (central-aparts-site теж). Причина
+# докладно — ../aluma-api.service і deploy/README.md.
+ExecStart=/opt/ihor/aluma-table/current/.venv/bin/gunicorn \
+    -w 2 --threads 4 --timeout 60 \
+    --no-control-socket \
+    -b 127.0.0.1:8005 \
+    api.wsgi:application
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+Restart=always
+RestartSec=3
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-api
+
+# NoNewPrivileges — це prctl, простору імен не потребує: у юніті користувача діє.
+NoNewPrivileges=true
+
+# База, -wal і -shm — лише для ihor: у них заявки з іменами й телефонами.
+# api/store.py створює файли за umask процесу, а типовий 0002 дав би 0664.
+# data/ і так 0700, UMask — другий замок на випадок, якщо теку колись відкриють.
+UMask=0077
+
+# PrivateTmp, ProtectSystem, ProtectHome, ReadWritePaths ПРИБРАНО. Вони будуються
+# на просторі імен монтування; менеджер користувача для цього неявно вмикає
+# PrivateUsers, а на цій машині (Ubuntu 24.04, systemd 255,
+# kernel.apparmor_restrict_unprivileged_userns=1) монтування в ньому не
+# виходить — і systemd це МОВЧКИ пропускає. Заміряно 2026-09-11 через
+# systemd-run --user: з ProtectHome=read-only процес пише в $HOME, з
+# PrivateTmp=true бачить спільний /tmp, код виходу 0. Опція, яка нічого не
+# робить, але в юніті виглядає як захист, гірша за її відсутність. Ізоляцію тут
+# тримають права: data/ і ~/.config/aluma — 0700, файл оточення — 0600.
+
+[Install]
+WantedBy=default.target

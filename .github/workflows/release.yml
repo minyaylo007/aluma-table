@@ -1,0 +1,71 @@
+name: Release
+
+# Версія (contracts/workflows.md «release.yml»): push у master → checks (ci.yml, ті самі п'ять перевірок) →
+# release (тег vX.Y.Z + GitHub Release з архівом і SHA256SUMS). Реліз — лише коли checks цього ж коміту зелені
+# І ввімкнено вимикач релізів: змінна репозиторію RELEASES_ENABLED = true. Без неї — лише перевірки, release skipped.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: checks
+    # Вимикач релізів (contracts/workflows.md): зупинити випуск версій без правки коду.
+    if: vars.RELEASES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: read
+    # Два злиття поспіль — дві версії по черзі; реліз посередині не обривається.
+    concurrency:
+      group: release-production
+      cancel-in-progress: false
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      # Без Pillow — як системний python3 машини (release_build.py і так збирає з python -S).
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Next version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          labels="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[].labels[].name' | tr '\n' ' ')"
+          tags="$(git tag --list 'v*' | tr '\n' ' ')"
+          tag="$(python scripts/next_version.py --tags "$tags" --labels "$labels")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Next version: $tag"
+      - name: Build release files
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: python scripts/release_build.py --tag "$TAG" --sha "$GITHUB_SHA" --out out
+      - name: Tag and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+          gh release create "$TAG" out/* --title "$TAG" --generate-notes --verify-tag
+
+  # Деплой щойно опублікованої версії — за release, тож стоїть за тим самим вимикачем.
+  deploy:
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/deploy.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}

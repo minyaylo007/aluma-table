@@ -1,0 +1,114 @@
+name: CI
+
+# Перевірки (contracts/workflows.md «ci.yml»): на кожен push у будь-яку гілку, крім master, на кожен PR у master
+# і як частина release.yml (workflow_call). Імена завдань — обов'язкові перевірки ruleset master:
+# lint, test (3.12), test (3.13), build, browser. tests/smoke.spec.js сюди НЕ входить: він пише в сховище.
+#
+# На master ці перевірки запускає release.yml (завдання checks → workflow_call), тому push у master тут
+# пропускається — щоб не ганяти двічі (tests/test_workflows.py, test_every_master_push_is_checked).
+on:
+  push:
+    branches-ignore: [master]
+  pull_request:
+    branches: [master]
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Новий прогін тієї ж гілки скасовує старий; на master — ніколи (там за перевірками йде реліз).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install
+        run: pip install -r requirements-lint.txt
+      - name: ruff
+        run: ruff check .
+      - name: JS syntax (node --check)
+        # site/assets/*.js — шаблони з {{ТОКЕНАМИ}}, які підставляє build.py, тому перевіряється зібраний dist/.
+        run: |
+          python build.py > /dev/null
+          for f in dist/assets/*.js tests/*.js; do node --check "$f"; done
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.12 — як на машині (ace-main), 3.13 — як у Lambda.
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            api/requirements.txt
+            tests/requirements.txt
+      # node потрібен тесту паритету телефону (tests/test_lambda_dynamodb.py): без node він пропускається.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install
+        run: pip install -r api/requirements.txt -r tests/requirements.txt
+      - name: Tests
+        # Увесь набір, як локально (CLAUDE.md §8); -v — щоб у журналі було видно пропуски й причини.
+        run: python -m unittest discover -s tests -t . -v
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      # Без Pillow — як системний python3 машини, яким зібрана статика /srv/aluma (research.md R9).
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build (preview) twice — the same bytes
+        run: |
+          python build.py
+          (cd dist && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$RUNNER_TEMP/dist-1.sha256"
+          rm -rf dist .build
+          python build.py
+          (cd dist && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$RUNNER_TEMP/dist-2.sha256"
+          diff "$RUNNER_TEMP/dist-1.sha256" "$RUNNER_TEMP/dist-2.sha256"
+          wc -l < "$RUNNER_TEMP/dist-1.sha256"
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PREVIEW_PORT: '8007'
+      PYTHON: python
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build (preview)
+        run: python build.py
+      - name: redesign.spec.js (fully mocked)
+        run: npx playwright test --config playwright.local.config.js

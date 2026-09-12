@@ -1,0 +1,1359 @@
+{
+  "version": 1,
+  "generated": "2026-09-09T11:23:50Z",
+  "background": "#F4F1EA",
+  "assets": [
+    {
+      "id": "goren-studio-hero-natural-closed",
+      "role": "hero",
+      "tone": "natural",
+      "state": "closed",
+      "aspect": "2.2:1",
+      "width": 2400,
+      "height": 1091,
+      "widths": [
+        1200,
+        1600,
+        2000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "1200": {
+            "path": "goren-studio-hero-natural-closed-1200.avif",
+            "bytes": 10787
+          },
+          "1600": {
+            "path": "goren-studio-hero-natural-closed-1600.avif",
+            "bytes": 16042
+          },
+          "2000": {
+            "path": "goren-studio-hero-natural-closed-2000.avif",
+            "bytes": 22580
+          }
+        },
+        "webp": {
+          "1200": {
+            "path": "goren-studio-hero-natural-closed-1200.webp",
+            "bytes": 24130
+          },
+          "1600": {
+            "path": "goren-studio-hero-natural-closed-1600.webp",
+            "bytes": 41588
+          },
+          "2000": {
+            "path": "goren-studio-hero-natural-closed-2000.webp",
+            "bytes": 59352
+          }
+        }
+      },
+      "source": "renders-master/product/goren-studio-hero-natural-closed.png",
+      "pipeline": "tools/render3d.js --product goren-studio-hero-natural-closed --ss=2 (view=studio tone=natural state=closed bg=f4f1ea tex=master hdr=1)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.studio",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 38,
+        "el": 12.5,
+        "fov_v": 18.6,
+        "position_m": [
+          2.303,
+          1.075,
+          2.849
+        ],
+        "target_m": [
+          0.048,
+          0.263,
+          -0.037
+        ],
+        "height_m": 1.075,
+        "distance_m": 3.752
+      },
+      "table_width_fraction": 0.802,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.69; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.145, 'right': 0.053, 'top': 0.049, 'bottom': 0.071} geometry {'left': 0.145, 'right': 0.165, 'top': 0.049, 'bottom': 0.119} | 2.2:1 is bound vertically from eye level (silhouette ~1.8:1): 80-86 % of the width would need >100 % of the height, so el 12.5 / camera 1.07 m was kept and the width is what fits | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-studio-hero-m-natural-closed",
+      "role": "hero-mobile",
+      "tone": "natural",
+      "state": "closed",
+      "aspect": "3:2",
+      "width": 2000,
+      "height": 1333,
+      "widths": [
+        640,
+        800,
+        1000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "640": {
+            "path": "goren-studio-hero-m-natural-closed-640.avif",
+            "bytes": 4866
+          },
+          "800": {
+            "path": "goren-studio-hero-m-natural-closed-800.avif",
+            "bytes": 6656
+          },
+          "1000": {
+            "path": "goren-studio-hero-m-natural-closed-1000.avif",
+            "bytes": 8951
+          }
+        },
+        "webp": {
+          "640": {
+            "path": "goren-studio-hero-m-natural-closed-640.webp",
+            "bytes": 8564
+          },
+          "800": {
+            "path": "goren-studio-hero-m-natural-closed-800.webp",
+            "bytes": 12130
+          },
+          "1000": {
+            "path": "goren-studio-hero-m-natural-closed-1000.webp",
+            "bytes": 19922
+          }
+        }
+      },
+      "source": "renders-master/product/goren-studio-hero-m-natural-closed.png",
+      "pipeline": "tools/render3d.js --product goren-studio-hero-m-natural-closed --ss=2 (view=studioM tone=natural state=closed bg=f4f1ea tex=master hdr=1)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.studioM",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 38,
+        "el": 12.5,
+        "fov_v": 27,
+        "position_m": [
+          2.183,
+          1.01,
+          2.614
+        ],
+        "target_m": [
+          0.088,
+          0.255,
+          -0.069
+        ],
+        "height_m": 1.01,
+        "distance_m": 3.486
+      },
+      "table_width_fraction": 0.864,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.743; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.097, 'right': 0.039, 'top': 0.169, 'bottom': 0.185} geometry {'left': 0.098, 'right': 0.16, 'top': 0.17, 'bottom': 0.221} | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-compare-natural-closed",
+      "role": "compare",
+      "tone": "natural",
+      "state": "closed",
+      "aspect": "3:2",
+      "width": 2400,
+      "height": 1600,
+      "widths": [
+        800,
+        1200,
+        1600
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "800": {
+            "path": "goren-compare-natural-closed-800.avif",
+            "bytes": 5091
+          },
+          "1200": {
+            "path": "goren-compare-natural-closed-1200.avif",
+            "bytes": 8766
+          },
+          "1600": {
+            "path": "goren-compare-natural-closed-1600.avif",
+            "bytes": 13386
+          }
+        },
+        "webp": {
+          "800": {
+            "path": "goren-compare-natural-closed-800.webp",
+            "bytes": 9280
+          },
+          "1200": {
+            "path": "goren-compare-natural-closed-1200.webp",
+            "bytes": 19896
+          },
+          "1600": {
+            "path": "goren-compare-natural-closed-1600.webp",
+            "bytes": 32278
+          }
+        }
+      },
+      "source": "renders-master/product/goren-compare-natural-closed.png",
+      "pipeline": "tools/render3d.js --product goren-compare-natural-closed --ss=2 (view=compare tone=natural state=closed bg=f4f1ea tex=master hdr=1 fit=open)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 0.717,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.615; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.139, 'right': 0.145, 'top': 0.228, 'bottom': 0.269} geometry {'left': 0.139, 'right': 0.245, 'top': 0.228, 'bottom': 0.289} | camera locked: fitted once on the OPEN bounds (fit=open), identical position/target/fov/light/exposure for all six | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-compare-natural-open",
+      "role": "compare",
+      "tone": "natural",
+      "state": "open",
+      "aspect": "3:2",
+      "width": 2400,
+      "height": 1600,
+      "widths": [
+        800,
+        1200,
+        1600
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "800": {
+            "path": "goren-compare-natural-open-800.avif",
+            "bytes": 5611
+          },
+          "1200": {
+            "path": "goren-compare-natural-open-1200.avif",
+            "bytes": 9792
+          },
+          "1600": {
+            "path": "goren-compare-natural-open-1600.avif",
+            "bytes": 14832
+          }
+        },
+        "webp": {
+          "800": {
+            "path": "goren-compare-natural-open-800.webp",
+            "bytes": 10686
+          },
+          "1200": {
+            "path": "goren-compare-natural-open-1200.webp",
+            "bytes": 22816
+          },
+          "1600": {
+            "path": "goren-compare-natural-open-1600.webp",
+            "bytes": 37218
+          }
+        }
+      },
+      "source": "renders-master/product/goren-compare-natural-open.png",
+      "pipeline": "tools/render3d.js --product goren-compare-natural-open --ss=2 (view=compare tone=natural state=open bg=f4f1ea tex=master hdr=1 fit=open)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 0.883,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.781; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.073, 'right': 0.043, 'top': 0.223, 'bottom': 0.237} geometry {'left': 0.074, 'right': 0.145, 'top': 0.224, 'bottom': 0.259} | camera locked: fitted once on the OPEN bounds (fit=open), identical position/target/fov/light/exposure for all six | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-compare-smoked-closed",
+      "role": "compare",
+      "tone": "smoked",
+      "state": "closed",
+      "aspect": "3:2",
+      "width": 2400,
+      "height": 1600,
+      "widths": [
+        800,
+        1200,
+        1600
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "800": {
+            "path": "goren-compare-smoked-closed-800.avif",
+            "bytes": 4956
+          },
+          "1200": {
+            "path": "goren-compare-smoked-closed-1200.avif",
+            "bytes": 8325
+          },
+          "1600": {
+            "path": "goren-compare-smoked-closed-1600.avif",
+            "bytes": 12329
+          }
+        },
+        "webp": {
+          "800": {
+            "path": "goren-compare-smoked-closed-800.webp",
+            "bytes": 8880
+          },
+          "1200": {
+            "path": "goren-compare-smoked-closed-1200.webp",
+            "bytes": 18584
+          },
+          "1600": {
+            "path": "goren-compare-smoked-closed-1600.webp",
+            "bytes": 29160
+          }
+        }
+      },
+      "source": "renders-master/product/goren-compare-smoked-closed.png",
+      "pipeline": "tools/render3d.js --product goren-compare-smoked-closed --ss=2 (view=compare tone=smoked state=closed bg=f4f1ea tex=master hdr=1 fit=open)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 0.717,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.615; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.139, 'right': 0.145, 'top': 0.228, 'bottom': 0.269} geometry {'left': 0.139, 'right': 0.245, 'top': 0.228, 'bottom': 0.289} | camera locked: fitted once on the OPEN bounds (fit=open), identical position/target/fov/light/exposure for all six | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-compare-smoked-open",
+      "role": "compare",
+      "tone": "smoked",
+      "state": "open",
+      "aspect": "3:2",
+      "width": 2400,
+      "height": 1600,
+      "widths": [
+        800,
+        1200,
+        1600
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "800": {
+            "path": "goren-compare-smoked-open-800.avif",
+            "bytes": 5418
+          },
+          "1200": {
+            "path": "goren-compare-smoked-open-1200.avif",
+            "bytes": 9264
+          },
+          "1600": {
+            "path": "goren-compare-smoked-open-1600.avif",
+            "bytes": 13790
+          }
+        },
+        "webp": {
+          "800": {
+            "path": "goren-compare-smoked-open-800.webp",
+            "bytes": 10296
+          },
+          "1200": {
+            "path": "goren-compare-smoked-open-1200.webp",
+            "bytes": 21186
+          },
+          "1600": {
+            "path": "goren-compare-smoked-open-1600.webp",
+            "bytes": 33666
+          }
+        }
+      },
+      "source": "renders-master/product/goren-compare-smoked-open.png",
+      "pipeline": "tools/render3d.js --product goren-compare-smoked-open --ss=2 (view=compare tone=smoked state=open bg=f4f1ea tex=master hdr=1 fit=open)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 0.883,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.781; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.073, 'right': 0.043, 'top': 0.223, 'bottom': 0.237} geometry {'left': 0.074, 'right': 0.145, 'top': 0.224, 'bottom': 0.259} | camera locked: fitted once on the OPEN bounds (fit=open), identical position/target/fov/light/exposure for all six | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-compare-white-closed",
+      "role": "compare",
+      "tone": "white",
+      "state": "closed",
+      "aspect": "3:2",
+      "width": 2400,
+      "height": 1600,
+      "widths": [
+        800,
+        1200,
+        1600
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "800": {
+            "path": "goren-compare-white-closed-800.avif",
+            "bytes": 3331
+          },
+          "1200": {
+            "path": "goren-compare-white-closed-1200.avif",
+            "bytes": 5284
+          },
+          "1600": {
+            "path": "goren-compare-white-closed-1600.avif",
+            "bytes": 7520
+          }
+        },
+        "webp": {
+          "800": {
+            "path": "goren-compare-white-closed-800.webp",
+            "bytes": 5786
+          },
+          "1200": {
+            "path": "goren-compare-white-closed-1200.webp",
+            "bytes": 11654
+          },
+          "1600": {
+            "path": "goren-compare-white-closed-1600.webp",
+            "bytes": 18354
+          }
+        }
+      },
+      "source": "renders-master/product/goren-compare-white-closed.png",
+      "pipeline": "tools/render3d.js --product goren-compare-white-closed --ss=2 (view=compare tone=white state=closed bg=f4f1ea tex=master hdr=1 fit=open)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 0.716,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.615; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.139, 'right': 0.145, 'top': 0.228, 'bottom': 0.269} geometry {'left': 0.14, 'right': 0.245, 'top': 0.241, 'bottom': 0.289} | camera locked: fitted once on the OPEN bounds (fit=open), identical position/target/fov/light/exposure for all six | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-compare-white-open",
+      "role": "compare",
+      "tone": "white",
+      "state": "open",
+      "aspect": "3:2",
+      "width": 2400,
+      "height": 1600,
+      "widths": [
+        800,
+        1200,
+        1600
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "800": {
+            "path": "goren-compare-white-open-800.avif",
+            "bytes": 3708
+          },
+          "1200": {
+            "path": "goren-compare-white-open-1200.avif",
+            "bytes": 6086
+          },
+          "1600": {
+            "path": "goren-compare-white-open-1600.avif",
+            "bytes": 8657
+          }
+        },
+        "webp": {
+          "800": {
+            "path": "goren-compare-white-open-800.webp",
+            "bytes": 6682
+          },
+          "1200": {
+            "path": "goren-compare-white-open-1200.webp",
+            "bytes": 13510
+          },
+          "1600": {
+            "path": "goren-compare-white-open-1600.webp",
+            "bytes": 21728
+          }
+        }
+      },
+      "source": "renders-master/product/goren-compare-white-open.png",
+      "pipeline": "tools/render3d.js --product goren-compare-white-open --ss=2 (view=compare tone=white state=open bg=f4f1ea tex=master hdr=1 fit=open)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 0.883,
+      "checks": {
+        "ends_inside": true,
+        "feet_inside": true,
+        "shadow_inside": true,
+        "ground_ok": true
+      },
+      "notes": "geometry-only width (>40/255) 0.78; the >6/255 figure includes the key's cast-shadow tail to the right; gaps L/R/T/B faint {'left': 0.073, 'right': 0.043, 'top': 0.224, 'bottom': 0.237} geometry {'left': 0.074, 'right': 0.146, 'top': 0.228, 'bottom': 0.259} | camera locked: fitted once on the OPEN bounds (fit=open), identical position/target/fov/light/exposure for all six | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-edge-detail-natural",
+      "role": "edge",
+      "tone": "natural",
+      "state": "closed",
+      "aspect": "1:1",
+      "width": 1600,
+      "height": 1600,
+      "widths": [
+        640,
+        800,
+        1000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "640": {
+            "path": "goren-edge-detail-natural-640.avif",
+            "bytes": 20972
+          },
+          "800": {
+            "path": "goren-edge-detail-natural-800.avif",
+            "bytes": 29844
+          },
+          "1000": {
+            "path": "goren-edge-detail-natural-1000.avif",
+            "bytes": 40017
+          }
+        },
+        "webp": {
+          "640": {
+            "path": "goren-edge-detail-natural-640.webp",
+            "bytes": 43002
+          },
+          "800": {
+            "path": "goren-edge-detail-natural-800.webp",
+            "bytes": 60680
+          },
+          "1000": {
+            "path": "goren-edge-detail-natural-1000.webp",
+            "bytes": 97898
+          }
+        }
+      },
+      "source": "renders-master/product/goren-edge-detail-natural.png",
+      "pipeline": "tools/render3d.js --product goren-edge-detail-natural --ss=2 (view=edge tone=natural state=closed bg=f4f1ea tex=master hdr=1 key=-0.5,1.75,2.15 ki=2.2)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.edge",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 49.7,
+        "el": 14.1,
+        "fov_v": 15,
+        "position_m": [
+          1.299,
+          0.905,
+          0.87
+        ],
+        "target_m": [
+          0.769,
+          0.73,
+          0.42
+        ],
+        "height_m": 0.905,
+        "distance_m": 0.717
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": null
+      },
+      "notes": "close-up of the +x/+z outer corner of the top; raking key [-0.5, 1.75, 2.15] at 2.2; geometry crops by design | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-edge-detail-smoked",
+      "role": "edge",
+      "tone": "smoked",
+      "state": "closed",
+      "aspect": "1:1",
+      "width": 1600,
+      "height": 1600,
+      "widths": [
+        640,
+        800,
+        1000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "640": {
+            "path": "goren-edge-detail-smoked-640.avif",
+            "bytes": 16912
+          },
+          "800": {
+            "path": "goren-edge-detail-smoked-800.avif",
+            "bytes": 23553
+          },
+          "1000": {
+            "path": "goren-edge-detail-smoked-1000.avif",
+            "bytes": 31220
+          }
+        },
+        "webp": {
+          "640": {
+            "path": "goren-edge-detail-smoked-640.webp",
+            "bytes": 31368
+          },
+          "800": {
+            "path": "goren-edge-detail-smoked-800.webp",
+            "bytes": 45108
+          },
+          "1000": {
+            "path": "goren-edge-detail-smoked-1000.webp",
+            "bytes": 74042
+          }
+        }
+      },
+      "source": "renders-master/product/goren-edge-detail-smoked.png",
+      "pipeline": "tools/render3d.js --product goren-edge-detail-smoked --ss=2 (view=edge tone=smoked state=closed bg=f4f1ea tex=master hdr=1 key=-0.5,1.75,2.15 ki=2.2)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.edge",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 49.7,
+        "el": 14.1,
+        "fov_v": 15,
+        "position_m": [
+          1.299,
+          0.905,
+          0.87
+        ],
+        "target_m": [
+          0.769,
+          0.73,
+          0.42
+        ],
+        "height_m": 0.905,
+        "distance_m": 0.717
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": null
+      },
+      "notes": "close-up of the +x/+z outer corner of the top; raking key [-0.5, 1.75, 2.15] at 2.2; geometry crops by design | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-edge-detail-white",
+      "role": "edge",
+      "tone": "white",
+      "state": "closed",
+      "aspect": "1:1",
+      "width": 1600,
+      "height": 1600,
+      "widths": [
+        640,
+        800,
+        1000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "640": {
+            "path": "goren-edge-detail-white-640.avif",
+            "bytes": 10953
+          },
+          "800": {
+            "path": "goren-edge-detail-white-800.avif",
+            "bytes": 14914
+          },
+          "1000": {
+            "path": "goren-edge-detail-white-1000.avif",
+            "bytes": 19875
+          }
+        },
+        "webp": {
+          "640": {
+            "path": "goren-edge-detail-white-640.webp",
+            "bytes": 21488
+          },
+          "800": {
+            "path": "goren-edge-detail-white-800.webp",
+            "bytes": 31130
+          },
+          "1000": {
+            "path": "goren-edge-detail-white-1000.webp",
+            "bytes": 50268
+          }
+        }
+      },
+      "source": "renders-master/product/goren-edge-detail-white.png",
+      "pipeline": "tools/render3d.js --product goren-edge-detail-white --ss=2 (view=edge tone=white state=closed bg=f4f1ea tex=master hdr=1 key=-0.5,1.75,2.15 ki=2.2)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.edge",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 49.7,
+        "el": 14.1,
+        "fov_v": 15,
+        "position_m": [
+          1.299,
+          0.905,
+          0.87
+        ],
+        "target_m": [
+          0.769,
+          0.73,
+          0.42
+        ],
+        "height_m": 0.905,
+        "distance_m": 0.717
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": null
+      },
+      "notes": "close-up of the +x/+z outer corner of the top; raking key [-0.5, 1.75, 2.15] at 2.2; geometry crops by design | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-frame-detail-natural",
+      "role": "frame",
+      "tone": "natural",
+      "state": "closed",
+      "aspect": "4:3",
+      "width": 1600,
+      "height": 1200,
+      "widths": [
+        640,
+        800,
+        1000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "640": {
+            "path": "goren-frame-detail-natural-640.avif",
+            "bytes": 8187
+          },
+          "800": {
+            "path": "goren-frame-detail-natural-800.avif",
+            "bytes": 11658
+          },
+          "1000": {
+            "path": "goren-frame-detail-natural-1000.avif",
+            "bytes": 15697
+          }
+        },
+        "webp": {
+          "640": {
+            "path": "goren-frame-detail-natural-640.webp",
+            "bytes": 14628
+          },
+          "800": {
+            "path": "goren-frame-detail-natural-800.webp",
+            "bytes": 21688
+          },
+          "1000": {
+            "path": "goren-frame-detail-natural-1000.webp",
+            "bytes": 37646
+          }
+        }
+      },
+      "source": "renders-master/product/goren-frame-detail-natural.png",
+      "pipeline": "tools/render3d.js --product goren-frame-detail-natural --ss=2 (view=frame tone=natural state=closed bg=f4f1ea tex=master hdr=1 fill=1.0 bounce=0.9)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.frame",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 42.1,
+        "el": 2.7,
+        "fov_v": 30,
+        "position_m": [
+          1.889,
+          0.55,
+          1.55
+        ],
+        "target_m": [
+          0.489,
+          0.45,
+          0
+        ],
+        "height_m": 0.55,
+        "distance_m": 2.091
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": true
+      },
+      "notes": "near trestle from 20 cm below the top plane; fill 1 + floor bounce 0.9 so the beam reads as matte steel; geometry crops by design | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-frame-detail-smoked",
+      "role": "frame",
+      "tone": "smoked",
+      "state": "closed",
+      "aspect": "4:3",
+      "width": 1600,
+      "height": 1200,
+      "widths": [
+        640,
+        800,
+        1000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "640": {
+            "path": "goren-frame-detail-smoked-640.avif",
+            "bytes": 7886
+          },
+          "800": {
+            "path": "goren-frame-detail-smoked-800.avif",
+            "bytes": 10937
+          },
+          "1000": {
+            "path": "goren-frame-detail-smoked-1000.avif",
+            "bytes": 14542
+          }
+        },
+        "webp": {
+          "640": {
+            "path": "goren-frame-detail-smoked-640.webp",
+            "bytes": 13782
+          },
+          "800": {
+            "path": "goren-frame-detail-smoked-800.webp",
+            "bytes": 19804
+          },
+          "1000": {
+            "path": "goren-frame-detail-smoked-1000.webp",
+            "bytes": 32102
+          }
+        }
+      },
+      "source": "renders-master/product/goren-frame-detail-smoked.png",
+      "pipeline": "tools/render3d.js --product goren-frame-detail-smoked --ss=2 (view=frame tone=smoked state=closed bg=f4f1ea tex=master hdr=1 fill=1.0 bounce=0.9)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.frame",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 42.1,
+        "el": 2.7,
+        "fov_v": 30,
+        "position_m": [
+          1.889,
+          0.55,
+          1.55
+        ],
+        "target_m": [
+          0.489,
+          0.45,
+          0
+        ],
+        "height_m": 0.55,
+        "distance_m": 2.091
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": true
+      },
+      "notes": "near trestle from 20 cm below the top plane; fill 1 + floor bounce 0.9 so the beam reads as matte steel; geometry crops by design | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-frame-detail-white",
+      "role": "frame",
+      "tone": "white",
+      "state": "closed",
+      "aspect": "4:3",
+      "width": 1600,
+      "height": 1200,
+      "widths": [
+        640,
+        800,
+        1000
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "640": {
+            "path": "goren-frame-detail-white-640.avif",
+            "bytes": 4660
+          },
+          "800": {
+            "path": "goren-frame-detail-white-800.avif",
+            "bytes": 6317
+          },
+          "1000": {
+            "path": "goren-frame-detail-white-1000.avif",
+            "bytes": 8087
+          }
+        },
+        "webp": {
+          "640": {
+            "path": "goren-frame-detail-white-640.webp",
+            "bytes": 7712
+          },
+          "800": {
+            "path": "goren-frame-detail-white-800.webp",
+            "bytes": 10896
+          },
+          "1000": {
+            "path": "goren-frame-detail-white-1000.webp",
+            "bytes": 17756
+          }
+        }
+      },
+      "source": "renders-master/product/goren-frame-detail-white.png",
+      "pipeline": "tools/render3d.js --product goren-frame-detail-white --ss=2 (view=frame tone=white state=closed bg=f4f1ea tex=master hdr=1 fill=1.0 bounce=0.9)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.frame",
+      "kind": "render",
+      "status": "provisional",
+      "camera": {
+        "az": 42.1,
+        "el": 2.7,
+        "fov_v": 30,
+        "position_m": [
+          1.889,
+          0.55,
+          1.55
+        ],
+        "target_m": [
+          0.489,
+          0.45,
+          0
+        ],
+        "height_m": 0.55,
+        "distance_m": 2.091
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": true
+      },
+      "notes": "near trestle from 20 cm below the top plane; fill 1 + floor bounce 0.9 so the beam reads as matte steel; geometry crops by design | worst corner drift in the encoded variants: 2/255 | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-finish-natural",
+      "role": "finish",
+      "tone": "natural",
+      "state": null,
+      "aspect": "1:1",
+      "width": 240,
+      "height": 240,
+      "widths": [
+        160,
+        240
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "160": {
+            "path": "goren-finish-natural-160.avif",
+            "bytes": 1275
+          },
+          "240": {
+            "path": "goren-finish-natural-240.avif",
+            "bytes": 1940
+          }
+        },
+        "webp": {
+          "160": {
+            "path": "goren-finish-natural-160.webp",
+            "bytes": 2284
+          },
+          "240": {
+            "path": "goren-finish-natural-240.webp",
+            "bytes": 3908
+          }
+        }
+      },
+      "source": "renders-master/product/ss2/goren-compare-natural-closed.png",
+      "pipeline": "tools/product_assets.py crop goren-compare-natural-closed region=(1360,397,62)@1x from the 2x frame -> 240 px",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render-crop",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": null
+      },
+      "notes": "62 px (at 1x) square of the tabletop face at (1360,397) of the compare-closed master, cut from the 2x frame (124 px) and LANCZOS to 160/240; same region, camera and exposure for the three tones; the face is foreshortened from that low camera, so the grain reads as fine streaks | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-finish-smoked",
+      "role": "finish",
+      "tone": "smoked",
+      "state": null,
+      "aspect": "1:1",
+      "width": 240,
+      "height": 240,
+      "widths": [
+        160,
+        240
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "160": {
+            "path": "goren-finish-smoked-160.avif",
+            "bytes": 1681
+          },
+          "240": {
+            "path": "goren-finish-smoked-240.avif",
+            "bytes": 2608
+          }
+        },
+        "webp": {
+          "160": {
+            "path": "goren-finish-smoked-160.webp",
+            "bytes": 2694
+          },
+          "240": {
+            "path": "goren-finish-smoked-240.webp",
+            "bytes": 4310
+          }
+        }
+      },
+      "source": "renders-master/product/ss2/goren-compare-smoked-closed.png",
+      "pipeline": "tools/product_assets.py crop goren-compare-smoked-closed region=(1360,397,62)@1x from the 2x frame -> 240 px",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render-crop",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": null
+      },
+      "notes": "62 px (at 1x) square of the tabletop face at (1360,397) of the compare-closed master, cut from the 2x frame (124 px) and LANCZOS to 160/240; same region, camera and exposure for the three tones; the face is foreshortened from that low camera, so the grain reads as fine streaks | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-finish-white",
+      "role": "finish",
+      "tone": "white",
+      "state": null,
+      "aspect": "1:1",
+      "width": 240,
+      "height": 240,
+      "widths": [
+        160,
+        240
+      ],
+      "formats": [
+        "avif",
+        "webp"
+      ],
+      "files": {
+        "avif": {
+          "160": {
+            "path": "goren-finish-white-160.avif",
+            "bytes": 463
+          },
+          "240": {
+            "path": "goren-finish-white-240.avif",
+            "bytes": 694
+          }
+        },
+        "webp": {
+          "160": {
+            "path": "goren-finish-white-160.webp",
+            "bytes": 400
+          },
+          "240": {
+            "path": "goren-finish-white-240.webp",
+            "bytes": 688
+          }
+        }
+      },
+      "source": "renders-master/product/ss2/goren-compare-white-closed.png",
+      "pipeline": "tools/product_assets.py crop goren-compare-white-closed region=(1360,397,62)@1x from the 2x frame -> 240 px",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.compare",
+      "kind": "render-crop",
+      "status": "provisional",
+      "camera": {
+        "az": 34.0,
+        "el": 11.0,
+        "fov_v": 27,
+        "position_m": [
+          2.454,
+          1.058,
+          3.328
+        ],
+        "target_m": [
+          0.144,
+          0.255,
+          -0.097
+        ],
+        "height_m": 1.058,
+        "distance_m": 4.208
+      },
+      "table_width_fraction": 1.0,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": null
+      },
+      "notes": "62 px (at 1x) square of the tabletop face at (1360,397) of the compare-closed master, cut from the 2x frame (124 px) and LANCZOS to 160/240; same region, camera and exposure for the three tones; the face is foreshortened from that low camera, so the grain reads as fine streaks | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
+    },
+    {
+      "id": "goren-social",
+      "role": "social",
+      "tone": "natural",
+      "state": "closed",
+      "aspect": "1.91:1",
+      "width": 1200,
+      "height": 630,
+      "widths": [
+        1200
+      ],
+      "formats": [
+        "png"
+      ],
+      "files": {
+        "png": {
+          "1200": {
+            "path": "../og.png",
+            "bytes": 138904
+          }
+        }
+      },
+      "source": "renders-master/product/goren-studio-hero-natural-closed.png + tools/og.html",
+      "pipeline": "node tools/make-og.js (tools/og.html: hero master, inlined logo lockup, IBM Plex Sans Hebrew, ground #F4F1EA)",
+      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.studio",
+      "kind": "composite",
+      "status": "provisional",
+      "camera": {
+        "az": 38,
+        "el": 12.5,
+        "fov_v": 18.6,
+        "position_m": [
+          2.303,
+          1.075,
+          2.849
+        ],
+        "target_m": [
+          0.048,
+          0.263,
+          -0.037
+        ],
+        "height_m": 1.075,
+        "distance_m": 3.752
+      },
+      "table_width_fraction": null,
+      "checks": {
+        "ends_inside": null,
+        "feet_inside": null,
+        "shadow_inside": null,
+        "ground_ok": true
+      },
+      "notes": "1200x630 social preview; Hebrew title + 160/220 line only, no price; the hero render composited on the page ground"
+    }
+  ]
+}

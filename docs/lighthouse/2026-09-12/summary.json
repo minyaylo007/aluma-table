@@ -1,0 +1,153 @@
+{
+ "measured_at_utc": "2026-09-12T06:59:10.880Z",
+ "lighthouse_version": "12.8.2",
+ "target": "https://table.central-aparts.store (прод, віддається з ace-main)",
+ "method": "npx lighthouse з node_modules цього worktree, chromium з PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright; лише GET, форми не відправлялись",
+ "runs": [
+  {
+   "page": "he",
+   "preset": "mobile",
+   "url": "https://table.central-aparts.store/",
+   "scores": {
+    "performance": 100,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100
+   },
+   "metrics": {
+    "FCP": "1.0 s",
+    "LCP": "1.1 s",
+    "TBT": "40 ms",
+    "CLS": "0",
+    "SI": "1.0 s"
+   }
+  },
+  {
+   "page": "he",
+   "preset": "desktop",
+   "url": "https://table.central-aparts.store/",
+   "scores": {
+    "performance": 100,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100
+   },
+   "metrics": {
+    "FCP": "0.3 s",
+    "LCP": "0.3 s",
+    "TBT": "0 ms",
+    "CLS": "0",
+    "SI": "0.3 s"
+   }
+  },
+  {
+   "page": "en",
+   "preset": "mobile",
+   "url": "https://table.central-aparts.store/en/",
+   "scores": {
+    "performance": 100,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100
+   },
+   "metrics": {
+    "FCP": "0.9 s",
+    "LCP": "1.2 s",
+    "TBT": "0 ms",
+    "CLS": "0",
+    "SI": "0.9 s"
+   }
+  },
+  {
+   "page": "en",
+   "preset": "desktop",
+   "url": "https://table.central-aparts.store/en/",
+   "scores": {
+    "performance": 100,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100
+   },
+   "metrics": {
+    "FCP": "0.3 s",
+    "LCP": "0.3 s",
+    "TBT": "0 ms",
+    "CLS": "0",
+    "SI": "0.3 s"
+   }
+  }
+ ],
+ "findings": [
+  {
+   "category": "performance",
+   "id": "network-dependency-tree-insight",
+   "title": "Network dependency tree",
+   "weight": 0,
+   "where": [
+    "he/mobile",
+    "he/desktop",
+    "en/mobile",
+    "en/desktop"
+   ],
+   "detail": ""
+  },
+  {
+   "category": "performance",
+   "id": "render-blocking-insight",
+   "title": "Render blocking requests",
+   "weight": 0,
+   "where": [
+    "he/mobile",
+    "he/desktop",
+    "en/mobile",
+    "en/desktop"
+   ],
+   "detail": "Est savings of 10 ms"
+  },
+  {
+   "category": "performance",
+   "id": "unminified-javascript",
+   "title": "Minify JavaScript",
+   "weight": 0,
+   "where": [
+    "he/mobile",
+    "he/desktop",
+    "en/mobile",
+    "en/desktop"
+   ],
+   "detail": "Est savings of 3 KiB"
+  },
+  {
+   "category": "performance",
+   "id": "image-delivery-insight",
+   "title": "Improve image delivery",
+   "weight": 0,
+   "where": [
+    "he/mobile",
+    "en/mobile"
+   ],
+   "detail": "Est savings of 45 KiB"
+  },
+  {
+   "category": "performance",
+   "id": "render-blocking-resources",
+   "title": "Eliminate render-blocking resources",
+   "weight": 0,
+   "where": [
+    "he/mobile",
+    "en/mobile"
+   ],
+   "detail": "Est savings of 0 ms"
+  },
+  {
+   "category": "performance",
+   "id": "max-potential-fid",
+   "title": "Max Potential First Input Delay",
+   "weight": 0,
+   "where": [
+    "he/mobile"
+   ],
+   "detail": "190 ms"
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+infra/samconfig.toml
+.aws-sam/
+node_modules/
+# браузери Playwright проєкту (PLAYWRIGHT_BROWSERS_PATH), не в спільному ~/.cache
+ms-playwright/
+tests/.playwright/
+test-results/
+*.pyc
+__pycache__/
+.lighthouseci/
+dist/
+package-lock.json
+_crit_*.js
+test-results/
+renders-master/
+renders-test/
+_*.js
+
+# CC0 source textures/HDRIs (re-download via assets-src/SOURCES.md)
+assets-src/*.jpg
+assets-src/*.hdr
+assets-src/*.exr
+assets-src/*.png
+
+# imagegen candidates (tens of MB per round; the accepted finals and CALLS.jsonl stay tracked)
+assets-src/product/imagegen/candidates/
+renders-master/product/
+.build/
+
+# знімок DynamoDB і локальна база SQLite (персональні дані заявок) — у git не йдуть
+dump/
+data/
+
+# Lighthouse: сирі звіти важкі (по ~650 КБ на прогін) і легко перезнімаються — у git
+# їдуть лише summary.json і README.md кожного заміру (docs/lighthouse/<дата>/README.md).
+docs/lighthouse/*/*.report.report.html
+docs/lighthouse/*/*.report.report.json
+docs/lighthouse/*/lighthouse-run.log
+
+# Пам'ять cc10x — не авторитетна (CLAUDE.md §10), у git не йде.
+.claude/cc10x/

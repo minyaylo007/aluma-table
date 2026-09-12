@@ -1,0 +1,564 @@
+{
+  "_masked": "12.09.2026 перед публікацією репозиторію: обліковий запис AWS замінено на 000000000000 (в ARN — <account>), імена користувачів IAM сусідніх проєктів — на masked-deploy-user-N. Оригінал знімка — у приватному архіві aluma-table-archive-2026-09.",
+  "account": "000000000000",
+  "aluma": {
+    "api": {
+      "endpoint": "https://r7jel27uma.execute-api.eu-central-1.amazonaws.com",
+      "id": "r7jel27uma",
+      "name": "fx-table-api"
+    },
+    "certificate": {
+      "arn": "arn:aws:acm:us-east-1:<account>:certificate/d2a264f2-b347-4ba3-8e58-d2139eda0c69",
+      "domain": "table.central-aparts.store",
+      "in_use_by": [
+        "arn:aws:cloudfront::<account>:distribution/E21KNA4YOX9CIB"
+      ],
+      "not_after": "2027-03-18T01:59:59+02:00",
+      "sans": [
+        "table.central-aparts.store"
+      ],
+      "status": "ISSUED",
+      "validation": [
+        {
+          "Name": "_76330d86a537e3871c91496e2f84668a.table.central-aparts.store.",
+          "Type": "CNAME",
+          "Value": "_899f0cee4466647eed6cd591e1093e6a.jkddzztszm.acm-validations.aws."
+        }
+      ]
+    },
+    "distribution": {
+      "aliases": [
+        "table.central-aparts.store"
+      ],
+      "cert": "arn:aws:acm:us-east-1:<account>:certificate/d2a264f2-b347-4ba3-8e58-d2139eda0c69",
+      "domain": "dnj0089lrzf76.cloudfront.net",
+      "enabled": true,
+      "id": "E21KNA4YOX9CIB",
+      "status": "Deployed"
+    },
+    "iam_role": {
+      "arn": "arn:aws:iam::<account>:role/fx-table-FxApiRole-BiE09PLkm3Zy",
+      "name": "fx-table-FxApiRole-BiE09PLkm3Zy"
+    },
+    "lambda": {
+      "arn": "arn:aws:lambda:eu-central-1:<account>:function:fx-table-api",
+      "last_modified": "2026-09-11T11:30:44.000+0000",
+      "name": "fx-table-api",
+      "role": "arn:aws:iam::<account>:role/fx-table-FxApiRole-BiE09PLkm3Zy",
+      "runtime": "python3.13",
+      "version_env": "0.4.0"
+    },
+    "log_group": {
+      "bytes": 96205,
+      "name": "/aws/lambda/fx-table-api",
+      "retention": null
+    },
+    "sam_artifacts": {
+      "bucket": "aws-sam-cli-managed-default-samclisourcebucket-tqh5bzqhj11n",
+      "delete_markers": [],
+      "prefix": "fx-table/",
+      "versions": [
+        {
+          "key": "fx-table/219f82fb67ae2f1624973abc3813fca4",
+          "latest": true,
+          "size": 9989,
+          "version_id": "s8qc.gIo.TREieUZ0aqD3MSxZrxlsoOy"
+        },
+        {
+          "key": "fx-table/2f10908e913ef26227ebffe61e899800",
+          "latest": true,
+          "size": 8854,
+          "version_id": "5FAVI0Fs.FqH5dUrjt3FShgUQ69oWh5Y"
+        },
+        {
+          "key": "fx-table/42c52c725597a92fdbf464a286f49bae.template",
+          "latest": true,
+          "size": 9655,
+          "version_id": "zyC2zsVg3Dci_._ZlIXTR4R0iy_eW7Z4"
+        },
+        {
+          "key": "fx-table/5b5053e448b2e18538297fd9c0d12bd8.template",
+          "latest": true,
+          "size": 10627,
+          "version_id": "NV9ji5WcsWc5e1c.yoz0iLL4BkLNi61s"
+        },
+        {
+          "key": "fx-table/6213ce1f67285eaf242a3f42e6996b23",
+          "latest": true,
+          "size": 10180,
+          "version_id": "9gGKeitAUfXpCKbXdRsENCsRI_ZNooC2"
+        },
+        {
+          "key": "fx-table/6480e3c1c8a2d73104ab3f42dfddeae5.template",
+          "latest": true,
+          "size": 11027,
+          "version_id": "tqXNWtZqmCrxb6U0Vki_hncIsXGcUhc9"
+        },
+        {
+          "key": "fx-table/7e19cbff01d127f0bd335fb02a0d76f1",
+          "latest": true,
+          "size": 669934,
+          "version_id": "jrhZlsz1.ZvGOnmRbCT6WYdoTlgYgihr"
+        },
+        {
+          "key": "fx-table/9638177927952d4d82910ea3cdd3ae6c.template",
+          "latest": true,
+          "size": 11695,
+          "version_id": "m5D0Ra85uDUNPYNjdMYba8ngAZa1a.4r"
+        },
+        {
+          "key": "fx-table/b8b2d10fe6a2712e49a63d6b4540037b.template",
+          "latest": true,
+          "size": 11695,
+          "version_id": "448ryaLNFGJBlR9W0OhiTXqzvz3vKfU4"
+        },
+        {
+          "key": "fx-table/b9266c8f0168a378c83aaa13985e1f77.template",
+          "latest": true,
+          "size": 10554,
+          "version_id": "sNaxmzmi7p6Q90b.OgKjulP_Um6U.mM0"
+        },
+        {
+          "key": "fx-table/bb51e6d0133dbef9b7b6988456d822f8.template",
+          "latest": true,
+          "size": 10554,
+          "version_id": "4pC22vSoyjvxI_wh5QtXypfvA2J7rCmY"
+        },
+        {
+          "key": "fx-table/cee20dd97b2d7ee96ffb16932742794e",
+          "latest": true,
+          "size": 10139,
+          "version_id": "GPj.Bpe1r6JDdKQ4k9YQSeIEjcmLwxWE"
+        },
+        {
+          "key": "fx-table/f53ee3980759bd2f9d0cbff0309c059a",
+          "latest": true,
+          "size": 9770,
+          "version_id": "cCoTrD37H2u488oJ6xUc6YmVaSfBxJMh"
+        }
+      ]
+    },
+    "secret": {
+      "arn": "arn:aws:secretsmanager:eu-central-1:<account>:secret:aluma/admin-credentials-KqVbyK",
+      "created": "2026-09-10T18:46:22.010000+03:00",
+      "deleted_date": null,
+      "last_accessed": null,
+      "name": "aluma/admin-credentials",
+      "rotation": null
+    },
+    "site_bucket": {
+      "bytes": 9639881,
+      "delete_markers": 0,
+      "name": "fx-table-site-000000000000",
+      "versioning": "Disabled",
+      "versions": 358
+    },
+    "stack": {
+      "last_updated": "2026-09-11T11:30:33.583000+00:00",
+      "name": "fx-table",
+      "status": "UPDATE_COMPLETE",
+      "termination_protection": false
+    },
+    "stack_resources": [
+      {
+        "deletion_policy": "Delete",
+        "logical": "ApiOriginRequestPolicy",
+        "physical": "a121b12a-5351-48b8-bc6d-c54e85b46b77",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::CloudFront::OriginRequestPolicy"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "Distribution",
+        "physical": "E21KNA4YOX9CIB",
+        "status": "UPDATE_COMPLETE",
+        "type": "AWS::CloudFront::Distribution"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "FxApi",
+        "physical": "fx-table-api",
+        "status": "UPDATE_COMPLETE",
+        "type": "AWS::Lambda::Function"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "FxApiInvokePermission",
+        "physical": "fx-table-FxApiInvokePermission-dNt5oTawxuFN",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::Lambda::Permission"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "FxApiRole",
+        "physical": "fx-table-FxApiRole-BiE09PLkm3Zy",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::IAM::Role"
+      },
+      {
+        "deletion_policy": "Retain",
+        "logical": "FxEventsTable",
+        "physical": "fx_events",
+        "status": "UPDATE_COMPLETE",
+        "type": "AWS::DynamoDB::Table"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "FxHttpApi",
+        "physical": "r7jel27uma",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::ApiGatewayV2::Api"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "FxHttpApiApiGatewayDefaultStage",
+        "physical": "$default",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::ApiGatewayV2::Stage"
+      },
+      {
+        "deletion_policy": "Retain",
+        "logical": "FxLeadsTable",
+        "physical": "fx_leads",
+        "status": "UPDATE_COMPLETE",
+        "type": "AWS::DynamoDB::Table"
+      },
+      {
+        "deletion_policy": "Retain",
+        "logical": "FxSessionsTable",
+        "physical": "fx_sessions",
+        "status": "UPDATE_COMPLETE",
+        "type": "AWS::DynamoDB::Table"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "IndexRewrite",
+        "physical": "arn:aws:cloudfront::<account>:function/fx-table-index-rewrite",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::CloudFront::Function"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "SiteBucket",
+        "physical": "fx-table-site-000000000000",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::S3::Bucket"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "SiteBucketPolicy",
+        "physical": "fx-table-site-000000000000",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::S3::BucketPolicy"
+      },
+      {
+        "deletion_policy": "Delete",
+        "logical": "SiteOac",
+        "physical": "E2KHW7MW8K25XT",
+        "status": "CREATE_COMPLETE",
+        "type": "AWS::CloudFront::OriginAccessControl"
+      }
+    ],
+    "tables": {
+      "fx_events": {
+        "arn": "arn:aws:dynamodb:eu-central-1:<account>:table/fx_events",
+        "bytes": 481494,
+        "deletion_protection": false,
+        "item_count": 1072,
+        "name": "fx_events",
+        "status": "ACTIVE"
+      },
+      "fx_leads": {
+        "arn": "arn:aws:dynamodb:eu-central-1:<account>:table/fx_leads",
+        "bytes": 9189,
+        "deletion_protection": false,
+        "item_count": 21,
+        "name": "fx_leads",
+        "status": "ACTIVE"
+      },
+      "fx_sessions": {
+        "arn": "arn:aws:dynamodb:eu-central-1:<account>:table/fx_sessions",
+        "bytes": 19643,
+        "deletion_protection": false,
+        "item_count": 81,
+        "name": "fx_sessions",
+        "status": "ACTIVE"
+      }
+    },
+    "validation_cname": {
+      "Name": "_76330d86a537e3871c91496e2f84668a.table.central-aparts.store.",
+      "ResourceRecords": [
+        {
+          "Value": "_899f0cee4466647eed6cd591e1093e6a.jkddzztszm.acm-validations.aws."
+        }
+      ],
+      "TTL": 300,
+      "Type": "CNAME"
+    }
+  },
+  "finished_at": "2026-09-11T13:42:55+00:00",
+  "http": [
+    {
+      "status": 200,
+      "url": "https://central-aparts.store/"
+    },
+    {
+      "status": 200,
+      "url": "https://www.central-aparts.store/"
+    },
+    {
+      "error": "URLError",
+      "url": "https://v2.central-aparts.store/"
+    },
+    {
+      "location": "/auth/login",
+      "status": 302,
+      "url": "https://cv.central-aparts.store/"
+    },
+    {
+      "status": 200,
+      "url": "https://table.central-aparts.store/"
+    },
+    {
+      "status": 200,
+      "url": "https://table.central-aparts.store/api/fx/health",
+      "version": "0.4.0-box"
+    },
+    {
+      "location": "/admin/login",
+      "status": 303,
+      "url": "https://table.central-aparts.store/admin"
+    }
+  ],
+  "label": "before",
+  "marker_hits": {
+    "acm_us_east_1": [
+      "arn:aws:acm:us-east-1:<account>:certificate/d2a264f2-b347-4ba3-8e58-d2139eda0c69"
+    ],
+    "apigw_apis": [
+      "r7jel27uma"
+    ],
+    "cloudfront_distribution_detail": [
+      "E21KNA4YOX9CIB table.central-aparts.store Deployed True"
+    ],
+    "cloudfront_distributions": [
+      "E21KNA4YOX9CIB"
+    ],
+    "cloudfront_functions": [
+      "fx-table-index-rewrite"
+    ],
+    "dynamodb_tables": [
+      "fx_events",
+      "fx_leads",
+      "fx_sessions"
+    ],
+    "iam_roles": [
+      "fx-table-FxApiRole-BiE09PLkm3Zy"
+    ],
+    "lambda_functions": [
+      "fx-table-api"
+    ],
+    "log_groups": [
+      "/aws/lambda/fx-table-api"
+    ],
+    "route53_records": [
+      "_76330d86a537e3871c91496e2f84668a.table.central-aparts.store. CNAME",
+      "table.central-aparts.store. A"
+    ],
+    "s3_buckets": [
+      "fx-table-site-000000000000"
+    ],
+    "secrets": [
+      "aluma/admin-credentials"
+    ],
+    "stacks": [
+      "fx-table"
+    ]
+  },
+  "shared": {
+    "acm_eu_central_1": [],
+    "acm_us_east_1": [
+      "arn:aws:acm:us-east-1:<account>:certificate/20e59433-a830-4952-b0e7-59a0b4fb4e98",
+      "arn:aws:acm:us-east-1:<account>:certificate/7bc76526-2199-46e6-9328-e2990fffa8d6",
+      "arn:aws:acm:us-east-1:<account>:certificate/84248907-0bdc-4ef0-9911-1f90aa8053d0",
+      "arn:aws:acm:us-east-1:<account>:certificate/9c6712ab-e989-4551-a908-580e9ea07209",
+      "arn:aws:acm:us-east-1:<account>:certificate/d2a264f2-b347-4ba3-8e58-d2139eda0c69",
+      "arn:aws:acm:us-east-1:<account>:certificate/f5273cf3-5245-4b64-987f-43936c1b2bb7"
+    ],
+    "apigw_apis": [
+      "r7jel27uma"
+    ],
+    "budgets": [
+      "aparts-monthly-10usd"
+    ],
+    "cloudfront_distribution_detail": [
+      "E21KNA4YOX9CIB table.central-aparts.store Deployed True",
+      "E3A58MFOU2LI12 v2.central-aparts.store,www.central-aparts.store,central-aparts.store Deployed True",
+      "E80XDWDORZKYP cv.central-aparts.store Deployed True"
+    ],
+    "cloudfront_distributions": [
+      "E21KNA4YOX9CIB",
+      "E3A58MFOU2LI12",
+      "E80XDWDORZKYP"
+    ],
+    "cloudfront_functions": [
+      "chernivtsi-guide-strip-prefix",
+      "fx-table-index-rewrite"
+    ],
+    "cloudfront_oac": [
+      "E2KHW7MW8K25XT"
+    ],
+    "cloudfront_origin_request_policies": [
+      "a121b12a-5351-48b8-bc6d-c54e85b46b77"
+    ],
+    "dynamodb_tables": [
+      "aparts-apartments",
+      "aparts-audit-log",
+      "aparts-cleaning",
+      "aparts-link-tokens",
+      "aparts-monitor-errors",
+      "aparts-org-memberships",
+      "aparts-requests",
+      "aparts-room-assignments",
+      "aparts-services",
+      "aparts-tenants",
+      "aparts-user-profiles",
+      "aparts-user-tenants",
+      "fx_events",
+      "fx_leads",
+      "fx_sessions"
+    ],
+    "eventbridge_rules": [
+      "aparts-beds24-sync-hourly",
+      "aparts-cfo-backfill",
+      "aparts-cfo-daily",
+      "aparts-cfo-weekly",
+      "aparts-chat-review",
+      "aparts-cost-report-daily",
+      "aparts-finance-daily",
+      "aparts-guest-messages-daily",
+      "aparts-housekeeper-checkouts",
+      "aparts-housekeeper-checkouts-daily",
+      "aparts-ical-sync-hourly",
+      "aparts-inbox-poll",
+      "aparts-maintenance-reminder",
+      "aparts-pricing-daily",
+      "aparts-pricing-intraday",
+      "aparts-tourist-tax-reminder",
+      "aparts-v2-V2SiteFunctionWarmer-5Pgj6CsObT43",
+      "aparts-wake-box-cycle",
+      "aparts-warming"
+    ],
+    "iam_roles": [
+      "AWSServiceRoleForAPIGateway",
+      "AWSServiceRoleForCloudFrontLogger",
+      "AWSServiceRoleForCloudWatchEvents",
+      "AWSServiceRoleForResourceExplorer",
+      "AWSServiceRoleForServiceQuotas",
+      "AWSServiceRoleForSupport",
+      "AWSServiceRoleForTrustedAdvisor",
+      "aparts-ApartsFunctionRole-PcXnkJ7tjEl2",
+      "aparts-Beds24SyncFunctionRole-szcX1ISnxCw6",
+      "aparts-GuestMessageFunctionRole-n8m6HQDra2cW",
+      "aparts-IcalSyncFunctionRole-Rt9aGsoJzK29",
+      "aparts-PricingBatchFunctionRole-ka9Dv6BXlPl5",
+      "aparts-box-role",
+      "aparts-monitor-MonitorLambdaRole-kbTglmpvTfpc",
+      "aparts-monitor-ScannerFunctionDailyRunRole-hs2PAcCcygrc",
+      "aparts-v2-V2SiteFunctionRole-YxK4T2oQs1Yg",
+      "fx-table-FxApiRole-BiE09PLkm3Zy",
+      "github-actions-deploy"
+    ],
+    "iam_users": [
+      "masked-deploy-user-1",
+      "masked-deploy-user-2"
+    ],
+    "lambda_functions": [
+      "aparts-api",
+      "aparts-beds24-sync",
+      "aparts-guest-messages",
+      "aparts-ical-sync",
+      "aparts-monitor-processor",
+      "aparts-monitor-scanner",
+      "aparts-monitor-webhook",
+      "aparts-pricing",
+      "aparts-v2-site",
+      "fx-table-api"
+    ],
+    "log_groups": [
+      "/aws/lambda/aparts-api",
+      "/aws/lambda/aparts-beds24-sync",
+      "/aws/lambda/aparts-guest-messages",
+      "/aws/lambda/aparts-ical-sync",
+      "/aws/lambda/aparts-monitor-webhook",
+      "/aws/lambda/aparts-pricing",
+      "/aws/lambda/aparts-v2-site",
+      "/aws/lambda/chernivtsi-speaks-beta",
+      "/aws/lambda/fx-table-api"
+    ],
+    "route53_records": [
+      "_10afe89f7a8984e00255b55a5f6657d0.www.central-aparts.store. CNAME",
+      "_71ac114f7b607c81b163864bc797c93e.central-aparts.store. CNAME",
+      "_76330d86a537e3871c91496e2f84668a.table.central-aparts.store. CNAME",
+      "box.central-aparts.store. A",
+      "central-aparts.store. A",
+      "central-aparts.store. AAAA",
+      "central-aparts.store. MX",
+      "central-aparts.store. NS",
+      "central-aparts.store. SOA",
+      "cv-new.central-aparts.store. A",
+      "cv.central-aparts.store. A",
+      "cv.central-aparts.store. AAAA",
+      "site-new.central-aparts.store. A",
+      "table-new.central-aparts.store. A",
+      "table.central-aparts.store. A",
+      "v2.central-aparts.store. A",
+      "v2.central-aparts.store. AAAA",
+      "www.central-aparts.store. A",
+      "www.central-aparts.store. AAAA"
+    ],
+    "s3_buckets": [
+      "aparts-uploads-000000000000",
+      "aws-sam-cli-managed-default-samclisourcebucket-tqh5bzqhj11n",
+      "fx-table-site-000000000000",
+      "gosha-archive-000000000000"
+    ],
+    "sam_bucket_other_versions": {
+      "count": 650,
+      "delete_markers": 0,
+      "delete_markers_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "37b6e0432affa9c65ff5ec8ff12890a67fd3101aea0777e97079cad8d62b09f9"
+    },
+    "scheduler_schedules": [
+      "aparts-monitor-daily-scan"
+    ],
+    "secrets": [
+      "aluma/admin-credentials",
+      "aparts/agent-worker-key",
+      "aparts/anthropic-admin-key",
+      "aparts/anthropic-api-key",
+      "aparts/beds24-refresh-token",
+      "aparts/cfo-collector-key",
+      "aparts/gree-account",
+      "aparts/ical-export-urls",
+      "aparts/monobank-personal-token",
+      "aparts/openai-admin-key",
+      "aparts/samconfig-toml",
+      "aparts/ttlock-account",
+      "aparts/vent-api-token",
+      "aparts/whatsapp",
+      "bill/openai-api-key",
+      "github/box-token",
+      "hetzner/claude-credentials"
+    ],
+    "secrets_planned_deletion": [],
+    "stacks": [
+      "aparts",
+      "aparts-monitor",
+      "aparts-v2",
+      "aws-sam-cli-managed-default",
+      "fx-table"
+    ]
+  },
+  "taken_at": "2026-09-11T13:42:15+00:00"
+}

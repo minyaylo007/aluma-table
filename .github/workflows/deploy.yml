@@ -1,0 +1,67 @@
+name: Deploy
+
+# Деплой опублікованої версії (contracts/workflows.md «deploy.yml»). Викликається з release.yml (після релізу)
+# і з rollback.yml (відкат / деплой будь-якої версії). Статус деплою в окруженні production ставить GitHub сам
+# за підсумком завдання: success — публічний health показав номер І повний sha версії; failure — таймаут.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag of a published version, vX.Y.Z'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://table.central-aparts.store/
+    permissions:
+      contents: write
+    # Новий деплой скасовує очікування старого (той стає «неактуальним», а не проваленим).
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Tag and both release files exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::bad tag: $TAG"; exit 1; }
+          sha="$(git rev-parse --verify "refs/tags/$TAG^{commit}")"
+          assets="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
+          grep -qx "aluma-$TAG.tar.gz" <<<"$assets" || { echo "::error::no aluma-$TAG.tar.gz in release"; exit 1; }
+          grep -qx "SHA256SUMS" <<<"$assets" || { echo "::error::no SHA256SUMS in release"; exit 1; }
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+          echo "$TAG -> $sha"
+      - name: Move production ref
+        # Сигнал агентові на машині (contracts/production-ref.md): вперед при деплої, назад при відкаті.
+        run: git push --force origin "$SHA:refs/heads/production"
+      - name: Wait for public health (version and full sha)
+        env:
+          HEALTH_URL: ${{ vars.ALUMA_HEALTH_URL }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          [ -n "$HEALTH_URL" ] || { echo "::error::environment variable ALUMA_HEALTH_URL is not set"; exit 1; }
+          deadline=$((SECONDS + 900))
+          while (( SECONDS < deadline )); do
+            body="$(curl -fsS --max-time 10 "$HEALTH_URL" 2>/dev/null || true)"
+            if [ -n "$body" ] && jq -e --arg v "$TAG" --arg s "$SHA" \
+                '.ok == true and .version == $v and .git_sha == $s' <<<"$body" >/dev/null 2>&1; then
+              echo "health: version $TAG, git_sha $SHA"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::public health did not show $TAG / $SHA within 15 min"
+          exit 1

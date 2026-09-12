@@ -1,0 +1,39 @@
+# ALUMA — агент деплою: один цикл «прочитати посилання production → за потреби поставити версію».
+# СТАН: ще не встановлено — ставиться разом з агентом (T040, після Phase 3), docs/DELIVERY.md.
+# КОРИСТУВАЦЬКИЙ юніт (systemctl --user), кличе таймер ihor-aluma-deploy.timer раз на хвилину.
+#
+# Модель pull (research.md R1): GitHub на машину не заходить, агент нічого не слухає. Облікових даних
+# GitHub в агента немає: посилання читає анонімно протоколом git з ізольованою конфігурацією, архів і суми —
+# за прямими посиланнями релізу. Детально — contracts/agent-cli.md, процес — docs/DELIVERY.md.
+#
+# Агент живе в каталозі поставленої версії й оновлюється разом із нею. Зламаний агент нової версії
+# лікується ручним запуском агента попередньої (docs/DELIVERY.md, «Якщо щось зламалось»).
+#
+# Системний /usr/bin/python3, не venv версії: агентові потрібна лише stdlib, а venv він сам і перемикає.
+# EnvironmentFile тут НЕМАЄ навмисно: файл із секретами агент не читає (FR-019).
+
+[Unit]
+Description=ALUMA — deploy agent (pull from GitHub, no credentials, user unit)
+Documentation=file:///opt/ihor/aluma-table/current/docs/DELIVERY.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ihor/aluma-table
+ExecStart=/usr/bin/python3 /opt/ihor/aluma-table/current/deploy/agent/pullagent.py \
+    --config /opt/ihor/aluma-table/current/deploy/agent/aluma.json --once
+
+# Коди 1–5 (не вдалося й повернуто / потрібна людина / відмова / GitHub недоступний / зайнято) — штатні
+# підсумки циклу, їх видно в журналі агента (state/deploy.log) і в journald. Як «успіх» для systemd —
+# щоб таймер гарантовано перезапускав цикл і після них.
+SuccessExitStatus=1 2 3 4 5
+
+# Установка з venv і перевірка здоров'я вкладаються в хвилини; довше — щось зависло.
+TimeoutStartSec=15min
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-deploy
+
+NoNewPrivileges=true
+# Каталоги версій і стану — лише для ihor і групи; state/ агент сам тримає 0700.
+UMask=0027

@@ -1,0 +1,6 @@
+# Залежності лише для тестів (разом з api/requirements.txt). Версії — ті, з якими повний набір
+# проходить локально на 3.12 і в CI на 3.13 (tests/README-python-tests.md).
+# werkzeug — test_wsgi (werkzeug.test.Client, потрібна 2.3+); boto3 + moto — шлях Lambda (test_lambda_dynamodb).
+werkzeug==3.1.8
+boto3==1.43.92
+moto==5.2.3

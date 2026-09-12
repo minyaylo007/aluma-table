@@ -1,0 +1,95 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>GOREN — 3D render scene</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<script src="../site/assets/goren3d.js"></script>
+<style>html,body{margin:0;background:#efeeea;overflow:hidden}canvas{display:block}</style>
+</head><body>
+<script>
+// Render harness. The model, materials, lights and framing live in site/assets/goren3d.js —
+// the same code the on-page viewer runs — so a still and the interactive view cannot disagree.
+//   ?tone=natural|smoked|white  &state=closed|open
+//   &view=hero|hero2|front|end|top|detail|studio|studioM|compare|edge|frame  &w=2400&h=1500
+//   &bg=efeeea   background / floor colour (page ground); render3d.js --bg passes it through
+//   &tex=master|1024|512   which texture set (master = renders-master/textures 2048 px, needs bake_textures.py)
+//   &hdr=1|0     HDRI (assets-src/brown_photostudio_02_1k.hdr) or the procedural room
+//   &exposure=1.0  &floor=1
+//   &fit=open|closed   the state the camera is FITTED on (default: the rendered state). The compare set
+//                      fits on the open bounds and renders either state with that one camera, so the
+//                      closed table is physically shorter in the same frame instead of being refitted.
+//   &az=&el=&fov=&margin=&lift=&shift=   override the named view's numbers (iteration only — bake the result into VIEWS)
+//   &eye=x,y,z&target=x,y,z       explicit camera (the edge / frame close-ups)
+//   &key=x,y,z&ki=2.4   move the key light / set its intensity (edge: a raking light across the top)
+//   &fill=0.5           a soft shadowless directional fill from the camera's side (frame: the beam is not a void)
+const Q = Object.fromEntries(new URLSearchParams(location.search));
+const TONE = Q.tone || 'natural', STATE = Q.state || 'closed', VIEW = Q.view || 'hero';
+const FIT = Q.fit === 'open' || Q.fit === 'closed' ? Q.fit : STATE;
+const W = +Q.w || 2400, H = +Q.h || 1500;
+const BG = '#' + (Q.bg || Goren.BG.slice(1));
+const TEX = Q.tex || 'master';
+document.body.style.background = BG;
+const vec = (s) => s.split(',').map(Number);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H); renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = +Q.exposure || 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(new THREE.Color(BG), 1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(BG);
+const textures = TEX === 'master'
+  ? (t) => ({ albedo: `../renders-master/textures/${t}-albedo-2048.jpg`, normal: '../renders-master/textures/oak-normal-2048.jpg', rough: '../renders-master/textures/oak-rough-2048.jpg', end: `../renders-master/textures/endgrain-${t}-1024.jpg` })
+  : (t) => ({ albedo: `../site/assets/textures/${t}-albedo-${TEX}.jpg`, normal: `../site/assets/textures/oak-normal-${TEX}.jpg`, rough: `../site/assets/textures/oak-rough-${TEX}.jpg`, end: `../site/assets/textures/endgrain-${t}-512.jpg` });
+// built in the FIT state: the camera is fitted on these bounds, then the requested state is assembled
+const model = Goren.build(THREE, { tone: TONE, state: FIT, textures, anisotropy: Math.min(16, renderer.capabilities.getMaxAnisotropy()) });
+scene.add(model.group);
+// straight down, the key's cast shadow lands beside the table and reads as a second object
+// &sr=80 shadow blur radius (texels of the 2048 map), &so=0.12 cast-shadow opacity, &bounce=0.55 floor bounce
+const rig = model.lights(scene, { shadowMap: 2048, shadowRadius: +Q.sr || 80, blurSamples: 32, shadows: VIEW !== 'top',
+  shadowOpacity: +Q.so || undefined, bounce: Q.bounce === undefined ? undefined : +Q.bounce });
+if (Q.floor === '0') { scene.remove(rig.floor); scene.remove(rig.contacts); }
+if (VIEW === 'top') {
+  // straight down, the studio's ceiling lamp reflects across a third of the top and washes the
+  // grain out: keep the image-based light for fill but not for the mirror-angle sheen
+  model.materials.face.envMapIntensity = +Q.env || 0.35;
+  // and take the key off the mirror angle: from the side, 35 deg up, so the grain shows as colour not glare
+  rig.key.position.set(-3.6, 2.6, 1.4); rig.key.intensity = 2.8;
+}
+if (Q.key) { const k = vec(Q.key); rig.key.position.set(k[0], k[1], k[2]); }
+if (Q.ki) rig.key.intensity = +Q.ki;
+let fill = null;
+if (+Q.fill > 0) { fill = new THREE.DirectionalLight(0xfff6ea, +Q.fill); scene.add(fill); scene.add(fill.target); }
+
+const cam = new THREE.PerspectiveCamera(30, W / H, 0.05, 60);
+const hdrUrl = Q.hdr === '0' ? null : '../assets-src/brown_photostudio_02_1k.hdr';
+window.__done = false;
+Promise.all([model.ready, model.environment(renderer, hdrUrl)]).then(([, env]) => {
+  scene.environment = env;
+  const spec = Object.assign({}, Goren.VIEWS[VIEW] || Goren.VIEWS.hero);
+  for (const k of ['az', 'el', 'fov', 'margin', 'lift', 'shift']) if (Q[k] !== undefined) spec[k] = +Q[k];
+  if (Q.eye) spec.eye = vec(Q.eye);
+  if (Q.target) spec.target = vec(Q.target);
+  const fit = Goren.frame(THREE, cam, model.bounds(), spec, W / H);     // bounds of the FIT state
+  if (FIT !== STATE) { model.setState(STATE); if (model.relayoutShadows) model.relayoutShadows(); }
+  if (fill) {
+    // from beside the camera, a little lower: lifts the faces that look at the lens (beam, underside)
+    const dir = cam.position.clone().sub(fit.target).normalize();
+    const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+    fill.position.copy(fit.target).addScaledVector(dir, 3).addScaledVector(right, -1.2).add(new THREE.Vector3(0, -0.6, 0));
+    fill.target.position.copy(fit.target);
+  }
+  const d = cam.position.clone().sub(fit.target);
+  window.__frame = {
+    position: fit.position.toArray(), target: fit.target.toArray(), distance: fit.distance, fov: cam.fov, aspect: W / H,
+    az: Math.atan2(d.x, d.z) * 180 / Math.PI, el: Math.asin(d.y / d.length()) * 180 / Math.PI, height: fit.position.y,
+    fit: FIT, state: STATE, spec: { az: spec.az, el: spec.el, fov: spec.fov, margin: spec.margin, lift: spec.lift, shift: spec.shift },
+    key: rig.key.position.toArray(), keyIntensity: rig.key.intensity, fill: fill ? fill.intensity : 0
+  };
+  renderer.render(scene, cam);
+  window.__done = true;
+}).catch((e) => { window.__error = String(e && e.stack || e); });
+</script>
+</body></html>

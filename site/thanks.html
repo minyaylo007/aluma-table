@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="{{t.lang}}" dir="{{t.dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{t.thanks_h1}} — {{t.brand}}</title>
+<meta name="robots" content="noindex">
+<link rel="preload" href="{{t.font_preload_a}}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{t.font_preload_b}}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/styles-next.css">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f4f1ea">
+</head>
+<body>
+<a class="skip" href="#main">{{t.skip}}</a>
+<header class="masthead"><div class="wrap masthead-row">
+  <a class="brand" href="{{t.home}}">{{t.logo}}</a>
+  <nav><a class="lang" href="{{t.switch_lang_href}}" hreflang="{{t.switch_lang_code}}" lang="{{t.switch_lang_code}}">{{t.switch_lang}}</a></nav>
+</div></header>
+
+<main id="main" class="wrap wrap--narrow" style="padding-block:var(--stack)">
+  <h1>{{t.thanks_h1}}</h1>
+  <p class="lede">{{t.thanks_lede}}</p>
+
+  <div style="margin-block-start:2rem">
+    <h2 style="font-size:24px">{{t.thanks_next}}</h2>
+    <div class="spec" style="grid-template-columns:1fr;margin-block-start:.5rem"><dl>
+      <div><dt>{{t.thanks_1}}</dt><dd>{{t.thanks_1_v}}</dd></div>
+      <div><dt>{{t.thanks_2}}</dt><dd>{{t.thanks_2_v}}<br><span class="small" style="font-weight:400">{{t.thanks_2_s}}</span></dd></div>
+      <div><dt>{{t.thanks_3}}</dt><dd>{{t.thanks_3_v}}<br><span class="small" style="font-weight:400">{{t.thanks_3_s}}</span></dd></div>
+    </dl></div>
+    <p style="margin-block-start:1.5rem"{{WA_HIDDEN}}>{{t.thanks_wa}}</p>
+    <a class="btn btn--go btn--wide js-wa{{WA_CLASS}}" href="#" data-placement="thanks" rel="noopener">{{t.footer_whatsapp}}</a>
+    <p style="margin-block-start:1.5rem"><a href="{{t.home}}">{{t.thanks_back}}</a></p>
+  </div>
+</main>
+
+<footer class="foot wrap">
+  <nav><a href="{{t.link_privacy}}">{{t.footer_privacy}}</a><a href="{{t.link_terms}}">{{t.footer_terms}}</a><a href="{{t.link_accessibility}}">{{t.footer_accessibility}}</a></nav>
+  <p>© {{YEAR}} {{BRAND_HE}}</p>
+</footer>
+<script>window.FX = {{t.js_strings}};</script>
+<script src="/assets/app-next.js" defer></script>
+</body>
+</html>

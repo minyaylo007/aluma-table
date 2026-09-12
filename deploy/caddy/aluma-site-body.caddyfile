@@ -1,0 +1,170 @@
+# ALUMA — СПІЛЬНЕ ТІЛО блоку сайту. САМ ПО СОБІ ЦЕ НЕ КОНФІГ.
+#
+# ════════════════════════════════════════════════════════════════════════════
+# ЩО ЦЕ І ЯК ПІДКЛЮЧАЄТЬСЯ
+#
+# Тут лише директиви всередині блоку сайту — без імені сайту і без { }.
+# Цей файл підключають два файли з іменами сайту, кожен рядком
+#     import aluma-site-body.caddyfile
+# усередині свого блоку:
+#
+#   aluma-table-new.caddyfile — table-new.central-aparts.store, перевірочне
+#                               імʼя; ставиться зараз;
+#   aluma-table.caddyfile     — table.central-aparts.store, бойове імʼя;
+#                               ставиться в день переключення DNS.
+#
+# Тіло одне на обидва імені, тож вони не можуть розійтися. Що ставити і в
+# якому порядку — REQUEST-DENIS.md поруч.
+#
+# ⚠️ НЕ підключати цей файл у /etc/caddy/Caddyfile напряму (на верхньому
+#    рівні): без блоку сайту навколо Caddy прочитає `root` як адресу сайту.
+# ⚠️ import у файлах імен ВІДНОСНИЙ — Caddy шукає цей файл у теці того файлу,
+#    який робить import. Три файли мусять лежати в одній теці.
+#
+# Чому не snippet (name) { … }: два файли імен підключають його незалежно, а
+# другий опис snippet з тим самим імʼям Caddy відкидає (redeclaration). Звичайний
+# import файлу такого обмеження не має.
+#
+# У /etc/caddy цей файл кладе ТІЛЬКИ Денис, і перезавантажує Caddy теж тільки
+# він. Сесії Claude ці файли лише пишуть і перевіряють трьома підкомандами, які
+# не слухають портів і не звертаються до admin-ендпоінту: fmt, adapt, validate —
+# на тимчасовій копії з глобальним блоком `admin off` (deploy/README.md, «Як
+# перевірено цей файл»).
+#
+# ════════════════════════════════════════════════════════════════════════════
+# ⚠️  X-Forwarded-For: ПЕРЕЗАПИС через header_up. НЕ «СПРОЩУВАТИ».
+#
+#     header_up X-Forwarded-For {remote_host}
+#
+# api/handler.py client_ip() бере ПЕРШИЙ елемент X-Forwarded-For і будує на
+# ньому ключ ведра обмежувача (заявки: 5 з IP на годину). Перший елемент —
+# найлегше підроблюваний: його ставить сам клієнт. Фронт зобовʼязаний віддавати
+# в застосунок РІВНО ОДНЕ значення — адресу зʼєднання.
+#
+# Caddy 2.11.4 і так це робить за замовчуванням (trusted_proxies порожній з
+# 2.7 — клієнтське значення відкидається цілком; виміряно, заміри A/B/C у
+# deploy/README.md). Тому рядок header_up дає ІДЕНТИЧНИЙ результат сьогодні і
+# стоїть як ЯВНА СТРАХОВКА: якщо в глобальному блоці колись пропишуть
+# trusted_proxies (Cloudflare, балансувальник), Caddy почне ДОВІРЯТИ вхідному
+# ланцюжку — і без цього рядка підроблений перший елемент доїде до client_ip().
+# «Прибрати, бо й так працює» = відкрити діру в день, коли хтось чіпне
+# глобальний блок. Не прибирати.
+#
+# caddy adapt на цьому рядку друкує попередження
+#     Unnecessary header_up X-Forwarded-For: the reverse proxy's default
+#     behavior is to pass headers to the upstream
+# Це лінтер радить саме те «спрощення», від якого застерігає абзац вище.
+# Попередження очікуване і єдине (на кожне імʼя сайту — одне); рядок лишається.
+#
+# ════════════════════════════════════════════════════════════════════════════
+# СТАТИКА — ОПУБЛІКОВАНА КОПІЯ В /srv/aluma (порожня тека = 404 на все)
+#
+# Caddy НЕ ходить у /opt/ihor узагалі: /opt/ihor — 0750 ihor:ihor і так
+# лишається, без ACL. Статику ми публікуємо в окрему теку:
+#
+#     /srv/aluma — ihor:ihor 0755; створює Денис один раз (REQUEST-DENIS.md, п. 1)
+#     rsync -a --delete-after --delay-updates --chmod=D0755,F0644 \
+#           /opt/ihor/aluma-table/dist/ /srv/aluma/
+#
+# caddy читає її як «інші». Нічого нашого, крім опублікованої статики, йому не
+# видно: ні коду, ні .git, ні бази data/, ні секретів.
+# --chmod — не прикраса: -a переносить права з dist/, а збірка з umask 0077
+# (як у юнітах ihor-aluma-*) дала б файли 0600 → 403 → сторінка 404 на все.
+# --delay-updates / --delete-after: нові файли зʼявляються разом у кінці, старі
+# зникають після — сторінка не посилається на ще не скопійований asset.
+# build.py спершу ВИДАЛЯЄ dist/ — живий сайт цього не бачить: /srv/aluma
+# міняється лише rsync-ом після вдалої збірки.
+# ⚠️ НЕ додавати caddy в групу ihor: група ihor проходить у /home/ihor (0750),
+#    де лежить файл окруження з секретами (~/.config/aluma/aluma.env).
+#
+# ════════════════════════════════════════════════════════════════════════════
+# ЗВІРЕНО З КОДОМ (не з README)
+#
+#   root      /srv/aluma — опублікована копія /opt/ihor/aluma-table/dist
+#             (build.py: DIST = ROOT / "dist"); див. «Статика» вище.
+#   API       /api/fx/* і /admin* — ті самі PathPattern, що в CloudFront
+#             (infra/template.yaml, CacheBehaviors); маршрути в
+#             api/handler.py lambda_handler(): /api/fx/{health,event,lead},
+#             /admin, /admin/{login,logout,status}. gunicorn 127.0.0.1:8005.
+#   EDGE      x-fx-edge НЕ підставляється: EDGE_SECRET на сервері не задається
+#             (deploy/aluma.env.example, попередження 1). Якщо його все ж
+#             задати — handler відповідатиме 403 на кожен запит.
+#   /en/      CloudFront-функція fx-table-index-rewrite дописує index.html до
+#             URI, що закінчується слешем. Тут це робить file_server (індекс
+#             теки) через try_files. /en без слеша — редирект на /en/ (у
+#             CloudFront він падав у 404).
+#   /privacy  build.py кладе поруч із privacy.html копію БЕЗ розширення
+#             (privacy, terms, accessibility, thanks, 404, next) — на них
+#             ведуть посилання сайту. Caddy визначає тип за розширенням і для
+#             файлу без нього Content-Type не ставить (сніфінг вимкнено), тож
+#             тип задано явно — як deploy.sh ставив у S3 text/html.
+#   404       CloudFront віддає сторінку /404 зі статусом 404
+#             (CustomErrorResponses). Тут — handle_errors. Відповіді API з
+#             кодом 404 не переписуються: reverse_proxy віддає їх як є, в
+#             handle_errors потрапляють лише помилки file_server.
+#   Кеш       як у scripts/deploy.sh: /assets/* — рік, immutable (імена з
+#             хешем); robots.txt і sitemap.xml — година; сторінки —
+#             max-age=0, must-revalidate. Сторінка помилки — no-store, щоб
+#             404 на /assets/* не закешувався в браузері на рік.
+#   Заголовки те, що давала керована політика CloudFront SecurityHeadersPolicy
+#             (67f7725c-…) на статиці.
+#   Стиск     Compress: true у CloudFront → encode.
+#   Тіло      1 МБ на API — як client_max_body_size 1m у deploy/nginx/aluma.conf.
+#
+# Топологія — «тільки Caddy»: гість → Caddy → gunicorn 127.0.0.1:8005
+# (рішення власника 11.09; розбір варіантів — deploy/README.md, «Три топології»).
+# ════════════════════════════════════════════════════════════════════════════
+
+root * /srv/aluma
+encode zstd gzip
+
+# ── API і адмінка → gunicorn ────────────────────────────────────────────────
+@app path /api/fx/* /admin*
+handle @app {
+	request_body {
+		max_size 1MB
+	}
+	reverse_proxy 127.0.0.1:8005 {
+		# ПЕРЕЗАПИС, не дописування. Пояснення — у шапці файлу.
+		header_up X-Forwarded-For {remote_host}
+	}
+}
+
+# ── Статика з dist/ ─────────────────────────────────────────────────────────
+handle {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-XSS-Protection "1; mode=block"
+	}
+
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	@meta path /robots.txt /sitemap.xml
+	header @meta Cache-Control "public, max-age=3600"
+
+	@pages not path /assets/* /robots.txt /sitemap.xml
+	header @pages Cache-Control "public, max-age=0, must-revalidate"
+
+	# Шлях без жодної крапки — сторінка: /, /en/, /privacy, /en/terms, /next.
+	@page_noext path_regexp ^[^.]*$
+	header @page_noext Content-Type "text/html; charset=utf-8"
+
+	redir /en /en/ 308
+	try_files {path} {path}/index.html
+	file_server
+}
+
+# ── 404: сторінка сайту, як CustomErrorResponses у CloudFront ──────────────
+# 403 теж: так CloudFront перетворював «ключа нема» від S3, і так тут
+# виглядатиме відсутнє право на читання файлу.
+handle_errors 403 404 {
+	header Cache-Control "no-store"
+	rewrite * /404.html
+	file_server {
+		status 404
+	}
+}

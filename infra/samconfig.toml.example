@@ -1,0 +1,28 @@
+# Зразок для видаленого стека fx-table (історія — docs/AWS-TEARDOWN.md).
+# 12.09.2026 перед публікацією репозиторію обліковий запис AWS в ARN замаскований як <account>;
+# оригінал — у приватному архіві aluma-table-archive-2026-09.
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "fx-table"
+resolve_s3 = true
+s3_prefix = "fx-table"
+region = "eu-central-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+fail_on_empty_changeset = false
+
+parameter_overrides = [
+  "SiteDomain=table.central-aparts.store",
+  "CertificateArn=arn:aws:acm:us-east-1:<account>:certificate/d2a264f2-b347-4ba3-8e58-d2139eda0c69",
+  "AdminUser=igor",
+  "AdminPass=<set-me>",
+  "IpSalt=<set-me>",
+  "WhatsappNumber=",
+  "TelegramBotToken=<set-me>",
+  "OwnerTelegramChatId=<set-me>",
+  "AppVersion=0.1.0"
+]
+
+[default.build.parameters]
+use_container = false

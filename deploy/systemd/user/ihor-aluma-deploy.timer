@@ -1,0 +1,19 @@
+# ALUMA — запуск агента деплою раз на хвилину. КОРИСТУВАЦЬКИЙ юніт.
+# СТАН: ще не встановлено — вмикається разом з агентом (T040, після Phase 3), docs/DELIVERY.md.
+#
+# Від зсуву посилання production до початку установки — не більше ~2 хв (FR-011). Лічильник рахує від
+# кінця попереднього циклу, тож два цикли ніколи не йдуть одночасно (і ще й блокування agent.lock).
+# Увімкнути один раз: systemctl --user enable --now ihor-aluma-deploy.timer
+
+[Unit]
+Description=ALUMA — deploy agent every minute (timer, user unit)
+Documentation=file:///opt/ihor/aluma-table/current/docs/DELIVERY.md
+
+[Timer]
+Unit=ihor-aluma-deploy.service
+OnBootSec=2min
+OnUnitInactiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,25 @@
+# ALUMA — щодобовий запуск ihor-aluma-purge.service.
+#
+# ЩЕ НЕ ВСТАНОВЛЕНО. Установка — див. коментар у aluma-purge.service.
+#
+# УВАГА: Unit= нижче вказує на ihor-aluma-purge.service, тобто на імʼя ПІСЛЯ
+# установки з префіксом. Якщо ставите юніт під іншим імʼям — поправити тут.
+
+[Unit]
+Description=ALUMA — daily SQLite purge (timer)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Timer]
+Unit=ihor-aluma-purge.service
+
+# Щодня о 04:15 за часом сервера — коли на лендінгу нікого.
+OnCalendar=*-*-* 04:15:00
+
+# Розкид, щоб чистка не збігалася з щогодинними бекапами машини.
+RandomizedDelaySec=15m
+
+# Пропустили запуск (сервер лежав) — доженемо після старту, а не через добу.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

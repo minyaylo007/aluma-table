@@ -1,0 +1,132 @@
+[
+  {
+    "id": "apartment-natural-closed",
+    "scene": "apartment",
+    "tone": "natural",
+    "state": "closed",
+    "seed": 16,
+    "view": "hero",
+    "model": "us.stability.stable-image-control-structure-v1:0 + stable-image-search-replace-v1:0 + stable-image-inpaint-v1:0",
+    "width": 2400,
+    "height": 1500,
+    "kind": "ai-visualisation",
+    "source": "own 3D render (renders-master) -> Bedrock Stability control-structure",
+    "widths": [
+      800,
+      1200,
+      1600
+    ],
+    "formats": [
+      "webp",
+      "avif"
+    ],
+    "alt_he": "הדמיה: שולחן גורן סגור (160 ס\"מ) בגוון אלון טבעי בדירה מוארת, קערת לימונים ועץ זית בעציץ",
+    "alt_en": "Visualisation: GOREN table closed (160 cm) in natural oak in a bright apartment, a bowl of lemons and a potted olive tree",
+    "caption_he": "הדמיה. גוון אלון טבעי, מצב סגור 160 ס\"מ. שתי רגלי A מאלון מלא וקורת פלדה שחורה אחת.",
+    "caption_en": "Visualisation. Natural oak, closed at 160 cm. Two solid-oak A-frame trestles and one black steel beam."
+  },
+  {
+    "id": "nook-natural-closed",
+    "scene": "nook",
+    "tone": "natural",
+    "state": "closed",
+    "seed": 16,
+    "view": "hero",
+    "model": "us.stability.stable-image-control-structure-v1:0 + stable-image-search-replace-v1:0 + stable-image-inpaint-v1:0",
+    "width": 2400,
+    "height": 1500,
+    "kind": "ai-visualisation",
+    "source": "own 3D render (renders-master) -> Bedrock Stability control-structure",
+    "widths": [
+      800,
+      1200,
+      1600
+    ],
+    "formats": [
+      "webp",
+      "avif"
+    ],
+    "alt_he": "הדמיה: שולחן גורן בגוון אלון טבעי בפינת אוכל שקטה מול וילון פשתן, אגרטל חימר קטן על השולחן",
+    "alt_en": "Visualisation: GOREN table in natural oak in a calm dining nook in front of a linen curtain, a small clay vase on the top",
+    "caption_he": "הדמיה. אלון טבעי בפינת אוכל עם וילון פשתן. פלטה בעובי 40 מ\"מ עם פאזה בצד התחתון.",
+    "caption_en": "Visualisation. Natural oak in a dining nook with a linen curtain. 40 mm top with the chamfer underneath."
+  },
+  {
+    "id": "evening-natural-closed",
+    "scene": "evening",
+    "tone": "natural",
+    "state": "closed",
+    "seed": 16,
+    "view": "hero",
+    "model": "us.stability.stable-image-control-structure-v1:0 + stable-image-search-replace-v1:0 + stable-image-inpaint-v1:0",
+    "width": 2400,
+    "height": 1500,
+    "kind": "ai-visualisation",
+    "source": "own 3D render (renders-master) -> Bedrock Stability control-structure",
+    "widths": [
+      800,
+      1200,
+      1600
+    ],
+    "formats": [
+      "webp",
+      "avif"
+    ],
+    "alt_he": "הדמיה: שולחן גורן בגוון אלון טבעי בערב באור מנורה חם, שתי כוסות על השולחן",
+    "alt_en": "Visualisation: GOREN table in natural oak in the evening under warm lamp light, two cups on the top",
+    "caption_he": "הדמיה. ערב, אור מנורה חם על גימור שמן-שעווה מט.",
+    "caption_en": "Visualisation. Evening, warm lamp light on the matte oil-wax finish."
+  },
+  {
+    "id": "apartment-smoked-closed",
+    "scene": "apartment",
+    "tone": "smoked",
+    "state": "closed",
+    "seed": 16,
+    "view": "hero",
+    "model": "us.stability.stable-image-control-structure-v1:0 + stable-image-search-replace-v1:0 + stable-image-inpaint-v1:0",
+    "width": 2400,
+    "height": 1500,
+    "kind": "ai-visualisation",
+    "source": "own 3D render (renders-master) -> Bedrock Stability control-structure",
+    "widths": [
+      800,
+      1200,
+      1600
+    ],
+    "formats": [
+      "webp",
+      "avif"
+    ],
+    "alt_he": "הדמיה: שולחן גורן בגוון אלון מעושן (חום כהה) בדירה, קערה עם אגסים על השולחן",
+    "alt_en": "Visualisation: GOREN table in smoked (dark brown) oak in an apartment, a bowl of pears on the top",
+    "caption_he": "הדמיה. גוון אלון מעושן: הרגליים והפלטה באותו גוון, הקורה שחורה.",
+    "caption_en": "Visualisation. Smoked oak: legs and top in the same tone, the beam black."
+  },
+  {
+    "id": "nook-white-closed",
+    "scene": "nook",
+    "tone": "white",
+    "state": "closed",
+    "seed": 16,
+    "view": "hero",
+    "model": "us.stability.stable-image-control-structure-v1:0 + stable-image-search-replace-v1:0 + stable-image-inpaint-v1:0",
+    "width": 2400,
+    "height": 1500,
+    "kind": "ai-visualisation",
+    "source": "own 3D render (renders-master) -> Bedrock Stability control-structure",
+    "widths": [
+      800,
+      1200,
+      1600
+    ],
+    "formats": [
+      "webp",
+      "avif"
+    ],
+    "alt_he": "הדמיה: שולחן גורן בגוון אלון מולבן בפינת אוכל מול וילון פשתן, אגרטל חימר על השולחן",
+    "alt_en": "Visualisation: GOREN table in whitewashed oak in a dining nook in front of a linen curtain, a clay vase on the top",
+    "caption_he": "הדמיה. גוון אלון מולבן בפינת אוכל בהירה.",
+    "caption_en": "Visualisation. Whitewashed oak in a bright dining nook."
+  }
+]

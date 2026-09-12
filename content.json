@@ -1,0 +1,48 @@
+{
+  "_comment": "Single source of truth for every name, number and third-party id on the site. Anything the owner must supply is an empty string; build.py refuses to build for production while a required one is empty.",
+
+  "BRAND_HE": "אלומה",
+  "BRAND_LAT": "ALUMA",
+  "MODEL_HE": "גורן",
+  "MODEL_LAT": "GOREN",
+  "TAGLINE": "רהיטי אלון, בהזמנה מראש",
+
+  "PRICE": "₪5,990",
+  "PRICE_PLAIN": "5990",
+  "PRICE_NOTE": "מחיר השקה · כולל מע״מ · משלוח והרכבה בכל הארץ",
+
+  "LEN_CLOSED": "160",
+  "LEN_OPEN": "220",
+  "WIDTH": "90",
+  "HEIGHT": "75",
+  "SEATS_CLOSED": "6",
+  "SEATS_OPEN": "10",
+  "LEAD_WEEKS": "8–10",
+  "WARRANTY_YEARS": "5",
+  "ASSEMBLY_MIN": "20–25",
+  "WEIGHT_KG": "55",
+  "VOLUME_M3": "0.31",
+  "BOX_A": "170×100×12",
+  "BOX_B": "125×40×22",
+  "TOP_MM": "40",
+  "LEAF_CM": "60",
+
+  "WA_NUMBER": "",
+  "META_PIXEL_ID": "",
+  "CLARITY_ID": "",
+
+  "COMPANY_NAME": "",
+  "COMPANY_ID": "",
+  "ADDRESS": "",
+  "CONTACT_EMAIL": "",
+  "PHONE": "",
+  "ACCESSIBILITY_CONTACT": "",
+  "_RETENTION_NOTE": "No retention period is published while none is decided: privacy.html states the lifecycle that actually exists (leads have no TTL, events 180 days, sessions 400 days). Set one, implement it in api/handler.py, then state it.",
+  "COURT_CITY": "",
+
+  "POLICY_DATE": "2 בספטמבר 2026",
+  "CONSENT_VERSION": "v2",
+  "VERSION": "0.1.0",
+  "YEAR": "2026",
+  "SITE_URL": "https://table.central-aparts.store"
+}

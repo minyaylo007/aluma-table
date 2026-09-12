@@ -1,0 +1,21 @@
+{
+  "name": "furniture",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "python build.py",
+    "dev": "python build.py && python tools/serve-preview.py",
+    "test:local": "python build.py && playwright test --config playwright.local.config.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "lighthouse": "^12.8.2"
+  }
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="t d" fill="currentColor">
+  <title id="t">אלומה</title>
+  <desc id="d">The beam: a solid parallelogram, width to height 3:4, top edge displaced a quarter of the height toward the right (leaning 14 degrees). No outline, no gradient. Fill is currentColor.</desc>
+  <path id="mark" d="M0,24H18L24,0H6Z"/>
+</svg>

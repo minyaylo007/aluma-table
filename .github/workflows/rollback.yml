@@ -1,0 +1,56 @@
+name: Rollback
+
+# Відкат / деплой будь-якої опублікованої версії однією дією (contracts/workflows.md «rollback.yml», FR-022…FR-024).
+# Далі — той самий шлях, що й звичайний деплой: deploy.yml рухає production на sha тегу, агент ставить, наглядач
+# чекає публічний health із номером і sha.
+#
+# Вимикач випуску (RELEASES_ENABLED) відкат НЕ зупиняє: його вимикають саме при поганій версії, і відкатитися в
+# цей момент мусить бути можна. Відкат доступний завжди, коли агент установлений, — тобто коли вже є
+# refs/heads/production. Немає її — «відкатувати нічого», без жодних правок репозиторію.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Published version to deploy, vX.Y.Z'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - name: Version, production ref, tag, release files
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must look like vX.Y.Z"; exit 1; }
+          if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/production" --silent 2>/dev/null; then
+            echo "::notice::refs/heads/production does not exist yet (the agent is not installed): nothing to roll back"
+            echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$VERSION" --silent 2>/dev/null \
+            || { echo "::error::tag $VERSION does not exist"; exit 1; }
+          assets="$(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')" \
+            || { echo "::error::release $VERSION does not exist"; exit 1; }
+          grep -qx "aluma-$VERSION.tar.gz" <<<"$assets" || { echo "::error::release $VERSION has no aluma-$VERSION.tar.gz"; exit 1; }
+          grep -qx "SHA256SUMS" <<<"$assets" || { echo "::error::release $VERSION has no SHA256SUMS"; exit 1; }
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: validate
+    if: needs.validate.outputs.ready == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/deploy.yml
+    with:
+      tag: ${{ needs.validate.outputs.tag }}

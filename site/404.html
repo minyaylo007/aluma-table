@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="{{t.lang}}" dir="{{t.dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{t.notfound_h1}} — {{t.brand}}</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/assets/styles-next.css">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f4f1ea">
+</head>
+<body>
+<a class="skip" href="#main">{{t.skip}}</a>
+<header class="masthead"><div class="wrap masthead-row">
+  <a class="brand" href="{{t.home}}">{{t.logo}}</a>
+</div></header>
+<main id="main" class="wrap wrap--narrow" style="padding-block:var(--stack)">
+  <p class="small">{{t.notfound_eyebrow}}</p>
+  <h1>{{t.notfound_h1}}</h1>
+  <p class="lede">{{t.notfound_p}}</p>
+  <p style="margin-block-start:1.5rem"><a class="btn" href="{{t.home}}">{{t.notfound_cta}}</a></p>
+</main>
+<footer class="foot wrap">
+  <nav><a href="{{t.link_privacy}}">{{t.footer_privacy}}</a><a href="{{t.link_terms}}">{{t.footer_terms}}</a><a href="{{t.link_accessibility}}">{{t.footer_accessibility}}</a></nav>
+  <p>© {{YEAR}} {{BRAND_HE}}</p>
+</footer>
+</body>
+</html>

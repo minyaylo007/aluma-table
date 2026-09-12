@@ -1,0 +1,6 @@
+# ruff — вузький набір правил, що дає нуль зауважень на master (research.md R7):
+# E9 — синтаксис, F — pyflakes (невизначені імена, невикористані імпорти тощо). Розширення — окремими PR.
+extend-exclude = ["node_modules", "ms-playwright", "dist", ".build", "assets-src", ".claude"]
+
+[lint]
+select = ["E9", "F"]

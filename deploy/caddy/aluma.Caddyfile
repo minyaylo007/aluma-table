@@ -1,0 +1,15 @@
+# ALUMA — ЗАМІНЕНО 11.09.2026. Цей файл більше НЕ конфіг, у Caddy його не ставити.
+#
+# Блок сайту розділено на три файли в цій же теці:
+#   aluma-site-body.caddyfile — спільне тіло (статика, API, 404, кеш, заголовки);
+#   aluma-table-new.caddyfile — перевірочне table-new.central-aparts.store, ставиться зараз;
+#   aluma-table.caddyfile     — бойове table.central-aparts.store, у день переключення DNS.
+# Що і як ставить Денис — REQUEST-DENIS.md.
+#
+# Старе імʼя aluma.95-216-10-169.sslip.io прибрано (правило власника 17: лише домени
+# central-aparts.store). Варіант (б) Caddy → nginx прибрано: рішення власника
+# 11.09 — фронт лише Caddy; розбір варіантів лишається в deploy/README.md.
+#
+# Файл лишено заглушкою, бо на нього ще посилаються deploy/README.md,
+# deploy/nginx/aluma.conf, docs/CUTOVER-CHECKLIST.md і CLAUDE.md. Коли посилання
+# переведуть на нові файли — цю заглушку видалити.

@@ -1,0 +1,22 @@
+# ALUMA — БОЙОВЕ імʼя: table.central-aparts.store
+#
+# Що це        блок бойового сайту ALUMA на ace-main.
+# Коли ставити ТІЛЬКИ В ДЕНЬ ПЕРЕКЛЮЧЕННЯ DNS, коли A-запис
+#              table.central-aparts.store уже переведено з CloudFront на
+#              95.216.10.169. Раніше — не можна: поки запис дивиться на
+#              CloudFront, Caddy не отримає сертифікат і безкінечно
+#              повторюватиме ACME-спроби в лог.
+# Як ставити   цей файл і aluma-site-body.caddyfile — в одну теку (import нижче
+#              відносний, від теки ЦЬОГО файлу), напр. /etc/caddy/aluma/; у
+#              /etc/caddy/Caddyfile — один рядок:
+#                  import aluma/aluma-table.caddyfile
+# Як прибрати  (відкат переключення) повернути A-запис на CloudFront, видалити
+#              цей рядок import і зробити reload. Інші сайти не зачіпаються.
+#
+# Тіло блоку (статика, API, 404, кеш, заголовки) — aluma-site-body.caddyfile,
+# спільне з перевірочним aluma-table-new.caddyfile. Тут його НЕ правити.
+# Покроково для Дениса — REQUEST-DENIS.md поруч.
+
+table.central-aparts.store {
+	import aluma-site-body.caddyfile
+}

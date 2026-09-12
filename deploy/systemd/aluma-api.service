@@ -1,0 +1,79 @@
+# ALUMA fx-api — gunicorn перед api/handler.py.
+#
+# ЩЕ НЕ ВСТАНОВЛЕНО. Файл лежить «у стіл»: реєстрацію юніта робить власник
+# (у нас на цій машині нема root і нема групи docker).
+#
+# УВАГА, ІМʼЯ. Правило машини: усі фонові сервіси Ігоря мають префікс `ihor-`.
+# У репозиторії файл названо БЕЗ префікса — щоб поруч із ним у теці лежали
+# aluma-purge.service/.timer під тим самим коренем. У систему він ставиться
+# ПІД ПРЕФІКСОМ:
+#
+#   sudo cp deploy/systemd/aluma-api.service /etc/systemd/system/ihor-aluma-api.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ihor-aluma-api
+#
+# Тобто в systemd юніт зветься ihor-aluma-api.service. Те саме для таймера
+# чистки: ihor-aluma-purge.service / ihor-aluma-purge.timer.
+#
+# ПОРТ 8005. На цій машині 8000-8003 слухають чужі БОЙОВІ проєкти
+# (8000 УЗД, 8001 iiko, 8002 atmosphere, 8003 теніс), 8004 зайняв
+# central-aparts-site. Перший вільний — 8005. Порт згадується у двох місцях:
+# тут (-b) і в deploy/nginx/aluma.conf (proxy_pass). Міняти ТІЛЬКИ разом.
+
+[Unit]
+Description=ALUMA fx-api — leads/events/admin (gunicorn)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ihor
+Group=ihor
+WorkingDirectory=/opt/ihor/aluma-table
+
+# Секрети (ADMIN_PASS, IP_SALT, TELEGRAM_BOT_TOKEN) — тільки тут, ніколи в git.
+# Склад файлу: deploy/aluma.env.example.
+EnvironmentFile=/etc/aluma/aluma.env
+
+# FX_DB_PATH у оточенні — відносний шлях рахується від WorkingDirectory.
+# Радимо абсолютний: /opt/ihor/aluma-table/data/aluma.db.
+#
+# --no-control-socket — НЕ ПРИБИРАТИ, це не прикраса. gunicorn >= 25.1 при
+# старті відкриває керуючий сокет $XDG_RUNTIME_DIR/gunicorn.ctl
+# (/run/user/1001/gunicorn.ctl), а без XDG_RUNTIME_DIR, як у системному
+# юніті, ~/.gunicorn/gunicorn.ctl. В обох випадках шлях ОДИН НА
+# КОРИСТУВАЧА, а не на процес. Під тим самим ihor живе ще gunicorn сайту
+# central-aparts-site (127.0.0.1:8004). gunicorn 26.2.0 при старті ЗНОСИТЬ
+# чужий сокет і ставить свій, а при зупинці видаляє той, що лежить. Тобто хто
+# стартував останнім, той і забрав сокет, а другий зупиняється і забирає його
+# в сусіда. Помилка створення — лише warning, тому ніхто цього не помітить.
+# Керуючий сокет нам не потрібен: керуємо через systemd і сигнали по PID
+# (ExecReload нижче). Прапорець є з gunicorn 25.1.0, див.
+# deploy/requirements-server.txt.
+ExecStart=/opt/ihor/aluma-table/.venv/bin/gunicorn \
+    -w 2 --threads 4 --timeout 60 \
+    --no-control-socket \
+    -b 127.0.0.1:8005 \
+    api.wsgi:application
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+Restart=always
+RestartSec=3
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-api
+
+# Мінімальний захист: сервіс пише рівно в одну теку — свою базу SQLite.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/ihor/aluma-table/data
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,325 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  fx-table — pre-launch smoke-test landing page for one dining table (Hebrew, IL).
+  Fully isolated from the "aparts" stack: own tables, bucket, distribution, role.
+
+Parameters:
+  SiteDomain:
+    Type: String
+    Default: table.central-aparts.store
+  CertificateArn:
+    Type: String
+    Description: ACM cert in us-east-1 covering SiteDomain
+  AdminUser:
+    Type: String
+    Default: ""
+    Description: HTTP basic auth user for /admin. Empty disables /admin.
+  AdminPass:
+    Type: String
+    Default: ""
+    NoEcho: true
+  IpSalt:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Salt for hashing visitor IPs. Raw IPs are never stored.
+  WhatsappNumber:
+    Type: String
+    Default: ""
+    Description: E.164 without plus, e.g. 972501234567. Empty hides WhatsApp CTAs.
+  TelegramBotToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Bot token for owner lead notifications. Empty disables Telegram.
+  OwnerTelegramChatId:
+    Type: String
+    Default: ""
+    Description: Owner chat id that receives new-lead messages. Empty disables Telegram.
+  EdgeSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: >-
+      Shared secret CloudFront injects as x-fx-edge. The API rejects anything
+      without it, so the public execute-api URL cannot be used to bypass
+      CloudFront (and with it the rate limits and bot filter).
+  AppVersion:
+    Type: String
+    Default: "0.1.0"
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 15
+    MemorySize: 512
+    Architectures: [arm64]
+
+Resources:
+
+  # ---------- data ----------
+  FxEventsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: fx_events
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - { Key: project, Value: fx-table }
+
+  FxLeadsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: fx_leads
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - { Key: project, Value: fx-table }
+
+  FxSessionsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: fx_sessions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: session_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: session_id, KeyType: HASH }
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - { Key: project, Value: fx-table }
+
+  # ---------- api ----------
+  FxApi:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: fx-table-api
+      CodeUri: ../api/
+      Handler: handler.lambda_handler
+      Environment:
+        Variables:
+          EVENTS_TABLE: !Ref FxEventsTable
+          LEADS_TABLE: !Ref FxLeadsTable
+          SESSIONS_TABLE: !Ref FxSessionsTable
+          ADMIN_USER: !Ref AdminUser
+          ADMIN_PASS: !Ref AdminPass
+          IP_SALT: !Ref IpSalt
+          WHATSAPP_NUMBER: !Ref WhatsappNumber
+          TELEGRAM_BOT_TOKEN: !Ref TelegramBotToken
+          OWNER_TELEGRAM_CHAT_ID: !Ref OwnerTelegramChatId
+          SITE_DOMAIN: !Ref SiteDomain
+          EDGE_SECRET: !Ref EdgeSecret
+          APP_VERSION: !Ref AppVersion
+          # api/handler.py типово бере SQLite (відносний data/aluma.db) — це режим
+          # власного сервера. У лямбді робоча папка /var/task лише для читання:
+          # без цього рядка api/store.py впаде на os.makedirs, і кожна заявка й
+          # подія отримає 500 internal (сповіщення не піде, health лишиться
+          # зеленим) — див. tests/test_lambda_no_fx_storage.py. Тому сказати про
+          # DynamoDB мусить саме шаблон.
+          FX_STORAGE: dynamodb
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref FxEventsTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref FxLeadsTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref FxSessionsTable }
+
+  # An HTTP API rather than a Lambda function URL: function URLs in this account
+  # answer 403 to every caller regardless of auth mode (public NONE and
+  # CloudFront-OAC AWS_IAM both refused, with correct resource policies and zero
+  # invocations reaching the function). See night/DECISIONS.md D-021.
+  # HTTP API uses the same payload v2.0 shape, so the handler is unchanged.
+  FxHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      DefinitionBody:
+        openapi: 3.0.1
+        info: { title: fx-table-api, version: "1.0" }
+        paths:
+          /{proxy+}:
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                payloadFormatVersion: "2.0"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FxApi.Arn}/invocations"
+              responses: {}
+
+  FxApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt FxApi.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FxHttpApi}/*"
+
+  # ---------- static site ----------
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "fx-table-site-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      Tags:
+        - { Key: project, Value: fx-table }
+
+  # /en/ -> /en/index.html: DefaultRootObject only covers the site root, and S3 has no
+  # directory index. A viewer-request function is the standard, free-tier fix.
+  IndexRewrite:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: fx-table-index-rewrite
+      AutoPublish: true
+      FunctionConfig:
+        Comment: append index.html to directory requests
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var req = event.request;
+          if (req.uri.endsWith('/')) { req.uri += 'index.html'; }
+          return req;
+        }
+
+  SiteOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: fx-table-site-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: fx-table landing (IL smoke test)
+        Aliases: [ !Ref SiteDomain ]
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: s3site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOac.Id
+            S3OriginConfig: { OriginAccessIdentity: "" }
+          - Id: lambdaapi
+            DomainName: !Sub "${FxHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+            OriginCustomHeaders:
+              - HeaderName: x-fx-edge
+                HeaderValue: !Ref EdgeSecret
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+              OriginReadTimeout: 30
+        DefaultCacheBehavior:
+          TargetOriginId: s3site
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt IndexRewrite.FunctionMetadata.FunctionARN
+        CacheBehaviors:
+          - PathPattern: /api/fx/*
+            TargetOriginId: lambdaapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
+            Compress: true
+          - PathPattern: /admin*
+            TargetOriginId: lambdaapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
+            Compress: true
+        # S3 behind OAC answers 403 for a missing key (no s3:ListBucket granted),
+        # so 403 is the "page not found" signal. 404 is left alone on purpose:
+        # the API returns JSON 404s and must not be rewritten into an HTML page.
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 404
+            ResponsePagePath: /404
+            ErrorCachingMinTTL: 60
+      Tags:
+        - { Key: project, Value: fx-table }
+
+  # AllViewerExceptHostHeader would forward Authorization, which OAC needs to own.
+  ApiOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: fx-table-api-origin-request
+        Comment: All viewer headers except Host and Authorization (OAC signs those)
+        HeadersConfig:
+          HeaderBehavior: allExcept
+          Headers: [host, authorization]
+        CookiesConfig: { CookieBehavior: all }
+        QueryStringsConfig: { QueryStringBehavior: all }
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub "${SiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+Outputs:
+  SiteUrl:
+    Value: !Sub "https://${SiteDomain}"
+  DistributionId:
+    Value: !Ref Distribution
+  DistributionDomain:
+    Value: !GetAtt Distribution.DomainName
+  SiteBucketName:
+    Value: !Ref SiteBucket
+  ApiEndpoint:
+    Value: !Sub "https://${FxHttpApi}.execute-api.${AWS::Region}.amazonaws.com"

@@ -1,0 +1,9 @@
+{"repo_url": "https://github.com/minyaylo007/aluma-table",
+ "ref": "refs/heads/production", "tag_glob": "refs/tags/v*",
+ "asset_name": "aluma-{tag}.tar.gz",
+ "base_dir": "/opt/ihor/aluma-table", "keep_releases": 10,
+ "requirements": "deploy/requirements-server.txt",
+ "units_dir": "deploy/systemd/user", "restart_unit": "ihor-aluma-api.service",
+ "health_url": "http://127.0.0.1:8005/api/fx/health", "health_timeout_s": 60,
+ "static_src": "dist/", "static_dst": "/srv/aluma/",
+ "rsync_flags": ["-a", "--delete-after", "--delay-updates", "--chmod=D0755,F0644"]}

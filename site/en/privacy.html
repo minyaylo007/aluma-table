@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy policy — {{BRAND_LAT}}</title>
+<meta name="description" content="What information the {{BRAND_LAT}} site collects, why, for how long, and how to see or delete it.">
+<link rel="alternate" hreflang="he" href="{{SITE_URL}}/privacy">
+<link rel="alternate" hreflang="en" href="{{SITE_URL}}/en/privacy">
+<link rel="stylesheet" href="/assets/styles-next.css">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f4f1ea">
+</head>
+<body>
+<a class="skip" href="#main">{{t.skip}}</a>
+<header class="masthead"><div class="wrap masthead-row">
+  <a class="brand" href="/en/">{{t.logo}}</a>
+  <nav><a class="lang" href="/privacy" hreflang="he" lang="he">{{t.switch_lang}}</a></nav>
+</div></header>
+
+<main id="main" class="wrap wrap--narrow prose" style="padding-block:var(--stack)">
+  <h1>Privacy policy</h1>
+  <p class="lede">Last updated: <time>{{POLICY_DATE}}</time></p>
+  <p class="legal-note">This is a courtesy translation. The <a href="/privacy" hreflang="he" lang="he">Hebrew version</a> is the binding one.</p>
+
+  <h2>1. Who we are</h2>
+  <p>This site is operated by {{COMPANY_NAME}} (“we” or “the Company”), no. {{COMPANY_ID}}, of {{ADDRESS}}.
+  For any privacy question contact us at {{CONTACT_EMAIL}} or {{PHONE}}.</p>
+
+  <h2>2. What information we collect</h2>
+  <p>When you fill in the contact form we collect your name, phone number, city and the note you wrote, together
+  with the choices you made on the site — table length and tone.</p>
+  <p>We also collect technical browsing data: pages viewed, how you arrived at the site, device type, screen size
+  and browser language. <strong>We do not store your IP address.</strong> The IP address is passed through a
+  one-way hash with a secret key and only the result is kept — it lets us count visitors and detect abuse, and
+  the address itself cannot be recovered from it.</p>
+
+  <h2>3. Providing information is voluntary</h2>
+  <p>You are under no legal obligation to give us any information. You provide it of your own free will and with
+  your consent. If you choose not to, we will not be able to contact you or update you about the product — and
+  that is the only consequence.</p>
+
+  <h2>4. What we use it for</h2>
+  <ul>
+    <li>to contact you about your enquiry and answer your questions;</li>
+    <li>to update you about the launch date, availability and price of the product;</li>
+    <li>to send marketing messages — only if you ticked the separate, explicit consent in the form;</li>
+    <li>to analyse how the site is used and improve it.</li>
+  </ul>
+  <p>We will not use your details for any other purpose without asking you first.</p>
+
+  <h2>5. Who it is shared with</h2>
+  <p>We do not sell, rent or trade your details. The data is stored on Amazon Web Services in the Frankfurt,
+  Germany region. Site analytics run on our own servers. If and when we enable a third-party measurement tool,
+  it will load only after you have acknowledged the cookie notice, and this page will be updated. We will disclose
+  information if required by law or by a court order.</p>
+
+  <h2>6. How long we keep it</h2>
+  <p>We are pre-launch, so this describes exactly what happens today rather than what we promise:</p>
+  <ul>
+    <li><strong>Enquiry details</strong> (name, phone, city, comment and the choices you made on the site) are kept
+    until we delete them. There is no automatic deletion of them at present. A fixed retention period will be set and
+    published here before launch; until then, a deletion request is handled within the period set by law.</li>
+    <li><strong>Usage data</strong> (browsing events) is deleted automatically after <span class="num">180</span> days.</li>
+    <li><strong>The visit record</strong> (a temporary identifier, device type, country and a hash of your IP address)
+    is deleted automatically after <span class="num">400</span> days.</li>
+  </ul>
+
+  <h2>7. Security</h2>
+  <p>Traffic to the site is encrypted (HTTPS), access to the data is limited to the permissions actually needed, and
+  IP addresses are kept only as hashes. No system is completely secure, however, and we cannot promise absolute
+  immunity.</p>
+
+  <h2>8. Your rights</h2>
+  <p>Under the Israeli Protection of Privacy Law, 5741-1981, you have the right to:</p>
+  <ul>
+    <li><strong>access</strong> — receive the personal information we hold about you;</li>
+    <li><strong>correction</strong> — ask us to correct information that is wrong, incomplete, unclear or out of date;</li>
+    <li><strong>deletion</strong> — ask us to delete your details, subject to the law;</li>
+    <li><strong>opt out of marketing</strong> — ask at any time that your details not be used for marketing.</li>
+  </ul>
+  <p>To exercise any of these, write to {{CONTACT_EMAIL}}. We will reply within the period the law sets.</p>
+
+  <h2>9. Cookies and measurement</h2>
+  <p>The site stores in your browser the choices you made (length and tone), a flag that you have seen the cookie
+  notice, and a temporary identifier for the current visit, used for statistical counting. You can block or delete
+  these in your browser settings; blocking may affect some functions. If you arrived with the parameter
+  <span class="num" dir="ltr">?me=1</span>, a cookie is set that removes you from measurement entirely.</p>
+
+  <h2>10. Minors</h2>
+  <p>The site is not intended for anyone under <span class="num">18</span>, and we do not knowingly collect
+  information about minors.</p>
+
+  <h2>11. Changes</h2>
+  <p>We may update this policy from time to time. The current version is published on this page with its date,
+  and it is the version that applies.</p>
+</main>
+
+<footer class="foot wrap">
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/terms">{{t.footer_terms}}</a>
+    <a href="/en/accessibility">{{t.footer_accessibility}}</a>
+  </nav>
+  <p><small>© {{YEAR}} {{BRAND_LAT}}</small></p>
+</footer>
+</body>
+</html>

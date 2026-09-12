@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="{{t.lang}}" dir="{{t.dir}}" data-size="160" data-oak="natural">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{t.html_title}}</title>
+<meta name="description" content="{{t.meta_description}}">
+<link rel="canonical" href="{{SITE_URL}}{{t.home}}">
+<link rel="alternate" hreflang="he" href="{{SITE_URL}}/">
+<link rel="alternate" hreflang="en" href="{{SITE_URL}}/en/">
+<link rel="alternate" hreflang="x-default" href="{{SITE_URL}}/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="{{t.locale}}">
+<meta property="og:site_name" content="{{BRAND_HE}}">
+<meta property="og:title" content="{{t.html_title}}">
+<meta property="og:description" content="{{t.meta_description}}">
+<meta property="og:url" content="{{SITE_URL}}{{t.home}}">
+<meta property="og:image" content="{{SITE_URL}}/assets/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f4f1ea">
+<link rel="preload" href="{{t.font_preload_a}}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{t.font_preload_b}}" as="font" type="font/woff2" crossorigin>
+{{HERO_PRELOAD}}
+<link rel="stylesheet" href="/assets/styles-next.css">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<a class="skip" href="#main">{{t.skip}}</a>
+
+<header class="masthead">
+  <div class="wrap masthead-row">
+    <a class="brand" href="{{t.home}}">{{t.logo}}</a>
+    <nav aria-label="{{t.nav_label}}">
+      <a class="nav-quiet" href="#table">{{t.nav_table}}</a>
+      <a class="nav-quiet" href="#dimensions">{{t.nav_dimensions}}</a>
+      <a class="nav-quiet" href="#faq">{{t.nav_faq}}</a>
+      <a class="nav-contact js-anchor" href="#form" data-placement="masthead">{{t.nav_contact}}</a>
+      <a class="lang" href="{{t.switch_lang_href}}" hreflang="{{t.switch_lang_code}}" lang="{{t.switch_lang_code}}">{{t.switch_lang}}</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- 1. Masthead + studio portrait -->
+<section class="hero" data-section="hero" aria-labelledby="hero-h1">
+  <div class="wrap hero-head">
+    <p class="identity"><bdi>{{t.hero_identity}}</bdi></p>
+    <h1 id="hero-h1">{{t.hero_h1}}</h1>
+    <p class="hero-line">{{t.hero_line}}</p>
+  </div>
+  <figure class="stage">
+    {{PIC_HERO}}
+    <figcaption class="stage-tag">{{t.render_tag}}</figcaption>
+  </figure>
+  <div class="wrap band" id="band">
+    <div class="band-price">
+      <p class="price"><bdi>{{PRICE}}</bdi></p>
+      <p class="price-incl">{{t.price_incl}}</p>
+    </div>
+    <div class="band-notes">
+      <p>{{t.hero_note_1}}</p>
+      <p>{{t.hero_note_2}}</p>
+    </div>
+    <div class="band-actions hero-actions">
+      <a class="btn btn--primary js-anchor" href="#form" data-placement="hero">{{t.cta_call}}</a>
+      <a class="btn btn--line js-wa{{WA_CLASS}}" href="#" data-placement="hero" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1s-.6.8-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.4 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.3.3-.9.9-.9 2.1s.9 2.5 1 2.6c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.2-.2-.2-.5-.3z"/></svg>
+        <span>{{t.cta_whatsapp}}</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- 2. One table, two states -->
+<section class="wrap compare" id="table" data-section="configure" aria-labelledby="cmp-h2">
+  <div class="compare-head">
+    <h2 id="cmp-h2">{{t.cmp_h2}}</h2>
+    <p class="lede">{{t.cmp_lede}}</p>
+  </div>
+  <div class="compare-grid">
+    <figure class="compare-media" id="compare-media">
+      {{PIC_COMPARE}}
+      <img id="compare-buf" class="compare-buf" alt="" aria-hidden="true" decoding="async" width="{{COMPARE_W}}" height="{{COMPARE_H}}">
+      <figcaption class="compare-caption">
+        <span>{{t.cmp_caption}}</span>
+        <button type="button" class="textbtn" id="compare-zoom">{{t.cmp_zoom}}</button>
+      </figcaption>
+    </figure>
+    <div class="compare-controls">
+      <fieldset class="control control--state">
+        <legend>{{t.cmp_state_label}}</legend>
+        <div class="seg" role="presentation">
+          <label class="seg-opt"><input type="radio" name="size" value="160" checked><span>{{t.state_closed_btn}}</span></label>
+          <label class="seg-opt"><input type="radio" name="size" value="220"><span>{{t.state_open_btn}}</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="control control--finish">
+        <legend>{{t.finish_label}}</legend>
+        <div class="finishes">
+          <label class="finish"><input type="radio" name="oak" value="natural" checked>{{FINISH_NATURAL}}<span class="finish-name">{{t.tone_natural}}</span></label>
+          <label class="finish"><input type="radio" name="oak" value="smoked">{{FINISH_SMOKED}}<span class="finish-name">{{t.tone_smoked}}</span></label>
+          <label class="finish"><input type="radio" name="oak" value="white">{{FINISH_WHITE}}<span class="finish-name">{{t.tone_white}}</span></label>
+        </div>
+      </fieldset>
+      <p class="state-line"><span class="state-label">{{t.cmp_summary_label}}</span> <span class="state-value"><span>{{t.model_name}}</span>, <span data-bind="oak">{{t.tone_natural_long}}</span>, <span data-bind="state">{{t.state_closed}}</span> <bdi><span class="num" data-bind="len">{{LEN_CLOSED}}</span> {{t.cm}}</bdi></span></p>
+      <a class="linkbtn js-anchor" href="#form" data-placement="config">{{t.cmp_cta}}</a>
+    </div>
+  </div>
+</section>
+
+<!-- 3. At home -->
+<section class="wrap home" data-section="home" aria-labelledby="home-h2">
+  <h2 id="home-h2" class="sr">{{t.home_h2}}</h2>
+  <figure class="home-figure reveal">
+    {{PIC_HOME}}
+    <figcaption class="quiet-caption">{{t.home_caption}}</figcaption>
+  </figure>
+  <p class="home-p">{{t.home_p}} <a href="#dimensions">{{t.home_link}}</a></p>
+</section>
+
+<!-- 4. Materials -->
+<section class="wrap materials" data-section="materials" aria-labelledby="mat-h2">
+  <h2 id="mat-h2">{{t.mat_h2}}</h2>
+  <div class="detail detail--edge reveal">
+    <figure class="detail-media">
+      {{PIC_EDGE}}
+      <figcaption class="quiet-caption">{{t.mat_caption}}</figcaption>
+    </figure>
+    <div class="detail-text">
+      <h3>{{t.mat_edge_h3}}</h3>
+      <p>{{t.mat_edge_p}}</p>
+      {{EDGE_SVG}}
+    </div>
+  </div>
+  <div class="detail detail--frame reveal">
+    <figure class="detail-media">
+      {{PIC_FRAME}}
+      <figcaption class="quiet-caption">{{t.mat_caption}}</figcaption>
+    </figure>
+    <div class="detail-text">
+      <h3>{{t.mat_frame_h3}}</h3>
+      <p>{{t.mat_frame_p}}</p>
+      <dl class="rows rows--compact">
+        <div><dt>{{t.mat_top}}</dt><dd>{{t.mat_top_v}}</dd></div>
+        <div><dt>{{t.mat_edge}}</dt><dd>{{t.mat_edge_v}}</dd></div>
+        <div><dt>{{t.mat_legs}}</dt><dd>{{t.mat_legs_v}}</dd></div>
+        <div><dt>{{t.mat_beam}}</dt><dd>{{t.mat_beam_v}}</dd></div>
+        <div><dt>{{t.mat_finish}}</dt><dd>{{t.mat_finish_v}}</dd></div>
+        <div><dt>{{t.mat_tones}}</dt><dd>{{t.mat_tones_v}}</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Dimensions and fit -->
+<section class="wrap dims" id="dimensions" data-section="size" aria-labelledby="dim-h2">
+  <div class="dims-head">
+    <h2 id="dim-h2">{{t.dim_h2}}</h2>
+    <p class="lede">{{t.dim_lede}}</p>
+  </div>
+  <div class="dims-grid">
+    <div class="dims-drawings">
+      {{ELEVATION_SVG}}
+      <div class="plan-wrap">{{PLAN_SVG}}</div>
+      <p class="quiet-caption">{{t.dim_caption}}</p>
+    </div>
+    <div class="dims-data">
+      <dl class="rows rows--dims">
+        <div><dt>{{t.dim_closed}}</dt><dd><bdi class="num">{{LEN_CLOSED}}×{{WIDTH}}×{{HEIGHT}}</bdi> {{t.cm}}</dd></div>
+        <div><dt>{{t.dim_open}}</dt><dd><bdi class="num">{{LEN_OPEN}}×{{WIDTH}}×{{HEIGHT}}</bdi> {{t.cm}}</dd></div>
+        <div><dt>{{t.dim_width}}</dt><dd><bdi class="num">{{WIDTH}}</bdi> {{t.cm}}</dd></div>
+        <div><dt>{{t.dim_height}}</dt><dd><bdi class="num">{{HEIGHT}}</bdi> {{t.cm}}</dd></div>
+        <div><dt>{{t.dim_top}}</dt><dd><bdi class="num">{{TOP_MM}}</bdi> {{t.mm}}</dd></div>
+        <div><dt>{{t.dim_leaf}}</dt><dd>{{t.dim_leaf_v}}</dd></div>
+        <div><dt>{{t.dim_seats}}</dt><dd>{{t.dim_seats_v}}</dd></div>
+      </dl>
+      <div class="seg seg--dims" role="group" aria-label="{{t.cmp_state_label}}">
+        <button type="button" class="seg-btn" data-set-size="160" aria-pressed="true">{{t.state_closed_btn}}</button>
+        <button type="button" class="seg-btn" data-set-size="220" aria-pressed="false">{{t.state_open_btn}}</button>
+      </div>
+      <details class="fit" id="fit">
+        <summary>{{t.fit_summary}}</summary>
+        <form id="fitform" novalidate class="fit-row">
+          <div class="field">
+            <label class="field-label" for="roomlen">{{t.fit_label}}</label>
+            <input type="text" id="roomlen" aria-describedby="fit-hint" name="roomlen" inputmode="decimal" autocomplete="off" placeholder="{{t.fit_placeholder}}" data-min="60" data-max="1500">
+            <span class="hint" id="fit-hint">{{t.fit_hint}}</span>
+          </div>
+        </form>
+        <div class="verdict" id="verdict" role="status" aria-live="polite"></div>
+        <p class="fit-note">{{t.fit_note}}</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Offer and process -->
+<section class="offer-band" data-section="price" aria-labelledby="offer-h2">
+  <div class="wrap offer">
+    <h2 id="offer-h2">{{t.offer_h2}}</h2>
+    <div class="offer-grid">
+      <dl class="rows rows--offer">
+        <div><dt>{{t.offer_price_k}}</dt><dd><bdi class="price-inline">{{PRICE}}</bdi> <span class="dd-note">{{t.offer_price_v}}</span></dd></div>
+        <div><dt>{{t.offer_incl_k}}</dt><dd>{{t.offer_incl_v}}</dd></div>
+        <div><dt>{{t.offer_lead_k}}</dt><dd>{{t.offer_lead_v}}</dd></div>
+        <div><dt>{{t.offer_warranty_k}}</dt><dd>{{t.offer_warranty_v}}</dd></div>
+        <div><dt>{{t.offer_pay_k}}</dt><dd>{{t.offer_pay_v}}</dd></div>
+      </dl>
+      <div class="steps">
+        <h3>{{t.offer_steps_h3}}</h3>
+        <ol>
+          <li><strong>{{t.step1_h}}</strong><span>{{t.step1_p}}</span></li>
+          <li><strong>{{t.step2_h}}</strong><span>{{t.step2_p}}</span></li>
+          <li><strong>{{t.step3_h}}</strong><span>{{t.step3_p}}</span></li>
+        </ol>
+        <a class="btn btn--primary js-anchor" href="#form" data-placement="offer">{{t.cta_call}}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. FAQ + enquiry -->
+<section class="wrap faq-sec" id="faq" data-section="faq" aria-labelledby="faq-h2">
+  <h2 id="faq-h2">{{t.faq_h2}}</h2>
+  <div class="faq" id="faq-list">{{t.faq}}</div>
+</section>
+
+<section class="wrap form-sec" id="form" data-section="form" aria-labelledby="form-h2">
+  <div class="form-grid">
+    <div class="form-intro">
+      <h2 id="form-h2">{{t.form_h2}}</h2>
+      <p class="lede">{{t.form_lede}}</p>
+      <div class="form-summary">
+        <h3>{{t.f_summary_h}}</h3>
+        <p class="form-selection"><span>{{t.model_name}}</span>, <span data-bind="oak">{{t.tone_natural_long}}</span>, <span data-bind="state">{{t.state_closed}}</span> <bdi><span class="num" data-bind="len">{{LEN_CLOSED}}</span> {{t.cm}}</bdi></p>
+        <p><bdi>{{PRICE}}</bdi>, {{t.f_summary_price}}</p>
+        <p>{{t.f_summary_next}}</p>
+      </div>
+    </div>
+    <form id="leadform" novalidate>
+      <noscript><style>#f-submit,#compare-zoom{display:none}</style><p class="formnote formnote--nojs">{{t.f_nojs}}</p></noscript>
+      <div class="field"><label class="field-label" for="f-name">{{t.f_name}}</label><input id="f-name" aria-describedby="e-name" name="name" type="text" dir="auto" autocomplete="name" required><span class="err" id="e-name" hidden></span></div>
+      <div class="field"><label class="field-label" for="f-phone">{{t.f_phone}}</label><input id="f-phone" aria-describedby="e-phone" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="{{t.f_phone_placeholder}}" required><span class="err" id="e-phone" hidden></span></div>
+      <div class="two">
+        <div class="field"><label class="field-label" for="f-city">{{t.f_city}} <span class="opt">{{t.f_optional}}</span></label><input id="f-city" name="city" type="text" dir="auto" autocomplete="address-level2"></div>
+        <div class="field"><label class="field-label" for="f-comment">{{t.f_comment}} <span class="opt">{{t.f_optional}}</span></label><textarea id="f-comment" name="comment" rows="3" dir="auto" placeholder="{{t.f_comment_placeholder}}"></textarea></div>
+      </div>
+      <div class="field hp" aria-hidden="true"><label for="f-website">{{t.f_hp}}</label><input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      <div class="consent">
+        <input type="checkbox" name="consent" id="f-consent" aria-describedby="consent-more e-consent" required>
+        <div class="consent-body"><label for="f-consent">{{t.f_consent}}</label><p id="consent-more">{{t.f_consent_more}}</p></div>
+      </div>
+      <span class="err err--consent" id="e-consent" hidden></span>
+      <div class="consent">
+        <input type="checkbox" name="consent_marketing" id="f-marketing">
+        <div class="consent-body"><label for="f-marketing">{{t.f_marketing}}</label></div>
+      </div>
+      <button class="btn btn--primary btn--wide" type="submit" id="f-submit">{{t.f_submit}}</button>
+      <p class="formstatus" id="f-status" role="status" aria-live="polite"></p>
+      <p class="formnote" id="f-note"></p>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<!-- 8. Seller / legal footer -->
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <a class="brand brand--small" href="{{t.home}}">{{t.logo_foot}}</a>
+      <p class="foot-seller"><span class="foot-k">{{t.footer_seller_k}}</span> {{COMPANY_NAME}}, {{COMPANY_ID}}, {{ADDRESS}}. {{CONTACT_EMAIL}}, <bdi>{{PHONE}}</bdi>.</p>
+    </div>
+    <nav class="foot-nav" aria-label="{{t.footer_nav_label}}">
+      <a href="{{t.link_privacy}}">{{t.footer_privacy}}</a>
+      <a href="{{t.link_terms}}">{{t.footer_terms}}</a>
+      <a href="{{t.link_accessibility}}">{{t.footer_accessibility}}</a>
+      <a class="js-wa{{WA_CLASS}}" href="#" data-placement="footer" rel="noopener">{{t.footer_whatsapp}}</a>
+      <a class="lang" href="{{t.switch_lang_href}}" hreflang="{{t.switch_lang_code}}" lang="{{t.switch_lang_code}}">{{t.switch_lang}}</a>
+    </nav>
+    <p class="prelaunch"><strong>{{t.footer_prelaunch_h}}</strong> {{t.footer_prelaunch}} {{t.footer_images}} {{t.footer_legal_note}}</p>
+    <p class="copyright">© {{YEAR}} {{BRAND_HE}}</p>
+  </div>
+</footer>
+
+<div class="stickybar" id="sticky" hidden inert>
+  <span class="sticky-price"><bdi>{{t.sticky_price}}</bdi></span>
+  <a class="btn btn--primary js-anchor" href="#form" data-placement="sticky">{{t.cta_call}}</a>
+</div>
+
+<dialog class="image-dialog" id="image-dialog" aria-labelledby="image-dialog-title">
+  <div class="dialog-head">
+    <p id="image-dialog-title" class="dialog-title"></p>
+    <button class="dialog-close" type="button" id="image-close" autofocus>{{t.gallery_close}}</button>
+  </div>
+  <div class="dialog-stage"><img id="image-large" alt="" width="{{COMPARE_W}}" height="{{COMPARE_H}}" decoding="async"></div>
+</dialog>
+
+<div class="notice" id="notice" hidden>
+  <span>{{t.notice}} <a href="{{t.link_privacy}}">{{t.footer_privacy}}</a>.</span>
+  <button type="button" id="notice-ok">{{t.notice_ok}}</button>
+</div>
+
+<script>window.FX = {{t.js_strings}};</script>
+<script src="/assets/app-next.js" defer></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Product","name":"{{BRAND_HE}} {{MODEL_HE}}","brand":{"@type":"Brand","name":"{{BRAND_HE}}"},
+ "description":"{{t.meta_description}}","material":"Oak veneer on plywood, solid oak edge and legs, steel beam",
+ "width":{"@type":"QuantitativeValue","value":{{WIDTH}},"unitCode":"CMT"},"height":{"@type":"QuantitativeValue","value":{{HEIGHT}},"unitCode":"CMT"},
+ "image":"{{SITE_URL}}{{JSONLD_IMAGE}}",
+ "offers":{"@type":"Offer","price":"{{PRICE_PLAIN}}","priceCurrency":"ILS","availability":"https://schema.org/PreOrder","url":"{{SITE_URL}}{{t.home}}"{{SELLER_JSONLD}}}}
+</script>
+</body>
+</html>

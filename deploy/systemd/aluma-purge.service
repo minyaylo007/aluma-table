@@ -1,0 +1,39 @@
+# ALUMA — суточна чистка бази SQLite (одноразовий запуск, кличе таймер).
+#
+# ЩЕ НЕ ВСТАНОВЛЕНО. Ставиться ПІД ПРЕФІКСОМ ihor- (правило машини):
+#   sudo cp deploy/systemd/aluma-purge.service /etc/systemd/system/ihor-aluma-purge.service
+#   sudo cp deploy/systemd/aluma-purge.timer   /etc/systemd/system/ihor-aluma-purge.timer
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ihor-aluma-purge.timer
+#
+# Перевірити руками, не чекаючи доби:
+#   sudo systemctl start ihor-aluma-purge.service
+#   journalctl -u ihor-aluma-purge -n 20
+
+[Unit]
+Description=ALUMA — purge expired rows + VACUUM (SQLite has no TTL)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+# База та сама, що в ihor-aluma-api: сервіс не зупиняємо, SQLite у режимі WAL
+# спокійно переживає паралельний DELETE. VACUUM візьме коротке блокування.
+After=network.target
+
+[Service]
+Type=oneshot
+User=ihor
+Group=ihor
+WorkingDirectory=/opt/ihor/aluma-table
+
+# Той самий файл, що й у API: потрібні FX_DB_PATH і, якщо задані, імена таблиць.
+EnvironmentFile=/etc/aluma/aluma.env
+
+ExecStart=/opt/ihor/aluma-table/.venv/bin/python scripts/purge.py
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-purge
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/ihor/aluma-table/data
