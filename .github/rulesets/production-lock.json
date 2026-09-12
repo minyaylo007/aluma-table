@@ -1,0 +1,15 @@
+{
+  "name": "production-lock",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/production"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {"type": "deletion"}
+  ]
+}

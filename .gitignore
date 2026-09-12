@@ -9,7 +9,6 @@ test-results/
 __pycache__/
 .lighthouseci/
 dist/
-package-lock.json
 _crit_*.js
 test-results/
 renders-master/
