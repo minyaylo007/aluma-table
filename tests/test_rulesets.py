@@ -154,6 +154,16 @@ class MasterTests(unittest.TestCase):
         self.assertEqual(params["required_approving_review_count"], 0)
         self.assertEqual(params["allowed_merge_methods"], ["squash"])
 
+    def test_nothing_can_demand_an_approval_behind_our_back(self):
+        """GitHub підставляє require_extra_approval_for_unattributed_changes = true, якщо не задати.
+
+        З ним PR, у якому є коміт із автором без прив'язаного акаунта GitHub (у нас це трейлер
+        Co-Authored-By помічника), зависає в очікуванні схвалення — і авто-merge не спрацьовує,
+        хоча схвалень потрібно нуль. Тому значення задане явно, а не лишене за замовчуванням.
+        """
+        params = rule(self.data, "pull_request")["parameters"]
+        self.assertIs(params["require_extra_approval_for_unattributed_changes"], False)
+
     def test_required_status_checks_are_exactly_the_ci_jobs(self):
         params = rule(self.data, "required_status_checks")["parameters"]
         contexts = sorted(c["context"] for c in params["required_status_checks"])
