@@ -1,0 +1,22 @@
+{
+  "name": "production",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [
+    {
+      "actor_id": 15368,
+      "actor_type": "Integration",
+      "bypass_mode": "always"
+    }
+  ],
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/production"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {"type": "update"},
+    {"type": "non_fast_forward"}
+  ]
+}
