@@ -10,7 +10,6 @@ __pycache__/
 .lighthouseci/
 dist/
 _crit_*.js
-test-results/
 renders-master/
 renders-test/
 _*.js
