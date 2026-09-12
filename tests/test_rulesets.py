@@ -4,23 +4,27 @@
 Тест тримає їх разом з рештою дерева: обов'язкові перевірки master зіставляються з іменами
 завдань `ci.yml`, тож перейменоване завдання не лишить правило з мертвою назвою.
 
-П'ять правил, бо обхід у GitHub задається на весь ruleset, а не на окреме правило, а R4 вимагає
-різного обходу для різних дій. Тому кожна пара розбита на «робоче» правило з обходом для
-застосунку GitHub Actions і «замок» без обходу взагалі:
+Три правила, і в жодному немає обходу. Так вийшло не з вибору, а з відмови GitHub: у ЛИЧНОМУ
+репозиторії застосунок GitHub Actions не можна дати в `bypass_actors` —
+«Actor GitHub Actions integration must be part of the ruleset source or owner organization»
+(422, перевірено 12.09.2026 обома файлами). Тому діє запасний варіант research.md R4:
 
-| ruleset           | цілі             | правила                    | обхід    |
-|-------------------|------------------|----------------------------|----------|
-| `master`          | `master`         | PR, перевірки, force, del  | немає    |
-| `tags-v`          | `refs/tags/v*`   | `creation`                 | Actions  |
-| `tags-v-lock`     | `refs/tags/v*`   | `update`, `deletion`       | немає    |
-| `production`      | `production`     | `update`, `non_fast_forward` | Actions |
-| `production-lock` | `production`     | `deletion`                 | немає    |
+| ruleset           | цілі                  | правила                              | обхід |
+|-------------------|-----------------------|--------------------------------------|-------|
+| `master`          | `refs/heads/master`   | PR, перевірки, `non_fast_forward`, `deletion` | немає |
+| `tags-v-lock`     | `refs/tags/v*`        | `update`, `deletion`                 | немає |
+| `production-lock` | `refs/heads/production` | `deletion`                         | немає |
 
-Тобто тег ставить лише конвеєр, а переписати чи видалити випущену версію не може НІХТО — навіть
-зламаний workflow із вбудованим `GITHUB_TOKEN`. Те саме для видалення ветки `production`, тоді як
-її перезапис назад (відкат) конвеєру лишається дозволеним.
+Що це дає: у `master` нічого не потрапляє без PR і п'яти зелених перевірок; випущений тег `v*` не
+перепише й не видалить НІХТО — навіть зламаний workflow; ветку `production` не видалить ніхто.
+Конвеєр при цьому працює: `release.yml` тег **створює** (`creation` не обмежений), `deploy.yml`
+двигає `refs/heads/production` (`update` і `non_fast_forward` не обмежені), і ні той, ні той нічого
+не видаляє. Чого правила вже не тримають: людина може руками поставити тег `v*` і руками зсунути
+`production` — це компенсує агент, який ставить лише коміт опублікованого тега `v*` з повним набором
+файлів релізу й зійшлими сумами (`contracts/production-ref.md`, R4 «запасний варіант»).
 
-Контракт — specs/001-release-pipeline/tasks.md T015, рішення — research.md R4.
+Контракт — specs/001-release-pipeline/tasks.md T015, рішення — research.md R4,
+живі докази — `verification.md`, розділ Phase 3.
 
     python -m unittest tests.test_rulesets -v
 """
@@ -37,14 +41,7 @@ from tests.test_workflows import jobs, read
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RULESETS = ROOT / ".github" / "rulesets"
 
-# Застосунок GitHub Actions: єдиний, кому взагалі дозволено обходити правила (вбудований
-# GITHUB_TOKEN завдань release/deploy/rollback). id — стабільний у GitHub, gh api /apps/github-actions.
-ACTIONS_APP_ID = 15368
-
-# Хто має обхід, а хто ні. Замки без обходу — суть п'ятифайлової розкладки, тому це окремий факт.
-WITH_BYPASS = ("tags-v", "production")
-WITHOUT_BYPASS = ("master", "tags-v-lock", "production-lock")
-ALL_NAMES = WITHOUT_BYPASS + WITH_BYPASS
+ALL_NAMES = ("master", "tags-v-lock", "production-lock")
 
 
 def load(name: str) -> dict:
@@ -93,7 +90,7 @@ class HelperTests(unittest.TestCase):
 
 class CommonTests(unittest.TestCase):
 
-    def test_there_are_exactly_five_rulesets(self):
+    def test_there_are_exactly_three_rulesets(self):
         """Файл, доданий без тесту, лишився б без перевірки — тому перелік закритий."""
         present = sorted(p.stem for p in RULESETS.glob("*.json"))
         self.assertEqual(present, sorted(ALL_NAMES))
@@ -111,32 +108,15 @@ class CommonTests(unittest.TestCase):
             self.assertEqual(data["name"], name)
             self.assertEqual(data["enforcement"], "active", name)
 
-    def test_locks_have_no_bypass_at_all(self):
-        """Замок без обходу — єдине, що зупиняє зламаний workflow. Порожній список тут обов'язковий."""
-        for name in WITHOUT_BYPASS:
-            self.assertEqual(load(name)["bypass_actors"], [], name)
+    def test_no_ruleset_has_any_bypass(self):
+        """Обходу немає нікде — ні адміністратор, ні роль, ні ключ розгортання, ні застосунок.
 
-    def test_the_only_bypass_anywhere_is_the_actions_app(self):
-        """Ні адміністратор, ні роль, ні ключ розгортання — лише застосунок Actions, і лише де треба."""
+        Це не суворість заради суворості: GitHub однаково не дає обходу для застосунку Actions в
+        особистому репозиторії (422), а будь-який ІНШИЙ обхід тут означав би, що правило можна
+        зняти руками — тобто правила немає.
+        """
         for name in ALL_NAMES:
-            for actor in load(name)["bypass_actors"]:
-                self.assertEqual(actor["actor_type"], "Integration", name)
-                self.assertEqual(actor["actor_id"], ACTIONS_APP_ID, name)
-                self.assertEqual(actor["bypass_mode"], "always", name)
-        for name in WITH_BYPASS:
-            self.assertEqual(len(load(name)["bypass_actors"]), 1, name)
-
-    def test_a_pair_covers_the_same_refs(self):
-        """Замок без тієї самої умови нічого не замикає."""
-        for work, lock in (("tags-v", "tags-v-lock"), ("production", "production-lock")):
-            self.assertEqual(load(work)["conditions"], load(lock)["conditions"])
-            self.assertEqual(load(work)["target"], load(lock)["target"])
-
-    def test_a_pair_does_not_repeat_the_same_rule(self):
-        """Те саме правило в обох файлах пари зробило б обхід у «робочому» безглуздим."""
-        for work, lock in (("tags-v", "tags-v-lock"), ("production", "production-lock")):
-            self.assertEqual(rule_types(load(work)) & rule_types(load(lock)), set(),
-                             f"{work} і {lock} перекриваються")
+            self.assertEqual(load(name)["bypass_actors"], [], name)
 
 
 class MasterTests(unittest.TestCase):
@@ -181,37 +161,41 @@ class MasterTests(unittest.TestCase):
         self.assertIn("deletion", rule_types(self.data))
 
 
-class TagsTests(unittest.TestCase):
+class TagsLockTests(unittest.TestCase):
 
-    def test_both_rulesets_target_version_tags(self):
-        for name in ("tags-v", "tags-v-lock"):
-            data = load(name)
-            self.assertEqual(data["target"], "tag", name)
-            self.assertEqual(data["conditions"]["ref_name"]["include"], ["refs/tags/v*"], name)
-            self.assertEqual(data["conditions"]["ref_name"]["exclude"], [], name)
+    def setUp(self):
+        self.data = load("tags-v-lock")
 
-    def test_only_the_pipeline_creates_a_version_tag(self):
-        self.assertEqual(rule_types(load("tags-v")), {"creation"})
+    def test_targets_version_tags(self):
+        self.assertEqual(self.data["target"], "tag")
+        self.assertEqual(self.data["conditions"]["ref_name"]["include"], ["refs/tags/v*"])
+        self.assertEqual(self.data["conditions"]["ref_name"]["exclude"], [])
 
     def test_nobody_rewrites_or_deletes_a_released_tag(self):
-        self.assertEqual(rule_types(load("tags-v-lock")), {"update", "deletion"})
+        self.assertEqual(rule_types(self.data), {"update", "deletion"})
+
+    def test_creation_is_not_restricted(self):
+        """`creation` обмежувати НЕ можна: обходу для Actions немає, і конвеєр не поставив би тег."""
+        self.assertNotIn("creation", rule_types(self.data))
 
 
-class ProductionTests(unittest.TestCase):
+class ProductionLockTests(unittest.TestCase):
 
-    def test_both_rulesets_target_the_production_branch(self):
-        for name in ("production", "production-lock"):
-            data = load(name)
-            self.assertEqual(data["target"], "branch", name)
-            self.assertEqual(data["conditions"]["ref_name"]["include"], ["refs/heads/production"], name)
-            self.assertEqual(data["conditions"]["ref_name"]["exclude"], [], name)
+    def setUp(self):
+        self.data = load("production-lock")
 
-    def test_only_the_pipeline_moves_the_ref_in_either_direction(self):
-        """Відкат — це перезапис назад, тому обхід non_fast_forward конвеєру потрібен."""
-        self.assertEqual(rule_types(load("production")), {"update", "non_fast_forward"})
+    def test_targets_the_production_branch(self):
+        self.assertEqual(self.data["target"], "branch")
+        self.assertEqual(self.data["conditions"]["ref_name"]["include"], ["refs/heads/production"])
+        self.assertEqual(self.data["conditions"]["ref_name"]["exclude"], [])
 
     def test_nobody_deletes_the_production_branch(self):
-        self.assertEqual(rule_types(load("production-lock")), {"deletion"})
+        self.assertEqual(rule_types(self.data), {"deletion"})
+
+    def test_moving_the_ref_is_not_restricted(self):
+        """`update` і `non_fast_forward` обмежувати НЕ можна: без обходу став би неможливим викат
+        (і відкат, який є перезаписом назад). Захист переніс на себе агент — contracts/production-ref.md."""
+        self.assertEqual(rule_types(self.data) & {"update", "non_fast_forward"}, set())
 
 
 if __name__ == "__main__":

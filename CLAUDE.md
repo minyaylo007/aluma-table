@@ -12,6 +12,11 @@ deleted 2026-09-11, everything else 2026-09-12, nothing of ALUMA left in AWS (`d
 (`systemctl --user`, 127.0.0.1:8005, env `~/.config/aluma/aluma.env`), static in `/srv/aluma`, health `0.4.0-box`.
 **After the agent is installed (T040):** GitHub releases land in `releases/vX.Y.Z` + `current`, installed by the pull
 agent `deploy/agent/pullagent.py` — `docs/DELIVERY.md` (both states, and what is not verified yet).
+**Repository:** `minyaylo007/aluma-table` is **public since 2026-09-12**, with a clean history — the tree as one
+snapshot commit. Everything older, and every old sha, lives in the private archive
+`minyaylo007/aluma-table-archive-2026-09` (its Actions are off): the old history describes weak spots of this machine,
+and stripping that out would mean rewriting history, which is forbidden. The repository name did not change, so
+`origin` stayed the same; links to Actions runs from before 12.09 point at the archive.
 
 ## 1. Core Principles
 - **Others' systems are untouchable**, Caddy included; **deploys go through the pipeline** (`docs/DELIVERY.md`),
@@ -165,10 +170,14 @@ the per-user control socket and breaks the central-aparts-site gunicorn running 
 (`deploy/systemd/aluma-api.service` comment). Stop processes **only by PID** — never `pkill`, `killall`, `pkill -f`.
 
 ## 9. AI Coding Assistant Instructions
-**Git.** Branch `master`. Now (before Phase 3): worktree → rebase → fast-forward to `master`; a push there runs the
-checks via `release.yml`, release and deploy stay off (`RELEASES_ENABLED` not set). After Phase 3: branch → PR →
-auto-merge only (ruleset). `git pull --rebase` first; `git add <explicit files>`, never `-A`; commit per step, push at
-once; never `git push --force` (constitution VI). Process — `docs/DELIVERY.md`.
+**Git.** Branch `master`, and since 2026-09-12 it is protected for everyone: **branch → PR → auto-merge only**. A
+fast-forward push to `master` is refused by the server (`GH013: Changes must be made through a pull request`), so do
+not try — open a PR and `gh pr merge --squash --auto`; it merges itself once `lint`, `test (3.12)`, `test (3.13)`,
+`build` and `browser` are green, and GitHub removes the branch. Release and deploy stay off (`RELEASES_ENABLED` not
+set). `git pull --rebase` first; `git add <explicit files>`, never `-A`; commit per step, push at once; never
+`git push --force` (constitution VI). The rulesets live in the repo as `.github/rulesets/*.json` — change a rule by
+editing the file and re-applying it, not in the web UI, or `tests/test_rulesets.py` will drift from reality.
+Process — `docs/DELIVERY.md`.
 
 **Caddy.** By default hands off. Any session may run `caddy validate`, `caddy adapt`, `caddy fmt` — on a copy with a
 global `admin off` block (`deploy/README.md`, `deploy/caddy/aluma.Caddyfile`). Never, with any config, including
@@ -211,6 +220,7 @@ request to port 2019 from a sentence *about* not touching Caddy. Grep long text 
 | Move to this server, step by step (secrets, FX_STORAGE, DNS window, rollback) | `docs/CUTOVER-CHECKLIST.md` |
 | Units, nginx, Caddy, env — what goes where, what was checked | `deploy/README.md`, `deploy/systemd/`, `deploy/nginx/`, `deploy/caddy/` |
 | Old AWS stack: Lambda rollout recipe and the teardown — both history, the stack is deleted | `docs/PROD-NOTIFY-DECISION.md`, `docs/AWS-TEARDOWN.md` |
+| Repository rules as files (what is applied, and why no bypass anywhere) | `.github/rulesets/*.json`, `tests/test_rulesets.py` |
 
 **Before marking done:** tests green (§8); `python3 build.py` exits 0 if `site/`, `i18n/`, `content.json` or
 `build.py` changed; `git status` shows only your files.
