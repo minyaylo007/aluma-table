@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -318,6 +319,31 @@ class RollbackYmlTests(unittest.TestCase):
     def test_no_secrets_no_foreign_actions(self):
         self.assertNotIn("secrets.", code(self.text))
         self.assertLessEqual(set(uses(self.text)) - {"./.github/workflows/deploy.yml"}, ALLOWED_ACTIONS)
+
+
+class TrackedFilesAreNotIgnoredTests(unittest.TestCase):
+    """Файл, який і відслідковується, і підпадає під .gitignore — тиха пастка.
+
+    12.09.2026 вона спрацювала: `package-lock.json` був у .gitignore (рядок лишився з часів до
+    Playwright), і при перенесенні дерева в новий репозиторій `git add -A` мовчки його викинув —
+    завдання `browser` впало на `npm ci` (прогін 34682721072). Тут перевіряється сам інваріант:
+    у дереві немає відслідковуваних файлів, які .gitignore вважає зайвими.
+    """
+
+    def tracked_but_ignored(self) -> list:
+        out = subprocess.run(["git", "ls-files", "-i", "-c", "--exclude-standard"],
+                             cwd=ROOT, capture_output=True, text=True, check=True)
+        return [line for line in out.stdout.splitlines() if line.strip()]
+
+    def test_no_tracked_file_is_ignored(self):
+        self.assertEqual(self.tracked_but_ignored(), [])
+
+    def test_npm_ci_has_its_lock_file(self):
+        """`browser` робить `npm ci`, а він без package-lock.json не працює взагалі."""
+        self.assertIn("npm ci", read("ci.yml"))
+        tracked = subprocess.run(["git", "ls-files", "package-lock.json"],
+                                 cwd=ROOT, capture_output=True, text=True, check=True).stdout
+        self.assertEqual(tracked.strip(), "package-lock.json")
 
 
 if __name__ == "__main__":
