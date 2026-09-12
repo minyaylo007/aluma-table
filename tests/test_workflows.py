@@ -338,6 +338,17 @@ class TrackedFilesAreNotIgnoredTests(unittest.TestCase):
     def test_no_tracked_file_is_ignored(self):
         self.assertEqual(self.tracked_but_ignored(), [])
 
+    def test_gitignore_has_no_duplicate_entries(self):
+        """Повторений рядок у .gitignore — ознака, що правило додали, не подивившись у файл.
+
+        Сам по собі він нічого не ламає, але саме так з'являються суперечливі правила (і саме
+        застарілий рядок про package-lock.json коштував нам зламаного прогону).
+        """
+        lines = [line.strip() for line in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()]
+        entries = [line for line in lines if line and not line.startswith("#")]
+        duplicates = sorted({e for e in entries if entries.count(e) > 1})
+        self.assertEqual(duplicates, [])
+
     def test_npm_ci_has_its_lock_file(self):
         """`browser` робить `npm ci`, а він без package-lock.json не працює взагалі."""
         self.assertIn("npm ci", read("ci.yml"))
