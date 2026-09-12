@@ -26,7 +26,7 @@
 
 ### GitHub Actions
 
-Прогін [34608006392](https://github.com/minyaylo007/aluma-table/actions/runs/34608006392) — подія `push` у гілку
+Прогін [34608006392](https://github.com/minyaylo007/aluma-table-archive-2026-09/actions/runs/34608006392) — подія `push` у гілку
 `001-phase2-ci`, коміт `4dc1fd6`, 14:04:46–14:06:35Z (≈ 2 хв):
 
 | Завдання | Висновок | Що в журналі |
@@ -54,7 +54,7 @@
 викликає — обов'язковий `branches-ignore: [master]`. `release.yml` одразу не ставиться: перший тег `v0.5.0` — лише
 після правила тегів (Phase 3, tasks.md «Dependencies»).
 
-Прогін [34613440508](https://github.com/minyaylo007/aluma-table/actions/runs/34613440508) — push у master `66350c0`:
+Прогін [34613440508](https://github.com/minyaylo007/aluma-table-archive-2026-09/actions/runs/34613440508) — push у master `66350c0`:
 lint, test (3.12), test (3.13), build, browser — усі success. Розрив закрито; диригент прийняв 08aebaa і 66350c0.
 
 ## Phase 3 — публікація репозиторію і захист master (2026-09-12)
@@ -96,35 +96,33 @@ lint, test (3.12), test (3.13), build, browser — усі success. Розрив 
 
 `ruff` — All checks passed; `unittest` — Ran 417 … OK; `python3 build.py` — exit 0.
 
-### T015. Правила як файли — п'ять, а не три
+### T015. Правила як файли — задумано п'ять, застосовано три
 
-Обхід (`bypass_actors`) у GitHub задається на **весь** ruleset, не на окреме правило, а R4 вимагає різного обходу
-для різних дій: тег ставить конвеєр, але переписати чи видалити випущену версію не може ніхто. В одному файлі так
-не розділити, тому кожна пара розбита на «робоче» правило з обходом для застосунку GitHub Actions (`Integration`,
-`actor_id` 15368, `gh api /apps/github-actions`) і «замок» без обходу взагалі. Рішення диригента 12.09.
+**Задум.** Обхід (`bypass_actors`) у GitHub задається на **весь** ruleset, не на окреме правило, а R4 вимагає різного
+обходу для різних дій: тег ставить конвеєр, але переписати чи видалити випущену версію не може ніхто. В одному файлі
+так не розділити, тому спершу зроблено п'ять файлів — кожна пара розбита на «робоче» правило з обходом для застосунку
+GitHub Actions (`Integration`, `actor_id` 15368, `gh api /apps/github-actions`) і «замок» без обходу взагалі
+(рішення диригента 12.09): `master`, `tags-v` (`creation`, обхід Actions) + `tags-v-lock` (`update`, `deletion`, без
+обходу), `production` (`update`, `non_fast_forward`, обхід Actions) + `production-lock` (`deletion`, без обходу).
 
-| ruleset | ціль | правила | обхід |
-|---|---|---|---|
-| `master` | `refs/heads/master` | `pull_request` (0 схвалень, лише squash), `required_status_checks` (`lint`, `test (3.12)`, `test (3.13)`, `build`, `browser`), `non_fast_forward`, `deletion` | **немає** — і для власника (Q2) |
-| `tags-v` | `refs/tags/v*` | `creation` | Actions |
-| `tags-v-lock` | `refs/tags/v*` | `update`, `deletion` | **немає** |
-| `production` | `refs/heads/production` | `update`, `non_fast_forward` | Actions |
-| `production-lock` | `refs/heads/production` | `deletion` | **немає** |
+**Чим це закінчилось.** GitHub відкинув обидва файли з обходом (нижче, T018–T019), тому в дереві лишились три файли —
+рівно ті, що застосовані. Пара «робоче + замок» виявилась непотрібною: без можливості дати обхід «робоче» правило
+або ламає конвеєр, або нічого не додає.
 
-Тобто навіть зламаний workflow із вбудованим `GITHUB_TOKEN` не видалить тег і не знесе `production`, а перезапис
-`production` назад (відкат) конвеєру лишається дозволеним.
-
-`tests/test_rulesets.py` — 21 тест. Спочатку червоний (файлів не було): 15 errors. Крім вмісту кожного файлу
-перевіряється: перелік закритий (рівно п'ять файлів — новий без тесту не проскочить); замки мають
-`bypass_actors == []`; єдиний обхід будь-де — застосунок Actions з `bypass_mode: always`; пара покриває однакові
-`conditions` і `target`; правила в парі не перекриваються (інакше обхід у «робочому» був би безглуздим);
-обов'язкові перевірки зіставляються з іменами завдань `ci.yml` з розкриттям матриці `python-version`; `smoke` в
-обов'язкових перевірках немає.
+`tests/test_rulesets.py` — спочатку **червоний** (файлів не було): 15 errors; на п'яти файлах 21 тест зелений; після
+зведення до трьох — 19. Крім вмісту кожного файлу перевіряється: перелік закритий (рівно три файли — новий без тесту
+не проскочить); **обходу немає ні в одному** правилі; обов'язкові перевірки зіставляються з іменами завдань `ci.yml`
+з розкриттям матриці `python-version`; `smoke` в обов'язкових перевірках немає;
+`require_extra_approval_for_unattributed_changes` задано явно `false`; у замку тегів `creation` НЕ обмежений, у замку
+`production` не обмежені `update` і `non_fast_forward` — бо без обходу це зламало б випуск і викат.
 
 Доказ, що тести не зеленіють впустую — поломки **в пам'яті**, не на диску (як усюди в
-`tests/README-python-tests.md`): замок з обходом → 1 червоний; сторонній обхід `RepositoryRole` замість Actions →
+`tests/README-python-tests.md`): замок з обходом → 1 червоний; сторонній обхід `RepositoryRole` замість застосунку →
 1; перевірка, перейменована мимо `ci.yml` → 1; правила пари, що перекриваються → 2; `enforcement: disabled` → 1.
-Плюс три червоні випадки в самих помічниках. Повний набір після T015: Ran 438 … OK.
+Плюс три червоні випадки в самих помічниках.
+
+Окремо звірено з живим GitHub: `name`, `target`, `enforcement`, `bypass_actors`, `conditions`, набір правил і всі
+параметри, які задаємо явно — **три з трьох збігаються** з файлами в дереві.
 
 ### Міграція репозиторію (12.09, замість T017 «змінити видимість цього»)
 
@@ -161,6 +159,92 @@ lint, test (3.12), test (3.13), build, browser — усі success. Розрив 
 (`refs/remotes/` містить тільки `origin`), `checkout` і `reset` — ні, `HEAD` як був — `563edc8`, сервіс не
 чіпався.
 
+### T017 + B.6. Налаштування репозиторію і видимість
+
+Порядок довелось поміняти проти задання, і причина варта запису: **auto-merge і сканування секретів на приватному
+репозиторії особистого акаунта недоступні.** `PATCH` з `allow_auto_merge=true` молча повертав `false`, а сканування —
+`422 «Secret scanning is not available for this repository»`. Після зміни видимості обидва ввімкнулись з першого разу.
+Тому T017 виконаний двома заходами: спершу те, що можна на приватному, потім B.6, потім решта.
+
+| Налаштування | Значення |
+|---|---|
+| `allow_squash_merge` / `allow_merge_commit` / `allow_rebase_merge` | `true` / `false` / `false` |
+| `delete_branch_on_merge` | `true` — перевірено вживу: гілка `phase3-rulesets` після злиття зникла сама |
+| `allow_auto_merge` | `true` (лише після `public`) |
+| `secret_scanning` / `secret_scanning_push_protection` | `enabled` / `enabled`. Push protection вмикається **окремим** викликом: разом зі скануванням в одному `PATCH` лишається `disabled` |
+| `secret-scanning/alerts` | **0** (T021 п.4) |
+| незмінні релізи | **недоступно**: поля `immutable_releases` API не має взагалі (`has("immutable_releases")` → `false`), `PATCH` його молча ігнорує. Роль виконує ruleset `tags-v-lock` — він сильніший: тег не перепише навіть конвеєр |
+
+Видимість: `gh repo edit minyaylo007/aluma-table --visibility public` — gh 2.45 відпрацював без
+`--accept-visibility-change-consequences` (цього флага в 2.45 немає), `PATCH` не знадобився. Після зміни:
+`visibility: public`, архів — `private`. Перед зміною скани прогнані ще й по дереву **гілки** (вона теж ставала
+публічною): `host_security_detail` 0, `aws_arn_account` 0, gitleaks — no leaks found.
+
+### T018–T019. Правила: відмова GitHub і запасний варіант R4
+
+Ризик, який R4 прямо позначав як неперевірений, реалізувався. Обидва файли з обходом для застосунку Actions
+відкинуті однаково:
+
+```
+POST /rulesets --input .github/rulesets/tags-v.json     → 422
+POST /rulesets --input .github/rulesets/production.json → 422
+"Actor GitHub Actions integration must be part of the ruleset source or owner organization"
+```
+
+У особистому репозиторії застосунок Actions у `bypass_actors` дати не можна — він мусить бути встановлений в
+організації-власнику. Організацію не заводимо (рішення диригента 12.09). Діє запасний варіант R4 — **три правила,
+обходу немає ні в одному**:
+
+| ruleset | id | ціль | правила | `enforcement` |
+|---|---|---|---|---|
+| `master` | 23027162 | `refs/heads/master` | `pull_request`, `required_status_checks`, `non_fast_forward`, `deletion` | active |
+| `tags-v-lock` | 23027575 | `refs/tags/v*` | `update`, `deletion` | active |
+| `production-lock` | 23027579 | `refs/heads/production` | `deletion` | active |
+
+Чому конвеєр не зламався: `release.yml` тег **створює** (`creation` не обмежений), `deploy.yml` двигає
+`refs/heads/production` (`update` і `non_fast_forward` не обмежені), і ні той, ні той нічого не видаляє — а видалення
+заборонене всім. Що стало слабше за задум: людина може руками поставити тег `v*` або зсунути `production`.
+Компенсація — та, що R4 і передбачав: агент ставить лише коміт опублікованого тега з повним набором файлів релізу й
+зійшлими сумами, тому руками можна викотити лише вже випущену версію. Формулювання для `docs/DELIVERY.md` §9 —
+диригента, 12.09.
+
+Файли в дереві зведені до того, що справді застосовано (`tags-v.json` і `production.json` видалені як неможливі), і
+звірені з GitHub полем за полем — `name`, `target`, `enforcement`, `bypass_actors`, `conditions`, набір правил і всі
+параметри, які ми задаємо явно: **три з трьох — збігається**.
+
+**Параметр, якого ми не заказували.** У відповіді `POST /rulesets` видно
+`require_extra_approval_for_unattributed_changes: true` — GitHub підставляє його сам, якщо не задати. З ним PR, у
+якому є коміт із автором без прив'язаного акаунта GitHub (у нас це трейлер `Co-Authored-By` помічника), висить в
+очікуванні схвалення, і авто-merge не працює, хоча схвалень потрібно нуль. Задано явно `false`, закріплено тестом,
+правило оновлене тим самим файлом (`PUT /rulesets/23027162`).
+
+### T020. Окруження `production`
+
+`PUT /environments/production` — `deployment_branch_policy`: `protected_branches` `false`,
+`custom_branch_policies` `true`; політика веток рівно одна: `branch: master` (`total_count` 1). Змінна
+`ALUMA_HEALTH_URL` = `https://table.central-aparts.store/api/fx/health`; адреса жива — `GET` віддав
+`{"ok": true, "version": "0.4.0-box"}`. Синтаксис для протоколу: `-f 'deployment_branch_policy[protected_branches]=false'`
+API відкидає (рядок замість boolean) — потрібен JSON через `--input`.
+
+### T021. Живі перевірки
+
+| # | Що перевіряли | Результат |
+|---|---|---|
+| 3 | прямий push у `master` з гілки | **відмова сервера**: `GH013: Repository rule violations found for refs/heads/master` — «Changes must be made through a pull request», «5 of 5 required status checks are expected», `! [remote rejected] HEAD -> master` |
+| 2 | зелений PR вливається сам | PR [#1](https://github.com/minyaylo007/aluma-table/pull/1): авто-merge `SQUASH`, перевірки 5/5 success, злився сам 08:37:19Z, merge-коміт `78201d2`, гілка прибрана, заголовок squash = заголовок PR |
+| 1 | падаючий PR НЕ вливається | PR [#2](https://github.com/minyaylo007/aluma-table/pull/2), і червоний він **по-справжньому**: у `.gitignore` рядок `test-results/` стояв двічі, а новий тест цього не пробачає. Перший коміт: `test (3.12)` і `test (3.13)` FAILURE, `lint`/`build`/`browser` success, `mergeState` BLOCKED, `state` OPEN — авто-merge був увімкнений і НЕ влив. Другий коміт прибрав дублікат → 5/5 success → злився сам 08:42:49Z, `f2235ed`. У `master` при цьому не лишилось нічого зайвого, а інваріант лишився корисний |
+| 4 | `secret-scanning/alerts` | **0** |
+| — | тег `v*` не перезаписати | `PATCH git/refs/tags/v0.0.0-ruleset-test force=true` → `422 «Cannot update this protected ref.»` |
+| — | тег `v*` не видалити | `DELETE git/refs/tags/v0.0.0-ruleset-test` → `422 «Cannot delete this tag»` |
+
+Пробний тег створено **до** застосування `tags-v-lock` — після нього людина тег уже не поставить. Прибирання двома
+сусідніми викликами, між ними нічого: `enforcement` до — `active`; `PUT` з `disabled` → `disabled`; `DELETE` тега →
+код 0; `PUT` тим самим файлом → `active`. Підсумок: тегів у репозиторії **0**, усі три правила `active`.
+
+Спосіб перевірки перезапису тега — окремо: `git push --force` тут не виконувався, цю форму команди локальний сторож
+`claude-guard` забороняє вовсі, і обходити його командою сесія не стала. Перевірка зроблена через REST API на
+одноразовому тезі, створеному за хвилину до того; очікуваним результатом була саме відмова.
+
 ## Phase 4 — кожне злиття публікує версію (без T030)
 
 ### Локально (2026-09-11)
@@ -180,7 +264,7 @@ lint, test (3.12), test (3.13), build, browser — усі success. Розрив 
 
 ### GitHub Actions
 
-Прогін [34614386303](https://github.com/minyaylo007/aluma-table/actions/runs/34614386303) — workflow `Release`,
+Прогін [34614386303](https://github.com/minyaylo007/aluma-table-archive-2026-09/actions/runs/34614386303) — workflow `Release`,
 push у master `bcb9328`, 15:08:55–15:10:42Z (≈ 2 хв). Інших прогонів на цей коміт немає: `ci.yml` master пропускає.
 
 | Завдання | Висновок |
@@ -287,7 +371,7 @@ Caddy тільки Денис» (блок `table` 11.09 поставили ми,
 GitHub не змінювались; Caddy не запускався й не перезавантажувався; слухаючих процесів не піднімалось.
 
 **Прогін на GitHub після злиття Phase 7** (push у `master`, `fcb7282`, 2026-09-12 06:32:48Z, прогін
-[34678409442](https://github.com/minyaylo007/aluma-table/actions/runs/34678409442)): `Release` — success;
+[34678409442](https://github.com/minyaylo007/aluma-table-archive-2026-09/actions/runs/34678409442)): `Release` — success;
 `checks / lint` 8 с, `checks / test (3.12)` 31 с, `checks / test (3.13)` 33 с, `checks / build` 8 с,
 `checks / browser` 1 хв 47 с — усі зелені; `release` і `deploy` — skipped (змінної `RELEASES_ENABLED` немає),
 тегів і релізів як не було, так і нема. Тобто вимикач випуску тримає, а перевірки на кожен push у `master`

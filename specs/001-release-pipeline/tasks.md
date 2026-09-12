@@ -143,7 +143,7 @@ description: "Задачи: выпуск и деплой ALUMA через GitHub
 
 ### Tests
 
-- [ ] T015 [P] [US1] [флот] Создать файлы правил `.github/rulesets/master.json`, `.github/rulesets/tags-v.json`,
+- [X] T015 [P] [US1] [флот] Создать файлы правил `.github/rulesets/master.json`, `.github/rulesets/tags-v.json`,
   `.github/rulesets/production.json` (формат REST API rulesets) и `tests/test_rulesets.py`: master — `pull_request`
   с 0 одобрений, `required_status_checks` ровно `lint`, `test (3.12)`, `test (3.13)`, `build`, `browser` (сверка с
   именами заданий `ci.yml`), `non_fast_forward`, `deletion`, `bypass_actors` пуст; `tags-v` — цель `refs/tags/v*`,
@@ -153,26 +153,41 @@ description: "Задачи: выпуск и деплой ALUMA через GitHub
 
 ### Implementation
 
-- [ ] T016 [US1] Объявить дирижёру (SendMessage «🪵 ALUMA — дирижёр») перечень изменений в GitHub (видимость, три
+- [X] T016 [US1] Объявить дирижёру (SendMessage «🪵 ALUMA — дирижёр») перечень изменений в GitHub (видимость, три
   правила, авто-merge, squash, окружение, сканирование секретов) и дождаться «выполняй». Без ответа — не продолжать.
-- [ ] T017 [US1] `gh repo edit minyaylo007/aluma-table --visibility public --accept-visibility-change-consequences`;
+- [X] T017 [US1] `gh repo edit minyaylo007/aluma-table --visibility public --accept-visibility-change-consequences`;
   `gh repo edit … --enable-auto-merge --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false
   --delete-branch-on-merge`; включить secret scanning и push protection (`gh api -X PATCH repos/minyaylo007/aluma-table`
   с `security_and_analysis`); включить неизменяемые релизы, если настройка доступна. Вывод — в `verification.md`.
-- [ ] T018 [US1] Применить `.github/rulesets/master.json` (`gh api -X POST repos/minyaylo007/aluma-table/rulesets
+- [X] T018 [US1] Применить `.github/rulesets/master.json` (`gh api -X POST repos/minyaylo007/aluma-table/rulesets
   --input …`); проверить `gh api repos/minyaylo007/aluma-table/rulesets`.
-- [ ] T019 [US1] Применить `tags-v.json` и `production.json`; если API отвергает обход для GitHub Actions — применить
+- [X] T019 [US1] Применить `tags-v.json` и `production.json`; если API отвергает обход для GitHub Actions — применить
   запасной вариант research.md R4 (правило тегов без обхода на создание, только запрет обновления/удаления; ветка
   `production` без правила), записать причину в `verification.md` и в раздел «Разрыв со стандартом флота» будущего
   `docs/DELIVERY.md` (T046).
-- [ ] T020 [US1] Создать окружение `production` (`gh api -X PUT repos/minyaylo007/aluma-table/environments/production`
+- [X] T020 [US1] Создать окружение `production` (`gh api -X PUT repos/minyaylo007/aluma-table/environments/production`
   с правилом веток: только `master`) и переменную окружения `ALUMA_HEALTH_URL` = `https://table.central-aparts.store/api/fx/health` (DNS `table`
   переключён на коробку 11.09, `a7e9c64`; `table-new` — только если дирижёр скажет, что переключение не принято).
-- [ ] T021 [US1] Проверить вживую: (1) пробная ветка с заведомо падающим тестом → PR с авто-merge → не влилась;
+- [X] T021 [US1] Проверить вживую: (1) пробная ветка с заведомо падающим тестом → PR с авто-merge → не влилась;
   (2) исправить → влилась сама; (3) `git push origin HEAD:master` из другой ветки → отказ сервера; (4) `gh api
   repos/minyaylo007/aluma-table/secret-scanning/alerts` → пусто. Всё — в `verification.md`; отчёт дирижёру.
 
 **Checkpoint**: US1 готова — в master попадает только проверенное. С этого момента все сессии — через PR.
+
+**Что при выполнении вышло иначе (12.09.2026; живые доказательства — `verification.md`, раздел Phase 3):**
+
+- **T017 выполнен миграцией, а не сменой видимости этого репозитория.** Историю публиковать нельзя (описания слабых
+  мест машины, `secret-scan-report.md` раздел В), а переписывать её запрещено. Поэтому публичным стал НОВЫЙ
+  репозиторий `minyaylo007/aluma-table` с чистой историей, а прежний переименован в приватный архив
+  `minyaylo007/aluma-table-archive-2026-09` (OWNER-RULES п.23). Имя не изменилось, `origin` остался тем же.
+  Флага `--accept-visibility-change-consequences` в gh 2.45 нет и он не понадобился.
+- **auto-merge и сканирование секретов недоступны на приватном репозитории личного аккаунта** — включены после смены
+  видимости; push protection требует отдельного вызова. Настройки «неизменяемые релизы» на этом аккаунте нет вообще.
+- **T019 — запасной вариант research.md R4.** Обход для приложения GitHub Actions GitHub не даёт в личном
+  репозитории (422). Применены три правила без обхода: `master`, `tags-v-lock` (`update`, `deletion`),
+  `production-lock` (`deletion`); `tags-v.json` и `production.json` из дерева убраны как невозможные. Компенсация —
+  агент ставит только коммит опубликованного конвейером тега с полным набором файлов и совпавшими суммами.
+- **T015 — пять файлов свелись к трём** по той же причине.
 
 ---
 
