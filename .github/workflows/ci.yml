@@ -2,7 +2,11 @@ name: CI
 
 # Перевірки (contracts/workflows.md «ci.yml»): на кожен push у будь-яку гілку, крім master, на кожен PR у master
 # і як частина release.yml (workflow_call). Імена завдань — обов'язкові перевірки ruleset master:
-# lint, test (3.12), test (3.13), build, browser. tests/smoke.spec.js сюди НЕ входить: він пише в сховище.
+# secret-scan, lint, test (3.12), test (3.13), build, browser. tests/smoke.spec.js сюди НЕ входить: він пише в сховище.
+#
+# secret-scan іде без жодних умов і фільтрів шляхів: правило флоту 13.09 — скан секретів виконується ЗАВЖДИ,
+# його не вимикають навіть на коміті в один .md. Саме такий скан знайшов в іншому проєкті коди від дверей
+# і пароль WiFi — і знайшов їх у документах, а не в коді.
 #
 # На master ці перевірки запускає release.yml (завдання checks → workflow_call), тому push у master тут
 # пропускається — щоб не ганяти двічі (tests/test_workflows.py, test_every_master_push_is_checked).
@@ -22,6 +26,28 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
+  # Секрети й персональні дані в робочому дереві. Тільки stdlib, ані gitleaks, ані trufflehog:
+  # нових двоичних із мережі в конвеєр не ставимо. Секунди роботи, нуль оплачених хвилин
+  # (публічний репозиторій). Значення не друкуються ніде — у stdout іде лише підсумок за
+  # правилами, а сам звіт лишається в $RUNNER_TEMP і нікуди не публікується: журнал прогону
+  # публічного репозиторію читає весь світ (правило власника 10).
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Scan the working tree
+        # Базова лінія .github/secret-scan-baseline.json — перелік уже переглянутих місць
+        # (синтетичні телефони фікстур, зразки в документації, регулярки самого застосунку).
+        # Код виходу 1 дають лише НОВІ місця, тож перевірка червоніє на новому, а не завжди.
+        run: |
+          python scripts/secret_scan.py --repo . --mode tree \
+            --baseline .github/secret-scan-baseline.json \
+            --report "$RUNNER_TEMP/secret-scan.md"
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
