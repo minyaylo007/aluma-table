@@ -1,7 +1,8 @@
 """Текстові інваріанти workflow GitHub Actions (contracts/workflows.md) — без бібліотеки YAML.
 
 Перевіряється те, що легко зламати непомітно: права, тригери, закріплені версії actions,
-залежності лише з файлів, імена завдань (їх чекає ruleset master), відсутність smoke і секретів.
+залежності лише з файлів, імена завдань (їх чекає ruleset master), відсутність smoke і секретів,
+і те, що скан секретів іде без умов і фільтрів шляхів.
 
     python -m unittest tests.test_workflows -v
 """
@@ -119,10 +120,36 @@ class CiYmlTests(unittest.TestCase):
             self.assertTrue(only_requirement_files(args), args)
 
     def test_job_names_are_the_required_checks(self):
-        self.assertEqual(set(self.jobs), {"lint", "test", "build", "browser"})
+        self.assertEqual(set(self.jobs), {"secret-scan", "lint", "test", "build", "browser"})
         self.assertRegex(self.jobs["test"], r"python-version:\s*\[\s*['\"]3\.12['\"]\s*,\s*['\"]3\.13['\"]\s*\]")
         # Ім'я `test (3.12)` / `test (3.13)` дає GitHub сам — поле name перебило б його.
         self.assertNotRegex(self.jobs["test"], r"^    name:", "name перейменовує перевірку в ruleset")
+
+    def test_secret_scan_job_scans_the_tree_without_printing_values(self):
+        body = self.jobs["secret-scan"]
+        self.assertIn("scripts/secret_scan.py", body)
+        self.assertIn("--mode tree", body)
+        self.assertIn("--baseline .github/secret-scan-baseline.json", body)
+        # Звіт містить шляхи й рядки — його місце у тимчасовій теці прогону, а не в журналі
+        # і не серед артефактів: журнал публічного репозиторію читає весь світ (правило 10).
+        self.assertIn('--report "$RUNNER_TEMP/', body)
+        self.assertNotIn("upload-artifact", body)
+
+    def test_secret_scan_runs_always(self):
+        """Правило флоту 13.09: скан секретів виконується ЗАВЖДИ. Ні умови на завданні, ні фільтра
+        шляхів у тригерах — інакше коміт в один .md проїхав би без нього, а саме в документах
+        знайшлися коди від дверей і пароль WiFi в іншому проєкті."""
+        self.assertNotRegex(self.jobs["secret-scan"], r"^    if:", "умова вимкнула б скан")
+        on = code(top_block(self.text, "on"))
+        self.assertNotIn("paths:", on)
+        self.assertNotIn("paths-ignore:", on)
+
+    def test_no_external_scanner_is_installed(self):
+        """Ані gitleaks, ані trufflehog: нових двоичних із мережі в конвеєр не ставимо —
+        сканер свій і на самій stdlib."""
+        text = code(self.text).lower()
+        for tool in ("gitleaks", "trufflehog", "detect-secrets", "curl ", "wget "):
+            self.assertNotIn(tool, text, tool)
 
     def test_lint_job(self):
         body = self.jobs["lint"]

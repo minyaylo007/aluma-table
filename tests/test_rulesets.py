@@ -15,7 +15,7 @@
 | `tags-v-lock`     | `refs/tags/v*`        | `update`, `deletion`                 | немає |
 | `production-lock` | `refs/heads/production` | `deletion`                         | немає |
 
-Що це дає: у `master` нічого не потрапляє без PR і п'яти зелених перевірок; випущений тег `v*` не
+Що це дає: у `master` нічого не потрапляє без PR і шести зелених перевірок; випущений тег `v*` не
 перепише й не видалить НІХТО — навіть зламаний workflow; ветку `production` не видалить ніхто.
 Конвеєр при цьому працює: `release.yml` тег **створює** (`creation` не обмежений), `deploy.yml`
 двигає `refs/heads/production` (`update` і `non_fast_forward` не обмежені), і ні той, ні той нічого
@@ -76,7 +76,8 @@ class HelperTests(unittest.TestCase):
 
     def test_ci_check_names_reads_the_matrix(self):
         self.assertEqual(sorted(ci_check_names()),
-                         ["browser", "build", "lint", "test (3.12)", "test (3.13)"])
+                         ["browser", "build", "lint", "secret-scan",
+                          "test (3.12)", "test (3.13)"])
 
     def test_rule_demands_exactly_one(self):
         with self.assertRaises(AssertionError):
@@ -149,6 +150,13 @@ class MasterTests(unittest.TestCase):
         contexts = sorted(c["context"] for c in params["required_status_checks"])
         self.assertEqual(contexts, sorted(ci_check_names()))
         self.assertEqual(len(contexts), len(params["required_status_checks"]), "дублі контекстів")
+
+    def test_secret_scan_is_a_required_check(self):
+        """Названо явно: зіставлення з ci.yml вище зеленіло б і тоді, коли завдання прибрали з обох
+        файлів одразу. Скан секретів — червона межа флоту, його не знімають ні тим, ні тим."""
+        params = rule(self.data, "required_status_checks")["parameters"]
+        contexts = {c["context"] for c in params["required_status_checks"]}
+        self.assertIn("secret-scan", contexts)
 
     def test_smoke_is_not_a_required_check(self):
         """tests/smoke.spec.js пише в сховище — його в обов'язкових перевірках бути не може."""

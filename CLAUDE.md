@@ -37,7 +37,7 @@ and stripping that out would mean rewriting history, which is forbidden. The rep
 | Server runtime | gunicorn 26.2.0, boto3 1.34.46, requests 2.31.0 (boto3 is needed even for SQLite: unconditional import) | `deploy/requirements-server.txt` |
 | Lambda runtime | python3.13, SAM | `infra/template.yaml` |
 | Browser tests | `@playwright/test` 1.62.1 exactly, chromium only; `node_modules/` per worktree, browsers in `/opt/ihor/aluma-table/ms-playwright` | `package.json`, `package-lock.json` |
-| CI/CD | GitHub Actions (`docs/DELIVERY.md` §3): `ci.yml` on push to any branch but `master` and on PRs — `lint` (ruff E9+F, `node --check` of built JS), `test (3.12)`, `test (3.13)`, `build` (twice, same bytes), `browser` (`redesign.spec.js`, 8007); on `master` `release.yml` runs the same checks, then release → deploy behind `RELEASES_ENABLED` (not set yet); `rollback.yml` manual — 395 OK locally on 2026-09-12 | `.github/workflows/`, `requirements-lint.txt`, `tests/requirements.txt` |
+| CI/CD | GitHub Actions (`docs/DELIVERY.md` §3): `ci.yml` on push to any branch but `master` and on PRs — `secret-scan` (`scripts/secret_scan.py` over the tree, always, no path filters), `lint` (ruff E9+F, `node --check` of built JS), `test (3.12)`, `test (3.13)`, `build` (twice, same bytes), `browser` (`redesign.spec.js`, 8007); on `master` `release.yml` runs the same checks, then release → deploy behind `RELEASES_ENABLED` (not set yet); `rollback.yml` manual — 395 OK locally on 2026-09-12 | `.github/workflows/`, `requirements-lint.txt`, `tests/requirements.txt` |
 
 ## 3. Architecture
 ```
@@ -172,8 +172,8 @@ the per-user control socket and breaks the central-aparts-site gunicorn running 
 ## 9. AI Coding Assistant Instructions
 **Git.** Branch `master`, and since 2026-09-12 it is protected for everyone: **branch → PR → auto-merge only**. A
 fast-forward push to `master` is refused by the server (`GH013: Changes must be made through a pull request`), so do
-not try — open a PR and `gh pr merge --squash --auto`; it merges itself once `lint`, `test (3.12)`, `test (3.13)`,
-`build` and `browser` are green, and GitHub removes the branch. Release and deploy stay off (`RELEASES_ENABLED` not
+not try — open a PR and `gh pr merge --squash --auto`; it merges itself once `secret-scan`, `lint`, `test (3.12)`,
+`test (3.13)`, `build` and `browser` are green, and GitHub removes the branch. Release and deploy stay off (`RELEASES_ENABLED` not
 set). `git pull --rebase` first; `git add <explicit files>`, never `-A`; commit per step, push at once; never
 `git push --force` (constitution VI). The rulesets live in the repo as `.github/rulesets/*.json` — change a rule by
 editing the file and re-applying it, not in the web UI, or `tests/test_rulesets.py` will drift from reality.
@@ -200,6 +200,13 @@ a rollout to prod outside that pipeline — including the box itself today — s
 account is shared with other projects, and the admin key on the box stops nothing — only this rule does. So no
 `sam deploy`, `aws cloudformation …`, `aws lambda update-function-*`, `aws s3 sync/cp`, DNS change, or any other AWS
 write. `scripts/deploy.sh`, `docs/PROD-NOTIFY-DECISION.md` and `infra/` describe the deleted Lambda stack — history.
+
+**Secret scan.** `scripts/secret_scan.py` is a required check on every commit — `--mode tree` against
+`.github/secret-scan-baseline.json`, the reviewed-places list; a NEW finding is what turns it red. Values are never
+printed: stdout carries per-rule totals only, the report with paths stays in `$RUNNER_TEMP`. Reviewed a finding on
+purpose? `--baseline … --update-baseline`; keys, `.env` files, databases and access codes may never go in the list
+(`tests/test_secret_scan.py`). The one-off scan of the whole history, public and archive, and what was found in it —
+`docs/security/secret-scan-2026-09-13.md`. No `gitleaks`, no `trufflehog`, no new binaries from the network.
 
 **Secrets.** `IP_SALT` and `ADMIN_PASS` move to the server **unchanged** (they sign the admin cookie and salt
 `ip_hash`). `EDGE_SECRET` is **not** moved to the server (otherwise 403 on everything, admin included). Check
