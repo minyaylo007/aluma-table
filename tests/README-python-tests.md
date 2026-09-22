@@ -19,9 +19,21 @@ Three files:
 | `tests/test_lambda_dynamodb.py` | the Lambda path: `FX_STORAGE=dynamodb` on moto, the live front's lead body, admin, client/server phone parity | `boto3`, `moto`, `node` (else skipped) |
 | `tests/test_lambda_no_fx_storage.py` | Lambda **without** `FX_STORAGE`: read-only `/var/task` → lead and event 500, no notify, health 200 | not root (else skipped) |
 | `tests/test_daily_report.py` | `scripts/daily_report.py` on the box SQLite (no DynamoDB, no boto3) | none |
-| `tests/test_aws_inventory.py` | `scripts/aws_inventory.py`: every write verb and `get-secret-value` refused before a process starts; `compare` is red when a foreign resource vanished, an ALUMA one is left, the secret is not scheduled, SAM versions outside `fx-table/` changed, prod checks fail | none (no AWS) |
 
-## Running the whole suite (417 tests, all green)
+## Running the suite: two modes (CLAUDE.md §8)
+
+`tools/run_tests.py` runs the **critical set** listed in `tests/CRITICAL.txt` — the modules whose
+failure changes something for the guest, the money or the owner; `tools/run_tests.py --full` runs
+**everything**, which is what a merge needs. Measured 2026-09-22 in the venv from CLAUDE.md §8:
+critical `Ran 246 tests — OK` in 5.5 s, full `Ran 398 tests — OK` in 13 s. Both inside the frame of
+CLAUDE.md §8, with `TMPDIR` outside the repo tree.
+
+**398 = 489 − 91: on 2026-09-22 the tests of the four one-off move tools were deleted** —
+`test_migrate_fx.py` (32), `test_compare_sites.py` (32), `test_aws_inventory.py` (12),
+`test_prod_notify_params.py` (15). The move itself finished on 11–12.09 and ALUMA has nothing left
+in AWS (`docs/AWS-TEARDOWN.md`); the scripts stay in `scripts/` as history. Back in one command:
+`git checkout <sha>^ -- tests/<file>`. The counts below are the chronicle of how the suite grew and
+describe the state before that deletion.
 
 Measured 2026-09-12 in the venv from CLAUDE.md §8: `Ran 417 tests — OK`, `ruff check .`
 clean. 417 = 395 (the count CLAUDE.md §8 carried before this run) + 22 in
@@ -334,7 +346,7 @@ is also why the CSS, JS and favicon hashes in prod differ from a Linux build. Im
 are byte-identical. For the switch, either upload the same `dist/` to both sides (then a plain
 run must give `0`), or accept CRLF explicitly with `--ignore-eol`.
 
-`tests/test_compare_sites.py` (32 tests) uses no network: the transport and the clock are
+`tests/test_compare_sites.py` (32 tests, **deleted 2026-09-22**) used no network: the transport and the clock are
 injected. The required red cases are all there: a text difference after normalisation gives
 `1`, a page on one side only gives `1` (404 and S3's 403), a difference in the build hash only
 gives `0`, and a broken, empty or missing sitemap gives `2`. To prove the tests can fail,
@@ -437,7 +449,7 @@ the `fx-table` stack (`docs/PROD-NOTIFY-DECISION.md`). No secret is ever printed
 `AppVersion` comes from the flag. Every other parameter already in the stack is written as
 `UsePreviousValue`. The file is created with mode 0600 and never overwritten.
 
-`tests/test_prod_notify_params.py` (15 tests) replaces aws-cli with a fake. The tests check:
+`tests/test_prod_notify_params.py` (15 tests, **deleted 2026-09-22**) replaced aws-cli with a fake. The tests checked:
 
 - the parameter names read from the real `infra/template.yaml`;
 - the file content: 10 entries, and `AdminPass`, `IpSalt`, `EdgeSecret` plus 4 more are

@@ -1,0 +1,12 @@
+# Критичний набір: падіння тут щось змінює для гостя, грошей або власника.
+# По одному імені модуля в рядку; рядки з # — коментар. Запуск: tools/run_tests.py
+tests.test_handler            # заявка, подія, health, адмінка, notify
+tests.test_wsgi               # бойовий рантайм gunicorn
+tests.test_store_sqlite       # цілісність бази заявок
+tests.test_secret_scan        # секрети, червона межа флоту
+tests.test_pull_agent         # викат і відкат
+tests.test_health_version     # версія і здоров'я прода
+tests.test_build_eol          # збірка байт-у-байт: ціни й тексти на сторінці
+tests.test_serve_local_stack  # одноразова база не падає в репозиторій
+tests.test_user_units         # юніти прода
+tests.test_box_env            # оточення прода без друку значень
