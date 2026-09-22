@@ -103,6 +103,9 @@ Telegram is patched, DynamoDB is a fake or moto, `FX_DB_PATH` is forced to `:mem
   same process, one-off SQLite in a 0700 temp dir removed on exit, `TELEGRAM_*` stripped. It is covered by
   `tests/test_serve_local_stack.py` (22 tests, WSGI called directly — no sockets bar two that need a live process).
   `BASE_URL` decides the origin the spec asserts against; an HTTPS-only check stays on for a public name.
+- **Two run modes, one command each** (§8): `tools/run_tests.py` - the critical set listed in `tests/CRITICAL.txt`
+  (a module is in it when its failure changes something for the guest, the money or the owner); `--full` - everything,
+  what a merge needs. Both only inside the frame of §8, and `TMPDIR` outside the tree.
 - Proving a test can fail: break the code **in memory**, not on disk (the pattern used throughout the README).
 
 ## 7. Common Patterns
@@ -119,15 +122,29 @@ Telegram is patched, DynamoDB is a fake or moto, `FX_DB_PATH` is forced to `:mem
 - Lossy WebP/AVIF shift a flat ground by 1–3 levels: compare render colours with a tolerance, never byte-equal.
 
 ## 8. Development Commands
-Verified on this box (Python 3.12.3): lint, the Python tests and `build.py` re-run 2026-09-12, the rest on
-2026-09-11 unless marked otherwise; venv/DB paths are arbitrary, outside the repo.
+**The four commands.** Everything below them is detail.
+```bash
+tools/run_tests.py                                   # default run: critical set (tests/CRITICAL.txt) - 246 tests, 5.5 s
+tools/run_tests.py --full                            # full set - before a merge: 398 tests, 13 s
+gh pr merge --squash --auto                          # deploy = merge into master (DELIVERY.md §5); release/deploy are off
+gh workflow run rollback.yml -f version=vX.Y.Z       # rollback (DELIVERY.md §8); code: git revert + PR
+```
+Every run goes inside this frame (fleet rule 15.09, after the 14.09 incident: pytest 38 h, 10 GB, whole user down).
+`TMPDIR` must stay **outside the repo tree** - inside it `test_serve_local_stack` goes red, that is its job:
+```bash
+TMPDIR=/tmp timeout 30m systemd-run --user --scope -q \
+  --slice='app-ihor\x2dconductor.slice' -p MemoryMax=2G <command>
+```
+
+Verified on this box (Python 3.12.3): the two run modes on 2026-09-22; lint and `build.py` re-run 2026-09-12, the
+rest on 2026-09-11 unless marked otherwise; venv/DB paths are arbitrary, outside the repo.
 ```bash
 git pull --rebase                                   # always first
 # Python tests — venv outside the tree
 python3 -m venv /tmp/aluma-venv-$USER
 /tmp/aluma-venv-$USER/bin/pip install -r api/requirements.txt -r tests/requirements.txt -r requirements-lint.txt
 /tmp/aluma-venv-$USER/bin/ruff check .                                   # → All checks passed!
-/tmp/aluma-venv-$USER/bin/python -m unittest discover -s tests -t .      # → Ran 417 tests … OK
+/tmp/aluma-venv-$USER/bin/python tools/run_tests.py --full              # → Ran 398 tests … OK
 # Build (preview) → dist/, gitignored
 python3 build.py                                     # → exit 0, "PREVIEW build" + list of owner blanks
 # Local stack smoke: gunicorn ONLY on 127.0.0.1:8005, ALWAYS --no-control-socket, invented secrets
