@@ -1,20 +1,23 @@
 name: CI
 
-# Перевірки (contracts/workflows.md «ci.yml»): на кожен push у будь-яку гілку, крім master, на кожен PR у master
-# і як частина release.yml (workflow_call). Імена завдань — обов'язкові перевірки ruleset master:
+# Перевірки (contracts/workflows.md «ci.yml»): на кожен PR у master, щоночі за розкладом і як частина release.yml
+# (workflow_call). Імена завдань — обов'язкові перевірки ruleset master:
 # secret-scan, lint, test (3.12), test (3.13), build, browser. tests/smoke.spec.js сюди НЕ входить: він пише в сховище.
+#
+# Рішення власника 13.10.2026 (P-2026-10-13-03): push у гілку БЕЗ PR перевірок не запускає — раніше кожна правка
+# йшла трьома прогонами (push + PR + release на master), а browser (Playwright, ~100 с) — це 98 % часу кожного.
+# Нічний прогін ловить дрейф оточення (Chromium, actions) без жодного PR.
 #
 # secret-scan іде без жодних умов і фільтрів шляхів: правило флоту 13.09 — скан секретів виконується ЗАВЖДИ,
 # його не вимикають навіть на коміті в один .md. Саме такий скан знайшов в іншому проєкті коди від дверей
 # і пароль WiFi — і знайшов їх у документах, а не в коді.
 #
-# На master ці перевірки запускає release.yml (завдання checks → workflow_call), тому push у master тут
-# пропускається — щоб не ганяти двічі (tests/test_workflows.py, test_every_master_push_is_checked).
+# На master ці перевірки запускає release.yml (завдання checks → workflow_call) — tests/test_pipeline.py.
 on:
-  push:
-    branches-ignore: [master]
   pull_request:
     branches: [master]
+  schedule:
+    - cron: '17 2 * * *'   # щоночі 02:17 UTC (05:17 Київ)
   workflow_call:
 
 permissions:
@@ -86,10 +89,6 @@ jobs:
           cache-dependency-path: |
             api/requirements.txt
             tests/requirements.txt
-      # node потрібен тесту паритету телефону (tests/test_lambda_dynamodb.py): без node він пропускається.
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
       - name: Install
         run: pip install -r api/requirements.txt -r tests/requirements.txt
       - name: Tests

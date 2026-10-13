@@ -2,7 +2,7 @@
 //
 // ⚠️ NOT for prod and NOT for table-new. This suite WRITES to storage: a real is_test lead
 // via route.fetch, a page_view without X-Test on every goto, events via route.continue.
-// Run it only against a throwaway stack (CLAUDE.md §6, §8):
+// Run it only against a throwaway stack (CLAUDE.md §5, §7):
 //
 //     python3 build.py
 //     PREVIEW_PORT=8007 python3 tools/serve-local-stack.py &        # one-off SQLite, no Telegram
