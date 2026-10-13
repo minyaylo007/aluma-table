@@ -19,7 +19,7 @@ Three files:
 | `tests/test_lambda_no_fx_storage.py` | Lambda **without** `FX_STORAGE`: read-only `/var/task` → lead and event 500, no notify, health 200 | not root (else skipped) |
 | `tests/test_daily_report.py` | `scripts/daily_report.py` on the box SQLite (no DynamoDB, no boto3) | none |
 
-## Running the suite: two modes (CLAUDE.md §8)
+## Running the suite: three modes (CLAUDE.md §8, skill /aluma-check)
 
 `tools/run_tests.py` runs the **critical set** listed in `tests/CRITICAL.txt` — the modules whose
 failure changes something for the guest, the money or the owner; `tools/run_tests.py --full` runs

@@ -1,267 +1,120 @@
 # ALUMA — one-table landing (table.central-aparts.store)
 
-**On any conflict, `~/maestro/OWNER-RULES.md` and `~/.claude/CLAUDE.md` win over this file.** Machine-wide invariants
-(tests before push, secrets, ports, others' territory, git) are in `.specify/memory/constitution.md`; this file keeps
-what is specific to ALUMA.
+**On any conflict, `~/maestro/OWNER-RULES.md` and `~/.claude/CLAUDE.md` win over this file.** Machine-wide invariants —
+`.specify/memory/constitution.md`. How the project got here (AWS teardown, public re-publish, cutover) — `docs/HISTORY.md`.
 
-Landing page for one extendable oak dining table (ALUMA / GOREN). Hebrew (RTL) at `/`, English at `/en/`. Lead form →
-owner notified on Telegram → leads worked in `/admin`. Prod: this machine (gunicorn + SQLite + Caddy) — `table` points
-here since 2026-09-11 12:42:31Z (`a7e9c64`); the old AWS of ALUMA is **gone** — stack `fx-table` and the `fx_*` tables
-deleted 2026-09-11, everything else 2026-09-12, nothing of ALUMA left in AWS (`docs/AWS-TEARDOWN.md`, `3789f0c`).
-**Now:** the API runs from the clone `/opt/ihor/aluma-table` (detached `563edc8`) as **user** units installed by hand
-(`systemctl --user`, 127.0.0.1:8005, env `~/.config/aluma/aluma.env`), static in `/srv/aluma`, health `0.4.0-box`.
-**After the agent is installed (T040):** GitHub releases land in `releases/vX.Y.Z` + `current`, installed by the pull
-agent `deploy/agent/pullagent.py` — `docs/DELIVERY.md` (both states, and what is not verified yet).
-**Repository:** `minyaylo007/aluma-table` is **public since 2026-09-12**, with a clean history — the tree as one
-snapshot commit. Everything older, and every old sha, lives in the private archive
-`minyaylo007/aluma-table-archive-2026-09` (its Actions are off): the old history describes weak spots of this machine,
-and stripping that out would mean rewriting history, which is forbidden. The repository name did not change, so
-`origin` stayed the same; links to Actions runs from before 12.09 point at the archive.
+Landing page for one extendable oak dining table (ALUMA / GOREN): Hebrew (RTL) at `/`, English at `/en/`; lead form →
+owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn + SQLite behind Caddy, user units
+`ihor-aluma-api.service` / `ihor-aluma-purge.timer` (leads never purged) run from the clone `/opt/ihor/aluma-table`
+(env `~/.config/aluma/aluma.env`, 127.0.0.1:8005), static in `/srv/aluma`, health `GET /api/fx/health`.
 
-## 1. Core Principles
-- **Others' systems are untouchable**, Caddy included; **deploys go through the pipeline** (`docs/DELIVERY.md`),
-  outside it only with the owner's «да» — rules in §9.
-- **One source for every fact.** Numbers live in `content.json`, UI strings in `i18n/he.json` + `i18n/en.json`;
-  templates in `site/` only reference them. Never hardcode a number or a sentence in HTML/JS.
-- **Same code, two runtimes.** `api/handler.py` runs unchanged in Lambda and under gunicorn; the storage is picked by
-  `FX_STORAGE`. Never add runtime-specific logic to the handler.
-- **Build is byte-identical on any OS** (LF, UTF-8) — guarded by `tests/test_build_eol.py`.
-- **Secrets and lead data are never printed** — not in the console, logs, commits or reports.
+## 1. Small-change path (text, number, small API fix)
+1. Branch from `master`; edit `content.json` / `i18n/*.json` / `site/` / `api/`. No plan mode, no SDD, no subagents.
+2. `tools/run_tests.py` (quick set, ~0.5 s). If `site/`, `i18n/`, `content.json` or `build.py` changed: `python3 build.py` exits 0.
+3. Before the PR: `tools/run_tests.py --pr` and `ruff check .` inside the frame of §8 (skill `/aluma-check`).
+4. `git add <files>` → commit `type(scope): опис` → push → `gh pr create` → `gh pr merge --squash --auto`. CI runs on the PR only.
+5. After the merge: `scripts/deploy-box.sh <sha>` (skill `/aluma-deploy`), check health and `/` live, report with the rollback line.
 
-## 2. Tech Stack
-| Layer | What | Where it is pinned |
+## 2. Core principles
+- **Others' systems are untouchable**, Caddy included; deploys go by `docs/DELIVERY.md` and skill `/aluma-deploy` (§9).
+- **One source for every fact.** Numbers in `content.json`, UI strings in `i18n/he.json` + `i18n/en.json`; templates in
+  `site/` only reference them — never hardcode a number or a sentence in HTML/JS.
+- **Same code, two runtimes.** `api/handler.py` runs unchanged under gunicorn (`api/wsgi.py`) and in a Lambda; storage is
+  picked by `FX_STORAGE` — never add runtime-specific logic to the handler. **Build is byte-identical on any OS** (LF,
+  UTF-8; `tests/test_build_eol.py`). **Secrets and lead data are never printed** — console, logs, commits, reports.
+
+## 3. Stack and architecture
+| Layer | What | Pinned in |
 |---|---|---|
-| Static site | `build.py` (stdlib; Pillow optional), plain HTML/CSS/JS, three.js viewer `site/assets/goren3d.js` | — |
-| API | Python, one module `api/handler.py`; `requests` for Telegram | `api/requirements.txt` |
-| Storage | DynamoDB (Lambda) or SQLite via `api/store.py` (server) | — |
-| Server runtime | gunicorn 26.2.0, boto3 1.34.46, requests 2.31.0 (boto3 is needed even for SQLite: unconditional import) | `deploy/requirements-server.txt` |
-| Lambda runtime | python3.13, SAM | `infra/template.yaml` |
-| Browser tests | `@playwright/test` 1.62.1 exactly, chromium only; `node_modules/` per worktree, browsers in `/opt/ihor/aluma-table/ms-playwright` | `package.json`, `package-lock.json` |
-| CI/CD | GitHub Actions (`docs/DELIVERY.md` §3): `ci.yml` on push to any branch but `master` and on PRs — `secret-scan` (`scripts/secret_scan.py` over the tree, always, no path filters), `lint` (ruff E9+F, `node --check` of built JS), `test (3.12)`, `test (3.13)`, `build` (twice, same bytes), `browser` (`redesign.spec.js`, 8007); on `master` `release.yml` runs the same checks, then release → deploy behind `RELEASES_ENABLED` (not set yet); `rollback.yml` manual — 395 OK locally on 2026-09-12 | `.github/workflows/`, `requirements-lint.txt`, `tests/requirements.txt` |
+| Static site | `build.py` (stdlib; Pillow optional) → `dist/` (gitignored); three.js viewer `site/assets/goren3d.js` | — |
+| API | `api/handler.py` (`lambda_handler`), `api/wsgi.py` (gunicorn), `api/store.py` (SQLite twin of `fx_*`); server runtime gunicorn + boto3 (unconditional import) + requests | `api/requirements.txt`, `deploy/requirements-server.txt` |
+| Browser tests | `@playwright/test` 1.62.1, chromium only; browsers in `/opt/ihor/aluma-table/ms-playwright` | `package.json`, `package-lock.json` |
+| CI/CD | GitHub Actions: `ci.yml` on every PR to `master`, nightly, and from `release.yml` — six required checks `secret-scan`, `lint`, `test (3.12)`, `test (3.13)`, `build`, `browser`; release/deploy behind `RELEASES_ENABLED` (unset); `rollback.yml` manual | `.github/workflows/`, `docs/DELIVERY.md` |
 
-## 3. Architecture
-```
-content.json, i18n/{he,en}.json ─┐
-site/ (templates, assets)  ──────┴─ build.py ─► dist/   (gitignored; + .build/asset-map.json)
-api/handler.py  ── lambda_handler(event)   ← Lambda (FX_STORAGE=dynamodb, set in infra/template.yaml)
-api/wsgi.py     ── application = WSGI wrapper around lambda_handler  ← gunicorn (FX_STORAGE=sqlite)
-api/store.py    ── SQLite twin of fx_events / fx_leads / fx_sessions (FX_DB_PATH, default data/aluma.db)
-scripts/        ── smoke_local, compare_sites, migrate_fx, purge, daily_report (box SQLite), aws_inventory, secret_scan,
-                   next_version + release_build (release archive), prod_notify_params, deploy.sh (owner only, AWS)
-deploy/         ── agent/pullagent.py + aluma.json (pull agent), systemd units (user/; the current/ layout applies
-                   after T040), nginx/Caddy blocks, env example
-.github/        ── workflows: ci, release (checks → release → deploy), deploy, rollback
-infra/          ── SAM template of the deleted fx-table stack (history; the stack no longer exists)
-```
-- **`build.py`**: substitutes `{{TOKENS}}` from `content.json` and `{{t.key}}` from `i18n/<loc>.json`, draws the
-  technical SVGs from the same numbers, content-hashes every asset name (`name.<sha256[:10]>.ext`), publishes only
-  referenced files. `python build.py` = preview (owner blanks shown as markers); `--production` refuses while an
-  owner fact is missing. Every text file is written with `newline="\n"` (`write_text_lf`, `normalise_eol`).
-- **Routes** (`api/handler.py`): `GET /api/fx/health`, `POST /api/fx/event`, `POST /api/fx/lead`, `GET /admin`,
-  `/admin/login`, `/admin/logout`, `POST /admin/status`. Health returns `version` and `git_sha` (`RELEASE.env`).
-- **`FX_STORAGE`**: `sqlite` is the code default and the only one in use (the Lambda is gone). The dynamodb branch
-  and its trap stay tested, not deployed: without `FX_STORAGE=dynamodb` a Lambda writes nothing and stays 200 on
-  health — `tests/test_lambda_no_fx_storage.py`, `docs/PROD-NOTIFY-DECISION.md` §4.4.
-- **Notifications**: `notify()` → Telegram `sendMessage` (`TELEGRAM_BOT_TOKEN`, `OWNER_TELEGRAM_CHAT_ID`). Best effort:
-  the lead is stored first; a failure prints `{"event":"notify_failed",...}` with the token cut out by `_redact()`.
-  **A request with header `x-test: 1` stores the lead with `is_test` and sends NO notification**; it also uses its
-  own rate bucket (`RLL#T#…`, 60/h instead of 5/h).
-- **`EDGE_SECRET`**: when set, every request without the matching `x-fx-edge` header gets 403 — before routing.
-  Only CloudFront sends that header.
-- **TTL**: DynamoDB expires rows by itself; SQLite does not. `scripts/purge.py` + `deploy/systemd/aluma-purge.timer`
-  do it on the server (leads are never purged).
+- `build.py` substitutes `{{TOKENS}}` from `content.json` and `{{t.key}}` from `i18n/<loc>.json`, draws the technical
+  SVGs from the same numbers, content-hashes asset names, publishes only referenced files. `python build.py` = preview
+  (owner blanks shown as markers; **prod is built this way today**); `--production` refuses while an owner fact is missing.
+- Routes: `GET /api/fx/health` (`version`, `git_sha`), `POST /api/fx/event`, `POST /api/fx/lead`, `GET /admin` (+ `login`, `logout`,
+  `POST status`). `FX_STORAGE=sqlite` is the only one in use; dynamodb stays tested, not deployed (`test_lambda_no_fx_storage.py`).
+- Notifications: `notify()` → Telegram, best effort: the lead is stored first; a failure logs `notify_failed` with the
+  token cut out by `_redact()`. Header `x-test: 1` stores the lead with `is_test`, sends nothing, has its own rate bucket.
+  `EDGE_SECRET` (unset on the box): when set, a request without `x-fx-edge` gets 403 before routing.
 
-## 4. Code Style
-- Python: `snake_case`, module-level `UPPER_SNAKE` config read from env at import. Stdlib first; the only runtime
-  third-party deps are `requests` and `boto3`.
-- Comments, docstrings and commit messages are in **Ukrainian** (see `api/*.py`, `git log`); code identifiers in English.
-- Commit messages: `type(scope): короткий опис` — `feat`, `fix`, `test`, `docs` (e.g. `fix(notify): …`, `docs(deploy): …`).
-- Dual import is intentional — do not "simplify": `try: from api import store` (repo root: tests, gunicorn)
-  `except ImportError: import store` (in the Lambda bundle `api/` IS the root).
-- `api/` is a namespace package (no `__init__.py`, Lambda layout `CodeUri: ../api/`); `tests/__init__.py` is required.
-- Hebrew: numeric ranges and LTR fragments inside Hebrew go in `<bdi dir="ltr">`; copy rules and past edits —
-  `docs/night-2026-09-01/HEBREW-EDIT.md`, `HEBREW-EDIT-2.md`.
+## 4. Code style and logging
+- Python `snake_case`, module-level `UPPER_SNAKE` config read from env at import; stdlib first; runtime deps only
+  `requests` and `boto3`. Comments, docstrings, commit messages in **Ukrainian**; identifiers in English.
+- Dual import is intentional — do not "simplify": `try: from api import store` / `except ImportError: import store`.
+  `api/` is a namespace package (no `__init__.py`); `tests/__init__.py` is required. Hebrew: LTR fragments in `<bdi dir="ltr">`.
+- Logging: one JSON line to stdout per event (`notify_failed`, `unhandled`, `wsgi_unhandled`, `purge_skipped`); never a secret,
+  phone, name or response body in a log line. The public 500 is always `{"ok": false, "error": "internal"}` — no traces.
 
-## 5. Logging
-No logging library: one JSON line to stdout per event (journald / CloudWatch), e.g. `print(json.dumps({"event":
-"notify_failed", "id": item.get("id"), "error": _redact(repr(exc))}))`. Events: `notify_failed`, `unhandled`,
-`wsgi_unhandled`, `purge_skipped`. Never put secrets, phone numbers, names or response bodies in a log line; anything
-that can contain a URL with the bot token goes through `_redact()`. The public 500 is always
-`{"ok": false, "error": "internal"}` — no stack traces to the internet.
+## 5. Testing
+Guide: `tests/README-python-tests.md`. Stdlib `unittest`, no network, no AWS: Telegram patched, DynamoDB faked,
+`FX_DB_PATH` forced to `:memory:`. Venv and `TMPDIR` **outside the tree** (`/opt/ihor/aluma-table/tmp/venv`; `/tmp` gets wiped).
+Three modes: `tools/run_tests.py` (quick, `tests/QUICK.txt`), `--pr` (`tests/CRITICAL.txt`: + build, secret scan, prod units),
+`--full` (everything — what a merge needs). Playwright: `tests/redesign.spec.js` is fully mocked (preview on 8007);
+`tests/smoke.spec.js` **writes leads** — only against `tools/serve-local-stack.py`, never prod. Proving a test can fail: break
+the code in memory, not on disk.
 
-## 6. Testing
-Full guide: **`tests/README-python-tests.md`**. Python tests are stdlib `unittest`, no network, no AWS credentials:
-Telegram is patched, DynamoDB is a fake, `FX_DB_PATH` is forced to `:memory:`.
-- **Venv OUTSIDE the project tree** — nothing may show up in `git status`. System Python lacks `werkzeug`, so a bare
-  run fails (`test_wsgi` import error).
-- Playwright: `tests/redesign.spec.js` (`playwright.local.config.js`) is fully mocked; it starts `tools/serve-preview.py`
-  on `127.0.0.1:$PREVIEW_PORT` (default 4173 — not ALUMA's; here always 8007, §8). `tests/smoke.spec.js` is **not run**
-  against prod or table-new: it writes to storage (a real `is_test` lead via `route.fetch`, `page_view` without
-  `X-Test` on every `goto`, events via `route.continue`) — safe only against a full local stack with a throwaway DB.
-  That stack is `tools/serve-local-stack.py` (§8): one process on 8007, `dist/` served like Caddy + `api.wsgi` in the
-  same process, one-off SQLite in a 0700 temp dir removed on exit, `TELEGRAM_*` stripped. It is covered by
-  `tests/test_serve_local_stack.py` (22 tests, WSGI called directly — no sockets bar two that need a live process).
-  `BASE_URL` decides the origin the spec asserts against; an HTTPS-only check stays on for a public name.
-- **Three run modes, one command each** (§8): `tools/run_tests.py` - the critical set listed in `tests/CRITICAL.txt`
-  (a module is in it when its failure changes something for the guest, the money or the owner); `--quick` - logic only
-  (`tests/QUICK.txt`: no build, no release archive, no scanner) for a text/number/small API fix; `--full` - everything,
-  what a merge needs. All only inside the frame of §8, and `TMPDIR` outside the tree.
-- Proving a test can fail: break the code **in memory**, not on disk (the pattern used throughout the README).
+## 6. Gotchas
+- `api/store.py` is a shim, not a DynamoDB emulator: unknown expressions raise `ValueError` on purpose — add one only
+  with a proof it is needed and a test. boto3 returns `Decimal`; `store.py` serialises with `default=_plain`.
+- Scripts that talk to `/admin` must not follow redirects. `scripts/smoke_local.py` refuses any host but localhost.
+- `rsync` to `/srv/aluma` needs `--chmod=D0755,F0644`, or Caddy serves 403 on part of the pages (`deploy/README.md`).
+  Lossy WebP/AVIF shift a flat ground by 1–3 levels: compare render colours with a tolerance, never byte-equal.
 
-## 7. Common Patterns
-- **`api/store.py` is a shim, not a DynamoDB emulator.** It implements exactly the calls `handler.py` makes
-  (`Key(...).eq()`, `SET` with `if_not_exists`, `ADD` counters, `batch_writer`, `scan`); anything else raises
-  `ValueError` on purpose. Need a new expression? First check it is really needed, then add it with a test.
-  boto3 returns `Decimal`; `store.py` serialises with `default=_plain`.
-- Scripts that talk to `/admin` must not follow redirects (`scripts/smoke_local.py` uses a `redirect_request → None`
-  opener), otherwise you test urllib, not the server.
-- `scripts/smoke_local.py` refuses any host other than `127.0.0.1`/`localhost` (exit 2) — it writes a lead.
-- `scripts/compare_sites.py` is GET-only, refuses `/api/` and `/admin`, throttles ≥0.5 s; side B may be `dist/`.
-- `scripts/migrate_fx.py` writes only through `api/store.py`; `verify` compares with the dump, and the final pass
-  needs `--second-pass` (TTL) — `docs/CUTOVER-CHECKLIST.md` step 7.5.
-- Lossy WebP/AVIF shift a flat ground by 1–3 levels: compare render colours with a tolerance, never byte-equal.
+## 7. Ports and processes
+**8005** — ALUMA gunicorn, **8007** — Playwright preview / local stack (`~/maestro/PORTS.md`). Listen **only on
+`127.0.0.1`**, never `0.0.0.0` / `*`; gunicorn always with `--no-control-socket` (without it gunicorn 26 replaces the
+per-user control socket and breaks the other gunicorn of this user). Stop processes **only by PID** (`ss -ltnp` →
+`kill -TERM <pid>`) — never `pkill`, `killall`, `pkill -f`: the same binaries serve other businesses on this box.
 
-## 8. Development Commands
-**The four commands.** Everything below them is detail.
+## 8. Commands
 ```bash
-tools/run_tests.py --quick                           # small fix (text, number, API): logic only (tests/QUICK.txt) - 138 tests, 0.4 s
-tools/run_tests.py                                   # default run: critical set (tests/CRITICAL.txt) - 246 tests, 5.5 s
-tools/run_tests.py --full                            # full set - before a merge: 398 tests, 13 s
-gh pr merge --squash --auto                          # deploy = merge into master (DELIVERY.md §5); release/deploy are off
-gh workflow run rollback.yml -f version=vX.Y.Z       # rollback (DELIVERY.md §8); code: git revert + PR
+tools/run_tests.py            # quick set — the default: logic only, ~140 tests, ~0.5 s quiet
+tools/run_tests.py --pr       # before a PR: + build byte-for-byte, secret scan, prod units — ~190 tests, ~12 s
+tools/run_tests.py --full     # before a merge: everything, via the heavy queue
+gh pr merge --squash --auto   # deploy of code = merge into master; then scripts/deploy-box.sh <sha> (/aluma-deploy)
 ```
-Every run goes inside this frame (fleet rule 15.09, after the 14.09 incident: pytest 38 h, 10 GB, whole user down).
-`TMPDIR` must stay **outside the repo tree** - inside it `test_serve_local_stack` goes red, that is its job:
+Every run goes inside this frame (fleet rule, 14.09 incident); full set and Playwright also via `heavy --label aluma --`. The rest — `/aluma-check`.
 ```bash
-TMPDIR=/tmp timeout 30m systemd-run --user --scope -q \
-  --slice='app-ihor\x2dconductor.slice' -p MemoryMax=2G <command>
+TMPDIR=/tmp timeout 30m systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=2G <command>
 ```
 
-Verified on this box (Python 3.12.3): the two run modes on 2026-09-22; lint and `build.py` re-run 2026-09-12, the
-rest on 2026-09-11 unless marked otherwise; venv/DB paths are arbitrary, outside the repo.
-```bash
-git pull --rebase                                   # always first
-# Python tests — venv outside the tree. NOT /tmp: it gets wiped there (2026-10-13 the old /tmp venv had lost its
-# site-packages, every run was red and a rebuild costs 83 s); this path survives and is shared by sessions.
-python3 -m venv /opt/ihor/aluma-table/tmp/venv
-/opt/ihor/aluma-table/tmp/venv/bin/pip install -r api/requirements.txt -r tests/requirements.txt -r requirements-lint.txt
-/opt/ihor/aluma-table/tmp/venv/bin/ruff check .                          # → All checks passed!
-/opt/ihor/aluma-table/tmp/venv/bin/python tools/run_tests.py --full     # → Ran 398 tests … OK
-# Build (preview) → dist/, gitignored
-python3 build.py                                     # → exit 0, "PREVIEW build" + list of owner blanks
-# Local stack smoke: gunicorn ONLY on 127.0.0.1:8005, ALWAYS --no-control-socket, invented secrets
-/opt/ihor/aluma-table/tmp/venv/bin/pip install -r deploy/requirements-server.txt
-ss -ltnp | grep ':8005 '                             # must print nothing
-env FX_STORAGE=sqlite FX_DB_PATH=/tmp/aluma-smoke.db APP_VERSION=0.4.0-smoke \
-    ADMIN_USER=x ADMIN_PASS=throwaway IP_SALT=throwaway \
-    /opt/ihor/aluma-table/tmp/venv/bin/gunicorn -w 2 --threads 4 --timeout 60 \
-    --no-control-socket -b 127.0.0.1:8005 api.wsgi:application
-python3 scripts/smoke_local.py                       # → 4/4 зелених, exit 0
-kill -TERM <master pid>                              # pid from "Listening at: … (<pid>)" or ss -ltnp
-ss -ltn | grep ':8005 '                              # must print nothing again
-# Playwright redesign spec: browsers only in the project dir (never ~/.cache), chromium, no install-deps / sudo
-npm ci                                               # node_modules in this worktree
-PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright npx playwright install chromium
-ss -ltn | grep ':8007 '                              # must print nothing; dist/ built by python3 build.py
-PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright PREVIEW_PORT=8007 PYTHON=python3 \
-    npx playwright test --config playwright.local.config.js   # → 39 passed; webServer stops, 8007 free again
-# Playwright smoke spec: FULL local stack only (it writes leads) — never prod, never table-new
-python3 tools/serve-local-stack.py &                 # 8007: dist/ like Caddy + api.wsgi, one-off SQLite
-PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright BASE_URL=http://127.0.0.1:8007 \
-    npx playwright test tests/smoke.spec.js          # → 30 passed
-kill -TERM <pid>                                     # pid printed at start / ss -ltnp; temp DB removed with it
-# Lighthouse against PROD (GET only, no forms) — package from node_modules, chromium from the project dir
-export CHROME_PATH=/opt/ihor/aluma-table/ms-playwright/chromium-1234/chrome-linux64/chrome
-node_modules/.bin/lighthouse https://table.central-aparts.store/ --quiet \
-    --chrome-flags='--headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage' \
-    --only-categories=performance,accessibility,best-practices,seo \
-    --output=json --output=html --output-path=docs/lighthouse/<date>/he-mobile.report
-    # add --preset=desktop for the desktop pass; 2026-09-12: 100/100/100/100 on / and /en/,
-    # both presets — docs/lighthouse/2026-09-12/README.md (raw reports gitignored)
-# NOT verified here (network / AWS) — read the linked docs before running:
-python3 scripts/compare_sites.py https://table.central-aparts.store dist --assets   # hits prod (GET only)
-python3 scripts/migrate_fx.py --phase dump|load|verify [--second-pass]             # dump READS DynamoDB
-python3 /opt/ihor/aluma-table/current/deploy/agent/pullagent.py --config …/aluma.json --dry-run|--status  # after T040
-```
-**Ports** (`~/maestro/PORTS.md`): **8005** — ALUMA gunicorn, **8007** — ALUMA nginx (request only) and the Playwright preview.
-Listen **only on `127.0.0.1`**, never `0.0.0.0` / `*`. Without `--no-control-socket` gunicorn 26 deletes and replaces
-the per-user control socket and breaks the central-aparts-site gunicorn running as the same user
-(`deploy/systemd/aluma-api.service` comment). Stop processes **only by PID** — never `pkill`, `killall`, `pkill -f`.
+## 9. Rules for every session
+- **Git.** `master` is protected for everyone: **branch → PR → `gh pr merge --squash --auto`**; a direct push is refused
+  (`GH013`). `git pull --rebase` first; `git add <explicit files>`, never `-A`; commit per step, push at once; never
+  `git push --force`. Rulesets live in `.github/rulesets/*.json` — change the file and re-apply it, never the web UI.
+- **Caddy — hands off.** Allowed: `caddy validate`, `caddy adapt`, `caddy fmt` on a copy with a global `admin off`
+  (`deploy/caddy/aluma.Caddyfile`). **Never, with any config, including your own:** `caddy run`, `caddy start`,
+  `caddy stop`, `caddy reload`, `systemctl stop|restart caddy`, the admin socket, anything on port 2019. Writing to
+  `/etc/caddy/` and `sudo systemctl reload caddy` — ONLY a session whose task carries explicit «разрешено sudo» lines
+  (OWNER-RULES п.20–21), by `deploy/caddy/REQUEST-DENIS.md` §6. Why: 2026-09-10, four businesses down 15+ min (HISTORY).
+- **Others' territory.** Do not read or write `/opt/iiko`, `/opt/uzd`, `/opt/uzd-legacy`, `/opt/atmo`, `/opt/tennis`,
+  `/opt/bots`, others' units and containers. ALUMA's server path is `/opt/ihor/aluma-table`; edit code only in
+  `~/repos/aluma-table` or a worktree of it. Need a live foreign service to test something — ask the owner.
+- **Deploy.** Merge into `master` = code accepted; prod follows by `scripts/deploy-box.sh` (`/aluma-deploy`; OWNER-RULES
+  п.31: deploy without asking, report after with the rollback line); only own units `ihor-aluma-*` restart. **AWS stays
+  hands-off, read-only, no exceptions** (shared account): no `sam deploy`, `aws cloudformation`, `aws lambda update-function-*`,
+  `aws s3 sync/cp`, DNS change, or any other write.
+- **Secret scan.** `scripts/secret_scan.py --mode tree` against `.github/secret-scan-baseline.json` is a required check
+  on every PR; a NEW finding turns it red, values are never printed. Reviewed on purpose → `--update-baseline`; keys,
+  `.env` files, databases and access codes may never go in the list. No `gitleaks`/`trufflehog`/new binaries.
+- **Secrets.** `IP_SALT` and `ADMIN_PASS` stay unchanged on the server (cookie signature, `ip_hash`); `EDGE_SECRET` is
+  not set on the box. Check presence by count, never print values. Only `deploy/aluma.env.example` is in git; `dump/`
+  and `data/` hold live lead data — never commit, never print.
+- **Shell text.** Long text (task, report, docs) goes through a file or in **single** quotes. Heredoc only with a quoted
+  delimiter: `<<'EOF'`. Backticks or `$(` inside double quotes execute — on 2026-09-10 that sent a real request to
+  port 2019 from a sentence *about* not touching Caddy. Grep long text for a backtick and `$(` before sending.
+- **Sessions.** Remote Control only — never `claude -p`, `--print` or any headless session. No subagents on small tasks.
+- **Before marking done:** tests green (§8); `python3 build.py` exits 0 if site/i18n/content/build changed; only your files in `git status`.
 
-## 9. AI Coding Assistant Instructions
-**Git.** Branch `master`, and since 2026-09-12 it is protected for everyone: **branch → PR → auto-merge only**. A
-fast-forward push to `master` is refused by the server (`GH013: Changes must be made through a pull request`), so do
-not try — open a PR and `gh pr merge --squash --auto`; it merges itself once `secret-scan`, `lint`, `test (3.12)`,
-`test (3.13)`, `build` and `browser` are green, and GitHub removes the branch. Release and deploy stay off (`RELEASES_ENABLED` not
-set). `git pull --rebase` first; `git add <explicit files>`, never `-A`; commit per step, push at once; never
-`git push --force` (constitution VI). The rulesets live in the repo as `.github/rulesets/*.json` — change a rule by
-editing the file and re-applying it, not in the web UI, or `tests/test_pipeline.py` will drift from reality.
-Process — `docs/DELIVERY.md`.
-
-**Caddy.** By default hands off. Any session may run `caddy validate`, `caddy adapt`, `caddy fmt` — on a copy with a
-global `admin off` block (`deploy/README.md`, `deploy/caddy/aluma.Caddyfile`). Never, with any config, including
-your own: `caddy run`, `caddy start`, `caddy stop`, `caddy reload`, `systemctl stop|restart caddy`, the admin socket,
-anything on port 2019 (the shared admin API stops live Caddy without root). Writing to `/etc/caddy/` and
-`sudo systemctl reload caddy` — ONLY a session whose task carries explicit «разрешено sudo» lines
-(`~/maestro/OWNER-RULES.md` п.20–21), by `deploy/caddy/REQUEST-DENIS.md` §6: backup copy, one own `import` line,
-validate, announce to the main conductor, others' sites checked before/after, rollback on any difference.
-Reason: on 2026-09-10 an ALUMA session stopped the live Caddy; four other businesses (incl. a medical practice)
-were down 15+ minutes.
-
-**Others' territory.** Do not read or write `/opt/iiko`, `/opt/uzd`, `/opt/uzd-legacy`, `/opt/atmo`, `/opt/tennis`,
-`/opt/bots`, or others' units and containers. ALUMA's own server path is `/opt/ihor/aluma-table`; edit code only in
-`~/repos/aluma-table` (or a worktree of it). Need a live foreign service to test something — ask the owner instead.
-
-**Deploy.** Rollout goes by `docs/DELIVERY.md` (constitution VI, constitution-base 2.1.0): auto-deploy after a merge
-into the target branch is allowed and preferred (OWNER-RULES п.22) when the CI checks are green and rollback is proven;
-a rollout to prod outside that pipeline — including the box itself today — still needs the owner's «да».
-**AWS stays hands-off, read-only, no exceptions:** ALUMA has nothing left there (`docs/AWS-TEARDOWN.md`), but the
-account is shared with other projects, and the admin key on the box stops nothing — only this rule does. So no
-`sam deploy`, `aws cloudformation …`, `aws lambda update-function-*`, `aws s3 sync/cp`, DNS change, or any other AWS
-write. `scripts/deploy.sh`, `docs/PROD-NOTIFY-DECISION.md` and `infra/` describe the deleted Lambda stack — history.
-
-**Secret scan.** `scripts/secret_scan.py` is a required check on every commit — `--mode tree` against
-`.github/secret-scan-baseline.json`, the reviewed-places list; a NEW finding is what turns it red. Values are never
-printed: stdout carries per-rule totals only, the report with paths stays in `$RUNNER_TEMP`. Reviewed a finding on
-purpose? `--baseline … --update-baseline`; keys, `.env` files, databases and access codes may never go in the list
-(`tests/test_secret_scan.py`). The one-off scan of the whole history, public and archive, and what was found in it —
-`docs/security/secret-scan-2026-09-13.md`. No `gitleaks`, no `trufflehog`, no new binaries from the network.
-
-**Secrets.** `IP_SALT` and `ADMIN_PASS` move to the server **unchanged** (they sign the admin cookie and salt
-`ip_hash`). `EDGE_SECRET` is **not** moved to the server (otherwise 403 on everything, admin included). Check
-presence by count, never print values (`docs/CUTOVER-CHECKLIST.md` step 2). Only `deploy/aluma.env.example` is in
-git. `dump/` and `data/` hold live lead data (gitignored): never commit them, never print their contents.
-
-**Shell text.** Pass long text (task, report, docs) through a file or in **single** quotes. Heredoc only with a
-quoted delimiter: `<<'EOF'`. Backticks or `$(` inside double quotes execute — on 2026-09-10 that sent a real
-request to port 2019 from a sentence *about* not touching Caddy. Grep long text for a backtick and `$(` before sending.
-
-**Sessions.** Remote Control only — never `claude -p`, `--print` or any headless session.
-
-**Where things are** (tests — §6, ports — §8):
+## 10. Where things are, keeping this file, SDD
 | Topic | File |
 |---|---|
-| Machine-wide invariants checked by `/speckit-analyze` | `.specify/memory/constitution.md` |
-| Delivery: branches, CI, releases, deploy, rollback, who presses what (now / after T040) | `docs/DELIVERY.md` |
-| Move to this server, step by step (secrets, FX_STORAGE, DNS window, rollback) | `docs/CUTOVER-CHECKLIST.md` |
-| Units, nginx, Caddy, env — what goes where, what was checked | `deploy/README.md`, `deploy/systemd/`, `deploy/nginx/`, `deploy/caddy/` |
-| Old AWS stack: Lambda rollout recipe and the teardown — both history, the stack is deleted | `docs/PROD-NOTIFY-DECISION.md`, `docs/AWS-TEARDOWN.md` |
-| Repository rules as files (what is applied, and why no bypass anywhere) | `.github/rulesets/*.json`, `tests/test_pipeline.py` |
+| Delivery: branches, CI, releases, deploy, rollback, who presses what; repository rules as files | `docs/DELIVERY.md`, `.github/rulesets/*.json`, `tests/test_pipeline.py` |
+| Units, Caddy block, env, publishing static (rsync flags) | `deploy/README.md`, `deploy/systemd/`, `deploy/caddy/` |
+| History: AWS teardown, cutover, public repo + private archive, incidents, old reports; Hebrew copy rules | `docs/HISTORY.md` |
 
-**Before marking done:** tests green (§8); `python3 build.py` exits 0 if `site/`, `i18n/`, `content.json` or
-`build.py` changed; `git status` shows only your files.
-
-## 10. Keeping This File Updated
-The session that changes a fact stated here (command, port, env var, route, rule) updates this file in the same
-commit — gotcha → §7, command → §8 (re-run it; mark anything not run as not verified), architecture → §3, dependency
-→ §2; the conductor checks it on acceptance; owner rule changes land first in OWNER-RULES. Edit in place, link instead
-of copying, keep it under ~200 lines, check every claim against the code. `.claude/cc10x/*` is not authoritative and
-is no longer tracked (untracked on 2026-09-12, before the repository was published; the old copies stay in the private
-archive `aluma-table-archive-2026-09`).
-
-## SDD (Spec Kit)
-Features larger than ~1 day, or touching data, money, sign-in or security, go through Spec-Driven Development:
-GitHub Spec Kit 1.0.6, skills `/speckit-*`. Specs live in `specs/NNN-short-name/` (the conductor assigns the number,
-short-name in Latin), principles in `.specify/memory/constitution.md`. Small edits and operations — without SDD, as a
-regular task. The Spec Kit git extension is not installed: it creates no branches and no commits by itself.
-Reference copy and procedure — `~/maestro/sdd/`.
+The session that changes a fact stated here updates this file in the same commit, keeps it **under 120 lines**, moves history
+to `docs/HISTORY.md`. Features over ~1 day or touching data, money, sign-in, security → Spec Kit (`/speckit-*`, `specs/`); small edits — §1.

@@ -3,14 +3,14 @@
 Навіщо він є. `tools/serve-preview.py` віддає лише статику й на `/api/fx/lead` відповідає
 503: заявки там нема куди класти. `tests/smoke.spec.js` натомість ПИШЕ у сховище (заявка
 `is_test` через `route.fetch`, `page_view` без `X-Test` на кожен `goto`, події через
-`route.continue`), тому проти прода й проти `table-new` його ганяти не можна — CLAUDE.md §6.
+`route.continue`), тому проти прода й проти `table-new` його ганяти не можна — CLAUDE.md §5.
 Цей файл дає йому те, чого бракує: справжній `api/handler.py` поверх ОДНОРАЗОВОЇ бази.
 
     PREVIEW_PORT=8007 python3 tools/serve-local-stack.py     # Ctrl-C або kill -TERM <pid>
 
 Що всередині:
   * маршрути `/api/fx/*` і `/admin*` ідуть у `api.wsgi:application` ЦЬОГО Ж процесу —
-    той самий код, що під gunicorn у проді (CLAUDE.md §1, «Same code, two runtimes»);
+    той самий код, що під gunicorn у проді (CLAUDE.md §2, «Same code, two runtimes»);
   * решта — статика з `dist/` РІВНО так, як її віддає Caddy (deploy/caddy/aluma-site-body.caddyfile):
     `redir /en /en/ 308`, `try_files {path} {path}/index.html`, сторінки без розширення —
     `text/html; charset=utf-8`, 403/404 → `/404.html` зі статусом 404, ті самі заголовки
@@ -192,7 +192,7 @@ def install_term_handler() -> None:
     Типовий обробник SIGTERM у Python гасить процес НЕГАЙНО, не розкручуючи стек: блок
     `finally` не виконується, і тимчасова тека з базою лишається лежати в /tmp. А гасять
     цей сервер саме так — `kill -TERM <pid>` (єдиний дозволений спосіб на цій машині:
-    ніяких pkill/killall, CLAUDE.md §8). Заміряно: без цих рядків тека переживала процес.
+    ніяких pkill/killall, CLAUDE.md §7). Заміряно: без цих рядків тека переживала процес.
     """
     def _stop(signum, frame):
         raise KeyboardInterrupt                    # той самий шлях виходу, що й Ctrl-C
