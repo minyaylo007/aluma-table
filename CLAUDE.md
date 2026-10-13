@@ -91,10 +91,9 @@ that can contain a URL with the bot token goes through `_redact()`. The public 5
 
 ## 6. Testing
 Full guide: **`tests/README-python-tests.md`**. Python tests are stdlib `unittest`, no network, no AWS credentials:
-Telegram is patched, DynamoDB is a fake or moto, `FX_DB_PATH` is forced to `:memory:`.
+Telegram is patched, DynamoDB is a fake, `FX_DB_PATH` is forced to `:memory:`.
 - **Venv OUTSIDE the project tree** — nothing may show up in `git status`. System Python lacks `werkzeug`, so a bare
   run fails (`test_wsgi` import error).
-- `tests/test_lambda_dynamodb.py` needs `boto3` + `moto` (+ `node` for the phone-parity test), else it is skipped.
 - Playwright: `tests/redesign.spec.js` (`playwright.local.config.js`) is fully mocked; it starts `tools/serve-preview.py`
   on `127.0.0.1:$PREVIEW_PORT` (default 4173 — not ALUMA's; here always 8007, §8). `tests/smoke.spec.js` is **not run**
   against prod or table-new: it writes to storage (a real `is_test` lead via `route.fetch`, `page_view` without

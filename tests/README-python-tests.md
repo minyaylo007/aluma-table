@@ -16,7 +16,6 @@ Three files:
 | `tests/test_handler.py` | routing, phone normalisation, lead capture, Telegram notification | none |
 | `tests/test_store_sqlite.py` | `api/store.py` — the SQLite twin of the three DynamoDB tables | none |
 | `tests/test_wsgi.py` | `api/wsgi.py` — the same handler under gunicorn | `werkzeug` |
-| `tests/test_lambda_dynamodb.py` | the Lambda path: `FX_STORAGE=dynamodb` on moto, the live front's lead body, admin, client/server phone parity | `boto3`, `moto`, `node` (else skipped) |
 | `tests/test_lambda_no_fx_storage.py` | Lambda **without** `FX_STORAGE`: read-only `/var/task` → lead and event 500, no notify, health 200 | not root (else skipped) |
 | `tests/test_daily_report.py` | `scripts/daily_report.py` on the box SQLite (no DynamoDB, no boto3) | none |
 
@@ -69,7 +68,7 @@ cd ~/repos/aluma-table
 /tmp/aluma-venv/bin/python -m unittest discover -s tests -t .
 ```
 
-Test-only dependencies are pinned in `tests/requirements.txt` (werkzeug, boto3, moto) since 2026-09-11 —
+Test-only dependencies are pinned in `tests/requirements.txt` (werkzeug, boto3; moto until 2026-10-13) since 2026-09-11 —
 CI installs exactly these files, never a list typed into the workflow. The historical counts below were measured
 with the older ad-hoc install (`pip install werkzeug requests pytest`).
 
@@ -387,6 +386,10 @@ exit `1`, where all 10 pages and 3 assets are "line endings only". `--assets --i
 exit `0`. This stays the same until prod is re-deployed from a build with the fix.
 
 ## Lambda path on moto (`tests/test_lambda_dynamodb.py`)
+
+**Deleted 2026-10-13 (owner decision, P-2026-10-13-03):** the Lambda was removed on 2026-09-11, the branch is
+dead, and `moto` was the heaviest dependency of the venv. The file is one command away:
+`git checkout <sha>^ -- tests/test_lambda_dynamodb.py`. The section below describes it as it was.
 
 The question it answers: if only the backend of `master` goes to the existing Lambda
 (`FX_STORAGE=dynamodb`) and the static site stays as it is, does the live form still work?

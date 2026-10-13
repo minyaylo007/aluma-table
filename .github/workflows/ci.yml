@@ -86,10 +86,6 @@ jobs:
           cache-dependency-path: |
             api/requirements.txt
             tests/requirements.txt
-      # node потрібен тесту паритету телефону (tests/test_lambda_dynamodb.py): без node він пропускається.
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
       - name: Install
         run: pip install -r api/requirements.txt -r tests/requirements.txt
       - name: Tests
