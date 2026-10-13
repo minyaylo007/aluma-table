@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-r"""Два режими прогону тестів ALUMA — одна команда на кожен.
+r"""Три режими прогону тестів ALUMA — одна команда на кожен.
 
-    tools/run_tests.py          критичний набір зі tests/CRITICAL.txt
-    tools/run_tests.py --quick  швидкий набір зі tests/QUICK.txt (лише логіка, ~1–2 с)
-    tools/run_tests.py --full   весь набір (unittest discover -s tests -t .)
+    tools/run_tests.py          швидкий набір зі tests/QUICK.txt — типовий: лише логіка, ~0,5 с
+    tools/run_tests.py --pr     набір «перед PR» зі tests/CRITICAL.txt: + збірка, сканер, юніти
+    tools/run_tests.py --full   весь набір (unittest discover -s tests -t .) — перед злиттям
 
-Критичний набір — модулі, падіння яких щось змінює для гостя, грошей або власника
-(правило відбору — у шапці tests/CRITICAL.txt). Повний набір ганяємо перед злиттям.
+Швидкий набір — модулі, падіння яких щось змінює для гостя, грошей або власника, і які не
+запускають збірку, архів релізу чи сканер (правило відбору — у шапці tests/QUICK.txt). Рішення
+власника 13.10.2026 (P-2026-10-13-03): типовий прогін — швидкий; `--quick` лишається синонімом.
 
 Рамка прогону (правило флоту, інцидент 14.09) — CLAUDE.md §8:
 
@@ -45,9 +46,11 @@ def read_critical(path: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--full", action="store_true",
-                        help="весь набір замість критичного")
+                        help="весь набір — перед злиттям")
+    parser.add_argument("--pr", action="store_true",
+                        help="набір «перед PR» (tests/CRITICAL.txt): + збірка, сканер, юніти прода")
     parser.add_argument("--quick", action="store_true",
-                        help="швидкий набір (tests/QUICK.txt): лише логіка, без збірки й сканера")
+                        help="швидкий набір (tests/QUICK.txt) — це і є типовий прогін; прапорець-синонім")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="ім'я кожного тесту")
     args = parser.parse_args(argv)
@@ -60,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         mode = "повний"
         suite = loader.discover(start_dir=str(ROOT / "tests"), top_level_dir=str(ROOT))
     else:
-        mode, listing = ("швидкий", QUICK_LIST) if args.quick else ("критичний", CRITICAL_LIST)
+        mode, listing = ("перед PR", CRITICAL_LIST) if args.pr else ("швидкий", QUICK_LIST)
         if not listing.exists():
             print(f"немає списку набору «{mode}»: {listing}", file=sys.stderr)
             return 2
