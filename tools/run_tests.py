@@ -2,6 +2,7 @@
 r"""Два режими прогону тестів ALUMA — одна команда на кожен.
 
     tools/run_tests.py          критичний набір зі tests/CRITICAL.txt
+    tools/run_tests.py --quick  швидкий набір зі tests/QUICK.txt (лише логіка, ~1–2 с)
     tools/run_tests.py --full   весь набір (unittest discover -s tests -t .)
 
 Критичний набір — модулі, падіння яких щось змінює для гостя, грошей або власника
@@ -28,6 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CRITICAL_LIST = ROOT / "tests" / "CRITICAL.txt"
+QUICK_LIST = ROOT / "tests" / "QUICK.txt"
 
 
 def read_critical(path: Path) -> list[str]:
@@ -44,6 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--full", action="store_true",
                         help="весь набір замість критичного")
+    parser.add_argument("--quick", action="store_true",
+                        help="швидкий набір (tests/QUICK.txt): лише логіка, без збірки й сканера")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="ім'я кожного тесту")
     args = parser.parse_args(argv)
@@ -56,13 +60,13 @@ def main(argv: list[str] | None = None) -> int:
         mode = "повний"
         suite = loader.discover(start_dir=str(ROOT / "tests"), top_level_dir=str(ROOT))
     else:
-        mode = "критичний"
-        if not CRITICAL_LIST.exists():
-            print(f"немає списку критичного набору: {CRITICAL_LIST}", file=sys.stderr)
+        mode, listing = ("швидкий", QUICK_LIST) if args.quick else ("критичний", CRITICAL_LIST)
+        if not listing.exists():
+            print(f"немає списку набору «{mode}»: {listing}", file=sys.stderr)
             return 2
-        names = read_critical(CRITICAL_LIST)
+        names = read_critical(listing)
         if not names:
-            print(f"список критичного набору порожній: {CRITICAL_LIST}", file=sys.stderr)
+            print(f"список набору «{mode}» порожній: {listing}", file=sys.stderr)
             return 2
         suite = loader.loadTestsFromNames(names)
 

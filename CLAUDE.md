@@ -103,9 +103,10 @@ Telegram is patched, DynamoDB is a fake or moto, `FX_DB_PATH` is forced to `:mem
   same process, one-off SQLite in a 0700 temp dir removed on exit, `TELEGRAM_*` stripped. It is covered by
   `tests/test_serve_local_stack.py` (22 tests, WSGI called directly — no sockets bar two that need a live process).
   `BASE_URL` decides the origin the spec asserts against; an HTTPS-only check stays on for a public name.
-- **Two run modes, one command each** (§8): `tools/run_tests.py` - the critical set listed in `tests/CRITICAL.txt`
-  (a module is in it when its failure changes something for the guest, the money or the owner); `--full` - everything,
-  what a merge needs. Both only inside the frame of §8, and `TMPDIR` outside the tree.
+- **Three run modes, one command each** (§8): `tools/run_tests.py` - the critical set listed in `tests/CRITICAL.txt`
+  (a module is in it when its failure changes something for the guest, the money or the owner); `--quick` - logic only
+  (`tests/QUICK.txt`: no build, no release archive, no scanner) for a text/number/small API fix; `--full` - everything,
+  what a merge needs. All only inside the frame of §8, and `TMPDIR` outside the tree.
 - Proving a test can fail: break the code **in memory**, not on disk (the pattern used throughout the README).
 
 ## 7. Common Patterns
@@ -124,6 +125,7 @@ Telegram is patched, DynamoDB is a fake or moto, `FX_DB_PATH` is forced to `:mem
 ## 8. Development Commands
 **The four commands.** Everything below them is detail.
 ```bash
+tools/run_tests.py --quick                           # small fix (text, number, API): logic only (tests/QUICK.txt) - 138 tests, 0.4 s
 tools/run_tests.py                                   # default run: critical set (tests/CRITICAL.txt) - 246 tests, 5.5 s
 tools/run_tests.py --full                            # full set - before a merge: 398 tests, 13 s
 gh pr merge --squash --auto                          # deploy = merge into master (DELIVERY.md §5); release/deploy are off
@@ -140,19 +142,20 @@ Verified on this box (Python 3.12.3): the two run modes on 2026-09-22; lint and 
 rest on 2026-09-11 unless marked otherwise; venv/DB paths are arbitrary, outside the repo.
 ```bash
 git pull --rebase                                   # always first
-# Python tests — venv outside the tree
-python3 -m venv /tmp/aluma-venv-$USER
-/tmp/aluma-venv-$USER/bin/pip install -r api/requirements.txt -r tests/requirements.txt -r requirements-lint.txt
-/tmp/aluma-venv-$USER/bin/ruff check .                                   # → All checks passed!
-/tmp/aluma-venv-$USER/bin/python tools/run_tests.py --full              # → Ran 398 tests … OK
+# Python tests — venv outside the tree. NOT /tmp: it gets wiped there (2026-10-13 the old /tmp venv had lost its
+# site-packages, every run was red and a rebuild costs 83 s); this path survives and is shared by sessions.
+python3 -m venv /opt/ihor/aluma-table/tmp/venv
+/opt/ihor/aluma-table/tmp/venv/bin/pip install -r api/requirements.txt -r tests/requirements.txt -r requirements-lint.txt
+/opt/ihor/aluma-table/tmp/venv/bin/ruff check .                          # → All checks passed!
+/opt/ihor/aluma-table/tmp/venv/bin/python tools/run_tests.py --full     # → Ran 398 tests … OK
 # Build (preview) → dist/, gitignored
 python3 build.py                                     # → exit 0, "PREVIEW build" + list of owner blanks
 # Local stack smoke: gunicorn ONLY on 127.0.0.1:8005, ALWAYS --no-control-socket, invented secrets
-/tmp/aluma-venv-$USER/bin/pip install -r deploy/requirements-server.txt
+/opt/ihor/aluma-table/tmp/venv/bin/pip install -r deploy/requirements-server.txt
 ss -ltnp | grep ':8005 '                             # must print nothing
 env FX_STORAGE=sqlite FX_DB_PATH=/tmp/aluma-smoke.db APP_VERSION=0.4.0-smoke \
     ADMIN_USER=x ADMIN_PASS=throwaway IP_SALT=throwaway \
-    /tmp/aluma-venv-$USER/bin/gunicorn -w 2 --threads 4 --timeout 60 \
+    /opt/ihor/aluma-table/tmp/venv/bin/gunicorn -w 2 --threads 4 --timeout 60 \
     --no-control-socket -b 127.0.0.1:8005 api.wsgi:application
 python3 scripts/smoke_local.py                       # → 4/4 зелених, exit 0
 kill -TERM <master pid>                              # pid from "Listening at: … (<pid>)" or ss -ltnp
