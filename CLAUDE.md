@@ -195,7 +195,7 @@ not try — open a PR and `gh pr merge --squash --auto`; it merges itself once `
 `test (3.13)`, `build` and `browser` are green, and GitHub removes the branch. Release and deploy stay off (`RELEASES_ENABLED` not
 set). `git pull --rebase` first; `git add <explicit files>`, never `-A`; commit per step, push at once; never
 `git push --force` (constitution VI). The rulesets live in the repo as `.github/rulesets/*.json` — change a rule by
-editing the file and re-applying it, not in the web UI, or `tests/test_rulesets.py` will drift from reality.
+editing the file and re-applying it, not in the web UI, or `tests/test_pipeline.py` will drift from reality.
 Process — `docs/DELIVERY.md`.
 
 **Caddy.** By default hands off. Any session may run `caddy validate`, `caddy adapt`, `caddy fmt` — on a copy with a
@@ -246,7 +246,7 @@ request to port 2019 from a sentence *about* not touching Caddy. Grep long text 
 | Move to this server, step by step (secrets, FX_STORAGE, DNS window, rollback) | `docs/CUTOVER-CHECKLIST.md` |
 | Units, nginx, Caddy, env — what goes where, what was checked | `deploy/README.md`, `deploy/systemd/`, `deploy/nginx/`, `deploy/caddy/` |
 | Old AWS stack: Lambda rollout recipe and the teardown — both history, the stack is deleted | `docs/PROD-NOTIFY-DECISION.md`, `docs/AWS-TEARDOWN.md` |
-| Repository rules as files (what is applied, and why no bypass anywhere) | `.github/rulesets/*.json`, `tests/test_rulesets.py` |
+| Repository rules as files (what is applied, and why no bypass anywhere) | `.github/rulesets/*.json`, `tests/test_pipeline.py` |
 
 **Before marking done:** tests green (§8); `python3 build.py` exits 0 if `site/`, `i18n/`, `content.json` or
 `build.py` changed; `git status` shows only your files.
