@@ -23,7 +23,7 @@ CLAUDE.md ≤120 рядків). Поточні правила — `CLAUDE.md`; �
 - API — **user-юніти**, встановлені руками 11.09 (`systemctl --user`): `ihor-aluma-api.service` (gunicorn,
   127.0.0.1:8005, `WorkingDirectory=/opt/ihor/aluma-table`, venv `.venv` у клоні, env `~/.config/aluma/aluma.env`),
   `ihor-aluma-purge.timer` (щоденне чищення подій SQLite; заявки не чистяться). Health віддає `version=0.4.0-box`.
-- Статика — `/srv/aluma`, зібрана **preview**-збіркою (`python3 build.py`): п'ять фактів власника (адреса, email,
+- Статика — `/srv/aluma`, зібрана **preview**-збіркою (`python3 build.py`): сім фактів власника (назва компанії, її номер, адреса, email,
   телефон, контакт доступності, місто суду) ще не заповнені, тож `--production` відмовляє, а на сторінці стоїть
   маркер «להשלמה». Публікація — `rsync … --chmod=D0755,F0644` (`deploy/README.md`, пастка з 403).
 - Клон `/opt/ihor/aluma-table` з 11.09 по 13.10.2026 стояв на `563edc8` — місяць за `master`, бо ручний крок викату
