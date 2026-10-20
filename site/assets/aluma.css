@@ -464,6 +464,21 @@ bdi { unicode-bidi: isolate; }
 .sticky-cta .btn { flex: 1; }
 .sticky-price { display: grid; line-height: 1.2; font-family: var(--serif); font-size: 1.3rem; }
 .sticky-price small { font-family: var(--sans); font-size: .72rem; color: var(--muted); }
+/* картка товару: «пігулка» з мініатюрою обраного столу, ціною і «להרשמה» */
+.sticky-cta--pdp { inset-inline: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); padding: 6px; padding-inline-end: 6px;
+  border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 10px 30px rgba(33, 28, 23, .16);
+  transform: translateY(calc(100% + 24px)); }
+.sticky-cta--pdp .btn { flex: 0 1 auto; margin-inline-start: auto; min-height: 44px; padding-inline: 20px; border-radius: 999px; }
+.sticky-thumb { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--sand); }
+.sticky-cta--pdp .sticky-price { font-size: 1.1rem; }
+/* коротка форма біля фото */
+.quick { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: clamp(16px, 2.6vw, 24px); }
+.quick-form { gap: 14px; }
+.quick-h { font-weight: 600; margin: 0; }
+.quick .f-fine a { color: inherit; }
+.thanks--quick { text-align: start; }
+.pill-pop { justify-self: start; margin-block-start: 4px; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 600;
+  background: var(--esp); color: var(--cream); }
 @media (min-width: 900px) { .sticky-cta { display: none !important; } }
 
 /* ---------------------------------------------------------------- підвал */

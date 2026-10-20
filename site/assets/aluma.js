@@ -40,8 +40,10 @@
   var dock = function () {
     var top = W.innerHeight, st = qs("[data-sticky]");
     var stOn = st && st.classList.contains("is-on") && st.offsetHeight;
-    D.documentElement.style.setProperty("--sticky-h", (stOn ? st.offsetHeight : 0) + "px");
-    if (stOn) top -= st.offsetHeight;   // не getBoundingClientRect: смуга ще їде transform-ом
+    // висота разом із відступом знизу (липка «пігулка» в картці стоїть не впритул до краю)
+    var stH = stOn ? st.offsetHeight + (parseFloat(getComputedStyle(st).bottom) || 0) : 0;
+    D.documentElement.style.setProperty("--sticky-h", stH + "px");
+    top -= stH;   // не getBoundingClientRect: смуга ще їде transform-ом
     // на десктопі банер — картка в протилежному куті, кнопку не піднімаємо
     if (notice && !notice.hidden && !notice.classList.contains("is-away") && notice.offsetWidth > W.innerWidth * .8) top = Math.min(top, notice.getBoundingClientRect().top);
     D.documentElement.style.setProperty("--dock", Math.max(0, Math.round(W.innerHeight - top)) + "px");
@@ -65,8 +67,7 @@
     if (okBtn) okBtn.addEventListener("click", function () { choose(true); });
     if (noBtn) noBtn.addEventListener("click", function () { choose(false); });
     // телефон: банер на всю ширину накрив би поле у фокусі — ховаємо, поки фокус у формі
-    var form = qs("#lead-form");
-    if (form) {
+    qsa("[data-form]").forEach(function (form) {
       form.addEventListener("focusin", function () {
         if (!notice.hidden && notice.offsetWidth > W.innerWidth * .8) { notice.classList.add("is-away"); dock(); }
       });
@@ -74,7 +75,7 @@
         if (form.contains(e.relatedTarget)) return;
         notice.classList.remove("is-away"); dock();
       });
-    }
+    });
   }
   qsa("[data-cookie-settings]").forEach(function (b) { b.addEventListener("click", function () {
     try { if (W.alumaConsentReset) W.alumaConsentReset(); } catch (e) {}
@@ -192,7 +193,7 @@
   }
 
   // ---------------------------------------------------------------- форма: селекти товару
-  var form = qs("[data-form]");
+  var form = qs("#lead-form"), quick = qs("[data-quick]");
   var fProduct = form && qs("#f-product", form), fSize = form && qs("#f-size", form),
       fFinish = form && qs("#f-finish", form), fBase = form && qs("#f-base", form),
       cfgRow = form && qs("[data-config-row]", form);
@@ -226,7 +227,11 @@
     var P = currentProduct();
     var priceEl = qs(".price[data-price] bdi"), mini = qs("[data-price-mini]"), finishName = qs("[data-finish-name]");
     var val = function (n) { var el = qs('input[name="' + n + '"]:checked', config || D); return el ? el.value : ""; };
-    var syncAll = function () { if (P) syncFormProduct(P.id, val("size"), val("finish"), val("base")); };
+    var syncAll = function () {
+      if (P) syncFormProduct(P.id, val("size"), val("finish"), val("base"));
+      // коротка форма біля фото: вибір іде прихованими полями
+      if (quick) { quick.elements.size_label.value = val("size"); quick.elements.finish_id.value = val("finish"); quick.elements.base_id.value = val("base"); }
+    };
     var updatePrice = function () {
       var sz = qs('input[name="size"]:checked', config || D);
       if (sz && sz.getAttribute("data-price")) {
@@ -323,11 +328,13 @@
     else return d.length >= 8;            // іноземний номер — нехай вирішує сервер
     return PHONE_NATIONAL.test(nat);
   }
-  if (form) {
+  // повна форма (#lead-form) і коротка в картці товару ([data-quick]) — один обробник
+  function wireForm(form) {
     var status = qs(".f-status", form), btn = qs('button[type="submit"]', form), busy = false;
-    var thanks = qs("[data-thanks]");
+    var thanks = form.id === "lead-form" ? qs("[data-thanks]") : qs(".thanks", form.parentNode);
+    var pre = form.getAttribute("data-err") || "";
     var setErr = function (name, msg) {
-      var input = form.elements[name], err = qs("#e-" + name, form);
+      var input = form.elements[name], err = qs("#" + pre + "e-" + name, form);
       if (err) { err.textContent = msg || ""; err.hidden = !msg; }
       if (input && input.setAttribute) { if (msg) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid"); }
     };
@@ -340,14 +347,13 @@
       e.preventDefault();
       if (busy) return;
       var el = form.elements, attr = attribution(), ap = attr.p || {};
+      var fv = function (n) { var x = el[n]; return x && x.value ? String(x.value).trim() : ""; };
       var data = {
-        name: (el.name.value || "").trim(), phone: (el.phone.value || "").trim(), city: (el.city.value || "").trim(),
-        comment: (el.comment.value || "").trim(), website: el.website ? el.website.value : "",
+        name: fv("name"), phone: fv("phone"), city: fv("city"), comment: fv("comment"), website: el.website ? el.website.value : "",
         consent: !!el.consent.checked, consent_marketing: !!(el.consent_marketing && el.consent_marketing.checked),
         marketing_consent: !!(el.consent_marketing && el.consent_marketing.checked), ads_consent: adsConsent(),
         consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
-        product_id: fProduct ? fProduct.value : "", size_label: fSize ? fSize.value : "",
-        finish_id: fFinish ? fFinish.value : "", base_id: fBase ? fBase.value : "",
+        product_id: fv("product_id"), size_label: fv("size_label"), finish_id: fv("finish_id"), base_id: fv("base_id"),
         timeframe: radio("timeframe"), contact_pref: radio("contact_pref"),
         session_id: sessionId(), page: location.pathname, referrer: D.referrer || "",
         device: W.matchMedia("(min-width: 900px)").matches ? "desktop" : "mobile",
@@ -397,18 +403,21 @@
         }, function () { unlock(); status.className = "f-status is-err"; status.textContent = S.offline || ""; });
     });
   }
+  if (form) wireForm(form);
+  if (quick) wireForm(quick);
 
   // ---------------------------------------------------------------- липка кнопка: після першого екрана, не над формою
   // Положення рахуємо на scroll (пасивно, раз на кадр): IntersectionObserver пропускає якір, якщо
   // швидкий свайп перестрибує його за один кадр, і кнопка не з'являлася.
   var sticky = qs("[data-sticky]");
   if (sticky) {
-    var anchor = qs(".hero .actions") || qs(".pdp-actions"), reg = qs("#register"), foot = qs(".foot"), queued = false;
+    // у картці товару — після блоку ціни; ховається, поки на екрані коротка форма біля фото
+    var anchor = qs(".hero .actions") || qs(".pdp-price"), reg = qs("#register"), foot = qs(".foot"), queued = false;
     var visible = function (el) { if (!el) return false; var r = el.getBoundingClientRect(); return r.top < W.innerHeight && r.bottom > 0; };
     var apply = function () {
       queued = false;
       var past = anchor ? anchor.getBoundingClientRect().bottom < 0 : W.scrollY > W.innerHeight;
-      var on = past && !visible(reg) && !visible(foot) && !D.body.classList.contains("is-registered");
+      var on = past && !visible(reg) && !visible(quick) && !visible(foot) && !D.body.classList.contains("is-registered");
       sticky.hidden = false;
       sticky.classList.toggle("is-on", on);
       sticky.inert = !on;
