@@ -190,10 +190,10 @@ class SettingsPageTests(Base):
         for text in ("Events Manager", "Сгенерировать маркер доступа", "WhatsApp Business", "Готовность к тесту",
                      "Проверить"):
             self.assertIn(text, body)
-        self.assertEqual(body.count("✗"), 8)   # пусто — усе ✗
+        self.assertEqual(body.count("✗"), 9)   # пусто — усе ✗
         self.save()
         body = self.admin("GET", "/admin/settings")["body"]
-        self.assertEqual(body.count("✓"), 4)   # піксель, токен, WhatsApp, контакти
+        self.assertEqual(body.count("✓"), 5)   # піксель, токен, WhatsApp, контакти, נגישות (із контактів)
 
     def test_checklist_reads_own_events_and_leads_without_data(self):
         events = [{"event_name": "PageView", "ts": "2026-10-21T05:00:00Z"},
@@ -217,18 +217,36 @@ class PublicConfigTests(Base):
         self.assertEqual(r["headers"]["cache-control"], "public, max-age=60")
         self.assertEqual(body_json(r), {
             "pixel_id": None, "wa_number": None, "clarity_id": None,
-            "contact": {"name": None, "phone": None, "email": None, "city": None}, "launch_mode": True})
+            "contact": {"name": None, "phone": None, "email": None, "city": None, "business_id": None},
+            "accessibility_contact": {"name": None, "phone": None, "email": None}, "launch_mode": True})
 
     def test_contract_after_save_and_no_secrets(self):
         self.save()
         r = h.lambda_handler(request("GET", "/api/fx/config"), None)
         b = body_json(r)
-        self.assertEqual(set(b), {"pixel_id", "wa_number", "clarity_id", "contact", "launch_mode"})
+        self.assertEqual(set(b), {"pixel_id", "wa_number", "clarity_id", "contact", "accessibility_contact", "launch_mode"})
         self.assertEqual(b["pixel_id"], PIXEL)
         self.assertEqual(b["wa_number"], "972501234567")
         self.assertEqual(b["contact"]["phone"], E164)
         self.assertNotIn("TEST12345", r["body"])
         self.assert_no_token(r["body"])
+
+    def test_accessibility_contact_falls_back_to_site_contact(self):
+        self.save()
+        a = body_json(h.lambda_handler(request("GET", "/api/fx/config"), None))["accessibility_contact"]
+        self.assertEqual(a, {"name": "ALUMA", "phone": E164, "email": "hello@example.com"})
+        self.save(a11y_name="רכז נגישות", a11y_email="a11y@example.com", business_id="51-234567-8")
+        b = body_json(h.lambda_handler(request("GET", "/api/fx/config"), None))
+        self.assertEqual(b["accessibility_contact"], {"name": "רכז נגישות", "phone": E164, "email": "a11y@example.com"})
+        self.assertEqual(b["contact"]["business_id"], "512345678")
+
+    def test_accessibility_and_business_id_are_validated(self):
+        for field, bad in (("a11y_phone", "123"), ("a11y_email", "nope"), ("business_id", "1234")):
+            r = self.save(**{field: bad})
+            self.assertEqual(r["statusCode"], 422, field)
+        body = self.admin("GET", "/admin/settings")["body"]
+        self.assertIn("רכז/ת נגישות", body)
+        self.assertIn("תקנה 35", body)
 
     def test_broken_storage_still_answers_defaults(self):
         broken = mock.Mock()
@@ -264,6 +282,23 @@ class LeadFieldsTests(Base):
             self.assertEqual(item[key], "", key)
         self.assertEqual(item["size_label"], "x" * 40)   # вільний текст обрізається, не відкидається
         self.assertRegex(item["event_id"], r"^lead\.[0-9a-f]{16}$")
+
+    def test_marketing_consent_is_explicit_and_timed(self):
+        for value, expected in ((True, True), ("true", True), ("on", True), (False, False), ("false", False),
+                                ("0", False), (None, False), ("yes please", False)):
+            self.leads_t.items.clear()
+            self.post(marketing_consent=value)
+            item = self.leads_t.items[0]
+            self.assertIs(item["consent_marketing"], expected, value)
+            self.assertEqual(bool(item["consent_marketing_at"]), expected, value)
+            if expected:
+                self.assertEqual(item["consent_marketing_at"], item["ts"])
+        self.leads_t.items.clear()
+        self.post(consent_marketing=True)                  # стара назва поля з app.js
+        self.assertTrue(self.leads_t.items[0]["consent_marketing"])
+        self.leads_t.items.clear()
+        r = self.post(marketing_consent=False)             # без згоди на рекламу заявка все одно приймається
+        self.assertEqual(r["statusCode"], 200)
 
     def test_old_checks_unchanged(self):
         r = self.post(name="A", phone="123", consent=False, product_id="extending-table")
