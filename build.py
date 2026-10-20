@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import math
 import os
 import pathlib
 import re
@@ -437,6 +438,95 @@ def specs(p: dict, loc: str) -> str:
     return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
 
 
+# ---- план «סגור / פתוח»: вигляд згори з кріслами; числа — лише з каталогу
+SEAT_CM = 55  # ширина місця за столом уздовж краю; число місць затиснуте в діапазон seats каталогу
+
+
+def plan_seats(length: float, width: float, round_: bool, rng: list) -> int:
+    if round_:
+        n = int(math.pi * length // 75)
+    else:
+        n = 2 * int(length // SEAT_CM) + (2 if width >= 80 else 0)
+    lo, hi = int(rng[0]), int(rng[-1])
+    return max(lo, min(hi, n))
+
+
+def plan_svg(length: float, width: float, span: float, seats: int, round_: bool, cls: str) -> str:
+    pad, cw, cd, gap = 62.0, 44.0, 36.0, 8.0
+    vw, vh = span + 2 * pad, width + 2 * pad
+    x0, y0 = (vw - length) / 2, pad
+    rx = width / 2 if round_ else 4
+    parts = []
+    chairs = []  # (cx, cy, кут)
+    if round_ and length == width:
+        r = length / 2 + gap + cd / 2
+        for i in range(seats):
+            a = 2 * math.pi * i / seats - math.pi / 2
+            chairs.append((vw / 2 + r * math.cos(a), y0 + width / 2 + r * math.sin(a), math.degrees(a) + 90))
+    else:
+        ends = 2 if (seats % 2 == 0 and width >= 80) or round_ else 0
+        side = (seats - ends) // 2
+        for i in range(side):
+            cx = x0 + length * (i + 0.5) / side
+            chairs.append((cx, y0 - gap - cd / 2, 0))
+            chairs.append((cx, y0 + width + gap + cd / 2, 180))
+        if ends:
+            chairs.append((x0 - gap - cd / 2, y0 + width / 2, 270))
+            chairs.append((x0 + length + gap + cd / 2, y0 + width / 2, 90))
+    for cx, cy, a in chairs:
+        parts.append(f'<rect class="plan-chair" x="{cx - cw / 2:.1f}" y="{cy - cd / 2:.1f}" width="{cw:.0f}" height="{cd:.0f}"'
+                     f' rx="7" transform="rotate({a:.0f} {cx:.1f} {cy:.1f})"/>')
+    parts.append(f'<rect class="plan-top" x="{x0:.1f}" y="{y0:.1f}" width="{length:.0f}" height="{width:.0f}" rx="{rx:.1f}"/>')
+    return (f'<svg class="plan-svg plan-svg--{cls}" viewBox="0 0 {vw:.0f} {vh:.0f}" aria-hidden="true" focusable="false">'
+            + "".join(parts) + "</svg>")
+
+
+def plan(p: dict, loc: str) -> str:
+    seats = p.get("seats") or {}
+    sizes = [s for s in p.get("sizes") or [] if s.get("extended_cm")]
+    if not sizes or not seats.get("closed") or not seats.get("extended"):
+        return ""
+    span = max(float(s["extended_cm"]) for s in sizes)
+    out = []
+    for i, s in enumerate(sizes):
+        lab = str(s.get("label") or "")
+        round_ = lab.startswith("Ø")
+        length = float(s.get("length_cm") or str(lab).lstrip("Ø") or 0)
+        width = float(s.get("width_cm") or length)
+        ext = float(s["extended_cm"])
+        figs = []
+        for state, ln, rng in (("closed", length, seats["closed"]), ("open", ext, seats["extended"])):
+            n = plan_seats(ln, width, round_ and state == "closed", rng)
+            dims = f"Ø{ln:.0f}" if round_ and state == "closed" else f"{ln:.0f}×{width:.0f}"
+            figs.append(f'<figure class="plan-fig">{plan_svg(ln, width, span, n, round_, state)}'
+                        f'<figcaption><b>{{{{t.unfold_{state}}}}}</b> · <bdi dir="ltr">{dims}</bdi> {{{{t.cm}}}}'
+                        f' · {n} {{{{t.unfold_seats}}}}</figcaption></figure>')
+        out.append(f'<div class="plan-size" data-plan-size="{esc(lab)}"{"" if i == 0 else " hidden"}>{"".join(figs)}</div>')
+    return '<div class="plan" data-plan>' + "".join(out) + '<p class="muted small">{{t.unfold_plan_note}}</p></div>'
+
+
+def how(p: dict, loc: str) -> str:
+    """Блок «איך נפתח השולחן»: кадри механізму (якщо є) + план. Без кадрів і без плану — порожньо."""
+    imgs = p.get("images") or []
+    mech = {i.get("state"): i for i in imgs if i.get("view") == "mechanism" and i.get("src")}
+    opened = next((i for i in imgs if i.get("view") == "open" and i.get("src")), None)
+    steps = ""
+    if mech.get("closed") and mech.get("half"):
+        frames = [("closed", mech["closed"]), ("half", mech["half"])] + ([("open", opened)] if opened else [])
+        steps = '<ol class="how-steps" role="list" tabindex="0" aria-label="{{t.unfold_h2}}">' + "".join(
+            f'<li><figure><div class="media media--img how-media">'
+            f'{picture(im, loc, sizes="(min-width: 900px) 30vw, 80vw")}<span class="viz-tag">{{{{t.viz_tag}}}}</span></div>'
+            f'<figcaption><span class="how-n">{k + 1}</span> {{{{t.unfold_{st}}}}}</figcaption></figure></li>'
+            for k, (st, im) in enumerate(frames)) + "</ol>"
+    pl = plan(p, loc)
+    if not steps and not pl:
+        return ""
+    lede = '<p class="sec-lede">{{t.unfold_lede}}</p>' if steps else ""
+    return (f'<section class="sec unfold" aria-labelledby="unfold-h"><div class="wrap">'
+            f'<div class="sec-head"><h2 class="h2" id="unfold-h">{{{{t.unfold_h2}}}}</h2>{lede}</div>{steps}'
+            + (f'<h3 class="h3 plan-h">{{{{t.unfold_plan_h3}}}}</h3>{pl}' if pl else "") + "</div></section>")
+
+
 def gallery(p: dict, loc: str) -> str:
     # mechanism і light — окремі блоки вітрини (catalog/README.md), у галерею картки не йдуть
     imgs = [i for i in p.get("images") or [] if i.get("src") and i.get("view") not in ("mechanism", "light")]
@@ -567,7 +657,7 @@ def main() -> None:
                          if tracking else ""),
             "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
             "GRID_ALL": grid(products, loc, prefix), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
-            "PRODUCT_COUNT": str(len(products)),
+            "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
             **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
@@ -632,7 +722,7 @@ def main() -> None:
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
-                "P_SPECS": specs(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_SPECS": specs(p, loc), "P_HOW": how(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }

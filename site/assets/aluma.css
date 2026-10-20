@@ -465,6 +465,27 @@ bdi { unicode-bidi: isolate; }
 .specs dt { color: var(--muted); font-size: .92rem; min-width: 0; overflow-wrap: anywhere; }
 .specs dd { font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
 
+/* ---------------------------------------------------------------- «איך נפתח השולחן»: кадри механізму + план згори */
+.unfold .sec-head { margin-block-end: 28px; }
+.how-steps { display: grid; grid-auto-flow: column; grid-auto-columns: min(80%, 340px); gap: 16px; overflow-x: auto;
+  scroll-snap-type: inline mandatory; padding-block-end: 6px; scrollbar-width: thin; }
+.how-steps > li { scroll-snap-align: start; min-width: 0; }
+@media (min-width: 900px) { .how-steps { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; } }
+.how-media { aspect-ratio: 4 / 3; }
+.how-steps figcaption { display: flex; gap: 10px; align-items: center; margin-block-start: 10px; }
+.how-n { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border: 1px solid var(--ink);
+  border-radius: 50%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.plan-h { margin-block: clamp(32px, 5vw, 48px) 16px; }
+.plan-size { display: grid; gap: 20px; max-width: 960px; }
+.plan-size[hidden] { display: none; }
+@media (min-width: 700px) { .plan-size { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; } }
+.plan-fig { min-width: 0; }
+.plan-svg { display: block; width: 100%; height: auto; }
+.plan-top { fill: var(--oak-light); stroke: var(--esp); stroke-width: 1.5; }
+.plan-chair { fill: var(--paper); stroke: var(--esp-2); stroke-width: 1.5; }
+.plan-fig figcaption { margin-block-start: 8px; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.plan > .small { margin-block-start: 16px; max-width: 64ch; }
+
 /* ---------------------------------------------------------------- липка кнопка (мобільна) */
 .sticky-cta { position: fixed; inset-inline: 0; bottom: 0; z-index: 30; display: flex; gap: 12px; align-items: center;
   padding: 10px var(--gut) calc(10px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--paper) 94%, transparent);

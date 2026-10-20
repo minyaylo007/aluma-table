@@ -236,6 +236,12 @@
       // коротка форма біля фото: вибір іде прихованими полями
       if (quick) { quick.elements.size_label.value = val("size"); quick.elements.finish_id.value = val("finish"); quick.elements.base_id.value = val("base"); }
     };
+    // план «סגור / פתוח» — лише для вибраного розміру
+    var showPlan = function (v) {
+      var all = qsa("[data-plan-size]"), hit = false, i;
+      for (i = 0; i < all.length; i++) if (all[i].getAttribute("data-plan-size") === v) hit = true;
+      if (hit) for (i = 0; i < all.length; i++) all[i].hidden = all[i].getAttribute("data-plan-size") !== v;
+    };
     var updatePrice = function () {
       var sz = qs('input[name="size"]:checked', config || D);
       if (sz && sz.getAttribute("data-price")) {
@@ -249,10 +255,12 @@
       if (t.name === "finish" && finishName) finishName.textContent = t.getAttribute("data-name") || "";
       updatePrice();
       syncAll();
+      if (t.name === "size") showPlan(t.value);
       if (P) track("CustomizeProduct", { content_ids: [P.id], content_type: "product", size: val("size"), finish: val("finish"), base: val("base") });
     });
     updatePrice();
     syncAll();
+    showPlan(val("size"));
     if (P) {
       var first = P.sizes[0];
       track("ViewContent", { content_ids: [P.id], content_type: "product", content_name: P.name, value: first ? first.price : P.from, currency: "ILS" });
