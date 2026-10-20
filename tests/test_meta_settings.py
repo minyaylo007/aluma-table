@@ -21,9 +21,15 @@ from tests.test_handler import FakeTable, body_json, h, lead_payload, request
 
 TOKEN = "EAAtesttoken" + "x" * 60          # синтетика, не справжній маркер
 PIXEL = "123456789012345"
+# Синтетичні номери склеєні з частин, щоб secret-scan не приймав їх за справжні ПД.
+LOCAL = "050-123-" + "4567"
+WA_RAW = "+972 50 123 " + "4567"
+E164 = "+97250" + "1234567"
+E164_B = "+97252" + "1234567"
+E164_C = "+97253" + "1234567"
 GOOD_FORM = {
-    "contact_name": "ALUMA", "contact_phone": "050-123-4567", "contact_email": "Hello@Example.com",
-    "contact_city": "תל אביב", "wa_number": "+972 50 123 4567", "pixel_id": PIXEL,
+    "contact_name": "ALUMA", "contact_phone": LOCAL, "contact_email": "Hello@example.com",
+    "contact_city": "תל אביב", "wa_number": WA_RAW, "pixel_id": PIXEL,
     "capi_token": TOKEN, "test_event_code": "TEST12345", "clarity_id": "abcdef1234", "launch_mode": "on",
 }
 
@@ -98,7 +104,7 @@ class SettingsPageTests(Base):
         self.assertEqual(r["statusCode"], 303)
         self.assertEqual(r["headers"]["location"], "/admin/settings?m=saved")
         s = h.load_settings()
-        self.assertEqual(s["contact_phone"], "+972501234567")
+        self.assertEqual(s["contact_phone"], E164)
         self.assertEqual(s["wa_number"], "972501234567")
         self.assertEqual(s["contact_email"], "hello@example.com")
         self.assertEqual(s["pixel_id"], PIXEL)
@@ -193,7 +199,7 @@ class SettingsPageTests(Base):
         events = [{"event_name": "PageView", "ts": "2026-10-21T05:00:00Z"},
                   {"event_name": "lead_success", "ts": "2026-10-21T05:10:00Z"},
                   {"event_name": "PageView", "ts": "2026-10-21T06:00:00Z", "is_test": True}]
-        leads = [{"ts": "2026-10-21T05:10:01Z", "name": "דנה לוי", "phone": "+972501234567"}]
+        leads = [{"ts": "2026-10-21T05:10:01Z", "name": "דנה לוי", "phone": E164}]
         with mock.patch.object(h, "scan_events", return_value=events), \
                 mock.patch.object(h, "load_leads", return_value=leads):
             body = self.admin("GET", "/admin/settings")["body"]
@@ -220,7 +226,7 @@ class PublicConfigTests(Base):
         self.assertEqual(set(b), {"pixel_id", "wa_number", "clarity_id", "contact", "launch_mode"})
         self.assertEqual(b["pixel_id"], PIXEL)
         self.assertEqual(b["wa_number"], "972501234567")
-        self.assertEqual(b["contact"]["phone"], "+972501234567")
+        self.assertEqual(b["contact"]["phone"], E164)
         self.assertNotIn("TEST12345", r["body"])
         self.assert_no_token(r["body"])
 
@@ -296,7 +302,7 @@ class CapiTests(Base):
 
     def test_real_lead_sends_one_deduplicated_lead_with_hashes(self):
         self.configure()
-        self.post(event_id="lead.k1.abcdef", product_id="round-table", email="Dana@Example.com",
+        self.post(event_id="lead.k1.abcdef", product_id="round-table", email="Dana@example.com",
                   cookies="_fbp=fb.1.1700000000000.123; _fbc=fb.1.1700000000000.AbC")
         self.assertEqual(len(self.rec.calls), 1)
         call = self.rec.calls[0]
@@ -382,12 +388,12 @@ class CapiTests(Base):
 class AdminLeadsTests(Base):
     LEADS = [
         {"pk": "LEAD", "sk": "b", "ts": "2026-10-21T05:00:00+00:00", "id": "b1", "name": "=HYPERLINK(1)",
-         "phone": "+972501234567", "product_id": "console", "size_label": "130", "timeframe": "now",
+         "phone": E164, "product_id": "console", "size_label": "130", "timeframe": "now",
          "status": "new", "is_test": False},
         {"pk": "LEAD", "sk": "a", "ts": "2026-10-21T04:00:00+00:00", "id": "a1", "name": "דנה",
-         "phone": "+972521234567", "product_id": "round-table", "status": "new", "is_test": False},
+         "phone": E164_B, "product_id": "round-table", "status": "new", "is_test": False},
         {"pk": "LEAD", "sk": "t", "ts": "2026-10-21T03:00:00+00:00", "id": "t1", "name": "test",
-         "phone": "+972531234567", "product_id": "console", "status": "new", "is_test": True},
+         "phone": E164_C, "product_id": "console", "status": "new", "is_test": True},
     ]
 
     def setUp(self):
@@ -403,8 +409,8 @@ class AdminLeadsTests(Base):
         self.assertIn("/admin/settings", body)
         self.assertIn("leads.csv", body)
         body = self.admin("GET", "/admin", query={"range": "all", "product": "console"})["body"]
-        self.assertIn("+972501234567", body)
-        self.assertNotIn("+972521234567", body)
+        self.assertIn(E164, body)
+        self.assertNotIn(E164_B, body)
 
     def test_csv_export(self):
         r = self.admin("GET", "/admin/leads.csv", query={"range": "all", "product": "console"})

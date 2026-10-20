@@ -79,7 +79,7 @@ def parse_form(form: dict, current: dict, normalize_phone):
     if phone:
         digits = _international(phone, normalize_phone)
         if digits is None:
-            errors["contact_phone"] = "Телефон в международном формате: +972 50 123 4567 или 050-123-4567."
+            errors["contact_phone"] = "Телефон в международном формате: +972 5X XXX XXXX или 05X-XXX-XXXX."
         new["contact_phone"] = "+" + digits if digits else phone
     else:
         new["contact_phone"] = ""
@@ -93,7 +93,7 @@ def parse_form(form: dict, current: dict, normalize_phone):
     if wa:
         digits = _international(wa, normalize_phone)
         if digits is None:
-            errors["wa_number"] = "Номер WhatsApp в международном формате: +972 50 123 4567 (8–15 цифр с кодом страны)."
+            errors["wa_number"] = "Номер WhatsApp в международном формате: +972 5X XXX XXXX (8–15 цифр с кодом страны)."
         new["wa_number"] = digits or wa
     else:
         new["wa_number"] = ""
@@ -258,14 +258,14 @@ def esc(s) -> str:
 FORM = (
     ("Контакты на сайте", "Показываются в футере сайта. Пустое поле — этот пункт на сайте скрыт.", (
         ("contact_name", "Имя для сайта / футера", "text", "Например: ALUMA · Игорь."),
-        ("contact_phone", "Телефон", "tel", "Международный формат: +972 50 123 4567 (050-123-4567 тоже можно)."),
+        ("contact_phone", "Телефон", "tel", "Международный формат: +972 5X XXX XXXX (05X-XXX-XXXX тоже можно)."),
         ("contact_email", "E-mail", "email", ""),
         ("contact_city", "Город", "text", "Например: תל אביב."),
     )),
     ("WhatsApp", "", (
         ("wa_number", "Номер WhatsApp", "tel",
          "Номер, на котором стоит WhatsApp Business (в приложении: Настройки → Инструменты для бизнеса → "
-         "Профиль). Международный формат: +972 50 123 4567. Сайт делает из него кнопку wa.me."),
+         "Профиль). Международный формат: +972 5X XXX XXXX. Сайт делает из него кнопку wa.me."),
     )),
     ("Meta (Facebook / Instagram)", "", (
         ("pixel_id", "Meta Pixel ID", "text",
