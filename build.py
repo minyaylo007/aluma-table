@@ -405,6 +405,9 @@ def faq_html(items: list) -> str:
 
 
 def main() -> None:
+    blanks = [k for k, v in (CONTENT.get("OWNER_FACTS") or {}).items() if not str(v).strip()]
+    if PRODUCTION and blanks:
+        raise SystemExit(f"--production refused: owner facts missing in content.json: {', '.join(blanks)}")
     if DIST.exists():
         shutil.rmtree(DIST)
     DIST.mkdir()
@@ -424,7 +427,7 @@ def main() -> None:
             "LANG": loc, "DIR": s["dir"], "PREFIX": prefix, "OTHER_LANG": other,
             "TRACKING": '<script src="/assets/tracking.js" defer></script>' if tracking else "",
             "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
-            "GRID_ALL": grid(products, loc, prefix), "GRID_HOME": grid(products, loc, prefix, 5),
+            "GRID_ALL": grid(products, loc, prefix), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
             "PRODUCT_COUNT": str(len(products)),
             "SIZE_BARS": size_bars(products),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
