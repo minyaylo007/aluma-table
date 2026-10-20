@@ -28,7 +28,7 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
 |---|---|---|
 | Static site | `build.py` (stdlib; Pillow optional) → `dist/` (gitignored): home, `/catalog/`, `/p/<slug>/` from the catalog, how, about, faq, privacy, terms, accessibility, 404; vanilla `site/assets/aluma.{js,css}` + `tracking.js`; design rationale `docs/REDESIGN-2026-10.md` | — |
 | API | `api/handler.py` (`lambda_handler`), `api/wsgi.py` (gunicorn), `api/store.py` (SQLite twin of `fx_*`); server runtime gunicorn + boto3 (unconditional import) + requests | `api/requirements.txt`, `deploy/requirements-server.txt` |
-| Browser tests | `@playwright/test` 1.62.1, chromium only; browsers in `/opt/ihor/aluma-table/ms-playwright` | `package.json`, `package-lock.json` |
+| Browser tests | `@playwright/test` 1.62.1, chromium only; browsers in `/opt/ihor/aluma-table/ms-playwright`; `@axe-core/playwright` — `tests/a11y.spec.js` (no port, `playwright.a11y.config.js`; IL checklist `docs/COMPLIANCE-IL.md`) | `package.json`, `package-lock.json` |
 | CI/CD | GitHub Actions: `ci.yml` on every PR to `master`, nightly, and from `release.yml` — six required checks `secret-scan`, `lint`, `test (3.12)`, `test (3.13)`, `build`, `browser`; release/deploy behind `RELEASES_ENABLED` (unset); `rollback.yml` manual | `.github/workflows/`, `docs/DELIVERY.md` |
 
 - `build.py` substitutes `{{TOKENS}}` from `content.json` and `{{t.key}}` from `i18n/<loc>.json`, draws the technical

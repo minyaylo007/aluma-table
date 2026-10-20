@@ -381,11 +381,11 @@ class PutLeadTests(HandlerTestCase):
         self.post_lead(lead_payload())
         expected = {
             "pk", "sk", "id", "ts", "name", "phone", "phone_raw", "city", "color", "size", "lang",
-            "comment", "consent", "consent_marketing", "consent_text_version", "session_id",
+            "comment", "consent", "consent_marketing", "consent_marketing_at", "consent_text_version", "session_id",
             "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid",
             "attributed_at", "page", "referrer", "device", "ip_hash", "status", "is_test",
             # вітрина 21.10 (specs/002-meta-settings/contracts/lead.md)
-            "product_id", "size_label", "finish_id", "base_id", "timeframe", "contact_pref", "email", "event_id",
+            "product_id", "size_label", "finish_id", "base_id", "timeframe", "contact_pref", "email", "event_id", "consent_ads",
         }
         self.assertEqual(set(self.leads_t.items[0]), expected)
 
