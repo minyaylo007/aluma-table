@@ -2,6 +2,7 @@
 # без збірки, архіву релізу й сканера. ~0,5 с у тиші. Модуль тут, якщо його падіння щось змінює для гостя,
 # грошей або власника І він не запускає збірку/процеси. По одному імені модуля в рядку; # — коментар.
 tests.test_handler            # заявка, подія, health, адмінка, notify
+tests.test_meta_settings      # налаштування, /api/fx/config, CAPI, CSV
 tests.test_wsgi               # бойовий рантайм gunicorn
 tests.test_store_sqlite       # цілісність бази заявок
 tests.test_health_version     # версія і здоров'я прода

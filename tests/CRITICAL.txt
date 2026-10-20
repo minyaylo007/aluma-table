@@ -2,6 +2,7 @@
 # юніти й оточення прода. Падіння тут щось змінює для гостя, грошей або власника. Типовий прогін —
 # швидкий (tests/QUICK.txt), повний — --full перед злиттям. По одному імені модуля в рядку; # — коментар.
 tests.test_handler            # заявка, подія, health, адмінка, notify
+tests.test_meta_settings      # налаштування, /api/fx/config, CAPI, CSV
 tests.test_wsgi               # бойовий рантайм gunicorn
 tests.test_store_sqlite       # цілісність бази заявок
 tests.test_secret_scan        # секрети, червона межа флоту

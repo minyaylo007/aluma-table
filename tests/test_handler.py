@@ -223,6 +223,9 @@ class HandlerTestCase(unittest.TestCase):
             mock.patch.object(h, "EDGE_SECRET", ""),
             mock.patch.object(h, "TELEGRAM_BOT_TOKEN", ""),
             mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", ""),
+            # налаштування — свіжа база в пам'яті на кожен тест (порожня = CAPI вимкнено)
+            mock.patch.object(h, "_settings_table", return_value=h.store.SqliteStore(":memory:").table(
+                "fx_settings", ("pk", "sk"))),
         ):
             p.start()
             self.addCleanup(p.stop)
@@ -381,6 +384,8 @@ class PutLeadTests(HandlerTestCase):
             "comment", "consent", "consent_marketing", "consent_text_version", "session_id",
             "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid",
             "attributed_at", "page", "referrer", "device", "ip_hash", "status", "is_test",
+            # вітрина 21.10 (specs/002-meta-settings/contracts/lead.md)
+            "product_id", "size_label", "finish_id", "base_id", "timeframe", "contact_pref", "email", "event_id",
         }
         self.assertEqual(set(self.leads_t.items[0]), expected)
 

@@ -10,11 +10,15 @@ needed only to notify the owner on Telegram. See api/requirements.txt.
 
 Routes
     GET  /api/fx/health
+    GET  /api/fx/config     public site config (pixel, WhatsApp, contacts) — specs/002-meta-settings
     POST /api/fx/event      batched client events (also the sendBeacon target)
-    POST /api/fx/lead       lead capture
-    GET  /admin             dashboard (signed-cookie auth)
+    POST /api/fx/lead       lead capture (+ Meta Conversions API Lead, best effort)
+    GET  /admin             dashboard (signed-cookie auth); ?product= filter
+    GET  /admin/leads.csv   lead export for the ad test
     GET/POST /admin/login   sign in
     POST /admin/status      change a lead's status
+    GET/POST /admin/settings      owner settings (contacts, WhatsApp, Meta, Clarity)
+    POST /admin/settings/test     one test event to the Conversions API
 """
 
 from __future__ import annotations
@@ -39,8 +43,9 @@ except ImportError:  # pragma: no cover - notify() тоді просто мов�
     requests = None
 
 try:  # з кореня репозиторію (тести, gunicorn api.wsgi:application)
-    from api import store
+    from api import meta, store
 except ImportError:  # у бандлі лямбди api/ САМЕ і є коренем
+    import meta
     import store
 
 # --------------------------------------------------------------------------- config
@@ -48,6 +53,8 @@ except ImportError:  # у бандлі лямбди api/ САМЕ і є коре
 EVENTS_TABLE = os.environ.get("EVENTS_TABLE", "fx_events")
 LEADS_TABLE = os.environ.get("LEADS_TABLE", "fx_leads")
 SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "fx_sessions")
+# Налаштування власника (/admin/settings): SETTINGS/current, CAPI/status, AUDIT/<ts>#<id>.
+SETTINGS_TABLE = os.environ.get("SETTINGS_TABLE", "fx_settings")
 ADMIN_USER = os.environ.get("ADMIN_USER", "")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "")
 IP_SALT = os.environ.get("IP_SALT", "")
@@ -55,6 +62,9 @@ IP_SALT = os.environ.get("IP_SALT", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 OWNER_TELEGRAM_CHAT_ID = os.environ.get("OWNER_TELEGRAM_CHAT_ID", "")
 TELEGRAM_TIMEOUT_SECONDS = 5
+# Meta Conversions API. Pixel ID і токен — у налаштуваннях (база), не в env: власник міняє їх сам.
+META_GRAPH_VERSION = os.environ.get("META_GRAPH_VERSION", "v23.0")
+CAPI_TIMEOUT_SECONDS = 5
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "table.central-aparts.store")
 EDGE_SECRET = os.environ.get("EDGE_SECRET", "")
 APP_VERSION = os.environ.get("APP_VERSION", "0.0.0")
@@ -77,6 +87,13 @@ VALID_STATUSES = ("new", "called", "interested", "not_interested", "deposit", "s
 VALID_COLORS = ("natural", "smoked", "white")
 VALID_SIZES = ("160", "220")      # cm; the client sends the string as-is
 VALID_LANGS = ("he", "en")        # <html lang> of the page the lead came from
+# Поля вітрини (specs/002-meta-settings/contracts/lead.md). Невідоме значення → "", заявку не відхиляє.
+VALID_TIMEFRAMES = ("now", "1-3m", "later")
+VALID_CONTACT_PREFS = ("whatsapp", "call")
+LEAD_SLUG = re.compile(r"[a-z0-9-]{1,40}")
+LEAD_SIZE_LABEL = re.compile(r"[\w ×x*.,/\-–]{1,40}")
+LEAD_EMAIL = re.compile(r"[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}")
+LEAD_EVENT_ID = re.compile(r"[A-Za-z0-9_.\-]{8,64}")
 
 BOT_UA = re.compile(
     r"bot|crawler|spider|crawling|facebookexternalhit|slurp|bingpreview|"
@@ -87,6 +104,7 @@ BOT_UA = re.compile(
 
 _ddb = None
 _sqlite_tables = None
+_settings_t = None
 
 
 def _tables():
@@ -111,11 +129,30 @@ def _tables():
     )
 
 
+def _settings_table():
+    """Таблиця налаштувань — окремо від _tables(), щоб не міняти її форму (три таблиці).
+
+    SQLite — той самий файл бази, власне з'єднання (WAL + busy_timeout, як у скрипта
+    міграції). DynamoDB — таблиця SETTINGS_TABLE; її ніде не створено, на лямбді
+    налаштування просто читаються як типові (load_settings ловить помилку).
+    """
+    global _ddb, _settings_t
+    if _settings_t is None:
+        if FX_STORAGE == "sqlite":
+            _settings_t = store.SqliteStore(FX_DB_PATH).table(SETTINGS_TABLE, ("pk", "sk"))
+        else:
+            if _ddb is None:
+                _ddb = boto3.resource("dynamodb")
+            _settings_t = _ddb.Table(SETTINGS_TABLE)
+    return _settings_t
+
+
 def _reset_tables():
     """Скинути кеш сховища — потрібно тестам, які міняють FX_STORAGE/FX_DB_PATH."""
-    global _ddb, _sqlite_tables
+    global _ddb, _sqlite_tables, _settings_t
     _ddb = None
     _sqlite_tables = None
+    _settings_t = None
 
 
 # --------------------------------------------------------------------------- helpers
@@ -460,6 +497,7 @@ def put_lead(event):
         lang = ""
     if errors:
         return resp(422, {"ok": False, "errors": errors})
+    extra = lead_extras(data, event)
 
     lead_id = uuid.uuid4().hex[:12]
     ts = now_iso()
@@ -494,12 +532,49 @@ def put_lead(event):
         "status": "new",
         "is_test": is_test,
     }
+    item.update(extra["stored"])
     leads_t.put_item(Item=item)
 
     if not is_test:
         notify(item)
+        send_capi_lead(item, extra, event)
 
     return resp(200, {"ok": True, "id": lead_id})
+
+
+def _pick(value, limit: int, pattern=None, allowed=None) -> str:
+    v = clip(value, limit).strip()
+    if allowed is not None:
+        return v if v in allowed else ""
+    if pattern is not None and v and not pattern.fullmatch(v):
+        return ""
+    return v
+
+
+def lead_extras(data: dict, event) -> dict:
+    """Нові поля заявки (contracts/lead.md). stored — у рядок заявки; fbp/fbc/email — лише для CAPI.
+
+    Жодне з них не причина відхилити заявку: невідоме значення стає "".
+    """
+    cookies = cookies_of(event)
+    fbp = clip(data.get("fbp") or cookies.get("_fbp"), 200).strip()
+    fbc = clip(data.get("fbc") or cookies.get("_fbc"), 300).strip()
+    email = _pick(data.get("email"), 120, LEAD_EMAIL).lower()
+    return {
+        "stored": {
+            "product_id": _pick(data.get("product_id"), 40, LEAD_SLUG),
+            "size_label": _pick(data.get("size_label"), 40, LEAD_SIZE_LABEL),
+            "finish_id": _pick(data.get("finish_id"), 30, LEAD_SLUG),
+            "base_id": _pick(data.get("base_id"), 30, LEAD_SLUG),
+            "timeframe": _pick(data.get("timeframe"), 10, allowed=VALID_TIMEFRAMES),
+            "contact_pref": _pick(data.get("contact_pref"), 10, allowed=VALID_CONTACT_PREFS),
+            "email": email,
+            # без event_id від браузера — свій: Lead у CAPI все одно піде, лише без склейки з пікселем
+            "event_id": _pick(data.get("event_id"), 64, LEAD_EVENT_ID) or "lead." + uuid.uuid4().hex[:16],
+        },
+        "fbp": fbp if fbp.startswith("fb.") else "",
+        "fbc": fbc if fbc.startswith("fb.") else "",
+    }
 
 
 def notify(item):
@@ -520,6 +595,10 @@ def notify(item):
         f"Size:    {item.get('size', '')}\n"
         f"Lang:    {item.get('lang', '')}\n"
         f"Page:    {item.get('page', '')}\n"
+        f"Product: {item.get('product_id', '')}\n"
+        f"Size:    {item.get('size_label', '')}\n"
+        f"Finish:  {item.get('finish_id', '')}  Base: {item.get('base_id', '')}\n"
+        f"When:    {item.get('timeframe', '')}  Via: {item.get('contact_pref', '')}\n"
         f"Comment: {item['comment']}\n\n"
         f"consent_marketing={'yes' if item.get('consent_marketing') else 'no'}\n"
         f"utm_source={item['utm_source']} utm_campaign={item['utm_campaign']}\n"
@@ -542,19 +621,127 @@ def notify(item):
         print(json.dumps({"event": "notify_failed", "id": item.get("id"), "error": _redact(repr(exc))}))
 
 
-def _redact(text: str) -> str:
-    """Прибрати токен бота з тексту, що йде в журнал.
+def _redact(text: str, extra=()) -> str:
+    """Прибрати токени з тексту, що йде в журнал.
 
-    Токен живе в URL запиту (.../bot<token>/sendMessage), а requests кладе цей URL
+    Токен бота живе в URL запиту (.../bot<token>/sendMessage), а requests кладе цей URL
     у текст винятку ("Max retries exceeded with url: /bot<token>/..."). Журнал
     лямбди в CloudWatch зберігається безстроково — токену там не місце.
+    extra — інші секрети (токен Conversions API з налаштувань).
     Спершу вирізаємо, потім обрізаємо: clip() міг би розрізати токен навпіл.
     """
     text = str(text)
-    if TELEGRAM_BOT_TOKEN:
-        for form in (TELEGRAM_BOT_TOKEN, quote(TELEGRAM_BOT_TOKEN, safe="")):
-            text = text.replace(form, "<token>")
+    for secret in (TELEGRAM_BOT_TOKEN, *extra):
+        if secret:
+            for form in (secret, quote(secret, safe="")):
+                text = text.replace(form, "<token>")
     return text
+
+
+# --------------------------------------------------------------------------- settings + Meta CAPI
+
+
+def load_settings() -> dict:
+    """Збережені налаштування поверх типових. Сховище недоступне — типові: сайт не ламається."""
+    out = dict(meta.DEFAULTS)
+    try:
+        doc = _settings_table().get_item(Key={"pk": "SETTINGS", "sk": "current"}).get("Item") or {}
+    except Exception as exc:
+        print(json.dumps({"event": "settings_unavailable", "error": type(exc).__name__}))
+        return out
+    for name in meta.FIELDS:
+        if name in doc:
+            out[name] = doc[name]
+    return out
+
+
+def save_settings(new: dict, who: str, iph: str):
+    old = load_settings()
+    changed = meta.changes(old, new)
+    if not changed:
+        return changed
+    t = _settings_table()
+    ts = now_iso()
+    doc = {"pk": "SETTINGS", "sk": "current", "updated_at": ts, "updated_by": who}
+    doc.update({name: new[name] for name in meta.FIELDS})
+    t.put_item(Item=doc)
+    for field, action in changed:
+        t.put_item(Item={"pk": "AUDIT", "sk": f"{ts}#{uuid.uuid4().hex[:8]}", "ts": ts,
+                         "who": who, "ip_hash": iph, "field": field, "action": action})
+    return changed
+
+
+def load_audit(limit: int = 20):
+    try:
+        r = _settings_table().query(KeyConditionExpression=Key("pk").eq("AUDIT"),
+                                    ScanIndexForward=False, Limit=limit)
+        return r.get("Items", [])
+    except Exception:
+        return []
+
+
+def _capi_status_put(ok: bool, status, source: str):
+    try:
+        _settings_table().put_item(Item={"pk": "CAPI", "sk": "status", "ts": now_iso(),
+                                         "ok": bool(ok), "status": status, "source": source})
+    except Exception:
+        pass
+
+
+def capi_send(settings: dict, events: list, *, ref: str, use_test_code: bool) -> tuple[bool, int]:
+    """POST подій у Conversions API. → (ok, HTTP-код; 0 — до Meta не дійшли).
+
+    Best effort, як notify(): не кидає. Токен іде в тілі запиту (не в URL) і вирізається
+    з будь-якого тексту для журналу; тіло відповіді Meta не логується взагалі.
+    test_event_code — лише для кнопки «Проверить»: подія з ним не йде в оптимізацію реклами.
+    """
+    token, pixel = settings.get("capi_token") or "", settings.get("pixel_id") or ""
+    if not (token and pixel):
+        return False, 0
+    if requests is None:
+        print(json.dumps({"event": "capi_failed", "id": ref, "error": "requests_missing"}))
+        return False, 0
+    payload = {"data": events, "access_token": token}
+    if use_test_code and settings.get("test_event_code"):
+        payload["test_event_code"] = settings["test_event_code"]
+    try:
+        r = requests.post(f"https://graph.facebook.com/{META_GRAPH_VERSION}/{pixel}/events",
+                          json=payload, timeout=CAPI_TIMEOUT_SECONDS)
+        status = int(r.status_code)
+    except Exception as exc:
+        print(json.dumps({"event": "capi_failed", "id": ref,
+                          "error": clip(_redact(repr(exc), (token,)), 300)}))
+        return False, 0
+    if status >= 400:
+        print(json.dumps({"event": "capi_failed", "id": ref, "status": status}))
+        return False, status
+    return True, status
+
+
+def send_capi_lead(item: dict, extra: dict, event):
+    """Lead у Conversions API після збереження заявки. Ніщо тут не має права зламати заявку."""
+    try:
+        settings = load_settings()
+        if not (settings.get("capi_token") and settings.get("pixel_id")):
+            return
+        user = meta.user_data(
+            phone_e164=item.get("phone", ""), email=item.get("email", ""), name=item.get("name", ""),
+            city=item.get("city", ""), fbp=extra.get("fbp", ""), fbc=extra.get("fbc", ""),
+            ip=client_ip(event), ua=clip((event.get("headers") or {}).get("user-agent"), 400),
+        )
+        ok, status = capi_send(settings, [meta.lead_event(item, user, SITE_DOMAIN)],
+                               ref=item.get("id"), use_test_code=False)
+        _capi_status_put(ok, status, "lead")
+    except Exception as exc:  # pragma: no cover - остання сітка
+        print(json.dumps({"event": "capi_failed", "id": item.get("id"), "error": type(exc).__name__}))
+
+
+def public_config_response(event):
+    try:
+        cfg = meta.public_config(load_settings())
+    except Exception:
+        cfg = meta.public_config(meta.DEFAULTS)
+    return resp(200, cfg, headers={"cache-control": "public, max-age=60"})
 
 
 # --------------------------------------------------------------------------- admin
@@ -729,20 +916,24 @@ def admin_page(event):
     rng = qs.get("range", "7")
     days = {"1": 1, "7": 7, "all": 0}.get(rng, 7)
     show_test = qs.get("test") == "1"
-    # Тег релізу вже з «v» (v0.5.0) — без подвійної «vv»; старі номери (0.4.0-box) — з префіксом, як було.
-    version_label = APP_VERSION if APP_VERSION.startswith("v") else "v" + APP_VERSION
+    version_label = _version_label()
+    product = clip(qs.get("product"), 40)
+    product = product if LEAD_SLUG.fullmatch(product or "") else ""
 
     events = scan_events(days)
     leads = load_leads()
     if not show_test:
         events = [e for e in events if not e.get("is_test")]
         leads = [l for l in leads if not l.get("is_test")]
-
-    if days > 0:
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-        leads_in_range = [l for l in leads if l.get("ts", "") >= cutoff]
-    else:
-        leads_in_range = leads
+    products = sorted({l.get("product_id") for l in leads if l.get("product_id")})
+    leads_in_range = filter_leads(leads, days, product)
+    keep = f"range={quote(rng)}&amp;test={'1' if show_test else '0'}"
+    product_nav = " ".join(
+        f"<a href='?{keep}&amp;product={esc(p)}' class='{'on' if p == product else ''}'>{esc(p)}</a>"
+        for p in products
+    )
+    if products:
+        product_nav = (f"<a href='?{keep}' class='{'' if product else 'on'}'>כל המוצרים</a> " + product_nav)
 
     def sessions_with(pred):
         return {e.get("session_id") for e in events if pred(e) and e.get("session_id")}
@@ -823,7 +1014,11 @@ def admin_page(event):
             f"<td>{esc(l.get('name'))}</td>"
             f"<td class='mono' dir='ltr'><a href='tel:{esc(l.get('phone'))}'>{esc(l.get('phone'))}</a></td>"
             f"<td>{esc(l.get('city'))}</td>"
-            f"<td>{esc(l.get('color'))}</td>"
+            f"<td>{esc(l.get('product_id'))}<br><span class='muted'>{esc(l.get('size_label') or l.get('size'))}"
+            f" · {esc(l.get('finish_id') or l.get('color'))}{' · ' + esc(l.get('base_id')) if l.get('base_id') else ''}"
+            "</span></td>"
+            f"<td>{esc(TIMEFRAME_LABELS.get(l.get('timeframe'), ''))}<br>"
+            f"<span class='muted'>{esc(l.get('contact_pref'))}</span></td>"
             f"<td>{esc(l.get('comment'))[:120]}</td>"
             f"<td class='mono'>{esc(l.get('utm_source') or 'direct')}</td>"
             "<td><form method='post' action='/admin/status'>"
@@ -834,7 +1029,7 @@ def admin_page(event):
             "</tr>"
         )
     if not lead_rows:
-        lead_rows.append("<tr><td colspan='8' class='muted'>אין לידים בטווח הזה</td></tr>")
+        lead_rows.append("<tr><td colspan='9' class='muted'>אין לידים בטווח הזה</td></tr>")
 
     status_counts = {}
     for l in leads:
@@ -881,6 +1076,7 @@ def admin_page(event):
     <a href="?range=7" class="{'on' if rng=='7' else ''}">7 ימים</a>
     <a href="?range=all" class="{'on' if rng=='all' else ''}">הכול</a>
     <a href="?range={esc(rng)}&amp;test={'0' if show_test else '1'}">{'הסתר בדיקות' if show_test else 'הצג בדיקות'}</a>
+    <a href="/admin/settings">הגדרות · Настройки</a>
     <a href="/admin/logout">יציאה</a>
   </nav>
   <span class="muted mono">{esc(version_label)} · {esc(len(events))} events · {esc(len(leads))} leads</span>
@@ -896,12 +1092,68 @@ def admin_page(event):
   <section class="card"><h2>בדיקת "ייכנס אצלי?" ({len(fits)})</h2><table>{rows(fit_rows)}</table></section>
   <section class="card"><h2>סטטוס לידים</h2><table>{rows(sorted(status_counts.items(), key=lambda kv:-kv[1]))}</table></section>
 
-  <section class="card wide"><h2>לידים ({len(leads_in_range)})</h2>
-    <table><thead><tr><th>מתי</th><th>שם</th><th>טלפון</th><th>עיר</th><th>צבע</th><th>הערה</th><th>מקור</th><th>סטטוס</th></tr></thead>
+  <section class="card wide"><h2>לידים ({len(leads_in_range)})
+    · <a href="/admin/leads.csv?{keep}&amp;product={esc(product)}">CSV</a></h2>
+    <p>{product_nav}</p>
+    <table><thead><tr><th>מתי</th><th>שם</th><th>טלפון</th><th>עיר</th><th>מוצר · מידה · גוון</th><th>מתי לקנות · ערוץ</th><th>הערה</th><th>מקור</th><th>סטטוס</th></tr></thead>
     <tbody>{''.join(lead_rows)}</tbody></table>
   </section>
 </main></body></html>"""
     return resp(200, html, is_json=False)
+
+
+TIMEFRAME_LABELS = {"now": "עכשיו", "1-3m": "1–3 חודשים", "later": "מאוחר יותר"}
+
+CSV_COLUMNS = (
+    "ts", "id", "status", "name", "phone", "email", "city", "product_id", "size_label", "finish_id", "base_id",
+    "timeframe", "contact_pref", "color", "size", "lang", "comment", "consent_marketing",
+    "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "page", "device", "is_test",
+)
+
+
+def filter_leads(leads, days: int, product: str = ""):
+    if days > 0:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        leads = [l for l in leads if l.get("ts", "") >= cutoff]
+    if product:
+        leads = [l for l in leads if l.get("product_id") == product]
+    return leads
+
+
+def _csv_cell(value) -> str:
+    """Комірка CSV без формул: Excel/Sheets виконують =, +, -, @ на початку (CSV injection)."""
+    if isinstance(value, bool):
+        value = "1" if value else "0"
+    text = str(value if value is not None else "")
+    if text[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        text = "'" + text
+    return text
+
+
+def admin_leads_csv(event):
+    """Вивантаження заявок для розбору тесту. Ті самі фільтри, що на /admin."""
+    import csv
+    import io
+
+    if not check_auth(event):
+        return need_auth()
+    qs = event.get("queryStringParameters") or {}
+    days = {"1": 1, "7": 7, "30": 30, "all": 0}.get(qs.get("range", "all"), 0)
+    product = clip(qs.get("product"), 40)
+    product = product if LEAD_SLUG.fullmatch(product or "") else ""
+    leads = load_leads()
+    if qs.get("test") != "1":
+        leads = [l for l in leads if not l.get("is_test")]
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\r\n")
+    writer.writerow(CSV_COLUMNS)
+    for l in filter_leads(leads, days, product):
+        writer.writerow([_csv_cell(l.get(c)) for c in CSV_COLUMNS])
+    name = f"aluma-leads-{today()}{'-' + product if product else ''}.csv"
+    # BOM — щоб Excel відкрив іврит/кирилицю як UTF-8
+    return {"statusCode": 200, "body": "\ufeff" + buf.getvalue(),
+            "headers": {"content-type": "text/csv; charset=utf-8", "cache-control": "no-store",
+                        "content-disposition": f'attachment; filename="{name}"'}}
 
 
 def admin_status(event):
@@ -927,6 +1179,103 @@ def admin_status(event):
     }
 
 
+# --------------------------------------------------------------------------- admin: settings
+
+
+def _same_origin(event) -> bool:
+    """CSRF для POST налаштувань: є Origin — його хост мусить збігатися з Host.
+
+    Немає Origin (старий браузер, curl) — пропускаємо: cookie входу і так SameSite=Lax,
+    з чужого сайту POST її не понесе.
+    """
+    from urllib.parse import urlparse
+
+    hdrs = event.get("headers") or {}
+    origin = hdrs.get("origin")
+    if not origin:
+        return True
+    host = hdrs.get("x-forwarded-host") or hdrs.get("host") or ""
+    return bool(host) and urlparse(origin).netloc == host
+
+
+def _version_label() -> str:
+    # Тег релізу вже з «v» (v0.5.0) — без подвійної «vv»; старі номери (0.4.0-box) — з префіксом, як було.
+    return APP_VERSION if APP_VERSION.startswith("v") else "v" + APP_VERSION
+
+
+def settings_last() -> dict:
+    """Дані для чек-листа: останні PageView і Lead зі своїх подій, остання заявка, статус CAPI."""
+    out = {}
+    try:
+        events = [e for e in scan_events(30) if not e.get("is_test")]
+        for key, names in (("page_view", ("PageView", "page_view")), ("lead_event", ("Lead", "lead_success"))):
+            stamps = [e.get("ts") or "" for e in events if e.get("event_name") in names]
+            out[key] = max(stamps) if stamps else ""
+    except Exception:
+        pass
+    try:
+        real = [l for l in load_leads() if not l.get("is_test")]
+        out["lead_at"] = real[0].get("ts", "") if real else ""
+    except Exception:
+        pass
+    try:
+        out["capi"] = _settings_table().get_item(Key={"pk": "CAPI", "sk": "status"}).get("Item") or {}
+    except Exception:
+        out["capi"] = {}
+    return out
+
+
+def _settings_page(status=200, **kwargs):
+    html = meta.render_settings(kwargs.pop("settings", None) or load_settings(), last=settings_last(),
+                                audit=load_audit(), version=_version_label(), **kwargs)
+    return resp(status, html, is_json=False)
+
+
+def admin_settings(event):
+    if not check_auth(event):
+        return need_auth()
+    method = ((event.get("requestContext") or {}).get("http") or {}).get("method", "GET").upper()
+    if method != "POST":
+        qs = event.get("queryStringParameters") or {}
+        flash, bad = {
+            "saved": ("Сохранено. Сайт подхватит изменения в течение минуты.", False),
+            "nochange": ("Ничего не изменилось.", False),
+            "ok": ("Meta приняла тестовое событие — связь работает.", False),
+            "fail": ("Meta не приняла событие — см. код ниже, в чек-листе. Проверьте Pixel ID и токен.", True),
+            "noconf": ("Для проверки нужны Pixel ID и токен Conversions API.", True),
+        }.get(qs.get("m", ""), ("", False))
+        return _settings_page(flash=flash, flash_bad=bad)
+
+    if not _same_origin(event):
+        return resp(403, {"ok": False, "error": "forbidden"})
+    form = form_of(event)
+    current = load_settings()
+    new, errors = meta.parse_form(form, current, normalize_phone)
+    if errors:
+        return _settings_page(422, settings=current, errors=errors, form=form,
+                              flash="Не сохранено: исправьте поля, отмеченные красным.", flash_bad=True)
+    changed = save_settings(new, ADMIN_USER, hash_ip(client_ip(event)))
+    return {"statusCode": 303, "body": "",
+            "headers": {"location": "/admin/settings?m=" + ("saved" if changed else "nochange"),
+                        "cache-control": "no-store"}}
+
+
+def admin_settings_test(event):
+    if not check_auth(event):
+        return need_auth()
+    if not _same_origin(event):
+        return resp(403, {"ok": False, "error": "forbidden"})
+    settings = load_settings()
+    if not (settings.get("pixel_id") and settings.get("capi_token")):
+        m = "noconf"
+    else:
+        ok, status = capi_send(settings, [meta.test_event(SITE_DOMAIN)], ref="settings-check", use_test_code=True)
+        _capi_status_put(ok, status, "test")
+        m = "ok" if ok else "fail"
+    return {"statusCode": 303, "body": "",
+            "headers": {"location": "/admin/settings?m=" + m, "cache-control": "no-store"}}
+
+
 # --------------------------------------------------------------------------- router
 
 
@@ -948,6 +1297,8 @@ def lambda_handler(event, context):
     try:
         if path == "/api/fx/health":
             return resp(200, {"ok": True, "version": APP_VERSION, "git_sha": GIT_SHA, "ts": now_iso()})
+        if path == "/api/fx/config" and method in ("GET", "HEAD"):
+            return public_config_response(event)
         if path == "/api/fx/event" and method == "POST":
             return put_events(event)
         if path == "/api/fx/lead" and method == "POST":
@@ -960,6 +1311,12 @@ def lambda_handler(event, context):
             return admin_page(event)
         if path == "/admin/status" and method == "POST":
             return admin_status(event)
+        if path == "/admin/settings" and method in ("GET", "POST"):
+            return admin_settings(event)
+        if path == "/admin/settings/test" and method == "POST":
+            return admin_settings_test(event)
+        if path == "/admin/leads.csv" and method == "GET":
+            return admin_leads_csv(event)
     except Exception as exc:  # never leak a stack trace to the public internet
         print(json.dumps({"event": "unhandled", "path": path, "error": repr(exc)}))
         return resp(500, {"ok": False, "error": "internal"})
