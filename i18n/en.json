@@ -28,7 +28,7 @@
   "foot_viz": "Every image on this site is a 3D visualisation made from the specification, not a photograph of an existing piece.",
   "foot_prelaunch": "This site is in pre-launch: nothing is sold and nothing is paid here. Prices and lead times are estimates, not yet confirmed; a binding offer is sent in writing.",
   "notice_label": "Cookie notice",
-  "notice": "We use cookies and the Meta pixel for measurement and advertising — only if you agree. Without consent we keep anonymous visit data only.",
+  "notice": "This site uses cookies for its operation and for statistical analysis of use.",
   "notice_ok": "Accept",
   "home_title": "ALUMA — made-to-order oak furniture, launch series",
   "home_desc": "Extending dining tables, a round table, a wall-hung media unit and a console in oak — in the size that fits your home. Delivery and assembly included. Early registration, no payment.",
@@ -260,5 +260,6 @@
   "a11y_motion": "Stop animations",
   "a11y_reset": "Reset",
   "a11y_close": "Close",
-  "a11y_statement": "Accessibility statement"
+  "a11y_statement": "Accessibility statement",
+  "cookie_notice": "We use cookies and the Meta pixel for measurement and advertising — only if you agree. Without consent we keep anonymous visit data only."
 }
