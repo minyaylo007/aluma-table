@@ -43,16 +43,25 @@
     if (okBtn) okBtn.addEventListener("click", function () {
       try { localStorage.setItem(NOTICE_KEY, "1"); } catch (e) {}
       notice.hidden = true;
-      try { if (W.alumaConsent) W.alumaConsent(); } catch (e) {}
+      try { if (W.alumaConsent) W.alumaConsent(true); } catch (e) {}
     });
     if (noBtn) noBtn.addEventListener("click", function () {
       var was = null;
       try { was = localStorage.getItem(NOTICE_KEY); localStorage.setItem(NOTICE_KEY, "0"); } catch (e) {}
       notice.hidden = true;
+      // alumaConsent(false) — лише у версії tracking.js із alumaConsentState: у першій аргумент ігнорується і це була б згода
+      try { if (W.alumaConsentState && W.alumaConsent) W.alumaConsent(false); } catch (e) {}
       if (was === "1") location.reload();            // відкликання згоди: сторонній код уже на сторінці — перезавантажуємо без нього
     });
   }
-  qsa("[data-cookie-settings]").forEach(function (b) { b.addEventListener("click", showNotice); });
+  qsa("[data-cookie-settings]").forEach(function (b) { b.addEventListener("click", function () {
+    try { if (W.alumaConsentReset) W.alumaConsentReset(); } catch (e) {}
+    showNotice();
+  }); });
+  var adsConsent = function () {
+    try { if (W.alumaConsentState) return W.alumaConsentState() === "granted"; } catch (e) {}
+    try { return localStorage.getItem(NOTICE_KEY) === "1"; } catch (e) { return false; }
+  };
 
   // ---------------------------------------------------------------- меню נגישות
   var A11Y_KEY = "fx_a11y", root = D.documentElement, a11y = {};
@@ -299,6 +308,7 @@
         name: (el.name.value || "").trim(), phone: (el.phone.value || "").trim(), city: (el.city.value || "").trim(),
         comment: (el.comment.value || "").trim(), website: el.website ? el.website.value : "",
         consent: !!el.consent.checked, consent_marketing: !!(el.consent_marketing && el.consent_marketing.checked),
+        marketing_consent: !!(el.consent_marketing && el.consent_marketing.checked), ads_consent: adsConsent(),
         consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
         product_id: fProduct ? fProduct.value : "", size_label: fSize ? fSize.value : "",
         finish_id: fFinish ? fFinish.value : "", base_id: fBase ? fBase.value : "",

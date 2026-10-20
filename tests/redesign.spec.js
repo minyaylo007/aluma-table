@@ -135,6 +135,8 @@ test('a valid lead from a card sends product, size, finish and lands on the than
   expect(lead.finish_id).toBe(p.finishes[0].id);
   expect(lead.consent).toBe(true);
   expect(lead.consent_marketing).toBe(false);              // חוק התקשורת 30א: не відмічено за замовчуванням
+  expect(lead.marketing_consent).toBe(false);
+  expect(lead.ads_consent).toBe(false);                     // без згоди на cookies Lead у CAPI не йде
   expect(lead.utm_source).toBe('test');
   expect(lead.lang).toBe('he');
   expect(lead.website).toBe('');
