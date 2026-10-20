@@ -3,7 +3,7 @@
 **On any conflict, `~/maestro/OWNER-RULES.md` and `~/.claude/CLAUDE.md` win over this file.** Machine-wide invariants —
 `.specify/memory/constitution.md`. How the project got here (AWS teardown, public re-publish, cutover) — `docs/HISTORY.md`.
 
-Landing page for one extendable oak dining table (ALUMA / GOREN): Hebrew (RTL) at `/`, English at `/en/`; lead form →
+Prelaunch storefront for the five pieces of `catalog/products.json`: Hebrew (RTL) at `/`, English at `/en/`; lead form →
 owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn + SQLite behind Caddy, user units
 `ihor-aluma-api.service` / `ihor-aluma-purge.timer` (leads never purged) run from the clone `/opt/ihor/aluma-table`
 (env `~/.config/aluma/aluma.env`, 127.0.0.1:8005), static in `/srv/aluma`, health `GET /api/fx/health`.
@@ -26,7 +26,7 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
 ## 3. Stack and architecture
 | Layer | What | Pinned in |
 |---|---|---|
-| Static site | `build.py` (stdlib; Pillow optional) → `dist/` (gitignored); three.js viewer `site/assets/goren3d.js` | — |
+| Static site | `build.py` (stdlib; Pillow optional) → `dist/` (gitignored): home, `/catalog/`, `/p/<slug>/` from the catalog, how, about, faq, privacy, terms, accessibility, 404; vanilla `site/assets/aluma.{js,css}` + `tracking.js`; design rationale `docs/REDESIGN-2026-10.md` | — |
 | API | `api/handler.py` (`lambda_handler`), `api/wsgi.py` (gunicorn), `api/store.py` (SQLite twin of `fx_*`); server runtime gunicorn + boto3 (unconditional import) + requests | `api/requirements.txt`, `deploy/requirements-server.txt` |
 | Browser tests | `@playwright/test` 1.62.1, chromium only; browsers in `/opt/ihor/aluma-table/ms-playwright` | `package.json`, `package-lock.json` |
 | CI/CD | GitHub Actions: `ci.yml` on every PR to `master`, nightly, and from `release.yml` — six required checks `secret-scan`, `lint`, `test (3.12)`, `test (3.13)`, `build`, `browser`; release/deploy behind `RELEASES_ENABLED` (unset); `rollback.yml` manual | `.github/workflows/`, `docs/DELIVERY.md` |
