@@ -90,6 +90,19 @@ class TrackingJsTests(unittest.TestCase):
         self.assertIsNone(r["notice"])                                 # наступна сторінка — не питаємо знову
         self.assertEqual(meta_urls(r), [])
 
+    def test_storefront_banner_decline_false_means_refusal(self):
+        """Банер вітрини (#notice): «רק הכרחיות» викликає alumaConsent(false) — це відмова, не згода."""
+        cfg = {"pixel_id": PIXEL, "clarity_id": "abcdef1234"}
+        r = run(config=cfg, hasNotice=True, declineAfter=True, callsAfter=["Lead"])
+        self.assertIsNone(r["notice"])                                 # свого банера поруч із #notice не малюємо
+        self.assertEqual((r["consent"], r["state"]), ("0", "denied"))
+        self.assertEqual(meta_urls(r), [])
+        self.assertEqual(r["fbq"], [])
+        self.assertEqual(r["consentEvents"], ["denied"])
+        r = run(config=cfg, hasNotice=True, stored="0", consentAfter=True)   # alumaConsent() без аргументу = згода
+        self.assertEqual(r["state"], "granted")
+        self.assertEqual(r["fbq"][0], ["init", PIXEL])
+
     def test_consent_can_be_withdrawn_and_asked_again(self):
         cfg = {"pixel_id": PIXEL}
         r = run(config=cfg, consent=True, declineAfter=True)

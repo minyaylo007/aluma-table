@@ -16,7 +16,7 @@
 | `contact_pref` | `whatsapp` \| `call` | `whatsapp` |
 | `email` | e-mail ≤ 120 | `a@b.co` |
 | `event_id` | `[A-Za-z0-9_.-]{8,64}` — тот же, что ушёл в пиксель (`alumaTrack('Lead')`) | `lead.lx3k9a.f81c2d` |
-| `marketing_consent` | `true` только при явно отмеченной галочке (по умолчанию НЕ отмечена, חוק התקשורת ס' 30א); старое имя `consent_marketing` тоже принимается; хранится `consent_marketing` + `consent_marketing_at` (время заявки). Строки `"false"`/`"0"` — не согласие | `false` |
+| `marketing_consent` | `true` только при явно отмеченной галочке (по умолчанию НЕ отмечена, חוק התקשורת ס' 30א); **основное имя — `marketing_consent`**; старое `consent_marketing` — синоним (если пришли оба, решает `marketing_consent`); хранится `consent_marketing` + `consent_marketing_at` (время заявки). Строки `"false"`/`"0"` — не согласие | `false` |
 | `ads_consent` | `true`, если посетитель принял cookies рекламы: `window.alumaConsentState() === "granted"`. Без него и без cookie `_fbp` Lead в CAPI **не отправляется** (תיקון 13), заявка сохраняется как обычно; хранится `consent_ads` | `true` |
 | `fbp` | `fb.1.<ts>.<rand>` ≤ 200 | из cookie `_fbp` |
 | `fbc` | `fb.1.<ts>.<fbclid>` ≤ 300 | из cookie `_fbc` |
