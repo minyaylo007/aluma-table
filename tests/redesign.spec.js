@@ -72,6 +72,7 @@ test('catalog lists every product with a link to its card', async ({ page }) => 
 });
 
 test('every page of both languages answers 200 with one h1', async ({ page }) => {
+  test.setTimeout(90000);   // 16 сторінок на однопотоковому serve-preview
   await mockApi(page);
   for (const pre of ['', '/en']) {
     for (const rel of ['/', '/catalog/', '/how/', '/about/', '/faq/', '/privacy', '/terms', '/accessibility']) {
@@ -87,6 +88,7 @@ test('size choice changes the price, finish choice its name, and both reach the 
   const p = PRODUCTS.find(x => new Set(x.sizes.map(s => s.price_ils)).size > 1 && x.finishes.length > 1);
   await mockApi(page);
   await page.goto(`/p/${p.slug}/`);
+  await page.locator('[data-notice-no]').click();   // смуга cookies унизу закриває пігулки на телефоні
   const last = p.sizes[p.sizes.length - 1];
   await page.locator(`input[name="size"][value="${last.label}"]`).check({ force: true });
   const shown = '₪' + last.price_ils.toLocaleString('en-US');
