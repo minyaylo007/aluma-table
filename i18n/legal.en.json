@@ -29,7 +29,7 @@
       },
       {
         "h": "Accessibility level",
-        "p": ["The site is built to Israeli Standard SI 5568, based on WCAG 2.0 level AA. Every change is checked automatically (axe-core) on all pages in Hebrew and English, and by hand with the keyboard in major browsers and on mobile devices. The work was done by our own development team."]
+        "p": ["The site is built to Israeli Standard SI 5568, based on WCAG 2.0 level AA. Every change is checked automatically (axe-core) on all pages in Hebrew and English, and by automated checks of keyboard navigation, focus and layout at screen widths from 320 to 1920 px. The work was done by our own development team."]
       },
       {
         "h": "What we have done",
@@ -47,7 +47,7 @@
       {
         "h": "Known limitations",
         "li": [
-          "The 3D model of the table is not fully accessible to screen readers; everything it shows is also given in text, drawings and images;",
+          "The 3D model of the piece is not fully accessible to screen readers; everything it shows is also given in text, drawings and images;",
           "The site has not yet been tested by screen reader users — such a test is planned;",
           "The WhatsApp button leads to an outside service whose accessibility we do not control."
         ]
@@ -80,7 +80,7 @@
       {
         "h": "What we collect",
         "li": [
-          "From the form: name, phone, town, e-mail (if given), comment, the product and your choices (size, finish, base), your expected purchase time and preferred contact channel, and whether and when you agreed to marketing;",
+          "From the form: name, phone, city, e-mail (if given), comment, the product and your choices (size, finish, base), your expected purchase time and preferred contact channel, and whether and when you agreed to marketing;",
           "About your visit: pages viewed, how you arrived (including UTM parameters and an ad click id), device type, screen size and language;",
           "We do not keep your IP address: only a one-way hash of it with a secret key, to count visitors and prevent abuse."
         ]
@@ -101,7 +101,7 @@
       {
         "h": "Who receives it",
         "li": [
-          "Meta Platforms (Facebook and Instagram) — only if you accept cookies: browsing events through Meta Pixel and, when you send the form, through the Conversions API. Phone, name, town and e-mail are one-way hashed (SHA-256) before sending; your IP address, browser type and Meta cookie ids are sent too. Meta also uses the data under its own privacy policy;",
+          "Meta Platforms (Facebook and Instagram) — only if you accept cookies: browsing events through Meta Pixel and, when you send the form, through the Conversions API. Phone, name, city and e-mail are one-way hashed (SHA-256) before sending; your IP address, browser type and Meta cookie ids are sent too. Meta also uses the data under its own privacy policy;",
           "Microsoft Clarity — only if you accept cookies: clicks, scrolling and mouse movement, to analyse use. Form fields are masked;",
           "Telegram — your request is sent as a notification to our account so we can get back to you quickly;",
           "Meta, Microsoft and Telegram also process data outside Israel, including in the United States;",
@@ -167,7 +167,7 @@
       },
       {
         "h": "Images and information",
-        "p": ["Images are renderings of the planned product, not photographs, and each is marked as a rendering. Colour, texture and finish may differ. The Company may change the specification, dates or launch plan until an order is confirmed in writing."]
+        "p": ["Images are visualisations of the planned product, not photographs, and each is marked “Visualisation”. Colour, texture and finish may differ. The Company may change the specification, dates or launch plan until an order is confirmed in writing."]
       },
       {
         "h": "Intellectual property and use",
