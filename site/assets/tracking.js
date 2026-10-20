@@ -1,7 +1,8 @@
 /* ALUMA tracking.js — піксель Meta, Clarity і перша сторона (/api/fx/event) з налаштувань власника.
  * Контракт: specs/002-meta-settings/contracts/tracking.md. Конфіг — GET /api/fx/config (без збірки сайту).
  * Правила: немає pixel_id — жодного запиту до Meta; немає clarity_id — до Clarity; сторонній код —
- * лише після згоди (localStorage fx_notice_v1 = "1"); ?me=1 / cookie fx_me=1 — нічого не пишемо;
+ * лише після згоди (localStorage fx_notice_v1 = "1"; "0" — «лише необхідні», більше не питаємо);
+ * ?me=1 / cookie fx_me=1 — нічого не пишемо;
  * будь-яка помилка — тихо, сайт не ламається. Самодостатній файл, без залежностей. */
 (function () {
   "use strict";
@@ -59,7 +60,12 @@
   var queue = [], flushTimer = null;
   function send(beacon) {
     if (!queue.length) return;
-    var payload = JSON.stringify({ session_id: SID, ctx: ctx, events: queue.splice(0, 40) });
+    var c = ctx;
+    if (ctx.fbclid && !consented()) {                  // без згоди — жодного рекламного ідентифікатора
+      c = {}; for (var k in ctx) c[k] = ctx[k];
+      c.fbclid = "";
+    }
+    var payload = JSON.stringify({ session_id: SID, ctx: c, events: queue.splice(0, 40) });
     try {
       if (beacon && navigator.sendBeacon) { navigator.sendBeacon("/api/fx/event", new Blob([payload], { type: "application/json" })); return; }
       fetch("/api/fx/event", { method: "POST", headers: { "content-type": "application/json" }, body: payload, keepalive: true }).catch(function () {});
@@ -85,7 +91,8 @@
 
   // ------------------------------------------------------------ сторонній код після згоди
   var pending = [], pixelOn = false, clarityOn = false;
-  function consented() { return store(NOTICE_KEY) === "1"; }
+  function consentState() { var v = store(NOTICE_KEY); return v === "1" ? "granted" : v === "0" ? "denied" : null; }
+  function consented() { return consentState() === "granted"; }
   function wantsThirdParty() { return !!(config && (config.pixel_id || config.clarity_id)); }
 
   function loadPixel(id) {
@@ -119,29 +126,45 @@
     list.forEach(toPixel);
   }
 
-  function showNotice() {                              // власний мінімальний блок — лише коли на сторінці немає #notice
+  // Тексти — i18n/legal.<lang>.json → cookies (вітрина може передати свої через data-атрибути тега <script>).
+  var TEXT = {
+    he: {"label": "הודעת עוגיות", "text": "האתר משתמש בעוגיות הכרחיות לתפעולו. אם תאשרו, נפעיל גם את Meta Pixel ו־Microsoft Clarity — למדידת הפרסום ולשיפור האתר. אפשר לשנות את הבחירה בכל עת.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
+    en: {"label": "Cookie notice", "text": "This site uses essential cookies to work. If you accept, we will also turn on Meta Pixel and Microsoft Clarity to measure advertising and improve the site. You can change your choice at any time.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"}
+  };
+  function attr(name) { return (SCRIPT && SCRIPT.getAttribute(name)) || ""; }
+  function hideNotice() { var b = doc.getElementById("aluma-notice"); if (b && b.parentNode) b.parentNode.removeChild(b); }
+  function showNotice() {                              // власний блок — лише коли на сторінці немає #notice
     if (doc.getElementById("notice") || doc.getElementById("aluma-notice")) return;
-    var text = (SCRIPT && SCRIPT.getAttribute("data-notice")) ||
-      (LANG === "en" ? "This site uses cookies for its operation and for statistical analysis of use."
-                     : "האתר משתמש בעוגיות לתפעולו התקין ולניתוח סטטיסטי של השימוש בו.");
-    var ok = (SCRIPT && SCRIPT.getAttribute("data-notice-ok")) || (LANG === "en" ? "Got it" : "הבנתי");
+    var t = TEXT[LANG];
     var box = doc.createElement("div");
     box.id = "aluma-notice";
     box.setAttribute("role", "region");
-    box.setAttribute("aria-label", ok);
+    box.setAttribute("aria-label", attr("data-notice-label") || t.label);
     box.dir = LANG === "en" ? "ltr" : "rtl";
     box.lang = LANG;
-    box.style.cssText = "position:fixed;inset-inline:12px;bottom:12px;z-index:2147483000;display:flex;gap:12px;" +
-      "align-items:center;justify-content:space-between;padding:12px 16px;background:#1f1d1a;color:#f4efe6;" +
+    box.style.cssText = "position:fixed;inset-inline:12px;bottom:12px;z-index:2147483000;display:flex;flex-wrap:wrap;gap:8px 12px;" +
+      "align-items:center;padding:12px 16px;background:#1f1d1a;color:#f4efe6;" +
       "font:14px/1.4 system-ui,sans-serif;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:720px;margin-inline:auto";
     var p = doc.createElement("span");
-    p.textContent = text;
-    var btn = doc.createElement("button");
-    btn.type = "button";
-    btn.textContent = ok;
-    btn.style.cssText = "flex:none;padding:8px 16px;border:0;border-radius:6px;background:#f4efe6;color:#1f1d1a;font:inherit;cursor:pointer";
-    btn.addEventListener("click", function () { box.parentNode && box.parentNode.removeChild(box); window.alumaConsent(); });
-    box.appendChild(p); box.appendChild(btn);
+    p.textContent = attr("data-notice") || t.text;
+    p.style.cssText = "flex:1 1 260px";
+    function button(label, primary, choice) {
+      var b = doc.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.style.cssText = "flex:none;padding:8px 16px;border-radius:6px;font:inherit;cursor:pointer;min-height:44px;" +
+        (primary ? "border:0;background:#f4efe6;color:#1f1d1a" : "border:1px solid #f4efe6;background:transparent;color:#f4efe6");
+      b.addEventListener("click", function () { window.alumaConsent(choice); });
+      return b;
+    }
+    box.appendChild(p);
+    box.appendChild(button(attr("data-notice-ok") || t.accept, true, true));
+    box.appendChild(button(attr("data-notice-decline") || t.decline, false, false));
+    var a = doc.createElement("a");
+    a.href = attr("data-privacy-href") || (LANG === "en" ? "/en/privacy" : "/privacy");
+    a.textContent = attr("data-notice-more") || t.more;
+    a.style.cssText = "color:#f4efe6;text-decoration:underline";
+    box.appendChild(a);
     (doc.body || root).appendChild(box);
   }
 
@@ -150,6 +173,7 @@
     if (isMe) return;
     if (!wantsThirdParty()) { pending = []; return; }  // без пікселя й Clarity — тиша
     if (consented()) { loadThirdParty(); return; }
+    if (consentState() === "denied") { pending = []; return; }   // «лише необхідні» — не питаємо знову
     if (!doc.getElementById("notice")) {                // #notice веде вітрина й сама викликає alumaConsent()
       if (doc.body) showNotice(); else doc.addEventListener("DOMContentLoaded", showNotice);
     }
@@ -158,7 +182,20 @@
   // ------------------------------------------------------------ публічне API
   window.alumaEventId = eventId;
   window.alumaConfig = loadConfig;
-  window.alumaConsent = function () { store(NOTICE_KEY, "1"); loadThirdParty(); };
+  // alumaConsent() / alumaConsent(true) — згода; alumaConsent(false) — «лише необхідні» або відкликання
+  // (уже завантажений піксель живе до кінця сторінки, з наступної — нічого); alumaConsentReset() — спитати знову.
+  window.alumaConsent = function (choice) {
+    var yes = choice === undefined || choice === true || choice === "granted";
+    store(NOTICE_KEY, yes ? "1" : "0");
+    hideNotice();
+    if (yes) loadThirdParty(); else pending = [];
+    try { doc.dispatchEvent(new CustomEvent("aluma:consent", { detail: consentState() })); } catch (e) {}
+  };
+  window.alumaConsentState = consentState;
+  window.alumaConsentReset = function () {
+    try { localStorage.removeItem(NOTICE_KEY); } catch (e) {}
+    if (config) start(); else loadConfig();
+  };
   window.alumaTrack = function (name, params) {
     name = String(name || "").slice(0, 60);
     if (!name) return "";

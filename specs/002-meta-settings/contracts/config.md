@@ -17,7 +17,13 @@ Cache-Control: public, max-age=60
     "name": "ALUMA",
     "phone": "+9725XXXXXXXX",
     "email": "hello@example.com",
-    "city": "תל אביב"
+    "city": "תל אביב",
+    "business_id": null
+  },
+  "accessibility_contact": {
+    "name": "ALUMA",
+    "phone": "+9725XXXXXXXX",
+    "email": "hello@example.com"
   },
   "launch_mode": true
 }
@@ -26,6 +32,8 @@ Cache-Control: public, max-age=60
 - Любое незаданное значение — `null` (в `contact` — тоже `null` у поля). Ключи присутствуют всегда.
 - `wa_number` — только цифры с кодом страны, без `+` — готов для `https://wa.me/<wa_number>`.
 - `contact.phone` — `+` и цифры (для `tel:`).
+- `contact.business_id` — ח.פ./ע.מ. (9 цифр), пока фирмы нет — `null`; для תקנון и футера.
+- `accessibility_contact` — רכז/ת נגישות для הצהרת נגישות (תקנה 35). Незаданное поле берётся из `contact`.
 - `launch_mode` — `true` по умолчанию (настройки ещё не сохранялись).
 - НИКОГДА не содержит: токен CAPI, test event code, служебные поля (`updated_by` и т. п.).
 - Ошибка чтения настроек → 200 с дефолтами (все `null`, `launch_mode: true`): сайт не должен ломаться.

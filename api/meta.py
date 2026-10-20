@@ -18,7 +18,8 @@ import time
 
 # Порядок = порядок на сторінці. public — потрапляє в GET /api/fx/config (через public_config).
 FIELDS = (
-    "contact_name", "contact_phone", "contact_email", "contact_city",
+    "contact_name", "contact_phone", "contact_email", "contact_city", "business_id",
+    "a11y_name", "a11y_phone", "a11y_email",
     "wa_number", "pixel_id", "capi_token", "test_event_code", "clarity_id", "launch_mode",
 )
 SECRET_FIELDS = ("capi_token",)
@@ -34,6 +35,7 @@ _TOKEN = re.compile(r"^\S{20,400}$")
 _TEST_CODE = re.compile(r"^[A-Za-z0-9]{3,40}$")
 _CLARITY = re.compile(r"^[a-z0-9]{6,20}$")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+_BUSINESS_ID = re.compile(r"^[0-9]{9}$")
 
 
 def _text(value, limit: int) -> str:
@@ -75,19 +77,33 @@ def parse_form(form: dict, current: dict, normalize_phone):
     new["contact_name"] = _text(form.get("contact_name"), 80)
     new["contact_city"] = _text(form.get("contact_city"), 60)
 
-    phone = _text(form.get("contact_phone"), 40)
-    if phone:
+    def phone_field(name):
+        phone = _text(form.get(name), 40)
+        if not phone:
+            new[name] = ""
+            return
         digits = _international(phone, normalize_phone)
         if digits is None:
-            errors["contact_phone"] = "Телефон в международном формате: +972 5X XXX XXXX или 05X-XXX-XXXX."
-        new["contact_phone"] = "+" + digits if digits else phone
-    else:
-        new["contact_phone"] = ""
+            errors[name] = "Телефон в международном формате: +972 5X XXX XXXX или 05X-XXX-XXXX."
+        new[name] = "+" + digits if digits else phone
 
-    email = _text(form.get("contact_email"), 120).lower()
-    if email and not _EMAIL.match(email):
-        errors["contact_email"] = "Неверный e-mail."
-    new["contact_email"] = email
+    def email_field(name):
+        email = _text(form.get(name), 120).lower()
+        if email and not _EMAIL.match(email):
+            errors[name] = "Неверный e-mail."
+        new[name] = email
+
+    phone_field("contact_phone")
+    email_field("contact_email")
+
+    business = _DIGITS.sub("", _text(form.get("business_id"), 20))
+    if business and not _BUSINESS_ID.match(business):
+        errors["business_id"] = "ח.פ. / ע.מ. — 9 цифр."
+    new["business_id"] = business
+
+    new["a11y_name"] = _text(form.get("a11y_name"), 80)
+    phone_field("a11y_phone")
+    email_field("a11y_email")
 
     wa = _text(form.get("wa_number"), 40)
     if wa:
@@ -156,6 +172,13 @@ def public_config(settings: dict) -> dict:
             "phone": v("contact_phone"),
             "email": v("contact_email"),
             "city": v("contact_city"),
+            "business_id": v("business_id"),
+        },
+        # רכז/ת נגישות для הצהרת נגישות; порожнє поле — береться загальний контакт
+        "accessibility_contact": {
+            "name": v("a11y_name") or v("contact_name"),
+            "phone": v("a11y_phone") or v("contact_phone"),
+            "email": v("a11y_email") or v("contact_email"),
         },
         "launch_mode": True if launch is None else bool(launch),
     }
@@ -261,6 +284,14 @@ FORM = (
         ("contact_phone", "Телефон", "tel", "Международный формат: +972 5X XXX XXXX (05X-XXX-XXXX тоже можно)."),
         ("contact_email", "E-mail", "email", ""),
         ("contact_city", "Город", "text", "Например: תל אביב."),
+        ("business_id", "ח.פ. / ע.מ. (когда будет)", "text",
+         "9 цифр. Пока фирмы нет — оставьте пустым; появится в תקנון и в футере само."),
+    )),
+    ("Доступность — רכז/ת נגישות", "Обязателен по закону (תקנה 35): контакт для обращений по доступности, "
+     "показывается на странице הצהרת נגישות. Пустые поля — берутся контакты сайта выше.", (
+        ("a11y_name", "Имя רכז/ת נגישות", "text", "Обычно сам владелец. Например: Игорь Миняйло."),
+        ("a11y_phone", "Телефон", "tel", "Международный формат: +972 5X XXX XXXX."),
+        ("a11y_email", "E-mail", "email", "Ответ на обращение — по закону в разумный срок; держите ящик живым."),
     )),
     ("WhatsApp", "", (
         ("wa_number", "Номер WhatsApp", "tel",
@@ -329,6 +360,9 @@ def _mark(ok: bool) -> str:
 def checklist(settings: dict, last: dict) -> list:
     """[(пункт, ok, деталь)] — FR-008. last: page_view, lead_event, lead_at, capi {ts, ok, status, source}."""
     contacts_ok = bool(settings.get("contact_name") and (settings.get("contact_phone") or settings.get("contact_email")))
+    a11y_ok = bool((settings.get("a11y_name") or settings.get("contact_name"))
+                   and (settings.get("a11y_phone") or settings.get("a11y_email")
+                        or settings.get("contact_phone") or settings.get("contact_email")))
     capi = last.get("capi") or {}
     if capi.get("ts"):
         capi_detail = f"{capi['ts'][:16].replace('T', ' ')} UTC — {'ок' if capi.get('ok') else 'ошибка'}" \
@@ -344,6 +378,7 @@ def checklist(settings: dict, last: dict) -> list:
         ("Токен Conversions API", bool(settings.get("capi_token")), "задан" if settings.get("capi_token") else "не задан"),
         ("WhatsApp", bool(settings.get("wa_number")), "задан" if settings.get("wa_number") else "не задан"),
         ("Контакты (имя + телефон или e-mail)", contacts_ok, "заполнены" if contacts_ok else "не заполнены"),
+        ("Контакт רכז/ת נגישות", a11y_ok, "заполнен" if a11y_ok else "не заполнен (נגישות — обязателен)"),
         ("Последний PageView на сайте", bool(last.get("page_view")), when(last.get("page_view"))),
         ("Последнее событие Lead на сайте", bool(last.get("lead_event")), when(last.get("lead_event"))),
         ("Последняя заявка (не тестовая)", bool(last.get("lead_at")), when(last.get("lead_at"))),

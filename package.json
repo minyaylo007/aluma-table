@@ -8,13 +8,15 @@
   "scripts": {
     "build": "python build.py",
     "dev": "python build.py && python tools/serve-preview.py",
-    "test:local": "python build.py && playwright test --config playwright.local.config.js"
+    "test:local": "python build.py && playwright test --config playwright.local.config.js",
+    "test:a11y": "python build.py && playwright test --config playwright.a11y.config.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.62.1",
     "lighthouse": "^12.8.2"
   }

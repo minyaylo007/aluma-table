@@ -18,3 +18,11 @@
 - [x] T021 [US5] админка: колонки новых полей, фильтр ?product=, /admin/leads.csv (FR-017); тесты
 - [x] T022 [US6] docs/META-TEST.md (FR-018)
 - [x] T023 deploy/aluma.env.example: META_GRAPH_VERSION; CLAUDE.md §3 — маршруты; `run_tests.py --full`
+
+## Фаза 4 — израильские требования (блок владельца 20.10 23:20)
+- [x] T030 i18n/legal.he.json + legal.en.json (FR-019); tests/test_legal_texts.py; build.py не считает их локалями
+- [x] T031 tracking.js: выбор согласие/отказ, alumaConsent(false), alumaConsentReset (FR-020); тесты
+- [x] T032 CAPI Lead только с ads_consent/_fbp, consent_ads в заявке и CSV (FR-021); тесты на оба случая
+- [x] T033 marketing_consent + синоним + время (FR-022); ח.פ. и רכז נגישות в настройках и конфиге (FR-023)
+- [x] T034 tests/a11y.spec.js + playwright.a11y.config.js, @axe-core/playwright 4.14.0 (FR-024); 0 нарушений
+- [x] T035 docs/COMPLIANCE-IL.md; CLAUDE.md §3

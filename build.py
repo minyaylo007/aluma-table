@@ -445,6 +445,8 @@ def normalise_eol(root: pathlib.Path) -> None:
 def load_locales() -> dict:
     locales = {}
     for f in sorted(I18N.glob("*.json")):
+        if "." in f.stem:  # legal.he.json etc.: page texts, not a UI locale
+            continue
         locales[f.stem] = json.loads(f.read_text(encoding="utf-8"))
     base = set(locales.get("he", {}))
     for name, strings in locales.items():
