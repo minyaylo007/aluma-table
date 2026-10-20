@@ -246,7 +246,12 @@ def picture(img: dict, loc: str, *, eager: bool = False, sizes: str = "100vw", c
     if src.endswith(".webp"):
         avif = src[:-5] + ".avif"
         if (SITE / avif.lstrip("/")).is_file():
-            sources = f'<source type="image/avif" srcset="{esc(img.get("srcset_avif") or avif)}" sizes="{esc(sizes)}">'
+            avset = img.get("srcset_avif") or avif
+            if not img.get("srcset_avif") and img.get("srcset"):
+                cand = re.sub(r"\.webp(?=\s)", ".avif", img["srcset"])
+                if all((SITE / u.lstrip("/")).is_file() for u in re.findall(r"(\S+\.avif)", cand)):
+                    avset = cand
+            sources = f'<source type="image/avif" srcset="{esc(avset)}" sizes="{esc(sizes)}">'
     return f'<picture class="{cls}">{sources}<img {attrs}></picture>'
 
 
@@ -260,20 +265,26 @@ def media(p: dict, loc: str, *, eager: bool = False, sizes: str = "100vw") -> st
 
 
 def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
-    sizes = p.get("sizes") or []
-    dims = ""
-    if sizes:
-        labels = " / ".join(esc(s.get("label")) for s in sizes[:4])
-        dims = f'<span class="card-dims"><bdi dir="ltr">{labels}</bdi> {{{{t.cm}}}}</span>'
+    """Картка товару: фото 4:5 (другий кадр — при наведенні), назва, ціна «מ־₪», кружки тонувань."""
     est = ' <small class="est">{{t.price_estimate_short}}</small>' if p.get("preliminary") else ""
     price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"])}</bdi>{est}</span>'
              if p.get("price_from_ils") else "")
-    tag = L(p.get("tagline"), loc)
+    sz = "(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw"
+    imgs = [i for i in p.get("images") or [] if i.get("src")]
+    if imgs:
+        alt2 = (f'<span class="card-alt" aria-hidden="true">{picture(imgs[1], loc, sizes=sz)}</span>'
+                if len(imgs) > 1 else "")
+        pic = (f'<span class="media media--img card-media">{picture(imgs[0], loc, eager=eager, sizes=sz)}{alt2}'
+               f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></span>')
+    else:
+        pic = f'<span class="media media--tile card-media">{silhouette(p)}</span>'
+    dots = "".join(f'<span class="card-dot" style="--c:{esc(f.get("hex") or "#ccc")}" title="{esc(L(f.get("name"), loc))}"></span>'
+                   for f in (p.get("finishes") or [])[:6] if f.get("hex"))
+    names = ", ".join(esc(L(f.get("name"), loc)) for f in (p.get("finishes") or [])[:6] if f.get("hex"))
+    sw = (f'<span class="card-dots" role="img" aria-label="{{{{t.finishes_label}}}}: {names}">{dots}</span>' if dots else "")
     return (f'<li class="card"><a class="card-link" href="{prefix}/p/{p["slug"]}/" data-product="{esc(p["id"])}">'
-            f'{media(p, loc, eager=eager, sizes="(min-width: 960px) 30vw, (min-width: 600px) 45vw, 92vw")}'
-            f'<span class="card-body"><span class="card-name">{esc(L(p.get("name"), loc))}</span>'
-            + (f'<span class="card-tag">{esc(tag)}</span>' if tag else "")
-            + f'<span class="card-meta">{dims}{price}</span></span></a></li>')
+            f'{pic}<span class="card-body"><span class="card-row"><span class="card-name">{esc(L(p.get("name"), loc))}</span>'
+            f'{price}</span>{sw}</span></a></li>')
 
 
 def badges(p: dict, loc: str) -> str:
@@ -502,9 +513,13 @@ def main() -> None:
         hero_p = next((p for p in products if p["slug"] == CONTENT.get("HERO_PRODUCT")), products[0])
         hero_imgs = [i for i in hero_p.get("images") or [] if i.get("src")]
         base_tokens["HERO_MEDIA"] = (
-            f'<div class="media media--img hero-media">{picture(hero_imgs[0], loc, eager=True, sizes="(min-width: 960px) 55vw, 100vw")}'
+            f'<div class="hero-media">{picture(hero_imgs[0], loc, eager=True, sizes="100vw")}'
             f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></div>' if hero_imgs
-            else f'<div class="media media--tile hero-media">{silhouette(hero_p, "sil--hero")}</div>')
+            else f'<div class="hero-media hero-media--tile">{silhouette(hero_p, "sil--hero")}</div>')
+        band = next((i for i in hero_imgs if i.get("view") == "detail"), None)
+        base_tokens["BAND_MEDIA"] = (
+            f'<figure class="band">{picture(band, loc, sizes="100vw")}<span class="viz-tag">{{{{t.viz_tag}}}}</span>'
+            f'<figcaption class="band-cap"><span class="wrap">{{{{t.band_cap}}}}</span></figcaption></figure>' if band else "")
 
         def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str, alt_path: str):
             toks = {**base_tokens, **tokens}
