@@ -11,7 +11,11 @@
   var S = DATA.s || {};
   var PRODUCTS = DATA.products || [];
   var reduced = W.matchMedia && W.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var track = function (name, params) { try { if (W.alumaTrack) return W.alumaTrack(name, params || {}); } catch (e) {} return ""; };
+  // tracking.js вантажиться після load: подію до нього (ViewContent при старті) кладемо в чергу alumaQ, він її програє
+  var track = function (name, params) {
+    try { if (W.alumaTrack) return W.alumaTrack(name, params || {}); (W.alumaQ = W.alumaQ || []).push([name, params || {}]); } catch (e) {}
+    return "";
+  };
   var byId = function (id) { for (var i = 0; i < PRODUCTS.length; i++) if (PRODUCTS[i].id === id) return PRODUCTS[i]; return null; };
   var money = function (n) { return "₪" + Number(n || 0).toLocaleString("en-US"); };
 
