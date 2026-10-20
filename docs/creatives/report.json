@@ -1,0 +1,169 @@
+{
+  "generated_by": "tools/creatives/build.js",
+  "limits": {
+    "max_bytes": 512000,
+    "max_text_share": 0.2,
+    "min_contrast": 4.5
+  },
+  "creatives": [
+    {
+      "file": "tavor-1080x1080.jpg",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 172388,
+      "jpeg_quality": 88,
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1264.webp"
+      ],
+      "text_share": 0.0798,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "tavor-1080x1350.jpg",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 197804,
+      "jpeg_quality": 88,
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1264.webp"
+      ],
+      "text_share": 0.074,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "tavor-1080x1920.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 215393,
+      "jpeg_quality": 88,
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1264.webp"
+      ],
+      "text_share": 0.0577,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "sahar-1080x1080.jpg",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 162554,
+      "jpeg_quality": 88,
+      "products": [
+        "sahar"
+      ],
+      "images": [
+        "site/assets/products/sahar/hero-1264.webp"
+      ],
+      "text_share": 0.0818,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "sahar-1080x1350.jpg",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 204063,
+      "jpeg_quality": 88,
+      "products": [
+        "sahar"
+      ],
+      "images": [
+        "site/assets/products/sahar/hero-1264.webp"
+      ],
+      "text_share": 0.0758,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "sahar-1080x1920.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 218227,
+      "jpeg_quality": 88,
+      "products": [
+        "sahar"
+      ],
+      "images": [
+        "site/assets/products/sahar/hero-1264.webp"
+      ],
+      "text_share": 0.0591,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "collection-1080x1080.jpg",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 173484,
+      "jpeg_quality": 88,
+      "products": [
+        "tavor",
+        "sahar",
+        "ofek",
+        "saf",
+        "tal"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1264.webp",
+        "site/assets/products/sahar/hero-1264.webp",
+        "site/assets/products/ofek/hero-1264.webp",
+        "site/assets/products/saf/hero-1264.webp",
+        "site/assets/products/tal/hero-1264.webp"
+      ],
+      "text_share": 0.0776,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "collection-1080x1350.jpg",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 218405,
+      "jpeg_quality": 88,
+      "products": [
+        "tavor",
+        "sahar",
+        "ofek",
+        "saf",
+        "tal"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1264.webp",
+        "site/assets/products/sahar/hero-1264.webp",
+        "site/assets/products/ofek/hero-1264.webp",
+        "site/assets/products/saf/hero-1264.webp",
+        "site/assets/products/tal/hero-1264.webp"
+      ],
+      "text_share": 0.0718,
+      "min_contrast": 5.88
+    },
+    {
+      "file": "collection-1080x1920.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 372344,
+      "jpeg_quality": 88,
+      "products": [
+        "tavor",
+        "sahar",
+        "ofek",
+        "saf",
+        "tal"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1264.webp",
+        "site/assets/products/sahar/hero-1264.webp",
+        "site/assets/products/ofek/hero-1264.webp",
+        "site/assets/products/saf/hero-1264.webp",
+        "site/assets/products/tal/hero-1264.webp"
+      ],
+      "text_share": 0.056,
+      "min_contrast": 5.88
+    }
+  ]
+}

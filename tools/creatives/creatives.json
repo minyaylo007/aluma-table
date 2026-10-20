@@ -11,21 +11,21 @@
       "id": "tavor",
       "products": ["tavor"],
       "headline": "@tagline",
-      "sub": "שולחן אוכל נפתח מאלון · <bdi dir=\"ltr\">{length}→{extended}</bdi> ס״מ",
+      "sub": "שולחן אוכל נפתח, פורניר אלון · <bdi dir=\"ltr\">{length}→{extended}</bdi> ס״מ",
       "price": "מ־₪{price}"
     },
     {
       "id": "sahar",
       "products": ["sahar"],
       "headline": "@tagline",
-      "sub": "שולחן עגול נפתח מאלון · <bdi dir=\"ltr\">Ø{length}→{extended}</bdi> ס״מ",
+      "sub": "שולחן עגול נפתח, פורניר אלון · <bdi dir=\"ltr\">Ø{length}→{extended}</bdi> ס״מ",
       "price": "מ־₪{price}"
     },
     {
       "id": "collection",
-      "products": ["ofek", "tavor", "sahar", "saf", "tal"],
+      "products": ["tavor", "sahar", "ofek", "saf", "tal"],
       "headline": "סדרת ההשקה של ALUMA",
-      "sub": "חמישה דגמים מאלון · מידות וגוונים לבחירה",
+      "sub": "חמישה דגמים בפורניר אלון · מידות וגוונים לבחירה",
       "price": "מ־₪{price}"
     }
   ],
