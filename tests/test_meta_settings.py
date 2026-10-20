@@ -217,7 +217,8 @@ class PublicConfigTests(Base):
         self.assertEqual(r["headers"]["cache-control"], "public, max-age=60")
         self.assertEqual(body_json(r), {
             "pixel_id": None, "wa_number": None, "clarity_id": None,
-            "contact": {"name": None, "phone": None, "email": None, "city": None, "business_id": None},
+            "contact": {"name": None, "phone": None, "email": None, "city": None, "business_id": None,
+                        "address": None, "court_city": None},
             "accessibility_contact": {"name": None, "phone": None, "email": None}, "launch_mode": True})
 
     def test_contract_after_save_and_no_secrets(self):
@@ -241,12 +242,26 @@ class PublicConfigTests(Base):
         self.assertEqual(b["contact"]["business_id"], "512345678")
 
     def test_accessibility_and_business_id_are_validated(self):
-        for field, bad in (("a11y_phone", "123"), ("a11y_email", "nope"), ("business_id", "1234")):
+        for field, bad in (("a11y_phone", "123"), ("a11y_email", "nope"), ("business_id", "1234"),
+                           ("address", "א" * 121), ("court_city", "ת" * 121)):
             r = self.save(**{field: bad})
             self.assertEqual(r["statusCode"], 422, field)
         body = self.admin("GET", "/admin/settings")["body"]
         self.assertIn("רכז/ת נגישות", body)
         self.assertIn("תקנה 35", body)
+
+    def test_address_and_court_city_are_public_and_optional(self):
+        """Для תקנון: адреса продавця й місто суду — у contact; порожнє — null (вітрина ховає пункт)."""
+        self.save(address="  רחוב הרצל 1, תל אביב  ", court_city="תל אביב-יפו")
+        c = body_json(h.lambda_handler(request("GET", "/api/fx/config"), None))["contact"]
+        self.assertEqual((c["address"], c["court_city"]), ("רחוב הרצל 1, תל אביב", "תל אביב-יפו"))
+        self.assertEqual(self.save(address="א" * 120)["statusCode"], 303)
+        self.save(address="", court_city="")
+        c = body_json(h.lambda_handler(request("GET", "/api/fx/config"), None))["contact"]
+        self.assertEqual((c["address"], c["court_city"]), (None, None))
+        body = self.admin("GET", "/admin/settings")["body"]
+        self.assertIn("name='address'", body)
+        self.assertIn("Город суда", body)
 
     def test_broken_storage_still_answers_defaults(self):
         broken = mock.Mock()
