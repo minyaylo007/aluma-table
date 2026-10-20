@@ -33,11 +33,12 @@
 
 ## Картинки (`images[]`) — для вітрини
 Пише `tools/render_products.js`, руками не правити (джерела й перезбирання — `docs/ASSETS.md`). Кожен запис:
-`src` (JPG, запасний), `avif`/`webp` (рідна ширина майстра, ≤ 1600, без збільшення), `srcset.{avif,webp}`
-(800w + рідна), `width`/`height`, `view` (`hero` | `detail`; наступним PR — `angle` | `open` з Blender),
+`src` (WebP від кореня сайту, `/assets/products/...`, рідна ширина майстра ≤ 1600, без збільшення), `srcset`
+(WebP) і `srcset_avif` — рядки `"/шлях 800w, /шлях <ширина>w"` (так їх ставить `build.py` у `<picture>`), `jpg`
+(запасний), `width`/`height`, `view` (`hero` | `detail`; наступним PR — `angle` | `open` з Blender),
 `finish`, `base`, `state`, `size`, `alt{he,en}` (за змістом, з «הדמיה» / «visualization»),
 `kind: "visualization"`, `source` (`ai` — кадр Figma AI, звірений з моделлю; `render` — рендер нашої моделі).
-Шляхи — від `site/`. Перший запис — `hero` (інтер'єр, ~3:2) — головна картинка картки; `detail` — крупний план
+Перший запис — `hero` (інтер'єр, ~3:2) — головна картинка картки; `detail` — крупний план
 (~4:3). Тонування — лише свотчі `assets/products/finishes/<finish>.{avif,webp,jpg}`.
 Підпис «הדמיה» має бути видно й на самій сторінці біля картинки, не лише в alt.
 

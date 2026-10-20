@@ -145,13 +145,8 @@
     ],
     "images": [
       {
-        "src": "assets/products/tavor/hero-1264.jpg",
-        "avif": "assets/products/tavor/hero-1264.avif",
-        "webp": "assets/products/tavor/hero-1264.webp",
-        "srcset": {
-          "avif": "assets/products/tavor/hero-800.avif 800w, assets/products/tavor/hero-1264.avif 1264w",
-          "webp": "assets/products/tavor/hero-800.webp 800w, assets/products/tavor/hero-1264.webp 1264w"
-        },
+        "src": "/assets/products/tavor/hero-1264.webp",
+        "srcset": "/assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1264.webp 1264w",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -164,16 +159,13 @@
           "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1264.avif 1264w",
+        "jpg": "/assets/products/tavor/hero-1264.jpg"
       },
       {
-        "src": "assets/products/tavor/detail-1200.jpg",
-        "avif": "assets/products/tavor/detail-1200.avif",
-        "webp": "assets/products/tavor/detail-1200.webp",
-        "srcset": {
-          "avif": "assets/products/tavor/detail-800.avif 800w, assets/products/tavor/detail-1200.avif 1200w",
-          "webp": "assets/products/tavor/detail-800.webp 800w, assets/products/tavor/detail-1200.webp 1200w"
-        },
+        "src": "/assets/products/tavor/detail-1200.webp",
+        "srcset": "/assets/products/tavor/detail-800.webp 800w, /assets/products/tavor/detail-1200.webp 1200w",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -186,7 +178,9 @@
           "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the edge bevelled underneath and the tapered leg"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1200.avif 1200w",
+        "jpg": "/assets/products/tavor/detail-1200.jpg"
       }
     ],
     "badges": [
@@ -313,13 +307,8 @@
     ],
     "images": [
       {
-        "src": "assets/products/sahar/hero-1264.jpg",
-        "avif": "assets/products/sahar/hero-1264.avif",
-        "webp": "assets/products/sahar/hero-1264.webp",
-        "srcset": {
-          "avif": "assets/products/sahar/hero-800.avif 800w, assets/products/sahar/hero-1264.avif 1264w",
-          "webp": "assets/products/sahar/hero-800.webp 800w, assets/products/sahar/hero-1264.webp 1264w"
-        },
+        "src": "/assets/products/sahar/hero-1264.webp",
+        "srcset": "/assets/products/sahar/hero-800.webp 800w, /assets/products/sahar/hero-1264.webp 1264w",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -332,16 +321,13 @@
           "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/sahar/hero-800.avif 800w, /assets/products/sahar/hero-1264.avif 1264w",
+        "jpg": "/assets/products/sahar/hero-1264.jpg"
       },
       {
-        "src": "assets/products/sahar/detail-1200.jpg",
-        "avif": "assets/products/sahar/detail-1200.avif",
-        "webp": "assets/products/sahar/detail-1200.webp",
-        "srcset": {
-          "avif": "assets/products/sahar/detail-800.avif 800w, assets/products/sahar/detail-1200.avif 1200w",
-          "webp": "assets/products/sahar/detail-800.webp 800w, assets/products/sahar/detail-1200.webp 1200w"
-        },
+        "src": "/assets/products/sahar/detail-1200.webp",
+        "srcset": "/assets/products/sahar/detail-800.webp 800w, /assets/products/sahar/detail-1200.webp 1200w",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -354,7 +340,9 @@
           "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of the round top and the seam where it opens"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/sahar/detail-800.avif 800w, /assets/products/sahar/detail-1200.avif 1200w",
+        "jpg": "/assets/products/sahar/detail-1200.jpg"
       }
     ],
     "badges": [
@@ -469,13 +457,8 @@
     ],
     "images": [
       {
-        "src": "assets/products/ofek/hero-1264.jpg",
-        "avif": "assets/products/ofek/hero-1264.avif",
-        "webp": "assets/products/ofek/hero-1264.webp",
-        "srcset": {
-          "avif": "assets/products/ofek/hero-800.avif 800w, assets/products/ofek/hero-1264.avif 1264w",
-          "webp": "assets/products/ofek/hero-800.webp 800w, assets/products/ofek/hero-1264.webp 1264w"
-        },
+        "src": "/assets/products/ofek/hero-1264.webp",
+        "srcset": "/assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1264.webp 1264w",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -488,16 +471,13 @@
           "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1264.avif 1264w",
+        "jpg": "/assets/products/ofek/hero-1264.jpg"
       },
       {
-        "src": "assets/products/ofek/detail-1200.jpg",
-        "avif": "assets/products/ofek/detail-1200.avif",
-        "webp": "assets/products/ofek/detail-1200.webp",
-        "srcset": {
-          "avif": "assets/products/ofek/detail-800.avif 800w, assets/products/ofek/detail-1200.avif 1200w",
-          "webp": "assets/products/ofek/detail-800.webp 800w, assets/products/ofek/detail-1200.webp 1200w"
-        },
+        "src": "/assets/products/ofek/detail-1200.webp",
+        "srcset": "/assets/products/ofek/detail-800.webp 800w, /assets/products/ofek/detail-1200.webp 1200w",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -510,7 +490,9 @@
           "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the fluted fronts with no handles"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/ofek/detail-800.avif 800w, /assets/products/ofek/detail-1200.avif 1200w",
+        "jpg": "/assets/products/ofek/detail-1200.jpg"
       }
     ],
     "badges": [
@@ -640,13 +622,8 @@
     ],
     "images": [
       {
-        "src": "assets/products/saf/hero-1264.jpg",
-        "avif": "assets/products/saf/hero-1264.avif",
-        "webp": "assets/products/saf/hero-1264.webp",
-        "srcset": {
-          "avif": "assets/products/saf/hero-800.avif 800w, assets/products/saf/hero-1264.avif 1264w",
-          "webp": "assets/products/saf/hero-800.webp 800w, assets/products/saf/hero-1264.webp 1264w"
-        },
+        "src": "/assets/products/saf/hero-1264.webp",
+        "srcset": "/assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1264.webp 1264w",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -659,16 +636,13 @@
           "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1264.avif 1264w",
+        "jpg": "/assets/products/saf/hero-1264.jpg"
       },
       {
-        "src": "assets/products/saf/detail-1200.jpg",
-        "avif": "assets/products/saf/detail-1200.avif",
-        "webp": "assets/products/saf/detail-1200.webp",
-        "srcset": {
-          "avif": "assets/products/saf/detail-800.avif 800w, assets/products/saf/detail-1200.avif 1200w",
-          "webp": "assets/products/saf/detail-800.webp 800w, assets/products/saf/detail-1200.webp 1200w"
-        },
+        "src": "/assets/products/saf/detail-1200.webp",
+        "srcset": "/assets/products/saf/detail-800.webp 800w, /assets/products/saf/detail-1200.webp 1200w",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -681,7 +655,9 @@
           "en": "Visualization: SAF console table, natural oak finish, close-up of the drawer with a finger groove instead of a handle"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/saf/detail-800.avif 800w, /assets/products/saf/detail-1200.avif 1200w",
+        "jpg": "/assets/products/saf/detail-1200.jpg"
       }
     ],
     "badges": [
@@ -797,13 +773,8 @@
     ],
     "images": [
       {
-        "src": "assets/products/tal/hero-1264.jpg",
-        "avif": "assets/products/tal/hero-1264.avif",
-        "webp": "assets/products/tal/hero-1264.webp",
-        "srcset": {
-          "avif": "assets/products/tal/hero-800.avif 800w, assets/products/tal/hero-1264.avif 1264w",
-          "webp": "assets/products/tal/hero-800.webp 800w, assets/products/tal/hero-1264.webp 1264w"
-        },
+        "src": "/assets/products/tal/hero-1264.webp",
+        "srcset": "/assets/products/tal/hero-800.webp 800w, /assets/products/tal/hero-1264.webp 1264w",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -816,16 +787,13 @@
           "en": "Visualization: TAL coffee table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/tal/hero-800.avif 800w, /assets/products/tal/hero-1264.avif 1264w",
+        "jpg": "/assets/products/tal/hero-1264.jpg"
       },
       {
-        "src": "assets/products/tal/detail-1200.jpg",
-        "avif": "assets/products/tal/detail-1200.avif",
-        "webp": "assets/products/tal/detail-1200.webp",
-        "srcset": {
-          "avif": "assets/products/tal/detail-800.avif 800w, assets/products/tal/detail-1200.avif 1200w",
-          "webp": "assets/products/tal/detail-800.webp 800w, assets/products/tal/detail-1200.webp 1200w"
-        },
+        "src": "/assets/products/tal/detail-1200.webp",
+        "srcset": "/assets/products/tal/detail-800.webp 800w, /assets/products/tal/detail-1200.webp 1200w",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -838,7 +806,9 @@
           "en": "Visualization: TAL coffee table, natural oak finish, close-up of the rounded corner and the chunky round leg"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "ai",
+        "srcset_avif": "/assets/products/tal/detail-800.avif 800w, /assets/products/tal/detail-1200.avif 1200w",
+        "jpg": "/assets/products/tal/detail-1200.jpg"
       }
     ],
     "badges": [
