@@ -15,7 +15,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { ROOT, TYPES, esc, money, fontFaces, fill } = require('./build');
+const { ROOT, TYPES, esc, fontFaces, fill, priceVars } = require('./build');
 
 process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/ihor/aluma-table/ms-playwright';
 const { chromium } = require('@playwright/test');
@@ -59,14 +59,14 @@ function single(cfg, v, p) {
     `<span>${esc(s.extended_cm)}</span></div><div class="track"><div class="bar"></div></div></div>` : '';
   const card = `<div class="card"><div class="brand" ${at(-1)}>${esc(cfg.brand)}</div>` +
     `<h1 class="headline" ${at(-1)}>${esc(p.tagline.he)}</h1><p class="sub" ${at(0.6)}>${sub}</p>${size}` +
-    `<div class="foot"><div class="price"><b ${at(3.4)}>${fill(v.price, { price: money(p.price_from_ils) })}</b>` +
+    `<div class="foot"><div class="price"><b ${at(3.4)}>${fill(v.price, priceVars([p], cfg))}</b>` +
     `<small ${at(3.4)}>${esc(cfg.price_note)} · ${esc(cfg.includes)}</small></div><div class="cta" ${at(4.6)}>${esc(cfg.cta)}</div></div></div>`;
   const timeline = { duration, fade: FADE, shots, items: [],
     size: { ratio: s.extended_cm ? s.length_cm / s.extended_cm : 1, from: 1.6, to: 3.0 } };
   return { duration, imgs, card, timeline, products: [p.id] };
 }
 
-// Колекція (10 с): п'ять товарів по 1.5 с з назвою й ціною «מ־», далі фінальна картка серії.
+// Колекція (10 с): п'ять товарів по 1.5 с з назвою й ціною (з «מ־», якщо цін кілька), далі фінальна картка серії.
 function collection(cfg, v, products) {
   const step = 1.5, duration = 10;
   const imgs = products.map((p) => imagesOf(p)[0]);
@@ -76,13 +76,12 @@ function collection(cfg, v, products) {
     z: [1.0, 1.06], x: [i % 2 ? 1 : -1, 0] }));
   const items = products.map((_, i) => ({ from: i * step, to: (i + 1) * step }));
   items.push({ from: end, to: duration });
-  const min = Math.min(...products.map((p) => p.price_from_ils));
   const rows = products.map((p) => `<div class="item"><div class="name" data-text>${esc(p.name.he)}</div>` +
     `<div class="line" data-text>${esc(p.tagline.he)}</div>` +
-    `<div class="from" data-text>${fill(v.price, { price: money(p.price_from_ils) })}</div></div>`).join('');
+    `<div class="from" data-text>${fill(v.price, priceVars([p], cfg))}</div></div>`).join('');
   const last = `<div class="item"><div class="brand" data-text>${esc(cfg.brand)}</div>` +
     `<h1 class="headline" data-text>${esc(v.headline)}</h1><p class="sub" data-text>${esc(v.sub)}</p>` +
-    `<div class="foot"><div class="price"><b data-text>${fill(v.price, { price: money(min) })}</b>` +
+    `<div class="foot"><div class="price"><b data-text>${fill(v.price, priceVars(products, cfg))}</b>` +
     `<small data-text>${esc(cfg.price_note_many)}</small></div><div class="cta" data-text>${esc(cfg.cta)}</div></div></div>`;
   const card = `<div class="card collection">${rows}${last}</div>`;
   return { duration, imgs, card, timeline: { duration, fade: FADE, shots, items, size: null }, products: products.map((p) => p.id) };
