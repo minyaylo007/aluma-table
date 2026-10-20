@@ -26,6 +26,9 @@ UNIT="${ALUMA_UNIT:-ihor-aluma-api.service}"
 HEALTH_URL="${ALUMA_HEALTH_URL:-http://127.0.0.1:8005/api/fx/health}"
 LOG="$CLONE/tmp/deploy-box.log"
 HEALTH_WAIT="${ALUMA_HEALTH_WAIT:-30}"
+# sha для /api/fx/health: юніт читає release.env через drop-in лише СВОГО юніта (одноразово + daemon-reload)
+RELEASE_ENV="$CLONE/tmp/release.env"
+DROPIN_DIR="${ALUMA_DROPIN_DIR:-$HOME/.config/systemd/user/$UNIT.d}"
 
 say() { printf 'deploy-box: %s\n' "$*"; }
 die() { say "$*" >&2; exit 2; }
@@ -53,6 +56,17 @@ status() {
     say "відкат: scripts/deploy-box.sh $(head_sha)"
 }
 
+# mark_release <sha> — повний sha у release.env перед перезапуском; health віддає його як git_sha.
+mark_release() {
+    mkdir -p "$(dirname "$RELEASE_ENV")"
+    printf 'GIT_SHA=%s\n' "$1" > "$RELEASE_ENV"
+    if [ ! -f "$DROPIN_DIR/release.conf" ]; then
+        mkdir -p "$DROPIN_DIR"
+        printf '[Service]\nEnvironmentFile=-%s\n' "$RELEASE_ENV" > "$DROPIN_DIR/release.conf"
+        systemctl --user daemon-reload
+    fi
+}
+
 # apply <sha> <mode> — checkout, залежності, збірка, статика, перезапуск, health. Повертає 0/3/4/5.
 apply() {
     local sha="$1" mode="$2" flag=""
@@ -68,6 +82,7 @@ apply() {
         say "rsync у $STATIC не вдався або лишив файли без прав на читання"
         return 5
     fi
+    mark_release "$(git -C "$CLONE" rev-parse HEAD)"
     systemctl --user restart "$UNIT"
     local i code
     for ((i = 0; i < HEALTH_WAIT; i++)); do
