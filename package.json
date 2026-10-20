@@ -10,7 +10,8 @@
     "dev": "python build.py && python tools/serve-preview.py",
     "test:local": "python build.py && playwright test --config playwright.local.config.js",
     "test:a11y": "python build.py && playwright test --config playwright.a11y.config.js",
-    "test:responsive": "python build.py && playwright test --config playwright.responsive.config.js"
+    "test:responsive": "python build.py && playwright test --config playwright.responsive.config.js",
+    "test:tracking": "python build.py && playwright test --config playwright.tracking.config.js"
   },
   "keywords": [],
   "author": "",
