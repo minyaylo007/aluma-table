@@ -137,3 +137,7 @@ jobs:
         run: python build.py
       - name: redesign.spec.js (fully mocked)
         run: npx playwright test --config playwright.local.config.js
+      - name: a11y.spec.js (axe-core, WCAG 2.1 AA — ת"י 5568)
+        # Без порту: dist/ через page.route. Падає на serious/critical на будь-якій сторінці he/en
+        # (תקנה 35, docs/COMPLIANCE-IL.md). dist/ уже зібраний кроком вище — npm run test:a11y зібрав би вдруге.
+        run: npx playwright test --config playwright.a11y.config.js
