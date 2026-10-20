@@ -93,5 +93,43 @@ class PublishedCreativesTests(unittest.TestCase):
         self.assertLessEqual((OUT / "preview.jpg").stat().st_size, 500 * 1024)
 
 
+class MetaTestPlanTests(unittest.TestCase):
+    """docs/META-TEST.md: реклама веде на сторінки, що є, а текст оголошень — за тими ж заборонами."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = (ROOT / "docs" / "META-TEST.md").read_text(encoding="utf-8")
+        cls.ids = {p["id"] for p in json.loads(CATALOG.read_text(encoding="utf-8"))}
+
+    def test_ad_links_lead_to_existing_pages(self):
+        line = re.search(r"\*\*Ссылки объявлений:\*\*(.*?)\n\n", self.doc, re.S).group(1)
+        links = re.findall(r"`(/[^`]*)`", line.split("Якорей")[0])
+        self.assertEqual(len(links), 3, line)
+        for link in links:
+            self.assertNotIn("#", link, "якоря на головній немає")
+            m = re.fullmatch(r"/p/([a-z]+)/", link)
+            if m:
+                self.assertIn(m.group(1), self.ids, link)
+            else:
+                self.assertIn(link, ("/", "/catalog/"), link)
+
+    def test_ad_names_match_creative_files(self):
+        names = set(re.findall(r"`([a-z]+-\d+x\d+)`", self.doc.split("Названия объявлений", 1)[1].split("Групп", 1)[0]))
+        ratio = {"1080x1080": "1x1", "1080x1350": "4x5", "1080x1920": "9x16"}
+        files = {f"{f.stem.rsplit('-', 1)[0]}-{ratio[f.stem.rsplit('-', 1)[1]]}" for f in OUT.glob("*-1080x*.jpg")}
+        self.assertEqual(names, files)
+
+    def test_ad_copy_is_honest(self):
+        section = self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0]
+        # текст оголошення — частина рядка після останнього «**», без кирилиці пояснень
+        ads = [t for t in (ln.split("**")[-1] for ln in section.splitlines())
+               if re.search(r"[\u0590-\u05ff]", t) and not re.search(r"[а-яА-Я]", t)]
+        self.assertGreaterEqual(len(ads), 10)
+        for t in ads:
+            for pat in FORBIDDEN:
+                self.assertIsNone(re.search(pat, t), f"{pat}: {t}")
+            self.assertNotIn("מקבלים מחיר השקה", t, "знижку раннім ніхто не підтвердив")
+
+
 if __name__ == "__main__":
     unittest.main()
