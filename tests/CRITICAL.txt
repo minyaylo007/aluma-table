@@ -11,6 +11,7 @@ tests.test_secret_scan        # секрети, червона межа флот
 tests.test_health_version     # версія і здоров'я прода
 tests.test_build_eol          # збірка байт-у-байт: ціни й тексти на сторінці
 tests.test_build_site       # вітрина: сторінки обох мов, картки товарів, «משוער», SEO, без «להשלמה»
+tests.test_quality_pages    # як бачать Facebook, Google: meta, og ≥ 1200×630, hreflang, JSON-LD, биті посилання, sitemap
 tests.test_catalog            # каталог товарів: схема, ціни «משוער», лише візуалізації
 tests.test_user_units         # юніти прода
 tests.test_box_env            # оточення прода без друку значень
