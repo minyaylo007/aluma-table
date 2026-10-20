@@ -8,3 +8,4 @@ tests.test_health_version     # версія і здоров'я прода
 tests.test_user_units         # юніти прода
 tests.test_box_env            # оточення прода без друку значень
 tests.test_lambda_no_fx_storage  # пастка «тиха втрата заявки»
+tests.test_catalog            # каталог товарів: схема, ціни «משוער», лише візуалізації
