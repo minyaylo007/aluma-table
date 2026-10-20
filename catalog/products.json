@@ -1,0 +1,625 @@
+[
+  {
+    "id": "tavor",
+    "slug": "tavor",
+    "name": {
+      "he": "תבור",
+      "en": "TAVOR"
+    },
+    "category": "dining_table",
+    "tagline": {
+      "he": "קומפקטי בשגרה, ארוך בחג.",
+      "en": "Compact on weekdays. Long for the holidays."
+    },
+    "description": {
+      "he": "שולחן אוכל נפתח: פלטת הארכה של 80 ס״מ מאוחסנת מתחת למשטח, ונפתחת בתוך דקה. הקנט מעץ אלון מלא מקבל שיפוע מתחתיו, ולכן משטח בעובי 4 ס״מ נראה דק וקל. רגלי אלון שנוטות מעט פנימה, או בסיס פלדה שחור. נקרא על שם אלון התבור, העץ שגדל בגליל ובעמקים.",
+      "en": "An extending dining table: an 80 cm leaf is stored under the top and opens in under a minute. The solid-oak edge is bevelled underneath, so a 4 cm top reads thin and light. Oak legs with a slight inward lean, or a black steel base. Named after the Tabor oak that grows across the Galilee."
+    },
+    "price_from_ils": 4490,
+    "preliminary": true,
+    "sizes": [
+      {
+        "label": "160×90",
+        "length_cm": 160,
+        "width_cm": 90,
+        "height_cm": 75,
+        "extended_cm": 240,
+        "price_ils": 4490
+      },
+      {
+        "label": "160×100",
+        "length_cm": 160,
+        "width_cm": 100,
+        "height_cm": 75,
+        "extended_cm": 240,
+        "price_ils": 4490
+      },
+      {
+        "label": "180×90",
+        "length_cm": 180,
+        "width_cm": 90,
+        "height_cm": 75,
+        "extended_cm": 260,
+        "price_ils": 4890
+      },
+      {
+        "label": "180×100",
+        "length_cm": 180,
+        "width_cm": 100,
+        "height_cm": 75,
+        "extended_cm": 260,
+        "price_ils": 4890
+      },
+      {
+        "label": "200×90",
+        "length_cm": 200,
+        "width_cm": 90,
+        "height_cm": 75,
+        "extended_cm": 280,
+        "price_ils": 5290
+      },
+      {
+        "label": "200×100",
+        "length_cm": 200,
+        "width_cm": 100,
+        "height_cm": 75,
+        "extended_cm": 280,
+        "price_ils": 5290
+      }
+    ],
+    "seats": {
+      "closed": [
+        6,
+        8
+      ],
+      "extended": [
+        10,
+        12
+      ]
+    },
+    "finishes": [
+      {
+        "id": "natural",
+        "name": {
+          "he": "אלון טבעי",
+          "en": "Natural oak"
+        },
+        "hex": "#C49A6C"
+      },
+      {
+        "id": "light",
+        "name": {
+          "he": "אלון בהיר",
+          "en": "Light oak"
+        },
+        "hex": "#E0CBAA"
+      },
+      {
+        "id": "honey",
+        "name": {
+          "he": "דבש",
+          "en": "Honey"
+        },
+        "hex": "#B07A42"
+      },
+      {
+        "id": "smoked",
+        "name": {
+          "he": "אלון מעושן",
+          "en": "Smoked oak"
+        },
+        "hex": "#6B4A33"
+      },
+      {
+        "id": "black",
+        "name": {
+          "he": "שחור פחם",
+          "en": "Charcoal"
+        },
+        "hex": "#2B2724"
+      }
+    ],
+    "bases": [
+      {
+        "id": "oak",
+        "name": {
+          "he": "רגלי אלון",
+          "en": "Oak legs"
+        }
+      },
+      {
+        "id": "steel",
+        "name": {
+          "he": "פלדה שחורה",
+          "en": "Black steel"
+        }
+      }
+    ],
+    "material": {
+      "he": "משטח פורניר אלון טבעי, קנטים מעץ אלון מלא; רגלי אלון או פלדה בצביעה אלקטרוסטטית",
+      "en": "Natural oak veneer top with solid-oak edges; oak legs or powder-coated steel"
+    },
+    "lead_time_weeks": [
+      10,
+      12
+    ],
+    "images": [],
+    "badges": [
+      {
+        "id": "extendable",
+        "label": {
+          "he": "נפתח",
+          "en": "Extending"
+        }
+      },
+      {
+        "id": "launch_series",
+        "label": {
+          "he": "סדרת השקה",
+          "en": "Launch series"
+        }
+      }
+    ]
+  },
+  {
+    "id": "sahar",
+    "slug": "sahar",
+    "name": {
+      "he": "סהר",
+      "en": "SAHAR"
+    },
+    "category": "dining_table",
+    "tagline": {
+      "he": "עגול לארבעה, נפתח לשישה.",
+      "en": "Round for four. Opens to seat six."
+    },
+    "description": {
+      "he": "שולחן עגול בקוטר 115 ס״מ שנפתח לאליפסה של 155 ס״מ. המשטח נחצה באמצע, פלטת הארכה של 40 ס״מ נכנסת ביניהם — ושוב יש מקום לאורחים. בלי פינות שנתקלים בהן, מושלם לפינת אוכל קטנה או למטבח פתוח. ארבע רגלי אלון או עמוד מרכזי מפלדה שחורה.",
+      "en": "A 115 cm round table that opens into a 155 cm oval. The top parts in the middle, a 40 cm leaf drops in, and there is room for guests again. No corners to bump into: made for a small dining nook or an open kitchen. Four oak legs, or a black steel pedestal."
+    },
+    "price_from_ils": 5490,
+    "preliminary": true,
+    "sizes": [
+      {
+        "label": "Ø115",
+        "length_cm": 115,
+        "width_cm": 115,
+        "height_cm": 75,
+        "extended_cm": 155,
+        "price_ils": 5490
+      }
+    ],
+    "seats": {
+      "closed": [
+        4,
+        4
+      ],
+      "extended": [
+        6,
+        6
+      ]
+    },
+    "finishes": [
+      {
+        "id": "natural",
+        "name": {
+          "he": "אלון טבעי",
+          "en": "Natural oak"
+        },
+        "hex": "#C49A6C"
+      },
+      {
+        "id": "light",
+        "name": {
+          "he": "אלון בהיר",
+          "en": "Light oak"
+        },
+        "hex": "#E0CBAA"
+      },
+      {
+        "id": "honey",
+        "name": {
+          "he": "דבש",
+          "en": "Honey"
+        },
+        "hex": "#B07A42"
+      },
+      {
+        "id": "smoked",
+        "name": {
+          "he": "אלון מעושן",
+          "en": "Smoked oak"
+        },
+        "hex": "#6B4A33"
+      },
+      {
+        "id": "black",
+        "name": {
+          "he": "שחור פחם",
+          "en": "Charcoal"
+        },
+        "hex": "#2B2724"
+      }
+    ],
+    "bases": [
+      {
+        "id": "oak",
+        "name": {
+          "he": "רגלי אלון",
+          "en": "Oak legs"
+        }
+      },
+      {
+        "id": "steel",
+        "name": {
+          "he": "פלדה שחורה",
+          "en": "Black steel"
+        }
+      }
+    ],
+    "material": {
+      "he": "משטח פורניר אלון טבעי, קנט מעץ אלון מלא; רגלי אלון או עמוד פלדה בצביעה אלקטרוסטטית",
+      "en": "Natural oak veneer top with a solid-oak edge; oak legs or a powder-coated steel pedestal"
+    },
+    "lead_time_weeks": [
+      10,
+      12
+    ],
+    "images": [],
+    "badges": [
+      {
+        "id": "extendable",
+        "label": {
+          "he": "נפתח",
+          "en": "Extending"
+        }
+      },
+      {
+        "id": "launch_series",
+        "label": {
+          "he": "סדרת השקה",
+          "en": "Launch series"
+        }
+      }
+    ]
+  },
+  {
+    "id": "ofek",
+    "slug": "ofek",
+    "name": {
+      "he": "אופק",
+      "en": "OFEK"
+    },
+    "category": "media_unit",
+    "tagline": {
+      "he": "מזנון תלוי. הרצפה נשארת פנויה.",
+      "en": "A floating media unit. The floor stays clear."
+    },
+    "description": {
+      "he": "מזנון טלוויזיה שנתלה על הקיר בגובה שתבחרו. החזיתות מעץ אלון מלא, עם חריצים אנכיים שתופסים את האור לאורך היום. דלתות בלחיצה, בלי ידיות, ותעלת כבלים נסתרת מאחור — רואים רק עץ.",
+      "en": "A TV unit that hangs on the wall at whatever height you choose. Solid-oak fronts with vertical fluting that catches the light through the day. Push-to-open doors with no handles and a hidden cable channel at the back: all you see is wood."
+    },
+    "price_from_ils": 5090,
+    "preliminary": true,
+    "sizes": [
+      {
+        "label": "160",
+        "length_cm": 160,
+        "width_cm": 40,
+        "height_cm": 40,
+        "price_ils": 5090
+      },
+      {
+        "label": "180",
+        "length_cm": 180,
+        "width_cm": 40,
+        "height_cm": 40,
+        "price_ils": 5490
+      },
+      {
+        "label": "200",
+        "length_cm": 200,
+        "width_cm": 40,
+        "height_cm": 40,
+        "price_ils": 5890
+      }
+    ],
+    "finishes": [
+      {
+        "id": "natural",
+        "name": {
+          "he": "אלון טבעי",
+          "en": "Natural oak"
+        },
+        "hex": "#C49A6C"
+      },
+      {
+        "id": "light",
+        "name": {
+          "he": "אלון בהיר",
+          "en": "Light oak"
+        },
+        "hex": "#E0CBAA"
+      },
+      {
+        "id": "honey",
+        "name": {
+          "he": "דבש",
+          "en": "Honey"
+        },
+        "hex": "#B07A42"
+      },
+      {
+        "id": "smoked",
+        "name": {
+          "he": "אלון מעושן",
+          "en": "Smoked oak"
+        },
+        "hex": "#6B4A33"
+      },
+      {
+        "id": "black",
+        "name": {
+          "he": "שחור פחם",
+          "en": "Charcoal"
+        },
+        "hex": "#2B2724"
+      }
+    ],
+    "bases": [],
+    "material": {
+      "he": "גוף פורניר אלון טבעי, חזיתות מעץ אלון מלא; מתלה פלדה נסתר",
+      "en": "Natural oak veneer body, solid-oak fronts; hidden steel wall rail"
+    },
+    "lead_time_weeks": [
+      10,
+      12
+    ],
+    "images": [],
+    "badges": [
+      {
+        "id": "wall_mounted",
+        "label": {
+          "he": "תלוי על הקיר",
+          "en": "Wall-hung"
+        }
+      },
+      {
+        "id": "launch_series",
+        "label": {
+          "he": "סדרת השקה",
+          "en": "Launch series"
+        }
+      }
+    ]
+  },
+  {
+    "id": "saf",
+    "slug": "saf",
+    "name": {
+      "he": "סף",
+      "en": "SAF"
+    },
+    "category": "console",
+    "tagline": {
+      "he": "35 ס״מ עומק. מקום למפתחות, לפרחים ולמכתבים.",
+      "en": "35 cm deep. Room for keys, flowers and the mail."
+    },
+    "description": {
+      "he": "קונסולה צרה לכניסה או למסדרון. מגירה דקה עם חריץ אחיזה במקום ידית, ומדף תחתון לסל או לנעליים. המשטח והמגירה עם קנט מעץ אלון מלא; רגלי אלון או מסגרת פלדה דקה.",
+      "en": "A slim console for the entrance or the hallway. A shallow drawer with a finger groove instead of a handle, and a lower shelf for a basket or shoes. Top and drawer with solid-oak edges; oak legs or a slim steel frame."
+    },
+    "price_from_ils": 2490,
+    "preliminary": true,
+    "sizes": [
+      {
+        "label": "120",
+        "length_cm": 120,
+        "width_cm": 35,
+        "height_cm": 78,
+        "price_ils": 2490
+      },
+      {
+        "label": "130",
+        "length_cm": 130,
+        "width_cm": 35,
+        "height_cm": 78,
+        "price_ils": 2690
+      },
+      {
+        "label": "140",
+        "length_cm": 140,
+        "width_cm": 35,
+        "height_cm": 78,
+        "price_ils": 2890
+      }
+    ],
+    "finishes": [
+      {
+        "id": "natural",
+        "name": {
+          "he": "אלון טבעי",
+          "en": "Natural oak"
+        },
+        "hex": "#C49A6C"
+      },
+      {
+        "id": "light",
+        "name": {
+          "he": "אלון בהיר",
+          "en": "Light oak"
+        },
+        "hex": "#E0CBAA"
+      },
+      {
+        "id": "honey",
+        "name": {
+          "he": "דבש",
+          "en": "Honey"
+        },
+        "hex": "#B07A42"
+      },
+      {
+        "id": "smoked",
+        "name": {
+          "he": "אלון מעושן",
+          "en": "Smoked oak"
+        },
+        "hex": "#6B4A33"
+      },
+      {
+        "id": "black",
+        "name": {
+          "he": "שחור פחם",
+          "en": "Charcoal"
+        },
+        "hex": "#2B2724"
+      }
+    ],
+    "bases": [
+      {
+        "id": "oak",
+        "name": {
+          "he": "רגלי אלון",
+          "en": "Oak legs"
+        }
+      },
+      {
+        "id": "steel",
+        "name": {
+          "he": "פלדה שחורה",
+          "en": "Black steel"
+        }
+      }
+    ],
+    "material": {
+      "he": "פורניר אלון טבעי, קנטים מעץ אלון מלא; רגלי אלון או פלדה בצביעה אלקטרוסטטית",
+      "en": "Natural oak veneer with solid-oak edges; oak legs or powder-coated steel"
+    },
+    "lead_time_weeks": [
+      10,
+      12
+    ],
+    "images": [],
+    "badges": [
+      {
+        "id": "launch_series",
+        "label": {
+          "he": "סדרת השקה",
+          "en": "Launch series"
+        }
+      }
+    ]
+  },
+  {
+    "id": "tal",
+    "slug": "tal",
+    "name": {
+      "he": "טל",
+      "en": "TAL"
+    },
+    "category": "coffee_table",
+    "tagline": {
+      "he": "שולחן סלון נמוך עם פינות רכות.",
+      "en": "A low coffee table with soft corners."
+    },
+    "description": {
+      "he": "משטח בעובי 4 ס״מ עם פינות מעוגלות, שנוח לעבור לידו גם עם ילדים בבית. בשתי צורות: מלבן 100×60 או עיגול בקוטר 80. רגלי אלון עבות או בסיס פלדה שחור.",
+      "en": "A 4 cm top with rounded corners, easy to walk past even with kids around. Two shapes: a 100×60 rectangle or an 80 cm circle. Chunky oak legs or a black steel base."
+    },
+    "price_from_ils": 2190,
+    "preliminary": true,
+    "sizes": [
+      {
+        "label": "100×60",
+        "length_cm": 100,
+        "width_cm": 60,
+        "height_cm": 40,
+        "price_ils": 2190
+      },
+      {
+        "label": "Ø80",
+        "length_cm": 80,
+        "width_cm": 80,
+        "height_cm": 40,
+        "price_ils": 2190
+      }
+    ],
+    "finishes": [
+      {
+        "id": "natural",
+        "name": {
+          "he": "אלון טבעי",
+          "en": "Natural oak"
+        },
+        "hex": "#C49A6C"
+      },
+      {
+        "id": "light",
+        "name": {
+          "he": "אלון בהיר",
+          "en": "Light oak"
+        },
+        "hex": "#E0CBAA"
+      },
+      {
+        "id": "honey",
+        "name": {
+          "he": "דבש",
+          "en": "Honey"
+        },
+        "hex": "#B07A42"
+      },
+      {
+        "id": "smoked",
+        "name": {
+          "he": "אלון מעושן",
+          "en": "Smoked oak"
+        },
+        "hex": "#6B4A33"
+      },
+      {
+        "id": "black",
+        "name": {
+          "he": "שחור פחם",
+          "en": "Charcoal"
+        },
+        "hex": "#2B2724"
+      }
+    ],
+    "bases": [
+      {
+        "id": "oak",
+        "name": {
+          "he": "רגלי אלון",
+          "en": "Oak legs"
+        }
+      },
+      {
+        "id": "steel",
+        "name": {
+          "he": "פלדה שחורה",
+          "en": "Black steel"
+        }
+      }
+    ],
+    "material": {
+      "he": "משטח פורניר אלון טבעי, קנט מעץ אלון מלא; רגלי אלון או פלדה בצביעה אלקטרוסטטית",
+      "en": "Natural oak veneer top with a solid-oak edge; oak legs or powder-coated steel"
+    },
+    "lead_time_weeks": [
+      10,
+      12
+    ],
+    "images": [],
+    "badges": [
+      {
+        "id": "launch_series",
+        "label": {
+          "he": "סדרת השקה",
+          "en": "Launch series"
+        }
+      }
+    ]
+  }
+]
