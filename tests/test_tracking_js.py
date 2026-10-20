@@ -33,7 +33,8 @@ class TrackingJsTests(unittest.TestCase):
     def test_syntax_and_globals(self):
         subprocess.run([NODE, "--check", str(ROOT / "site/assets/tracking.js")], check=True, capture_output=True)
         r = run(config={})
-        self.assertEqual(r["globals"], ["alumaTrack", "alumaEventId", "alumaConsent", "alumaConfig"])
+        self.assertEqual(r["globals"], ["alumaTrack", "alumaEventId", "alumaConsent", "alumaConsentState",
+                                        "alumaConsentReset", "alumaConfig"])
         self.assertEqual(r["dispatched"], "aluma:config")
 
     def test_no_pixel_no_third_party_at_all(self):
@@ -65,14 +66,39 @@ class TrackingJsTests(unittest.TestCase):
         r = run(config={"pixel_id": PIXEL}, hasNotice=True, consentAfter=True)
         self.assertEqual(r["fbq"][0], ["init", PIXEL])
 
-    def test_notice_language_and_direction(self):
-        he = json.loads((ROOT / "i18n/he.json").read_text(encoding="utf-8"))
-        en = json.loads((ROOT / "i18n/en.json").read_text(encoding="utf-8"))
+    def test_notice_language_direction_and_choice(self):
+        """Тексти банера — з i18n/legal.<lang>.json (cookies), дві рівноцінні кнопки вибору й посилання."""
+        he = json.loads((ROOT / "i18n/legal.he.json").read_text(encoding="utf-8"))["cookies"]
+        en = json.loads((ROOT / "i18n/legal.en.json").read_text(encoding="utf-8"))["cookies"]
         r = run(config={"pixel_id": PIXEL})
-        self.assertEqual((r["noticeText"], r["noticeDir"]), (he["notice"], "rtl"))
+        self.assertEqual((r["noticeText"], r["noticeDir"]), (he["text"], "rtl"))
+        self.assertEqual(r["buttons"], [he["accept"], he["decline"], he["more"]])
         r = run(config={"pixel_id": PIXEL}, lang="en")
-        self.assertEqual((r["noticeText"], r["noticeDir"]), (en["notice"], "ltr"))
+        self.assertEqual((r["noticeText"], r["noticeDir"]), (en["text"], "ltr"))
+        self.assertEqual(r["buttons"], [en["accept"], en["decline"], en["more"]])
         self.assertEqual(r["posts"][0]["ctx"]["lang"], "en")
+
+    def test_decline_loads_nothing_and_is_not_asked_again(self):
+        cfg = {"pixel_id": PIXEL, "clarity_id": "abcdef1234"}
+        r = run(config=cfg, clickDecline=True, calls=[["ViewContent", {}]], callsAfter=["Lead"])
+        self.assertEqual((r["consent"], r["state"], r["notice"]), ("0", "denied", "removed"))
+        self.assertEqual(meta_urls(r), [])
+        self.assertEqual(r["fbq"], [])
+        self.assertEqual(r["consentEvents"], ["denied"])
+        self.assertIn("Lead", [e["name"] for e in r["events"]])     # перша сторона без ідентифікаторів реклами
+        r = run(config=cfg, stored="0", consentAfter=False)
+        self.assertIsNone(r["notice"])                                 # наступна сторінка — не питаємо знову
+        self.assertEqual(meta_urls(r), [])
+
+    def test_consent_can_be_withdrawn_and_asked_again(self):
+        cfg = {"pixel_id": PIXEL}
+        r = run(config=cfg, consent=True, declineAfter=True)
+        self.assertEqual(r["state"], "denied")
+        r = run(config=cfg, stored="0", resetAfter=True)
+        self.assertEqual((r["notice"], r["state"]), ("shown", None))
+        self.assertEqual(meta_urls(r), [])
+        r = run(config=cfg, stored="garbage")
+        self.assertEqual((r["notice"], r["state"]), ("shown", None))
 
     def test_event_ids_shared_by_pixel_and_first_party(self):
         r = run(config={"pixel_id": PIXEL}, consent=True,
@@ -99,8 +125,11 @@ class TrackingJsTests(unittest.TestCase):
     def test_attribution_reaches_events(self):
         r = run(config={}, search="?utm_source=fb&utm_campaign=goren-test&fbclid=AbC")
         ctx = r["posts"][0]["ctx"]
-        self.assertEqual((ctx["utm_source"], ctx["utm_campaign"], ctx["fbclid"]), ("fb", "goren-test", "AbC"))
+        self.assertEqual((ctx["utm_source"], ctx["utm_campaign"]), ("fb", "goren-test"))
         self.assertTrue(ctx["attributed_at"])
+        self.assertEqual(ctx["fbclid"], "")                 # без згоди рекламний ідентифікатор не йде
+        r = run(config={}, consent=True, search="?utm_source=fb&fbclid=AbC")
+        self.assertEqual(r["posts"][0]["ctx"]["fbclid"], "AbC")
 
     def test_bad_ids_from_config_are_ignored(self):
         r = run(config={"pixel_id": "12ab<script>", "clarity_id": "x\"onload"}, consent=True)

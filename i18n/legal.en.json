@@ -1,0 +1,186 @@
+{
+  "_meta": {
+    "about": "Юридичні тексти ALUMA (en). Структура 1:1 з legal.he.json (tests/test_legal_texts.py). Сторінки й банер з них будує сесія (1).",
+    "placeholders": "{brand} {company_name} {business_id} {address} {phone} {email} {a11y_name} {a11y_phone} {a11y_email} {court_city} {updated} — підставляються з /api/fx/config або content.json; порожнє значення — видимий маркер «to be supplied», як OWNER_FIELDS у build.py. Подвійні фігурні дужки тут заборонені: їх займає build.py.",
+    "status": "Чернетка без перевірки юристом. Перед запуском — перевірка юриста (docs/COMPLIANCE-IL.md). Обов'язковий текст — івритський; англійський — переклад для зручності."
+  },
+  "cookies": {
+    "label": "Cookie notice",
+    "text": "This site uses essential cookies to work. If you accept, we will also turn on Meta Pixel and Microsoft Clarity to measure advertising and improve the site. You can change your choice at any time.",
+    "accept": "Accept",
+    "decline": "Essential only",
+    "more": "Privacy policy",
+    "settings": "Cookie settings"
+  },
+  "marketing": {
+    "label": "I agree to receive updates and advertising from {brand} by WhatsApp, SMS and e-mail.",
+    "hint": "Optional. Without it we will contact you only about your request. Every message names the sender and has a simple way to unsubscribe, and you can opt out at any time."
+  },
+  "lead_notice": {
+    "text": "Giving your details is voluntary and not required by law; without them we cannot get back to you. They are used to handle your request and kept under the privacy policy, and you can ask at any time to see, correct or delete them."
+  },
+  "accessibility": {
+    "title": "Accessibility statement",
+    "updated": "Last updated: {updated}",
+    "sections": [
+      {
+        "h": "Our commitment",
+        "p": ["{company_name} works so that everyone, including people with disabilities, can use this site independently and equally, under the Equal Rights for Persons with Disabilities Law, 5758-1998, and the Equal Rights for Persons with Disabilities (Service Accessibility Adjustments) Regulations, 5773-2013. This statement is given under Regulation 35."]
+      },
+      {
+        "h": "Accessibility level",
+        "p": ["The site is built to Israeli Standard SI 5568, based on WCAG 2.0 level AA. Every change is checked automatically (axe-core) on all pages in Hebrew and English, and by hand with the keyboard in major browsers and on mobile devices. The work was done by our own development team."]
+      },
+      {
+        "h": "What we have done",
+        "li": [
+          "Full keyboard navigation with a clear focus outline, and a “Skip to main content” link at the top of every page;",
+          "An accessibility menu: larger text, high contrast, highlighted links and stopped animations;",
+          "A hierarchical heading structure, semantic markup, and correct text direction in Hebrew and English;",
+          "Alternative text for every informative image and drawing, and a text description of the dimensions and seats;",
+          "Colour contrast to the standard, and text zoom up to 200% without loss of content;",
+          "A form with clear labels and spoken error messages;",
+          "The operating system “reduce motion” setting is respected, and nothing flashes;",
+          "A layout that works on mobile devices and different screen sizes."
+        ]
+      },
+      {
+        "h": "Known limitations",
+        "li": [
+          "The 3D model of the table is not fully accessible to screen readers; everything it shows is also given in text, drawings and images;",
+          "The site has not yet been tested by screen reader users — such a test is planned;",
+          "The WhatsApp button leads to an outside service whose accessibility we do not control."
+        ]
+      },
+      {
+        "h": "Physical arrangements",
+        "p": ["We have no shop or showroom open to the public at the moment. Meetings, delivery and assembly are arranged in advance, and we are glad to adapt them to your needs."]
+      },
+      {
+        "h": "Accessibility coordinator",
+        "p": [
+          "Found a problem? We want to hear about it and fix it. Accessibility coordinator: {a11y_name}, phone {a11y_phone}, e-mail {a11y_email}.",
+          "To help us act quickly, please give the page address, what went wrong, and the browser or assistive technology you used. Everything on the site is also available by phone and e-mail."
+        ]
+      },
+      {
+        "h": "Complaint to the Commission",
+        "p": ["If your request was not handled properly, you can contact the Commission for Equal Rights of Persons with Disabilities at the Ministry of Justice."]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Privacy policy",
+    "updated": "Last updated: {updated}",
+    "sections": [
+      {
+        "h": "Who is responsible",
+        "p": ["This site is run by {company_name}, company/business no. {business_id}, {address} — the database controller. Privacy questions: e-mail {email}, phone {phone}. This policy follows the Protection of Privacy Law, 5741-1981, as amended by Amendment 13."]
+      },
+      {
+        "h": "What we collect",
+        "li": [
+          "From the form: name, phone, town, e-mail (if given), comment, the product and your choices (size, finish, base), your expected purchase time and preferred contact channel, and whether and when you agreed to marketing;",
+          "About your visit: pages viewed, how you arrived (including UTM parameters and an ad click id), device type, screen size and language;",
+          "We do not keep your IP address: only a one-way hash of it with a secret key, to count visitors and prevent abuse."
+        ]
+      },
+      {
+        "h": "Do you have to give it",
+        "p": ["You are not required by law to give us any information. Without a name and phone we cannot get back to you — that is the only consequence."]
+      },
+      {
+        "h": "What we use it for",
+        "li": [
+          "To get back to you about your request and prepare an offer;",
+          "To tell you about the launch date, availability and price;",
+          "To send advertising — only if you ticked the separate consent box;",
+          "To measure advertising and site use and improve the site — third-party tools only after you accept cookies."
+        ]
+      },
+      {
+        "h": "Who receives it",
+        "li": [
+          "Meta Platforms (Facebook and Instagram) — only if you accept cookies: browsing events through Meta Pixel and, when you send the form, through the Conversions API. Phone, name, town and e-mail are one-way hashed (SHA-256) before sending; your IP address, browser type and Meta cookie ids are sent too. Meta also uses the data under its own privacy policy;",
+          "Microsoft Clarity — only if you accept cookies: clicks, scrolling and mouse movement, to analyse use. Form fields are masked;",
+          "Telegram — your request is sent as a notification to our account so we can get back to you quickly;",
+          "Meta, Microsoft and Telegram also process data outside Israel, including in the United States;",
+          "We do not sell, rent or trade your data. We disclose it to an authority only when the law requires."
+        ]
+      },
+      {
+        "h": "Where and for how long",
+        "li": [
+          "Data is kept on our server at a hosting provider in the European Union;",
+          "Request details — until we delete them or you ask us to; a fixed retention period will be published here before launch;",
+          "Browsing events are deleted automatically after 180 days; visit records after 400 days;",
+          "Your cookie choice is kept in your browser until you clear it."
+        ]
+      },
+      {
+        "h": "Cookies",
+        "p": ["Essential: your cookie choice, a temporary visit id and your product choices. Measurement and advertising cookies (Meta Pixel, Microsoft Clarity) load only after “Accept”. You can change your choice at any time with “Cookie settings” at the bottom of the page, or clear cookies in your browser."]
+      },
+      {
+        "h": "Security",
+        "p": ["Traffic is encrypted (HTTPS), access to data is limited to what is needed, and IP addresses are stored only as hashes. No system is fully immune, and we will report a serious security incident as the law requires."]
+      },
+      {
+        "h": "Your rights",
+        "li": [
+          "To see your data (section 13 of the Law);",
+          "To ask us to correct or delete data that is wrong, incomplete, unclear or out of date (section 14);",
+          "To unsubscribe from marketing at any time (section 17F), and to withdraw cookie consent;",
+          "To complain to the Privacy Protection Authority.",
+          "Requests: {email}. We reply within the time the law sets."
+        ]
+      },
+      {
+        "h": "Minors and changes",
+        "p": ["The site is not meant for anyone under 18. We may update this policy; the binding version is the one on this page, with its date."]
+      }
+    ]
+  },
+  "terms": {
+    "title": "Terms of use",
+    "updated": "Last updated: {updated}",
+    "sections": [
+      {
+        "h": "Who we are",
+        "p": ["This site is run by {company_name}, company/business no. {business_id}, {address}; phone {phone}, e-mail {email} (the “Company”). Use of the site is subject to these terms and to the privacy policy."]
+      },
+      {
+        "h": "Pre-launch",
+        "p": ["The site shows products before commercial production starts. It is not a shop: nothing can be bought and no payment is taken here. Sending the form expresses interest and asks us to contact you — it is not an order, a reservation or a commitment by anyone."]
+      },
+      {
+        "h": "Prices",
+        "p": ["Prices are in new Israeli shekels and include VAT. At this stage they are estimates, not yet confirmed. The final price, specification, delivery time, delivery and assembly terms and cancellation terms will be given to you in a written offer before any payment, and only they bind."]
+      },
+      {
+        "h": "What is included",
+        "p": ["What the price includes (for example delivery and assembly) is listed on the product page and confirmed in the written offer, after we check the delivery area and building access."]
+      },
+      {
+        "h": "Cancellation",
+        "p": ["As long as no order is confirmed in writing and nothing is paid, there is no transaction to cancel. If a transaction is made, the cancellation rights of the Consumer Protection Law, 5741-1981, and its regulations apply, and the details will be in the written offer. If the product is made especially for you to a size or finish you chose, the right to cancel may be limited as far as the law allows — and the offer will say so plainly before payment. Nothing here limits rights that cannot be waived."]
+      },
+      {
+        "h": "Images and information",
+        "p": ["Images are renderings of the planned product, not photographs, and each is marked as a rendering. Colour, texture and finish may differ. The Company may change the specification, dates or launch plan until an order is confirmed in writing."]
+      },
+      {
+        "h": "Intellectual property and use",
+        "p": ["All rights in the site content belong to the Company or its licensors. Do not copy it or use it commercially without written permission, do not collect data from the site automatically, and do not send another person's details in the form."]
+      },
+      {
+        "h": "Liability and links",
+        "p": ["The site is provided as is. The Company is not responsible for outside services such as WhatsApp. Nothing here limits rights that cannot be waived by law."]
+      },
+      {
+        "h": "Accessibility, changes and law",
+        "p": ["Accessibility details are in the accessibility statement. The Company may update these terms; the binding version is the one on the site at the time of use. Israeli law applies, and the competent courts in {court_city} have jurisdiction, without limiting jurisdiction under the Consumer Protection Law."]
+      }
+    ]
+  }
+}
