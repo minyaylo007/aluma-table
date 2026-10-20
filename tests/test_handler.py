@@ -385,7 +385,7 @@ class PutLeadTests(HandlerTestCase):
             "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid",
             "attributed_at", "page", "referrer", "device", "ip_hash", "status", "is_test",
             # вітрина 21.10 (specs/002-meta-settings/contracts/lead.md)
-            "product_id", "size_label", "finish_id", "base_id", "timeframe", "contact_pref", "email", "event_id",
+            "product_id", "size_label", "finish_id", "base_id", "timeframe", "contact_pref", "email", "event_id", "consent_ads",
         }
         self.assertEqual(set(self.leads_t.items[0]), expected)
 
