@@ -17,12 +17,13 @@
 | `email` | e-mail ≤ 120 | `a@b.co` |
 | `event_id` | `[A-Za-z0-9_.-]{8,64}` — тот же, что ушёл в пиксель (`alumaTrack('Lead')`) | `lead.lx3k9a.f81c2d` |
 | `marketing_consent` | `true` только при явно отмеченной галочке (по умолчанию НЕ отмечена, חוק התקשורת ס' 30א); старое имя `consent_marketing` тоже принимается; хранится `consent_marketing` + `consent_marketing_at` (время заявки). Строки `"false"`/`"0"` — не согласие | `false` |
+| `ads_consent` | `true`, если посетитель принял cookies рекламы: `window.alumaConsentState() === "granted"`. Без него и без cookie `_fbp` Lead в CAPI **не отправляется** (תיקון 13), заявка сохраняется как обычно; хранится `consent_ads` | `true` |
 | `fbp` | `fb.1.<ts>.<rand>` ≤ 200 | из cookie `_fbp` |
 | `fbc` | `fb.1.<ts>.<fbclid>` ≤ 300 | из cookie `_fbc` |
 
 - `city` уже есть (≤ 80) — остаётся.
 - `fbp`/`fbc` можно не передавать: сервер возьмёт cookie `_fbp`/`_fbc` запроса (тот же домен).
-- Нет `event_id` — сервер создаёт свой (дедупликации с пикселем тогда не будет, но Lead в CAPI уйдёт).
+- Нет `event_id` — сервер создаёт свой (дедупликации с пикселем тогда не будет, но Lead в CAPI уйдёт — при согласии).
 - Ответ без изменений: `200 {"ok": true, "id": "<id>"}`, `422 {"ok": false, "errors": {...}}`, `429`.
 
 Как форма должна вызывать (сессия 1):
@@ -30,7 +31,8 @@
 ```js
 var eventId = window.alumaEventId ? window.alumaEventId("lead") : "";
 var data = { /* старые поля */, product_id: "...", size_label: "...", finish_id: "...", base_id: "...",
-             timeframe: "1-3m", contact_pref: "whatsapp", event_id: eventId };
+             timeframe: "1-3m", contact_pref: "whatsapp", event_id: eventId,
+             ads_consent: window.alumaConsentState && window.alumaConsentState() === "granted" };
 // после ответа ok:
 if (window.alumaTrack) window.alumaTrack("Lead", { content_ids: [data.product_id], event_id: eventId });
 ```

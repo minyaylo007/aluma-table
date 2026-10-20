@@ -570,6 +570,10 @@ def lead_extras(data: dict, event) -> dict:
     fbp = clip(data.get("fbp") or cookies.get("_fbp"), 200).strip()
     fbc = clip(data.get("fbc") or cookies.get("_fbc"), 300).strip()
     email = _pick(data.get("email"), 120, LEAD_EMAIL).lower()
+    fbp = fbp if fbp.startswith("fb.") else ""
+    # згода на cookies реклами (תיקון 13): явний ads_consent від сторінки або _fbp — його ставить лише
+    # піксель, а tracking.js вантажить піксель тільки після згоди. Без згоди Lead у CAPI не йде.
+    ads = _flag(data.get("ads_consent")) or bool(fbp)
     return {
         "stored": {
             "product_id": _pick(data.get("product_id"), 40, LEAD_SLUG),
@@ -581,8 +585,9 @@ def lead_extras(data: dict, event) -> dict:
             "email": email,
             # без event_id від браузера — свій: Lead у CAPI все одно піде, лише без склейки з пікселем
             "event_id": _pick(data.get("event_id"), 64, LEAD_EVENT_ID) or "lead." + uuid.uuid4().hex[:16],
+            "consent_ads": ads,
         },
-        "fbp": fbp if fbp.startswith("fb.") else "",
+        "fbp": fbp,
         "fbc": fbc if fbc.startswith("fb.") else "",
     }
 
@@ -732,7 +737,7 @@ def send_capi_lead(item: dict, extra: dict, event):
     """Lead у Conversions API після збереження заявки. Ніщо тут не має права зламати заявку."""
     try:
         settings = load_settings()
-        if not (settings.get("capi_token") and settings.get("pixel_id")):
+        if not (settings.get("capi_token") and settings.get("pixel_id")) or not item.get("consent_ads"):
             return
         user = meta.user_data(
             phone_e164=item.get("phone", ""), email=item.get("email", ""), name=item.get("name", ""),
@@ -1116,7 +1121,7 @@ TIMEFRAME_LABELS = {"now": "עכשיו", "1-3m": "1–3 חודשים", "later": 
 
 CSV_COLUMNS = (
     "ts", "id", "status", "name", "phone", "email", "city", "product_id", "size_label", "finish_id", "base_id",
-    "timeframe", "contact_pref", "color", "size", "lang", "comment", "consent_marketing", "consent_marketing_at",
+    "timeframe", "contact_pref", "color", "size", "lang", "comment", "consent_marketing", "consent_marketing_at", "consent_ads",
     "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "page", "device", "is_test",
 )
 

@@ -326,7 +326,20 @@ class CapiTests(Base):
         if cookies:
             hdrs["cookie"] = cookies
         hdrs.update(headers or {})
+        fields.setdefault("ads_consent", True)
         return h.lambda_handler(request("POST", "/api/fx/lead", lead_payload(**fields), hdrs), None)
+
+    def test_no_cookie_consent_no_capi(self):
+        """תיקון 13: без згоди на cookies реклами Lead у Meta не йде, але заявка зберігається."""
+        self.configure()
+        for value in (None, False, "false", "0"):
+            self.post(ads_consent=value)
+        self.assertEqual(self.rec.calls, [])
+        self.assertEqual(len(self.leads_t.items), 4)
+        self.assertFalse(any(i["consent_ads"] for i in self.leads_t.items))
+        self.post(ads_consent=None, cookies="_fbp=fb.1.1700000000000.123")   # _fbp ставить лише піксель після згоди
+        self.assertEqual(len(self.rec.calls), 1)
+        self.assertTrue(self.leads_t.items[-1]["consent_ads"])
 
     def test_no_request_when_not_configured(self):
         self.post()
