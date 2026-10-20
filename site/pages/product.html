@@ -15,7 +15,27 @@
     <form class="pdp-config" data-config onsubmit="return false">{{P_CONFIG}}</form>
     <p class="pdp-lead"><span class="dot" aria-hidden="true"></span>{{t.lead_label}} <bdi dir="ltr">{{P_LEAD}}</bdi> {{t.weeks}}{{P_LEAD_EST}}</p>
     <div class="pdp-actions">
-      <a class="btn btn--dark btn--block" href="#register" data-cta="pdp">{{t.cta_register}}</a>
+      <div class="quick">
+        <form class="lead-form quick-form" id="quick-form" novalidate data-form data-quick data-err="q-">
+          <p class="quick-h">{{t.quick_h}}</p>
+          <div class="f-row f-row--2">
+            <div class="f"><label for="q-name">{{t.f_name}}</label><input id="q-name" name="name" autocomplete="name" required minlength="2" maxlength="80" aria-describedby="q-e-name"><p class="f-err" id="q-e-name" hidden></p></div>
+            <div class="f"><label for="q-phone">{{t.f_phone}}</label><input id="q-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="q-e-phone"><p class="f-err" id="q-e-phone" hidden></p></div>
+          </div>
+          <input type="hidden" name="product_id" value="{{P_ID}}"><input type="hidden" name="size_label"><input type="hidden" name="finish_id"><input type="hidden" name="base_id">
+          <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <label class="check"><input type="checkbox" name="consent" required aria-describedby="q-e-consent"><span>{{t.f_consent}}</span></label>
+          <p class="f-err" id="q-e-consent" hidden></p>
+          <button class="btn btn--dark btn--block" type="submit" data-cta="pdp">{{t.cta_register}}</button>
+          <p class="f-status" role="status" aria-live="polite"></p>
+          <p class="f-fine">{{t.quick_fine}} <a href="#register">{{t.quick_more}}</a></p>
+        </form>
+        <div class="thanks thanks--quick" hidden tabindex="-1">
+          <p class="thanks-mark" aria-hidden="true">✓</p>
+          <p class="h3">{{t.thx_h}}</p>
+          <p>{{t.thx_p}}</p>
+        </div>
+      </div>
       <a class="btn btn--wa btn--block js-wa" data-wa="pdp" href="#" hidden>{{t.whatsapp_ask}}</a>
     </div>
     <ul class="pdp-points" role="list">
@@ -48,6 +68,6 @@
 
 {{PART_FORM}}
 <div class="sticky-cta sticky-cta--pdp" data-sticky hidden>
-  <span class="sticky-price"><bdi dir="ltr" data-price-mini>{{P_PRICE}}</bdi>{{P_EST_SHORT}}</span>
-  <a class="btn btn--dark" href="#register" data-cta="sticky">{{t.cta_register}}</a>
+  {{P_THUMB}}<span class="sticky-price"><bdi dir="ltr" data-price-mini>{{P_PRICE}}</bdi>{{P_EST_SHORT}}</span>
+  <a class="btn btn--dark" href="#quick-form" data-cta="sticky">{{t.cta_register_short}}</a>
 </div>

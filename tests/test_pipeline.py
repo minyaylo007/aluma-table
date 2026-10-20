@@ -154,6 +154,14 @@ class CiTests(unittest.TestCase):
         self.assertIn("--config playwright.responsive.config.js", body)
         self.assertLess(body.index("python build.py"), body.index("playwright.responsive.config.js"))
 
+    def test_browser_runs_the_tracking_spec(self):
+        """Події пікселя й event_id для дедуплікації з CAPI — крок browser, після збірки, конфіг з одним потоком."""
+        body = code(self.jobs["browser"])
+        self.assertIn("--config playwright.tracking.config.js", body)
+        self.assertLess(body.index("python build.py"), body.index("playwright.tracking.config.js"))
+        cfg = (ROOT / "playwright.tracking.config.js").read_text(encoding="utf-8")
+        self.assertIn("tracking-events.spec.js", cfg)
+
 
 class WorkflowSafetyTests(unittest.TestCase):
     NAMES = ("ci.yml", "release.yml", "deploy.yml", "rollback.yml")

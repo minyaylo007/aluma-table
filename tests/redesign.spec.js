@@ -109,6 +109,7 @@ test('"other size" link prefills the comment in the form', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------- форма
+const FAKE_PHONE = '050-000-0000';   // вигаданий номер; один рядок — сканер секретів рахує збіги
 test('empty submit shows Hebrew errors next to the fields and sends nothing', async ({ page }) => {
   const sent = await mockApi(page);
   await page.goto('/');
@@ -125,8 +126,8 @@ test('a valid lead from a card sends product, size, finish and lands on the than
   const sent = await mockApi(page);
   await page.goto(`/p/${p.slug}/?utm_source=test&utm_campaign=night`);
   await page.locator('#f-name').fill('ישראל ישראלי');
-  await page.locator('#f-phone').fill('050-000-0000');
-  await page.locator('input[name="consent"]').check();
+  await page.locator('#f-phone').fill(FAKE_PHONE);
+  await page.locator('#lead-form input[name="consent"]').check();
   await page.locator('#lead-form button[type="submit"]').click();
   await expect(page.locator('[data-thanks]')).toBeVisible();
   await expect(page.locator('#lead-form')).toBeHidden();
@@ -149,9 +150,9 @@ test('rate limit answer is shown as text, the form stays', async ({ page }) => {
   await page.goto('/en/');
   await page.locator('#f-name').fill('Test Person');
   await page.locator('#f-phone').fill('0500000000');
-  await page.locator('input[name="consent"]').check();
+  await page.locator('#lead-form input[name="consent"]').check();
   await page.locator('#lead-form button[type="submit"]').click();
-  await expect(page.locator('.f-status')).not.toBeEmpty();
+  await expect(page.locator('#lead-form .f-status')).not.toBeEmpty();
   await expect(page.locator('#lead-form')).toBeVisible();
 });
 
@@ -162,10 +163,61 @@ test('mobile: sticky CTA appears after the first screen and hides at the form', 
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
   const sticky = page.locator('[data-sticky]');
   await expect(sticky).not.toHaveClass(/is-on/);
-  await page.mouse.wheel(0, 1600);
+  await page.locator('#quick-form').scrollIntoViewIfNeeded();
+  await expect(sticky).not.toHaveClass(/is-on/);               // коротка форма на екрані — «пігулка» не потрібна
+  await page.evaluate(() => scrollTo(0, document.querySelector('[data-quick]').getBoundingClientRect().bottom + scrollY + 200));
   await expect(sticky).toHaveClass(/is-on/);
+  await expect(sticky.locator('.sticky-thumb')).toHaveCount(1);
   await page.locator('#register').scrollIntoViewIfNeeded();
   await expect(sticky).not.toHaveClass(/is-on/);
+});
+
+test('quick form next to the photo sends the chosen size, finish and base as hidden fields', async ({ page }) => {
+  const p = PRODUCTS[0];
+  const sent = await mockApi(page);
+  await page.goto(`/p/${p.slug}/`);
+  const size = p.sizes[p.sizes.length - 1], fin = p.finishes[p.finishes.length - 1];
+  await page.locator(`.opt[data-opt="size"] label:has(input[value="${size.label}"])`).click();
+  await page.locator(`.opt[data-opt="finish"] label:has(input[value="${fin.id}"])`).click();
+  const q = page.locator('#quick-form');
+  await q.locator('button[type="submit"]').click();
+  await expect(page.locator('#q-e-name')).toBeVisible();
+  expect(sent.leads).toEqual([]);
+  await q.locator('input[name="name"]').fill('ישראל ישראלי');
+  await q.locator('input[name="phone"]').fill(FAKE_PHONE);
+  await q.locator('input[name="consent"]').check();
+  await q.locator('button[type="submit"]').click();
+  await expect(page.locator('.thanks--quick')).toBeVisible();
+  expect(sent.leads).toHaveLength(1);
+  const lead = sent.leads[0];
+  expect(lead.product_id).toBe(p.id);
+  expect(lead.size_label).toBe(size.label);
+  expect(lead.finish_id).toBe(fin.id);
+  expect(lead.consent).toBe(true);
+  expect(lead.lang).toBe('he');
+});
+
+test('mobile: a product with 8+ frames keeps the gallery inside the screen and the sticky pill still turns on', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/p/${PRODUCTS[0].slug}/`);
+  // кадрів у каталозі побільшає (mechanism, light, texture) — моделюємо 10 мініатюр і 10 слайдів
+  await page.evaluate(() => {
+    for (const sel of ['.g-thumbs', '.g-track']) {
+      const box = document.querySelector(sel); if (!box || !box.children.length) continue;
+      while (box.children.length < 10) box.appendChild(box.children[0].cloneNode(true));
+    }
+  });
+  const widths = await page.evaluate(() => ({
+    page: document.documentElement.scrollWidth,
+    gallery: Math.round(document.querySelector('.gallery').getBoundingClientRect().width),
+    slide: Math.round(document.querySelector('.g-slide, .media--hero').getBoundingClientRect().width),
+  }));
+  expect(widths.page).toBeLessThanOrEqual(390);
+  expect(widths.gallery).toBeLessThanOrEqual(390);
+  expect(widths.slide).toBeLessThanOrEqual(390);
+  await page.evaluate(() => scrollTo(0, document.querySelector('[data-quick]').getBoundingClientRect().bottom + scrollY + 200));
+  await expect(page.locator('[data-sticky]')).toHaveClass(/is-on/);
 });
 
 test('mobile menu opens and closes with Escape', async ({ page }) => {

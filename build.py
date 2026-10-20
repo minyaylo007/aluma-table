@@ -311,6 +311,16 @@ def size_dims(s: dict) -> str:
     return "×".join(parts)
 
 
+def thumb(p: dict) -> str:
+    """Мініатюра обраного столу в липкій кнопці: найменший кадр героя, декоративна (alt порожній — поруч ціна й кнопка)."""
+    img = next((i for i in p.get("images") or [] if i.get("src")), None)
+    if not img:
+        return ""
+    srcset = f' srcset="{esc(img["srcset"])}" sizes="44px"' if img.get("srcset") else ""
+    return (f'<img class="sticky-thumb" src="{esc(img["src"])}"{srcset} alt="" width="44" height="44"'
+            ' loading="lazy" decoding="async">')
+
+
 def configurator(p: dict, loc: str) -> str:
     out = []
     sizes = p.get("sizes") or []
@@ -323,7 +333,9 @@ def configurator(p: dict, loc: str) -> str:
                 f'<label class="pill"><input type="radio" name="size" value="{esc(s.get("label"))}"'
                 f' data-price="{int(s["price_ils"])}"{" checked" if i == 0 else ""}>'
                 f'<span class="pill-main"><bdi dir="ltr">{esc(size_dims(s))}</bdi></span>{ext}'
-                f'<span class="pill-price"><bdi dir="ltr">{money(s["price_ils"])}</bdi></span></label>')
+                f'<span class="pill-price"><bdi dir="ltr">{money(s["price_ils"])}</bdi></span>'
+                # «הנבחר ביותר» — лише коли каталог сам позначив розмір; вигаданої популярності не показуємо
+                + ('<span class="pill-pop">{{t.size_popular}}</span>' if s.get("popular") is True else "") + '</label>')
         out.append('</div><a class="opt-custom js-custom" href="#register">{{t.custom_size}}</a></fieldset>')
     fins = p.get("finishes") or []
     if fins:
@@ -591,7 +603,7 @@ def main() -> None:
                 "P_BADGES": badges(p, loc),
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
-                "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_CONFIG": configurator(p, loc),
+                "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
                 "P_SPECS": specs(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
