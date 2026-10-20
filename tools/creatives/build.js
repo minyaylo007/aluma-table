@@ -78,11 +78,17 @@ function fill(text, vars) {
   return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
 }
 
+// «מ־» (від) — лише коли цін кілька: кілька товарів або розміри товару з різною ціною.
+// У SAHAR одна міра, у TAL обидві форми по одній ціні — там «מ־» було б неправдою (аудит чесності, рядок 35).
+function priceVars(products, cfg) {
+  const prices = new Set(products.flatMap((p) => p.sizes.map((s) => s.price_ils)));
+  return { price: money(Math.min(...prices)), from: prices.size > 1 ? esc(cfg.from) : '' };
+}
+
 function variantHtml(template, cfg, variant, format, products, fonts, imagePaths) {
   const first = products[0];
   const size = first.sizes[0];
-  const price = Math.min(...products.map((p) => p.price_from_ils));
-  const vars = { length: esc(size.length_cm), extended: esc(size.extended_cm ?? ''), price: money(price) };
+  const vars = { length: esc(size.length_cm), extended: esc(size.extended_cm ?? ''), ...priceVars(products, cfg) };
   const headline = variant.headline === '@tagline' ? esc(first.tagline.he) : esc(variant.headline);
   const tiles = imagePaths.map((_, i) =>
     `<img src="${ORIGIN}/img/${variant.id}/${i}" alt="">`).join('');
@@ -281,4 +287,7 @@ async function main() {
   console.log(`готово: ${report.creatives.length} креативів → ${path.relative(ROOT, outDir) || outDir}`);
 }
 
-main().catch((e) => { console.error(e.message || e); process.exit(1); });
+module.exports = { ROOT, TYPES, esc, money, fontFaces, fill, priceVars };
+
+// Модулем його бере tools/creatives/video.js — тоді знімки не робимо.
+if (require.main === module) main().catch((e) => { console.error(e.message || e); process.exit(1); });

@@ -144,3 +144,6 @@ jobs:
       - name: responsive.spec.js (ширини 320–1920, zoom 200 %, фокус, липка кнопка, bdi)
         # Без порту, той самий dist/. Відомі дірки вітрини — у KNOWN самого spec, нове — червоне.
         run: npx playwright test --config playwright.responsive.config.js
+      - name: tracking-events.spec.js (згода, PageView/ViewContent/CustomizeProduct/Contact/Lead, event_id для CAPI)
+        # На чому тримається тест у Meta. connect.facebook.net — підробка, що записує виклики fbq; мережі назовні немає.
+        run: npx playwright test --config playwright.tracking.config.js

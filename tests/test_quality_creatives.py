@@ -66,6 +66,9 @@ class CreativeConfigTests(unittest.TestCase):
         for v in self.cfg["variants"]:
             self.assertNotRegex(v["price"] + v["sub"], r"\d{3}", v["id"])
             self.assertIn("{price}", v["price"])
+            # «מ־» лише через {from}: build.js ставить його, коли цін кілька (у SAHAR одна — аудит, рядок 35)
+            self.assertNotIn("מ־", v["price"], v["id"])
+            self.assertIn("{from}", v["price"])
 
     def test_template_marks_every_text_for_the_checks(self):
         """Кожен текстовий плейсхолдер стоїть в елементі з data-text — інакше 20 % і контраст його не бачать."""
@@ -95,6 +98,34 @@ class PublishedCreativesTests(unittest.TestCase):
                 self.assertTrue(img.startswith("site/assets/products/"), f"{it['file']}: кадр не з каталогу — {img}")
         self.assertTrue((OUT / "preview.html").is_file())
         self.assertLessEqual((OUT / "preview.jpg").stat().st_size, 500 * 1024)
+
+
+VIDEO = OUT / "video"
+
+
+@unittest.skipUnless((VIDEO / "report.json").exists(), "docs/creatives/video/ ще не зібрано")
+class PublishedVideosTests(unittest.TestCase):
+    """Відео (tools/creatives/video.js): 3 ролики × 9:16 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
+
+    def test_report_matches_files_and_limits(self):
+        report = json.loads((VIDEO / "report.json").read_text(encoding="utf-8"))
+        cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+        items = report["videos"]
+        self.assertEqual({(it["file"].rsplit("-", 1)[0], it["width"], it["height"]) for it in items},
+                         {(v["id"], w, h) for v in cfg["variants"] for w, h in ((1080, 1920), (1080, 1080))})
+        for it in items:
+            f = VIDEO / it["file"]
+            self.assertTrue(f.is_file(), it["file"])
+            self.assertEqual(f.stat().st_size, it["bytes"], it["file"])
+            self.assertLessEqual(it["bytes"], report["limits"]["max_bytes"], it["file"])
+            self.assertLessEqual(report["limits"]["max_bytes"], 4 * 1024 * 1024)
+            self.assertTrue(6 <= it["duration"] <= 10, it["file"])
+            self.assertGreaterEqual(it["min_contrast"], 4.5, it["file"])
+            self.assertEqual(f.read_bytes()[4:8], b"ftyp", f"{it['file']}: не MP4")
+            for img in it["images"]:
+                self.assertTrue(img.startswith("site/assets/products/"), f"{it['file']}: кадр не з каталогу — {img}")
+        self.assertAlmostEqual(report["limits"]["safe_zone"], 0.14)
+        self.assertTrue((VIDEO / "sheet.jpg").is_file())
 
 
 class MetaTestPlanTests(unittest.TestCase):
