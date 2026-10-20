@@ -7,28 +7,16 @@
 //   - фокус видно на кожному елементі, до якого доходить Tab (2.4.7);
 //   - липка кнопка на телефоні не закриває поля форми й банер cookies (2.4.11);
 //   - в RTL розміри, телефон, ціни й стрілки стоять у <bdi>/dir="ltr" — інакше «160×90» читається як «90×160».
-// Відомі дірки зони вітрини (сесія 1) — у KNOWN: друкуються списком, тест не червоніє; нове — червоне.
+// Відомі дірки чужих зон — у KNOWN: друкуються списком, тест не червоніє; нове — червоне.
 const { test, expect } = require('@playwright/test');
 const { ORIGIN, pages, serveDist, built } = require('./dist_route');
 
 const WIDTHS = [320, 360, 390, 768, 1024, 1280, 1920];
 const HEIGHT = { 320: 640, 360: 740, 390: 844, 768: 1024, 1024: 768, 1280: 900, 1920: 1080 };
 
-// Відомі дірки (знайдено 21.10, master @ c3d3c6c). Поля: rule; where / detail — підрядки (необов'язкові);
+// Відомі дірки (21.10, master @ 5f69d04: банер cookies, 200 % тексту й .pill знято в #32). Поля: rule; where / detail — підрядки (необов'язкові);
 // page — регулярний вираз шляху. Знято зоною-власником — рядок прибрати, інакше тест так і мовчатиме.
-const COOKIE = 'P1 банер cookies (сесія 1): на телефоні кнопки за краєм / банер накриває поля форми';
 const KNOWN = [
-  { rule: 'edge', where: 'notice-btns', why: COOKIE },
-  { rule: 'edge', where: '«Essential only»', why: COOKIE },
-  { rule: 'edge', where: '«רק הכרחיות»', why: COOKIE },
-  { rule: 'notice-field', why: COOKIE },
-  // 200 % шрифту, en: блок реєстрації ширший за екран на 8 px
-  { rule: 'edge', detail: 'x 16…398 / 390 @font200', page: /^\/en\//, why: 'сесія 1: .register / .form-card при 200 % тексту' },
-  { rule: 'hscroll', detail: 'scrollWidth 398 > 390 @font200', page: /^\/en\//, why: 'сесія 1: .register при 200 % тексту' },
-  // 200 % шрифту, карточка TAVOR: рядок розмірів виходить на 2 px
-  { rule: 'edge', where: 'pill', detail: '@font200', page: /\/p\/tavor\/$/, why: 'сесія 1: .pill при 200 % тексту' },
-  { rule: 'edge', where: 'bdi «', detail: '@font200', page: /\/p\/tavor\/$/, why: 'сесія 1: .pill при 200 % тексту' },
-  { rule: 'hscroll', detail: 'scrollWidth 392 > 390 @font200', page: /\/p\/tavor\/$/, why: 'сесія 1: .pill при 200 % тексту' },
   // розмір у тексті опису з каталогу без <bdi>
   { rule: 'bdi', where: 'p.pdp-desc', page: /^\/p\/tal\/$/, why: 'сесія 2: catalog tal.description «100×60» — обгорнути у build.py/каталозі' },
 ];
