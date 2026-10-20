@@ -40,7 +40,7 @@
   "how_title": "How it works — ALUMA",
   "how_desc": "From early registration to assembly in your home: five steps, no upfront payment on the site.",
   "about_title": "The workshop — ALUMA",
-  "about_desc": "Who makes ALUMA furniture, from what materials, and why it takes 10–12 weeks.",
+  "about_desc": "Who makes ALUMA furniture, from what materials, and why it takes {{LEAD_WEEKS}} weeks.",
   "faq_title": "FAQ — ALUMA",
   "faq_desc": "Lead time, materials, veneer and solid wood, custom sizes, delivery, assembly and warranty.",
   "privacy_title": "Privacy policy — ALUMA",
@@ -60,7 +60,7 @@
   "v1_h": "Sized to the room",
   "v1_p": "Several sizes for most pieces, and another size on request.",
   "v2_h": "Natural oak veneer, solid wood at the edges",
-  "v2_p": "Solid oak edges and fronts, in five finishes.",
+  "v2_p": "Solid oak edges and fronts, in {{FINISH_COUNT}} finishes.",
   "v3_h": "Delivery and assembly included",
   "v3_p": "The price includes VAT, delivery and assembly at home.",
   "v4_h": "Our own workshop",
@@ -87,7 +87,7 @@
   "s3_long": "Prices on the site are estimates, not yet confirmed. After you register we send a written offer with price, timing and specification — only your written acceptance is an order.",
   "s4_h": "Production",
   "s4_p": "The workshop makes the piece specifically for you.",
-  "s4_long": "Once you accept the written offer, the workshop makes the piece in the size and finish you chose. The estimated time is 10–12 weeks from acceptance; we keep you updated along the way.",
+  "s4_long": "Once you accept the written offer, the workshop makes the piece in the size and finish you chose. The estimated time is {{LEAD_WEEKS}} weeks from acceptance; we keep you updated along the way.",
   "s5_h": "Delivery and assembly",
   "s5_p": "We bring it to your home and assemble it there. It is included in the price.",
   "s5_long": "Delivery and assembly are included in the price. We agree on a date, bring the piece and assemble it in your home.",
@@ -170,7 +170,7 @@
   "spec_note": "The specification may change until production is confirmed; the binding figures will be in the written offer.",
   "more_h2": "More from the series",
   "catalog_h1": "The launch series",
-  "catalog_lede": "Every piece in oak and in five finishes, most in several sizes. Choose a piece to see sizes, finishes and the estimated price.",
+  "catalog_lede": "Every piece in oak and in {{FINISH_COUNT}} finishes, most in several sizes. Choose a piece to see sizes, finishes and the estimated price.",
   "how_h1": "How it works",
   "how_lede": "We are in pre-launch: collecting registrations before we start production. Here is how it goes, step by step.",
   "about_eyebrow": "The workshop",
@@ -181,7 +181,7 @@
   "about_h_a": "Who we are",
   "about_p_a": "The factory in Chernivtsi has made furniture for years, with its own equipment, team and processes. ALUMA is how we bring that work directly to homes in Israel — no outside importer, no showroom, no warehouse in between.",
   "about_h_b": "Why made to order",
-  "about_p_b": "Every piece is made after the order is confirmed, in the size and finish you chose. So there is no stock waiting in a warehouse — and so it takes time: an estimated 10–12 weeks from confirmation to assembly.",
+  "about_p_b": "Every piece is made after the order is confirmed, in the size and finish you chose. So there is no stock waiting in a warehouse — and so it takes time: an estimated {{LEAD_WEEKS}} weeks from confirmation to assembly.",
   "about_h_c": "Why registration now, not sales",
   "about_p_c": "Before producing a series we want to know what really interests you: which piece, which size, which finish. So at this stage we collect registrations, not money.",
   "about_h_d": "What we do not claim",
@@ -194,7 +194,7 @@
   "mat_3_k": "Bases",
   "mat_3_v": "Oak or black powder-coated steel, depending on the piece.",
   "mat_4_k": "Finish",
-  "mat_4_v": "Five finishes: natural oak, light oak, honey, smoked oak and charcoal. A finish sample can be requested on the call.",
+  "mat_4_v": "{{FINISH_COUNT_CAP}} finishes: {{FINISH_NAMES}}. A finish sample can be requested on the call.",
   "faq_h1": "Frequently asked questions",
   "faq_lede": "Didn't find an answer? Write to us in the form at the bottom of the page.",
   "nf_h1": "Page not found",
@@ -203,7 +203,7 @@
   "faq": [
     {
       "q": "How long until I get the piece?",
-      "a": "The estimated time is 10–12 weeks from accepting the written offer to assembly in your home. The piece is made specifically for you and shipped from the workshop, so it takes longer than furniture from stock. The exact time will be in the offer."
+      "a": "The estimated time is {{LEAD_WEEKS}} weeks from accepting the written offer to assembly in your home. The piece is made specifically for you and shipped from the workshop, so it takes longer than furniture from stock. The exact time will be in the offer."
     },
     {
       "q": "Is it solid wood?",
