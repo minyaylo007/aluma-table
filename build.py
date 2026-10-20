@@ -181,6 +181,33 @@ def load_catalog() -> list:
     return out
 
 
+# Числа словами для рядків i18n («בחמישה גוונים», «in five finishes»): іменники там чоловічого роду.
+# Поза словником — цифри (у he з макафом: «וב־11 גוונים»).
+NUM_WORDS = {"he": {2: "שניים", 3: "שלושה", 4: "ארבעה", 5: "חמישה", 6: "שישה", 7: "שבעה", 8: "שמונה", 9: "תשעה", 10: "עשרה"},
+             "en": {2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}}
+
+
+def num_word(n: int, loc: str) -> str:
+    return NUM_WORDS[loc].get(n) or (f"־{n}" if loc == "he" else str(n))
+
+
+def catalog_facts(products: list, loc: str) -> dict:
+    """Факти каталогу для тексту: строк виготовлення, кількість і назви тонувань — щоб i18n не тримав їх числами."""
+    lts = [p.get("lead_time_weeks") or [10, 12] for p in products]
+    finishes = {}
+    for p in products:
+        for f in p.get("finishes") or []:
+            finishes.setdefault(f.get("id"), L(f.get("name"), loc))
+    names = list(finishes.values())
+    if loc == "en":
+        names = [n[:1].lower() + n[1:] for n in names]
+    # «א, ב וג» / «a, b and c»: у he сполучник «ו» пишеться разом зі словом
+    joined = ", ".join(names[:-1]) + (" ו" if loc == "he" else " and ") + names[-1] if len(names) > 1 else "".join(names)
+    word = num_word(len(names), loc)
+    return {"LEAD_WEEKS": f"{min(lt[0] for lt in lts)}–{max(lt[-1] for lt in lts)}",
+            "FINISH_COUNT": word, "FINISH_COUNT_CAP": word[:1].upper() + word[1:], "FINISH_NAMES": joined}
+
+
 def L(obj, loc: str) -> str:
     """Поле {he, en} -> рядок мови; без перекладу — іврит; рядок — як є."""
     if isinstance(obj, dict):
@@ -540,6 +567,7 @@ def main() -> None:
             "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
             "GRID_ALL": grid(products, loc, prefix), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
             "PRODUCT_COUNT": str(len(products)),
+            **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
             "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),
