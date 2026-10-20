@@ -179,7 +179,7 @@
   var pdp = qs("[data-pdp]"), config = qs("[data-config]");
   if (pdp) {
     var P = currentProduct();
-    var priceEl = qs("[data-price] bdi"), mini = qs("[data-price-mini]"), finishName = qs("[data-finish-name]");
+    var priceEl = qs(".price[data-price] bdi"), mini = qs("[data-price-mini]"), finishName = qs("[data-finish-name]");
     var val = function (n) { var el = qs('input[name="' + n + '"]:checked', config || D); return el ? el.value : ""; };
     var syncAll = function () { if (P) syncFormProduct(P.id, val("size"), val("finish"), val("base")); };
     var updatePrice = function () {
@@ -353,27 +353,24 @@
   }
 
   // ---------------------------------------------------------------- липка кнопка: після першого екрана, не над формою
+  // Положення рахуємо на scroll (пасивно, раз на кадр): IntersectionObserver пропускає якір, якщо
+  // швидкий свайп перестрибує його за один кадр, і кнопка не з'являлася.
   var sticky = qs("[data-sticky]");
-  if (sticky && "IntersectionObserver" in W) {
-    var anchor = qs(".hero .actions") || qs(".pdp-actions"), reg = qs("#register"), foot = qs(".foot");
-    var past = false, nearForm = false;
+  if (sticky) {
+    var anchor = qs(".hero .actions") || qs(".pdp-actions"), reg = qs("#register"), foot = qs(".foot"), queued = false;
+    var visible = function (el) { if (!el) return false; var r = el.getBoundingClientRect(); return r.top < W.innerHeight && r.bottom > 0; };
     var apply = function () {
-      var on = past && !nearForm && !D.body.classList.contains("is-registered");
+      queued = false;
+      var past = anchor ? anchor.getBoundingClientRect().bottom < 0 : W.scrollY > W.innerHeight;
+      var on = past && !visible(reg) && !visible(foot) && !D.body.classList.contains("is-registered");
       sticky.hidden = false;
       sticky.classList.toggle("is-on", on);
       sticky.inert = !on;
       D.body.classList.toggle("has-sticky", on);
     };
-    if (anchor) new IntersectionObserver(function (es) {
-      es.forEach(function (en) { past = !en.isIntersecting && en.boundingClientRect.top < 0; }); apply();
-    }).observe(anchor);
-    var seen = new Map();
-    var fo = new IntersectionObserver(function (es) {
-      es.forEach(function (en) { seen.set(en.target, en.isIntersecting); });
-      nearForm = Array.from(seen.values()).some(Boolean); apply();
-    });
-    if (reg) fo.observe(reg);
-    if (foot) fo.observe(foot);
+    var schedule = function () { if (!queued) { queued = true; W.requestAnimationFrame(apply); } };
+    W.addEventListener("scroll", schedule, { passive: true });
+    W.addEventListener("resize", schedule, { passive: true });
+    apply();
   }
-
 })();

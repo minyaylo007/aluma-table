@@ -1,312 +1,243 @@
-// Isolated frontend tests for the redesign: every business API write is intercepted locally.
-// Runs against tools/serve-preview.py (playwright.local.config.js); never against production.
+// Ізольовані тести вітрини: кожен запис у бізнес-API перехоплено локально, /api/fx/config — підставний.
+// Працює проти tools/serve-preview.py (playwright.local.config.js); ніколи не проти прода.
 const { test, expect } = require('@playwright/test');
 
-test.beforeEach(async ({ page }) => {
-  await page.route('**/api/fx/event', route => route.fulfill({ json: { ok: true, written: 0 } }));
-  await page.route('**/api/fx/lead', route => route.fulfill({ status: 503, json: { ok: false, error: 'preview_only' } }));
-});
+const CATALOG = require('../catalog/products.json');
+const PRODUCTS = (CATALOG.products || CATALOG).filter(p => !p.hidden);
+const EMPTY_CONFIG = { pixel_id: null, wa_number: null, clarity_id: null, contact: { name: null, phone: null, email: null, city: null }, launch_mode: true };
+const FULL_CONFIG = { ...EMPTY_CONFIG, wa_number: '972500000000', contact: { name: 'ALUMA', phone: null, email: 'hello@example.com', city: null } };
 
-const imgLoaded = img => img.evaluate(el => el.complete && el.naturalWidth > 0);
-
-for (const lang of ['he', 'en']) {
-  const path = lang === 'he' ? '/' : '/en/';
-
-  for (const [width, height] of [[390, 844], [430, 932], [390, 700], [360, 667], [320, 640], [768, 1024], [1024, 768], [1440, 900], [1920, 1080]]) {
-    test(`${lang}: ${width}x${height} renders the whole page without overflow, errors or missing assets`, async ({ page }) => {
-      const errors = [], missing = [];
-      page.on('pageerror', error => errors.push(error.message));
-      page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-      page.on('response', response => { if (response.status() >= 400) missing.push(response.url()); });
-      await page.setViewportSize({ width, height });
-      await page.goto(path);
-      await expect(page.locator('html')).toHaveAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
-      await expect(page.locator('html')).toHaveAttribute('lang', lang);
-      await expect(page.locator('h1')).toHaveCount(1);
-      await expect(page.locator('#hero-img')).toBeVisible();
-      await expect.poll(() => imgLoaded(page.locator('#hero-img'))).toBeTruthy();
-      // the first screen: the complete table, the price and the callback action
-      const hero = await page.locator('#hero-img').boundingBox();
-      expect(hero.x).toBeGreaterThanOrEqual(-1);
-      expect(hero.x + hero.width).toBeLessThanOrEqual(width + 1);
-      await expect(page.locator('.band .price')).toBeInViewport();
-      if (width <= 430) {
-        const cta = await page.locator('.band .btn--primary').boundingBox();
-        expect(cta.y + cta.height, 'primary action fully visible by 620 px').toBeLessThanOrEqual(620);
-        expect(cta.height).toBeGreaterThanOrEqual(48);
-      } else {
-        await expect(page.locator('.band .btn--primary')).toBeInViewport();
-      }
-      // every image loads at its real scroll position (lazy sections included)
-      const pictures = page.locator('img');
-      for (let i = 0; i < await pictures.count(); i++) {
-        const img = pictures.nth(i);
-        if (await img.isVisible() && await img.evaluate(el => !!(el.getAttribute('src') || el.getAttribute('srcset')))) {
-          await img.scrollIntoViewIfNeeded();
-          await expect.poll(() => imgLoaded(img)).toBeTruthy();
-        }
-      }
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-      expect(overflow).toBeLessThanOrEqual(1);
-      expect(errors).toEqual([]);
-      expect(missing).toEqual([]);
-    });
-  }
-
-  test(`${lang}: six finish/state combinations swap the compare picture and persist`, async ({ page }) => {
-    await page.goto(path);
-    for (const tone of ['natural', 'smoked', 'white']) {
-      for (const size of ['160', '220']) {
-        await page.locator(`input[name="oak"][value="${tone}"]`).check({ force: true });
-        await page.locator(`input[name="size"][value="${size}"]`).check({ force: true });
-        await expect(page.locator('html')).toHaveAttribute('data-oak', tone);
-        await expect(page.locator('html')).toHaveAttribute('data-size', size);
-        const state = size === '160' ? 'closed' : 'open';
-        await expect(page.locator('#compare-img')).toHaveAttribute('data-variant', `${tone}-${state}`);
-        await expect(page.locator('#compare-img')).toHaveAttribute('src', new RegExp(`compare-${tone}-${state}|hero-${tone}-${state}`));
-        await expect.poll(() => imgLoaded(page.locator('#compare-img'))).toBeTruthy();
-        await expect(page.locator('.state-line [data-bind="len"]')).toHaveText(size);
-        await expect(page.locator('.form-selection [data-bind="len"]')).toHaveText(size);
-      }
-    }
-    // the open table is physically longer in the same frame: compare the widths of the non-ground pixels
-    const widths = await page.evaluate(async () => {
-      const measure = async (src) => {
-        const im = new Image(); im.src = src; await im.decode();
-        const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
-        const g = c.getContext('2d'); g.drawImage(im, 0, 0);
-        const d = g.getImageData(0, 0, c.width, c.height).data;
-        let min = c.width, max = 0;
-        for (let y = 0; y < c.height; y += 4) for (let x = 0; x < c.width; x += 2) {
-          const i = (y * c.width + x) * 4;
-          if (Math.abs(d[i] - 244) + Math.abs(d[i + 1] - 241) + Math.abs(d[i + 2] - 234) > 24) { if (x < min) min = x; if (x > max) max = x; }
-        }
-        return max - min;
-      };
-      const a = window.FX.assets;
-      if (!a['goren-compare-natural-closed'] || !a['goren-compare-natural-closed'].webp['800']) return null;
-      return [await measure(a['goren-compare-natural-closed'].webp['800']), await measure(a['goren-compare-natural-open'].webp['800'])];
-    });
-    if (widths) expect(widths[1]).toBeGreaterThan(widths[0] * 1.15);
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-oak', 'white');
-    await expect(page.locator('html')).toHaveAttribute('data-size', '220');
-    await expect(page.locator('#compare-img')).toHaveAttribute('data-variant', 'white-open');
+async function mockApi(page, { config = EMPTY_CONFIG, lead } = {}) {
+  const sent = { leads: [], events: [] };
+  await page.route('**/api/fx/config', route => route.fulfill({ json: config }));
+  await page.route('**/api/fx/event', route => { sent.events.push(route.request().postDataJSON()); return route.fulfill({ json: { ok: true, written: 0 } }); });
+  await page.route('**/api/fx/lead', route => {
+    sent.leads.push(route.request().postDataJSON());
+    return route.fulfill(lead || { status: 200, json: { ok: true, id: 'abc123def456' } });
   });
-
-  test(`${lang}: the dimensions buttons and the room-length estimate stay on the page`, async ({ page }) => {
-    await page.goto(path);
-    await page.evaluate(() => { window.previewIdentity = 'same-document'; });
-    await page.locator('[data-set-size="220"]').click();
-    await expect(page.locator('html')).toHaveAttribute('data-size', '220');
-    await expect(page.locator('[data-set-size="220"]')).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('#fit summary').click();
-    for (const [length, verdict] of [['150', 'no'], ['200', 'closed'], ['220', 'open'], ['340', 'open'], ['3.4', 'open']]) {
-      await page.locator('#roomlen').fill(length);
-      await expect(page.locator('#verdict')).toHaveAttribute('data-v', verdict);
-    }
-    await expect(page.locator('#verdict')).toContainText('60');   // (340 - 220) / 2 at each end, a number not a promise
-    await page.locator('#roomlen').press('Enter');
-    await expect(page.locator('#verdict')).toHaveAttribute('data-v', 'open');
-    await page.locator('#roomlen').fill('');
-    await expect(page.locator('#verdict')).not.toHaveAttribute('data-v', /.+/);
-    expect(await page.evaluate(() => window.previewIdentity)).toBe('same-document');
-  });
-
-  test(`${lang}: form validation, then a mocked accepted enquiry with attribution, size and lang`, async ({ page }) => {
-    await page.goto(path + '?utm_source=preview&utm_campaign=redesign&fbclid=abc123');
-    await page.locator('input[name="size"][value="220"]').check({ force: true });
-    await page.locator('input[name="oak"][value="smoked"]').check({ force: true });
-    await page.locator('#f-submit').click();
-    for (const field of ['name', 'phone', 'consent']) await expect(page.locator(`#e-${field}`)).toBeVisible();
-    await expect(page.locator('#f-name')).toHaveAttribute('aria-invalid', 'true');
-    await fillLead(page);
-    await page.locator('#f-phone').fill('12345');
-    await page.locator('#f-submit').click();
-    await expect(page.locator('#e-phone')).toBeVisible();
-    for (const good of ['00972501234567', '+972-050-1234567', '050-123-4567']) {
-      await page.locator('#f-phone').fill(good);
-      await page.locator('#f-submit').click();
-      await expect(page.locator('#e-phone')).toBeHidden();
-      await expect(page.locator('#f-status')).toHaveAttribute('data-s', 'err');   // the preview API refuses; the input is intact
-      await expect(page.locator('#f-submit')).toBeEnabled();
-    }
-    let captured, calls = 0;
-    await page.route('**/api/fx/lead', async route => {
-      calls++; captured = route.request().postDataJSON();
-      await new Promise(r => setTimeout(r, 300));
-      await route.fulfill({ json: { ok: true, id: 'local-mock-only' } });
-    });
-    await page.locator('#f-submit').click();
-    await page.locator('#f-submit').click({ force: true });   // a second click while in flight must not send twice
-    await page.waitForURL(lang === 'he' ? '**/thanks' : '**/en/thanks');
-    expect(calls).toBe(1);
-    expect(captured).toMatchObject({ name: 'Preview test', consent: true, consent_marketing: false, utm_source: 'preview', utm_campaign: 'redesign', fbclid: 'abc123', lang, size: '220', color: 'smoked' });
-    expect(captured.consent_text_version).toBeTruthy();
-    expect(captured.session_id).toBeTruthy();
-    await expect(page.locator('h1')).toBeVisible();
-  });
+  // будь-який сторонній домен — провал: без згоди ні Meta, ні Clarity
+  await page.route(url => !['127.0.0.1', 'localhost'].includes(new URL(url).hostname), route => { sent.thirdParty = route.request().url(); return route.abort(); });
+  return sent;
 }
 
-async function fillLead(page) {
-  await page.locator('#f-name').fill('Preview test');
-  await page.locator('#f-phone').fill('050-123-4567');
-  await page.locator('#f-consent').check();
-}
-
-for (const failure of ['rate', 'server', 'offline', 'fields']) {
-  test(`lead ${failure} response reports an error, keeps the input and allows retry`, async ({ page }) => {
-    await page.goto('/en/');
-    await fillLead(page);
-    await page.locator('#f-comment').fill('keep me');
-    await page.route('**/api/fx/lead', route => failure === 'offline'
-      ? route.abort('failed')
-      : failure === 'fields'
-        ? route.fulfill({ status: 422, json: { ok: false, errors: { phone: 'invalid' } } })
-        : route.fulfill({ status: failure === 'rate' ? 429 : 500, json: { ok: false } }));
-    await page.locator('#f-submit').click();
-    await expect(page.locator('#f-status')).toHaveAttribute('data-s', 'err');
-    await expect(page.locator('#f-status')).not.toBeEmpty();
-    await expect(page.locator('#f-submit')).toBeEnabled();
-    await expect(page.locator('#f-comment')).toHaveValue('keep me');
-    if (failure === 'fields') await expect(page.locator('#e-phone')).toBeVisible();
-    expect(page.url()).not.toContain('thanks');
-  });
-}
-
-test('the honeypot decoy is not counted as a conversion', async ({ page }) => {
-  const events = [];
-  // sendBeacon bodies arrive as a Blob; WebKit gives no parsed JSON, so read the raw text
-  const eventNames = req => { try { return (JSON.parse(req.postData() || '{}').events || []).map(e => e.name); } catch (e) { return []; } };
-  await page.route('**/api/fx/event', route => { events.push(...eventNames(route.request())); route.fulfill({ json: { ok: true } }); });
-  await page.goto('/en/');
-  await fillLead(page);
-  await page.evaluate(() => { document.querySelector('#f-website').value = 'bot'; });
-  await page.route('**/api/fx/lead', route => route.fulfill({ json: { ok: true, id: 'hp' } }));
-  await page.locator('#f-submit').click();
-  await page.waitForURL('**/en/thanks');
-  expect(events).toContain('form_submit');
-  expect(events).not.toContain('lead_success');
-});
-
-test('sticky shortcut: appears after the hero action, hides over the form and while typing, keeps focus visible', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
-  await expect(page.locator('#sticky')).toBeHidden();
-  await page.locator('#dimensions').scrollIntoViewIfNeeded();
-  await expect(page.locator('#sticky')).toHaveClass(/is-on/);
-  const cta = page.locator('#sticky .js-anchor');
-  await cta.focus();
-  expect(await cta.evaluate(el => getComputedStyle(el).outlineStyle)).not.toBe('none');
-  await expect.poll(() => cta.evaluate(el => { const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); })).toBeTruthy();
-  await page.locator('#fit summary').click();
-  await page.locator('#roomlen').focus();
-  await expect(page.locator('#sticky')).toBeHidden();          // never over a focused field
-  await page.locator('#roomlen').blur();
-  await cta.click();
-  await expect(page).toHaveURL(/#form$/);
-  await expect(page.locator('#f-name')).toBeInViewport();
-  await expect(page.locator('#sticky')).toBeHidden();          // redundant next to the form
-});
-
-test('WhatsApp controls are absent while no number is configured', async ({ page }) => {
-  await page.goto('/');
-  expect(await page.locator('.js-wa:visible').count()).toBe(0);
-  const wa = await page.evaluate(() => window.FX.cfg.wa);
-  expect(wa).toBe('');
-});
-
-test('reduced motion keeps the product and the configurator usable', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
-  await page.locator('input[name="size"][value="220"]').check({ force: true });
-  await expect(page.locator('#compare-img')).toHaveAttribute('data-variant', 'natural-open');
-  await expect(page.locator('.hero-actions')).toBeVisible();
-  for (const el of await page.locator('.reveal').all()) await expect(el).toHaveClass(/is-in|will-reveal/);
-});
-
-test('enlargement dialog opens on request, closes on Escape and returns focus', async ({ page }) => {
-  await page.goto('/en/');
-  await page.locator('#compare-zoom').click();
-  await expect(page.locator('#image-dialog')).toHaveAttribute('open', '');
-  await expect(page.locator('#image-large')).toHaveAttribute('src', /compare-natural-closed|hero-natural-closed/);
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#image-dialog')).not.toHaveAttribute('open', '');
-  await expect(page.locator('#compare-zoom')).toBeFocused();
-});
-
-test('keyboard journey reaches every control in a coherent order', async ({ page, browserName }) => {
-  await page.goto('/');
-  const order = [];
-  for (let i = 0; i < 60; i++) {
-    await page.keyboard.press('Tab');
-    const id = await page.evaluate(() => { const a = document.activeElement; return a.id || a.getAttribute('name') || a.className.split(' ')[0] || a.tagName; });
-    order.push(id);
-    if (id === 'f-submit') break;
-  }
-  // WebKit only tabs between form controls unless full keyboard access is on, so links are skipped there
-  if (browserName !== 'webkit') expect(order[0]).toBe('skip');
-  for (const control of ['size', 'oak', 'f-name', 'f-phone', 'f-consent', 'f-marketing', 'f-submit']) expect(order).toContain(control);
-  expect(order.indexOf('size')).toBeLessThan(order.indexOf('f-name'));
-  expect(order.indexOf('f-consent')).toBeLessThan(order.indexOf('f-submit'));
-});
-
-test('no 3D, video or third-party payload loads on a normal visit', async ({ page, baseURL }) => {
-  const urls = [];
-  page.on('request', r => urls.push(r.url()));
-  await page.goto('/');
-  await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 600) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 80)); } });
-  await page.waitForTimeout(500);
-  expect(urls.filter(u => !u.startsWith(new URL(baseURL).origin))).toEqual([]);
-  expect(urls.filter(u => /three|goren3d|\.mp4|\.hdr|textures\//.test(u))).toEqual([]);
-});
-
-test('page metadata, one preload per hero variant, hashed immutable asset names', async ({ page }) => {
-  await page.goto('/');
-  const meta = await page.evaluate(() => ({
-    canonical: document.querySelector('link[rel="canonical"]').href,
-    hreflang: [...document.querySelectorAll('link[rel="alternate"][hreflang]')].map(l => l.hreflang),
-    preloads: [...document.querySelectorAll('link[rel="preload"][as="image"]')].map(l => l.media),
-    og: document.querySelector('meta[property="og:image"]').content,
-    assets: [...document.querySelectorAll('link[rel="stylesheet"], script[src]')].map(e => e.href || e.src),
-    unresolved: /\{\{[\w.]+\}\}/.test(document.body.innerText) || /\{\{[A-Z][\w]*\}\}|\{\{t\.[\w]+\}\}/.test(document.documentElement.outerHTML),
-    jsonld: JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent),
-  }));
-  expect(meta.canonical).toBe('https://table.central-aparts.store/');
-  expect(meta.hreflang.sort()).toEqual(['en', 'he', 'x-default']);
-  expect(meta.preloads.length).toBe(2);
-  expect(meta.og).toMatch(/og\.[0-9a-f]{10}\.png$/);
-  for (const a of meta.assets) expect(a).toMatch(/\.[0-9a-f]{10}\.(css|js)$/);
-  expect(meta.unresolved).toBe(false);
-  expect(meta.jsonld.offers.availability).toBe('https://schema.org/PreOrder');
-  expect(meta.jsonld.aggregateRating).toBeUndefined();
-});
-
-test('thanks, 404 and legal routes render in both locales', async ({ page }) => {
-  for (const [url, h1] of [['/thanks.html', /קיבלנו/], ['/en/thanks.html', /Got it/], ['/privacy.html', /פרטיות/], ['/en/terms.html', /Terms/], ['/accessibility.html', /נגישות/], ['/404.html', /לא קיים/]]) {
-    const res = await page.goto(url);
-    expect(res.status(), url).toBe(200);
-    await expect(page.locator('h1')).toHaveText(h1);
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-    expect(overflow).toBeLessThanOrEqual(1);
-  }
-});
-
-test('preview server explicitly refuses real lead submissions', async ({ request }) => {
-  const response = await request.post('/api/fx/lead', { data: { name: 'Preview test' } });
-  expect(response.status()).toBe(503);
-  expect(await response.json()).toMatchObject({ ok: false, error: 'preview_only' });
-});
-
-test('storage failure does not break the page', async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } });
-    Object.defineProperty(window, 'sessionStorage', { get() { throw new Error('blocked'); } });
-  });
+function watchErrors(page) {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
+  page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.text())) errors.push(m.text()); });
+  page.on('response', r => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`); });
+  return errors;
+}
+
+const noOverflow = page => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+// ---------------------------------------------------------------- сторінки й мови
+for (const [path, lang, dir] of [['/', 'he', 'rtl'], ['/en/', 'en', 'ltr']]) {
+  for (const [w, h] of [[360, 740], [390, 844], [1440, 900]]) {
+    test(`${lang} ${w}px: home renders all catalog products, no overflow, no errors`, async ({ page }) => {
+      await mockApi(page);
+      const errors = watchErrors(page);
+      await page.setViewportSize({ width: w, height: h });
+      await page.goto(path);
+      await expect(page.locator('html')).toHaveAttribute('lang', lang);
+      await expect(page.locator('html')).toHaveAttribute('dir', dir);
+      await expect(page.locator('h1')).toHaveCount(1);
+      await expect(page.locator('.cards .card')).toHaveCount(Math.min(PRODUCTS.length, 5));
+      expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+      await expect(page.locator('body')).not.toContainText('להשלמה');
+      await expect(page.locator('body')).not.toContainText('{{');
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
+for (const p of PRODUCTS) {
+  test(`card /p/${p.slug}/ opens with a price, sizes and the estimate mark`, async ({ page }) => {
+    await mockApi(page);
+    const errors = watchErrors(page);
+    await page.goto(`/p/${p.slug}/`);
+    await expect(page.locator('h1')).toHaveCount(1);
+    await expect(page.locator('input[name="size"]')).toHaveCount(p.sizes.length);
+    if (p.preliminary) await expect(page.locator('.pdp-buy')).toContainText('מחיר משוער, טרם אושר');
+    if ((p.images || []).length) await expect(page.locator('.viz-tag').first()).toContainText('הדמיה');
+    if (!p.model3d) await expect(page.locator('.js-3d')).toHaveCount(0);
+    expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+    expect(errors).toEqual([]);
+  });
+}
+
+test('catalog lists every product with a link to its card', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/catalog/');
+  for (const p of PRODUCTS) await expect(page.locator(`a[href="/p/${p.slug}/"]`).first()).toBeVisible();
+});
+
+test('every page of both languages answers 200 with one h1', async ({ page }) => {
+  await mockApi(page);
+  for (const pre of ['', '/en']) {
+    for (const rel of ['/', '/catalog/', '/how/', '/about/', '/faq/', '/privacy', '/terms', '/accessibility']) {
+      const res = await page.goto(pre + rel);
+      expect(res.status(), pre + rel).toBe(200);
+      await expect(page.locator('h1'), pre + rel).toHaveCount(1);
+    }
+  }
+});
+
+// ---------------------------------------------------------------- конфігуратор
+test('size choice changes the price, finish choice its name, and both reach the form', async ({ page }) => {
+  const p = PRODUCTS.find(x => new Set(x.sizes.map(s => s.price_ils)).size > 1 && x.finishes.length > 1);
+  await mockApi(page);
+  await page.goto(`/p/${p.slug}/`);
+  const last = p.sizes[p.sizes.length - 1];
+  await page.locator(`input[name="size"][value="${last.label}"]`).check({ force: true });
+  const shown = '₪' + last.price_ils.toLocaleString('en-US');
+  await expect(page.locator('.price[data-price]')).toContainText(shown);
+  await expect(page.locator('#f-size')).toHaveValue(last.label);
+  const fin = p.finishes[p.finishes.length - 1];
+  await page.locator(`input[name="finish"][value="${fin.id}"]`).check({ force: true });
+  await expect(page.locator('[data-finish-name]')).toHaveText(fin.name.he);
+  await expect(page.locator('#f-finish')).toHaveValue(fin.id);
+  await expect(page.locator('#f-product')).toHaveValue(p.id);
+});
+
+test('"other size" link prefills the comment in the form', async ({ page }) => {
+  await mockApi(page);
+  await page.goto(`/p/${PRODUCTS[0].slug}/`);
+  await page.locator('.js-custom').first().click();
+  await expect(page.locator('#f-comment')).not.toHaveValue('');
+});
+
+// ---------------------------------------------------------------- форма
+test('empty submit shows Hebrew errors next to the fields and sends nothing', async ({ page }) => {
+  const sent = await mockApi(page);
   await page.goto('/');
-  await page.locator('input[name="oak"][value="white"]').check({ force: true });
-  await expect(page.locator('html')).toHaveAttribute('data-oak', 'white');
-  expect(errors).toEqual([]);
+  await page.locator('#lead-form button[type="submit"]').click();
+  await expect(page.locator('#e-name')).toBeVisible();
+  await expect(page.locator('#e-phone')).toBeVisible();
+  await expect(page.locator('#e-consent')).toBeVisible();
+  await expect(page.locator('#f-name')).toHaveAttribute('aria-invalid', 'true');
+  expect(sent.leads).toEqual([]);
+});
+
+test('a valid lead from a card sends product, size, finish and lands on the thank-you screen', async ({ page }) => {
+  const p = PRODUCTS[0];
+  const sent = await mockApi(page);
+  await page.goto(`/p/${p.slug}/?utm_source=test&utm_campaign=night`);
+  await page.locator('#f-name').fill('ישראל ישראלי');
+  await page.locator('#f-phone').fill('050-000-0000');
+  await page.locator('input[name="consent"]').check();
+  await page.locator('#lead-form button[type="submit"]').click();
+  await expect(page.locator('[data-thanks]')).toBeVisible();
+  await expect(page.locator('#lead-form')).toBeHidden();
+  expect(sent.leads).toHaveLength(1);
+  const lead = sent.leads[0];
+  expect(lead.product_id).toBe(p.id);
+  expect(lead.size_label).toBe(p.sizes[0].label);
+  expect(lead.finish_id).toBe(p.finishes[0].id);
+  expect(lead.consent).toBe(true);
+  expect(lead.consent_marketing).toBe(false);              // חוק התקשורת 30א: не відмічено за замовчуванням
+  expect(lead.utm_source).toBe('test');
+  expect(lead.lang).toBe('he');
+  expect(lead.website).toBe('');
+});
+
+test('rate limit answer is shown as text, the form stays', async ({ page }) => {
+  await mockApi(page, { lead: { status: 429, json: { ok: false, error: 'rate_limited' } } });
+  await page.goto('/en/');
+  await page.locator('#f-name').fill('Test Person');
+  await page.locator('#f-phone').fill('0500000000');
+  await page.locator('input[name="consent"]').check();
+  await page.locator('#lead-form button[type="submit"]').click();
+  await expect(page.locator('.f-status')).not.toBeEmpty();
+  await expect(page.locator('#lead-form')).toBeVisible();
+});
+
+// ---------------------------------------------------------------- телефон
+test('mobile: sticky CTA appears after the first screen and hides at the form', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/p/${PRODUCTS[0].slug}/`);
+  const sticky = page.locator('[data-sticky]');
+  await expect(sticky).not.toHaveClass(/is-on/);
+  await page.mouse.wheel(0, 1600);
+  await expect(sticky).toHaveClass(/is-on/);
+  await page.locator('#register').scrollIntoViewIfNeeded();
+  await expect(sticky).not.toHaveClass(/is-on/);
+});
+
+test('mobile menu opens and closes with Escape', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.locator('.menu-btn').click();
+  await expect(page.locator('#nav')).toHaveClass(/is-open/);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#nav')).not.toHaveClass(/is-open/);
+});
+
+// ---------------------------------------------------------------- контакти, згода, נגישות
+test('contacts and WhatsApp stay hidden while the config is empty', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/');
+  await expect(page.locator('[data-contact]')).toBeHidden();
+  await expect(page.locator('.js-wa')).toHaveCount(await page.locator('.js-wa').count());
+  for (const a of await page.locator('.js-wa').all()) await expect(a).toBeHidden();
+});
+
+test('a configured WhatsApp number and e-mail appear with real links', async ({ page }) => {
+  await mockApi(page, { config: FULL_CONFIG });
+  await page.goto(`/p/${PRODUCTS[0].slug}/`);
+  await expect(page.locator('[data-contact]')).toBeVisible();
+  await expect(page.locator('.foot a[data-c="email"]')).toHaveAttribute('href', 'mailto:hello@example.com');
+  const wa = page.locator('.js-wa').first();
+  await expect(wa).toBeVisible();
+  await expect(wa).toHaveAttribute('href', /^https:\/\/wa\.me\/972500000000\?text=/);
+});
+
+test('cookie notice: "essential only" is remembered and nothing third-party loads', async ({ page }) => {
+  const sent = await mockApi(page, { config: { ...EMPTY_CONFIG, pixel_id: '123456789012345' } });
+  await page.goto('/');
+  await expect(page.locator('#notice')).toBeVisible();
+  await page.locator('[data-notice-no]').click();
+  await expect(page.locator('#notice')).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('fx_notice_v1'))).toBe('0');
+  await page.reload();
+  await expect(page.locator('#notice')).toBeHidden();
+  expect(sent.thirdParty).toBeUndefined();
+  await page.locator('[data-cookie-settings]').click();
+  await expect(page.locator('#notice')).toBeVisible();
+});
+
+test('accessibility menu: options toggle, persist and reset', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/');
+  await page.locator('.a11y-btn').click();
+  await expect(page.locator('#a11y-panel')).toBeVisible();
+  for (const k of ['font', 'contrast', 'links', 'still']) {
+    await page.locator(`[data-a11y-opt="${k}"]`).click();
+    await expect(page.locator('html')).toHaveClass(new RegExp(`a11y-${k}`));
+    await expect(page.locator(`[data-a11y-opt="${k}"]`)).toHaveAttribute('aria-pressed', 'true');
+  }
+  await page.reload();
+  await expect(page.locator('html')).toHaveClass(/a11y-contrast/);
+  await page.locator('.a11y-btn').click();
+  await page.locator('[data-a11y-reset]').click();
+  await expect(page.locator('html')).not.toHaveClass(/a11y-/);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#a11y-panel')).toBeHidden();
+});
+
+test('keyboard: skip link is first and moves focus to main', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.skip')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/#main$/);
+});
+
+test('reduced motion: the page renders fully without scroll animations', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await mockApi(page);
+  await page.goto('/');
+  for (const card of await page.locator('.card').all()) expect(await card.evaluate(el => getComputedStyle(el).opacity)).toBe('1');
 });
