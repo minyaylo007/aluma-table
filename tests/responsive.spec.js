@@ -241,7 +241,7 @@ for (const pagePath of ['/', '/en/', '/p/tavor/', '/en/p/tavor/']) {
       for (let i = 0; i < n; i++) {
         await fields.nth(i).focus();
         await page.waitForTimeout(350);
-        const r = await fields.nth(i).evaluate((el) => {
+        const measure = () => fields.nth(i).evaluate((el) => {
           const box = (el.matches('input[type=checkbox]') && el.closest('label') || el).getBoundingClientRect();
           const covers = [];
           for (const sel of ['[data-sticky]', '#notice']) {
@@ -254,6 +254,9 @@ for (const pagePath of ['/', '/en/', '/p/tavor/', '/en/p/tavor/']) {
           }
           return { name: el.name || el.type, covers };
         });
+        let r = await measure();
+        // липка кнопка ховається, коли форма на екрані (кадр + transition .3s) — під навантаженням чекаємо довше
+        if (r.covers.length) { await page.waitForTimeout(900); r = await measure(); }
         for (const c of r.covers) problems.push({ rule: c.startsWith('#notice') ? 'notice-field' : 'sticky-field', where: `поле ${r.name}`, detail: c });
       }
       expect(report(pagePath, `липка ${pagePath} @${w}`, dedupe(problems)), pagePath).toEqual([]);
