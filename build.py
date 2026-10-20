@@ -80,13 +80,69 @@ def money(v: int) -> str:
 # --------------------------------------------------------------------------- дані
 
 
+# Плейсхолдери legal.*.json, що беруться з /api/fx/config у браузері (aluma.js, [data-lv]). Абзац, де є хоч один
+# із них, лежить прихованим, доки всі значення не прийдуть: «להשלמה» на сайті не буває. {company_name} — виняток:
+# поки фірми немає, на його місці бренд, і абзац видно.
+LEGAL_RUNTIME = ("company_name", "business_id", "address", "phone", "email", "a11y_name", "a11y_phone", "a11y_email",
+                 "court_city")
+LEGAL_LTR = ("business_id", "phone", "email", "a11y_phone", "a11y_email")
+
+
+def legal_text(text: str, loc: str) -> str:
+    """Рядок legal.*.json -> HTML: {brand}/{updated} — під час збірки, решта — спани для aluma.js."""
+    brand = CONTENT.get("BRAND_HE" if loc == "he" else "BRAND_LAT") or CONTENT.get("BRAND_LAT", "ALUMA")
+    out = esc(text).replace("{brand}", esc(brand)).replace("{updated}", esc(CONTENT.get("LEGAL_UPDATED", "")))
+
+    def span(m):
+        key = m.group(1)
+        if key not in LEGAL_RUNTIME:
+            raise SystemExit(f"legal.{loc}.json: unknown placeholder {{{key}}}")
+        fallback = esc(brand) if key == "company_name" else ""
+        inner = f'<span data-lv="{key}">{fallback}</span>'
+        return f'<bdi dir="ltr">{inner}</bdi>' if key in LEGAL_LTR else inner
+    return re.sub(r"\{([a-z0-9_]+)\}", span, out)
+
+
+def legal_block(tag: str, text: str, loc: str) -> str:
+    need = sorted(set(re.findall(r"\{([a-z0-9_]+)\}", text)) - {"brand", "updated", "company_name"})
+    attrs = f' data-lneed="{" ".join(need)}" hidden' if need else ""
+    return f"<{tag}{attrs}>{legal_text(text, loc)}</{tag}>"
+
+
+def legal_page(doc: dict, loc: str) -> str:
+    out = [f'<h1 class="h1">{legal_text(doc["title"], loc)}</h1>']
+    if doc.get("updated") and CONTENT.get("LEGAL_UPDATED"):
+        out.append(f'<p class="legal-updated">{legal_text(doc["updated"], loc)}</p>')
+    for sec in doc.get("sections", []):
+        ps = [legal_block("p", t, loc) for t in sec.get("p", [])]
+        lis = [legal_block("li", t, loc) for t in sec.get("li", [])]
+        empty = all(" hidden>" in b for b in ps + lis)       # розділ лише з незаданих даних — сховано цілком
+        out.append(f'<section class="legal-sec" data-lsec{" hidden" if empty else ""}><h2>{legal_text(sec["h"], loc)}</h2>')
+        out += ps
+        if lis:
+            out.append("<ul>" + "".join(lis) + "</ul>")
+        out.append("</section>")
+    return "\n".join(out)
+
+
 def load_locales() -> dict:
+    """i18n/<мова>.json + юридичні тексти сесії 3 (legal.<мова>.json): сторінки, банер, галочка реклами."""
     out = {}
     for loc in LOCALES:
         data = json.loads(read_text(I18N / f"{loc}.json"))
-        legal = I18N / f"legal.{loc}.json"           # юридичні тексти сесії 3 мають перевагу над запасними
-        if legal.is_file():
-            data.update(json.loads(read_text(legal)))
+        legal_f = I18N / f"legal.{loc}.json"
+        if legal_f.is_file():
+            legal = json.loads(read_text(legal_f))
+            for page in ("privacy", "terms", "accessibility"):
+                if page in legal:
+                    data[f"{page}_html"] = legal_page(legal[page], loc)
+            ck, mk = legal.get("cookies") or {}, legal.get("marketing") or {}
+            for key, val in (("cookie_notice", ck.get("text")), ("notice_ok", ck.get("accept")),
+                             ("notice_no", ck.get("decline")), ("cookie_settings", ck.get("settings")),
+                             ("f_marketing", mk.get("label")), ("f_marketing_hint", mk.get("hint")),
+                             ("f_lead_notice", (legal.get("lead_notice") or {}).get("text"))):
+                if val:
+                    data[key] = legal_text(val, loc)
         out[loc] = {k: v for k, v in data.items() if not k.startswith("_")}
     return out
 

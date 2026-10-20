@@ -332,6 +332,8 @@ bdi { unicode-bidi: isolate; }
 .f-status { font-size: .92rem; min-height: 1.2em; }
 .f-status.is-err { color: var(--err); }
 .f-fine { font-size: .82rem; color: var(--muted); }
+.f-fine:empty { display: none; }
+.f-hint { margin: -.25rem 0 .5rem; padding-inline-start: 1.9rem; font-size: .82rem; color: var(--muted); }
 .lead-form[aria-busy="true"] button[type="submit"] { opacity: .7; pointer-events: none; }
 .thanks { display: grid; gap: 14px; justify-items: start; }
 .thanks:focus { outline: none; }

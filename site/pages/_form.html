@@ -44,10 +44,12 @@
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
         <label class="check"><input type="checkbox" name="consent" required aria-describedby="e-consent"><span>{{t.f_consent}}</span></label>
         <p class="f-err" id="e-consent" hidden></p>
-        <label class="check"><input type="checkbox" name="consent_marketing"><span>{{t.f_marketing}}</span></label>
+        <label class="check"><input type="checkbox" name="consent_marketing" aria-describedby="h-marketing"><span>{{t.f_marketing}}</span></label>
+        <p class="f-hint" id="h-marketing">{{t.f_marketing_hint}}</p>
         <button class="btn btn--dark btn--block" type="submit">{{t.f_submit}}</button>
         <p class="f-status" role="status" aria-live="polite"></p>
         <p class="f-fine">{{t.f_fine}}</p>
+        <p class="f-fine">{{t.f_lead_notice}}</p>
       </form>
       <div class="thanks" data-thanks hidden tabindex="-1">
         <p class="thanks-mark" aria-hidden="true">✓</p>

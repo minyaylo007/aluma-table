@@ -185,6 +185,20 @@ test('contacts and WhatsApp stay hidden while the config is empty', async ({ pag
   for (const a of await page.locator('.js-wa').all()) await expect(a).toBeHidden();
 });
 
+test('legal pages: the coordinator line stays hidden without a config and shows the configured contact', async ({ page }) => {
+  await mockApi(page, {});
+  await page.goto('/accessibility');
+  const line = page.locator('[data-lneed~="a11y_email"]');
+  if (!(await line.count())) test.skip(true, 'legal.*.json ще немає');
+  await expect(line).toBeHidden();
+  await expect(page.locator('main')).not.toContainText(/\{[a-z0-9_]+\}/);
+  const cfg = { ...FULL_CONFIG, contact: { ...FULL_CONFIG.contact, phone: '+972500000000' } };
+  await mockApi(page, { config: cfg });
+  await page.goto('/accessibility');
+  await expect(line).toBeVisible();
+  await expect(line).toContainText(cfg.contact.email);
+});
+
 test('a configured WhatsApp number and e-mail appear with real links', async ({ page }) => {
   await mockApi(page, { config: FULL_CONFIG });
   await page.goto(`/p/${PRODUCTS[0].slug}/`);

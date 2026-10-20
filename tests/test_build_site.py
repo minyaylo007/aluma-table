@@ -118,6 +118,19 @@ class BuiltSiteTests(unittest.TestCase):
             self.assertIn("data-a11y-opt=", html, rel)
             self.assertIn("data-notice-no", html, rel)
 
+    def test_legal_pages_hide_blocks_until_the_config_fills_them(self):
+        if not (PROJECT / "i18n" / "legal.he.json").is_file():
+            self.skipTest("legal.*.json ще немає (сесія 3)")
+        for prefix in ("", "en/"):
+            for rel in ("privacy", "terms", "accessibility"):
+                html = self.page(prefix + rel + ".html")
+                text = re.sub(r"<script.*?</script>", " ", html, flags=re.S)
+                self.assertIsNone(re.search(r"\{[a-z0-9_]+\}", re.sub(r"<[^>]+>", " ", text)), f"{prefix}{rel}: сирий плейсхолдер")
+                self.assertIn('class="legal-sec"', html, f"{prefix}{rel}: текст із legal.*.json")
+                for tag in re.findall(r"<(?:p|li)[^>]*data-lneed=[^>]*>", html):
+                    self.assertIn(" hidden", tag, f"{prefix}{rel}: блок без даних видно")
+        self.assertIn('data-lneed="a11y_email a11y_name a11y_phone"', self.page("accessibility.html"))
+
 
 if __name__ == "__main__":
     unittest.main()

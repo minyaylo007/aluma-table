@@ -137,6 +137,20 @@
       if (k === "email") el.setAttribute("href", "mailto:" + v);
     });
     qsa("[data-ac-box]").forEach(function (el) { el.hidden = !acAny; });
+    // юридичні сторінки (legal.*.json): плейсхолдери з конфігу; абзац показуємо, лише коли є всі його значення
+    var lv = {
+      company_name: c.name, business_id: c.business_id, address: c.address || c.city, phone: c.phone, email: c.email,
+      a11y_name: ac.name || c.name, a11y_phone: ac.phone || c.phone, a11y_email: ac.email || c.email,
+      court_city: cfg.court_city || c.court_city
+    };
+    qsa("[data-lv]").forEach(function (el) { var v = lv[el.getAttribute("data-lv")]; if (v) el.textContent = v; });
+    qsa("[data-lneed]").forEach(function (el) {
+      el.hidden = !el.getAttribute("data-lneed").split(" ").every(function (k) { return !!lv[k]; });
+    });
+    qsa("[data-lsec]").forEach(function (sec) {
+      var kids = qsa("p, li", sec);
+      sec.hidden = kids.length > 0 && kids.every(function (k) { return k.hidden; });
+    });
   }
   D.addEventListener("click", function (e) {
     var a = e.target.closest && e.target.closest(".js-wa, a[data-c='phone'], a[data-c='email']");
