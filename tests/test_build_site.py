@@ -53,6 +53,19 @@ class BuiltSiteTests(unittest.TestCase):
                 self.assertEqual(len(re.findall(r"<h1[\s>]", html)), 1, f"{prefix + rel}: рівно один h1")
         self.assertIn('lang="he"', (self.dist / "404.html").read_text(encoding="utf-8"))
 
+    def test_gallery_skips_mechanism_and_light(self):
+        # mechanism і light — окремі блоки вітрини (catalog/README.md); у галереї й мініатюрах лише решта кадрів
+        for p in PRODUCTS:
+            html = self.page(f"p/{p['slug']}/")
+            track = html[html.index('<ul class="g-track"'):html.index('<div class="viewer3d"')] if p.get("images") else ""
+            shown = [i for i in p.get("images") or [] if i["view"] not in ("mechanism", "light")]
+            with self.subTest(product=p["id"]):
+                self.assertEqual(track.count('class="g-slide"'), len(shown))
+                for i in p.get("images") or []:
+                    stem = i["src"].rsplit("/", 1)[1].rsplit("-", 1)[0]
+                    if i["view"] in ("mechanism", "light"):
+                        self.assertNotIn(f"/{p['id']}/{stem}-", track)
+
     def test_every_catalog_product_has_a_card_in_both_languages(self):
         self.assertTrue(PRODUCTS)
         for p in PRODUCTS:

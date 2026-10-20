@@ -164,6 +164,48 @@ class CatalogSchemaTest(unittest.TestCase):
                 biggest = p["images"][0]["srcset_avif"].split(", ")[-1].split(" ")[0]
                 self.assertLessEqual((ASSETS / biggest.lstrip("/")).stat().st_size, 180 * 1024)
 
+    def test_small_variants_for_hero_and_angle(self):
+        # Картка й плитка каталогу на телефоні беруть 400w (запит вітрини 21.10): hero і angle мають 400/800/рідну.
+        for p in self.products:
+            for image in p["images"]:
+                if image["view"] not in ("hero", "angle"):
+                    continue
+                with self.subTest(product=p["id"], src=image["src"]):
+                    for key in ("srcset", "srcset_avif"):
+                        widths = [int(e.rsplit(" ", 1)[1][:-1]) for e in image[key].split(", ")]
+                        self.assertEqual(widths[:2], [400, 800])
+                        self.assertEqual(widths[-1], image["width"])
+
+    def test_image_roles(self):
+        # Схема ролей (catalog/README.md, погоджено з вітриною 21.10): hero — завжди перший (og:image, Meta);
+        # texture — одразу за ним; mechanism — пара станів half/closed; light — пара morning/evening одного кадру.
+        views = {"hero", "texture", "angle", "detail", "open", "mechanism", "light"}
+        for p in self.products:
+            imgs = p["images"]
+            with self.subTest(product=p["id"]):
+                for image in imgs:
+                    self.assertIn(image["view"], views)
+                    self.assertEqual("light" in image, image["view"] == "light")
+                order = [i["view"] for i in imgs]
+                if "texture" in order:
+                    self.assertEqual(order.index("texture"), 1)
+                mech = sorted(i["state"] for i in imgs if i["view"] == "mechanism")
+                self.assertIn(mech, ([], ["closed", "half"]))
+                light = [i for i in imgs if i["view"] == "light"]
+                if light:
+                    self.assertEqual(sorted(i["light"] for i in light), ["evening", "morning"])
+                    self.assertEqual(len({(i["width"], i["height"]) for i in light}), 1)
+
+    def test_hebrew_dimensions_isolated(self):
+        # «100×60» у RTL-тексті браузер переставляє в «60×100»: розмір лише всередині ізолятора U+2066…U+2069
+        # (рівнозначно <bdi dir="ltr">; тег у JSON не можна — build.py екранує тексти через esc()).
+        for p in self.products:
+            for loc, text in _texts(p):
+                if loc != "he":
+                    continue
+                bare = re.sub("⁦[^⁩]*⁩", "", text)
+                self.assertIsNone(re.search(r"\d\s*[×x]\s*\d", bare), (p["id"], text))
+
     def test_model3d_exists(self):
         for p in self.products:
             if p.get("model3d"):

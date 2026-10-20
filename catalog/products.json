@@ -146,7 +146,9 @@
     "images": [
       {
         "src": "/assets/products/tavor/hero-1264.webp",
-        "srcset": "/assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1264.webp 1264w",
+        "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1264.webp 1264w",
+        "srcset_avif": "/assets/products/tavor/hero-400.avif 400w, /assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1264.avif 1264w",
+        "jpg": "/assets/products/tavor/hero-1264.jpg",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -159,13 +161,32 @@
           "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1264.avif 1264w",
-        "jpg": "/assets/products/tavor/hero-1264.jpg"
+        "source": "ai"
+      },
+      {
+        "src": "/assets/products/tavor/angle-1600.webp",
+        "srcset": "/assets/products/tavor/angle-400.webp 400w, /assets/products/tavor/angle-800.webp 800w, /assets/products/tavor/angle-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/angle-400.avif 400w, /assets/products/tavor/angle-800.avif 800w, /assets/products/tavor/angle-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/angle-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "angle",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, במבט נמוך מהצד",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, low three-quarter view"
+        },
+        "kind": "visualization",
+        "source": "render"
       },
       {
         "src": "/assets/products/tavor/detail-1200.webp",
         "srcset": "/assets/products/tavor/detail-800.webp 800w, /assets/products/tavor/detail-1200.webp 1200w",
+        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1200.avif 1200w",
+        "jpg": "/assets/products/tavor/detail-1200.jpg",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -178,9 +199,104 @@
           "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the edge bevelled underneath and the tapered leg"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1200.avif 1200w",
-        "jpg": "/assets/products/tavor/detail-1200.jpg"
+        "source": "ai"
+      },
+      {
+        "src": "/assets/products/tavor/open-1600.webp",
+        "srcset": "/assets/products/tavor/open-800.webp 800w, /assets/products/tavor/open-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/open-800.avif 800w, /assets/products/tavor/open-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/open-1600.jpg",
+        "width": 1600,
+        "height": 1000,
+        "view": "open",
+        "finish": "natural",
+        "base": "oak",
+        "state": "open",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, פתוח עם התוספת",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, extended with the leaf"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
+      {
+        "src": "/assets/products/tavor/mechanism-half-1600.webp",
+        "srcset": "/assets/products/tavor/mechanism-half-800.webp 800w, /assets/products/tavor/mechanism-half-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/mechanism-half-800.avif 800w, /assets/products/tavor/mechanism-half-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/mechanism-half-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "mechanism",
+        "finish": "natural",
+        "base": "oak",
+        "state": "half",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, מנגנון הפתיחה: פתוח למחצה, רואים את המסילות ואת פלטת ההארכה המקופלת מתחת למשטח",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, opening mechanism: half open, showing the runners and the folded leaf under the top"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
+      {
+        "src": "/assets/products/tavor/mechanism-closed-1600.webp",
+        "srcset": "/assets/products/tavor/mechanism-closed-800.webp 800w, /assets/products/tavor/mechanism-closed-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/mechanism-closed-800.avif 800w, /assets/products/tavor/mechanism-closed-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/mechanism-closed-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "mechanism",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, מנגנון הפתיחה: סגור, קו החיבור באמצע המשטח",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, opening mechanism: closed, the seam in the middle of the top"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
+      {
+        "src": "/assets/products/tavor/light-morning-1600.webp",
+        "srcset": "/assets/products/tavor/light-morning-800.webp 800w, /assets/products/tavor/light-morning-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/light-morning-800.avif 800w, /assets/products/tavor/light-morning-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/light-morning-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "light",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, באור בוקר קריר מהחלון",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in cool morning light from the window"
+        },
+        "kind": "visualization",
+        "source": "render",
+        "light": "morning"
+      },
+      {
+        "src": "/assets/products/tavor/light-evening-1600.webp",
+        "srcset": "/assets/products/tavor/light-evening-800.webp 800w, /assets/products/tavor/light-evening-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/light-evening-800.avif 800w, /assets/products/tavor/light-evening-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/light-evening-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "light",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, באור ערב חם של מנורה מעל השולחן",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in warm evening light from a lamp above the table"
+        },
+        "kind": "visualization",
+        "source": "render",
+        "light": "evening"
       }
     ],
     "badges": [
@@ -308,7 +424,9 @@
     "images": [
       {
         "src": "/assets/products/sahar/hero-1264.webp",
-        "srcset": "/assets/products/sahar/hero-800.webp 800w, /assets/products/sahar/hero-1264.webp 1264w",
+        "srcset": "/assets/products/sahar/hero-400.webp 400w, /assets/products/sahar/hero-800.webp 800w, /assets/products/sahar/hero-1264.webp 1264w",
+        "srcset_avif": "/assets/products/sahar/hero-400.avif 400w, /assets/products/sahar/hero-800.avif 800w, /assets/products/sahar/hero-1264.avif 1264w",
+        "jpg": "/assets/products/sahar/hero-1264.jpg",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -321,13 +439,32 @@
           "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/sahar/hero-800.avif 800w, /assets/products/sahar/hero-1264.avif 1264w",
-        "jpg": "/assets/products/sahar/hero-1264.jpg"
+        "source": "ai"
+      },
+      {
+        "src": "/assets/products/sahar/angle-1600.webp",
+        "srcset": "/assets/products/sahar/angle-400.webp 400w, /assets/products/sahar/angle-800.webp 800w, /assets/products/sahar/angle-1600.webp 1600w",
+        "srcset_avif": "/assets/products/sahar/angle-400.avif 400w, /assets/products/sahar/angle-800.avif 800w, /assets/products/sahar/angle-1600.avif 1600w",
+        "jpg": "/assets/products/sahar/angle-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "angle",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "Ø115",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, במבט נמוך מהצד",
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, low three-quarter view"
+        },
+        "kind": "visualization",
+        "source": "render"
       },
       {
         "src": "/assets/products/sahar/detail-1200.webp",
         "srcset": "/assets/products/sahar/detail-800.webp 800w, /assets/products/sahar/detail-1200.webp 1200w",
+        "srcset_avif": "/assets/products/sahar/detail-800.avif 800w, /assets/products/sahar/detail-1200.avif 1200w",
+        "jpg": "/assets/products/sahar/detail-1200.jpg",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -340,9 +477,26 @@
           "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of the round top and the seam where it opens"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/sahar/detail-800.avif 800w, /assets/products/sahar/detail-1200.avif 1200w",
-        "jpg": "/assets/products/sahar/detail-1200.jpg"
+        "source": "ai"
+      },
+      {
+        "src": "/assets/products/sahar/open-1600.webp",
+        "srcset": "/assets/products/sahar/open-800.webp 800w, /assets/products/sahar/open-1600.webp 1600w",
+        "srcset_avif": "/assets/products/sahar/open-800.avif 800w, /assets/products/sahar/open-1600.avif 1600w",
+        "jpg": "/assets/products/sahar/open-1600.jpg",
+        "width": 1600,
+        "height": 1000,
+        "view": "open",
+        "finish": "natural",
+        "base": "oak",
+        "state": "open",
+        "size": "Ø115",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, פתוח עם התוספת",
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, extended with the leaf"
+        },
+        "kind": "visualization",
+        "source": "render"
       }
     ],
     "badges": [
@@ -458,7 +612,9 @@
     "images": [
       {
         "src": "/assets/products/ofek/hero-1264.webp",
-        "srcset": "/assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1264.webp 1264w",
+        "srcset": "/assets/products/ofek/hero-400.webp 400w, /assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1264.webp 1264w",
+        "srcset_avif": "/assets/products/ofek/hero-400.avif 400w, /assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1264.avif 1264w",
+        "jpg": "/assets/products/ofek/hero-1264.jpg",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -471,13 +627,51 @@
           "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1264.avif 1264w",
-        "jpg": "/assets/products/ofek/hero-1264.jpg"
+        "source": "ai"
+      },
+      {
+        "src": "/assets/products/ofek/texture-1600.webp",
+        "srcset": "/assets/products/ofek/texture-800.webp 800w, /assets/products/ofek/texture-1600.webp 1600w",
+        "srcset_avif": "/assets/products/ofek/texture-800.avif 800w, /assets/products/ofek/texture-1600.avif 1600w",
+        "jpg": "/assets/products/ofek/texture-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "texture",
+        "finish": "natural",
+        "base": "none",
+        "state": "closed",
+        "size": "180",
+        "alt": {
+          "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, תקריב של פורניר האלון ושל קנט האלון המלא",
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the oak veneer and the solid-oak edge"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
+      {
+        "src": "/assets/products/ofek/angle-1600.webp",
+        "srcset": "/assets/products/ofek/angle-400.webp 400w, /assets/products/ofek/angle-800.webp 800w, /assets/products/ofek/angle-1600.webp 1600w",
+        "srcset_avif": "/assets/products/ofek/angle-400.avif 400w, /assets/products/ofek/angle-800.avif 800w, /assets/products/ofek/angle-1600.avif 1600w",
+        "jpg": "/assets/products/ofek/angle-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "angle",
+        "finish": "natural",
+        "base": "none",
+        "state": "closed",
+        "size": "180",
+        "alt": {
+          "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, במבט נמוך מהצד",
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, low three-quarter view"
+        },
+        "kind": "visualization",
+        "source": "render"
       },
       {
         "src": "/assets/products/ofek/detail-1200.webp",
         "srcset": "/assets/products/ofek/detail-800.webp 800w, /assets/products/ofek/detail-1200.webp 1200w",
+        "srcset_avif": "/assets/products/ofek/detail-800.avif 800w, /assets/products/ofek/detail-1200.avif 1200w",
+        "jpg": "/assets/products/ofek/detail-1200.jpg",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -490,9 +684,7 @@
           "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the fluted fronts with no handles"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/ofek/detail-800.avif 800w, /assets/products/ofek/detail-1200.avif 1200w",
-        "jpg": "/assets/products/ofek/detail-1200.jpg"
+        "source": "ai"
       }
     ],
     "badges": [
@@ -623,7 +815,9 @@
     "images": [
       {
         "src": "/assets/products/saf/hero-1264.webp",
-        "srcset": "/assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1264.webp 1264w",
+        "srcset": "/assets/products/saf/hero-400.webp 400w, /assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1264.webp 1264w",
+        "srcset_avif": "/assets/products/saf/hero-400.avif 400w, /assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1264.avif 1264w",
+        "jpg": "/assets/products/saf/hero-1264.jpg",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -636,13 +830,51 @@
           "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1264.avif 1264w",
-        "jpg": "/assets/products/saf/hero-1264.jpg"
+        "source": "ai"
+      },
+      {
+        "src": "/assets/products/saf/texture-1600.webp",
+        "srcset": "/assets/products/saf/texture-800.webp 800w, /assets/products/saf/texture-1600.webp 1600w",
+        "srcset_avif": "/assets/products/saf/texture-800.avif 800w, /assets/products/saf/texture-1600.avif 1600w",
+        "jpg": "/assets/products/saf/texture-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "texture",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "130",
+        "alt": {
+          "he": "הדמיה: קונסולה סף, גוון אלון טבעי, תקריב של פורניר האלון ושל קנט האלון המלא",
+          "en": "Visualization: SAF console table, natural oak finish, close-up of the oak veneer and the solid-oak edge"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
+      {
+        "src": "/assets/products/saf/angle-1600.webp",
+        "srcset": "/assets/products/saf/angle-400.webp 400w, /assets/products/saf/angle-800.webp 800w, /assets/products/saf/angle-1600.webp 1600w",
+        "srcset_avif": "/assets/products/saf/angle-400.avif 400w, /assets/products/saf/angle-800.avif 800w, /assets/products/saf/angle-1600.avif 1600w",
+        "jpg": "/assets/products/saf/angle-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "angle",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "130",
+        "alt": {
+          "he": "הדמיה: קונסולה סף, גוון אלון טבעי, במבט נמוך מהצד",
+          "en": "Visualization: SAF console table, natural oak finish, low three-quarter view"
+        },
+        "kind": "visualization",
+        "source": "render"
       },
       {
         "src": "/assets/products/saf/detail-1200.webp",
         "srcset": "/assets/products/saf/detail-800.webp 800w, /assets/products/saf/detail-1200.webp 1200w",
+        "srcset_avif": "/assets/products/saf/detail-800.avif 800w, /assets/products/saf/detail-1200.avif 1200w",
+        "jpg": "/assets/products/saf/detail-1200.jpg",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -655,9 +887,7 @@
           "en": "Visualization: SAF console table, natural oak finish, close-up of the drawer with a finger groove instead of a handle"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/saf/detail-800.avif 800w, /assets/products/saf/detail-1200.avif 1200w",
-        "jpg": "/assets/products/saf/detail-1200.jpg"
+        "source": "ai"
       }
     ],
     "badges": [
@@ -684,7 +914,7 @@
       "en": "A low coffee table with soft corners."
     },
     "description": {
-      "he": "משטח בעובי 4 ס״מ עם פינות מעוגלות, שנוח לעבור לידו גם עם ילדים בבית. בשתי צורות: מלבן 100×60 או עיגול בקוטר 80. רגלי אלון עגולות ועבות בקוטר 9 ס״מ או בסיס פלדה שחור.",
+      "he": "משטח בעובי 4 ס״מ עם פינות מעוגלות, שנוח לעבור לידו גם עם ילדים בבית. בשתי צורות: מלבן ⁦100×60⁩ או עיגול בקוטר 80. רגלי אלון עגולות ועבות בקוטר 9 ס״מ או בסיס פלדה שחור.",
       "en": "A 4 cm top with rounded corners, easy to walk past even with kids around. Two shapes: a 100×60 rectangle or an 80 cm circle. Chunky round oak legs, 9 cm across, or a black steel base."
     },
     "price_from_ils": 2190,
@@ -774,7 +1004,9 @@
     "images": [
       {
         "src": "/assets/products/tal/hero-1264.webp",
-        "srcset": "/assets/products/tal/hero-800.webp 800w, /assets/products/tal/hero-1264.webp 1264w",
+        "srcset": "/assets/products/tal/hero-400.webp 400w, /assets/products/tal/hero-800.webp 800w, /assets/products/tal/hero-1264.webp 1264w",
+        "srcset_avif": "/assets/products/tal/hero-400.avif 400w, /assets/products/tal/hero-800.avif 800w, /assets/products/tal/hero-1264.avif 1264w",
+        "jpg": "/assets/products/tal/hero-1264.jpg",
         "width": 1264,
         "height": 848,
         "view": "hero",
@@ -787,13 +1019,32 @@
           "en": "Visualization: TAL coffee table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/tal/hero-800.avif 800w, /assets/products/tal/hero-1264.avif 1264w",
-        "jpg": "/assets/products/tal/hero-1264.jpg"
+        "source": "ai"
+      },
+      {
+        "src": "/assets/products/tal/angle-1600.webp",
+        "srcset": "/assets/products/tal/angle-400.webp 400w, /assets/products/tal/angle-800.webp 800w, /assets/products/tal/angle-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tal/angle-400.avif 400w, /assets/products/tal/angle-800.avif 800w, /assets/products/tal/angle-1600.avif 1600w",
+        "jpg": "/assets/products/tal/angle-1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "view": "angle",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "100×60",
+        "alt": {
+          "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, במבט נמוך מהצד",
+          "en": "Visualization: TAL coffee table, natural oak finish, low three-quarter view"
+        },
+        "kind": "visualization",
+        "source": "render"
       },
       {
         "src": "/assets/products/tal/detail-1200.webp",
         "srcset": "/assets/products/tal/detail-800.webp 800w, /assets/products/tal/detail-1200.webp 1200w",
+        "srcset_avif": "/assets/products/tal/detail-800.avif 800w, /assets/products/tal/detail-1200.avif 1200w",
+        "jpg": "/assets/products/tal/detail-1200.jpg",
         "width": 1200,
         "height": 896,
         "view": "detail",
@@ -806,9 +1057,7 @@
           "en": "Visualization: TAL coffee table, natural oak finish, close-up of the rounded corner and the chunky round leg"
         },
         "kind": "visualization",
-        "source": "ai",
-        "srcset_avif": "/assets/products/tal/detail-800.avif 800w, /assets/products/tal/detail-1200.avif 1200w",
-        "jpg": "/assets/products/tal/detail-1200.jpg"
+        "source": "ai"
       }
     ],
     "badges": [
