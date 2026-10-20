@@ -18,7 +18,7 @@ import time
 
 # Порядок = порядок на сторінці. public — потрапляє в GET /api/fx/config (через public_config).
 FIELDS = (
-    "contact_name", "contact_phone", "contact_email", "contact_city", "business_id",
+    "contact_name", "contact_phone", "contact_email", "contact_city", "business_id", "address", "court_city",
     "a11y_name", "a11y_phone", "a11y_email",
     "wa_number", "pixel_id", "capi_token", "test_event_code", "clarity_id", "launch_mode",
 )
@@ -101,6 +101,13 @@ def parse_form(form: dict, current: dict, normalize_phone):
         errors["business_id"] = "ח.פ. / ע.מ. — 9 цифр."
     new["business_id"] = business
 
+    # Адреса продавця й місто суду для תקנון — довільний текст, але не довший за 120 знаків.
+    for name in ("address", "court_city"):
+        value = _CONTROL.sub("", str(form.get(name) or "")).strip()
+        if len(value) > 120:
+            errors[name] = "Не длиннее 120 символов."
+        new[name] = value[:120]
+
     new["a11y_name"] = _text(form.get("a11y_name"), 80)
     phone_field("a11y_phone")
     email_field("a11y_email")
@@ -173,6 +180,8 @@ def public_config(settings: dict) -> dict:
             "email": v("contact_email"),
             "city": v("contact_city"),
             "business_id": v("business_id"),
+            "address": v("address"),
+            "court_city": v("court_city"),
         },
         # רכז/ת נגישות для הצהרת נגישות; порожнє поле — береться загальний контакт
         "accessibility_contact": {
@@ -286,6 +295,10 @@ FORM = (
         ("contact_city", "Город", "text", "Например: תל אביב."),
         ("business_id", "ח.פ. / ע.מ. (когда будет)", "text",
          "9 цифр. Пока фирмы нет — оставьте пустым; появится в תקנון и в футере само."),
+        ("address", "Адрес продавца", "text",
+         "Для תקנון, на иврите, до 120 символов. Например: רחוב הרצל 1, תל אביב. Пусто — пункт в תקנון скрыт."),
+        ("court_city", "Город суда (для תקנון)", "text",
+         "Суд, к которому относятся споры по תקנון, на иврите. Например: תל אביב-יפו. Пусто — пункт скрыт."),
     )),
     ("Доступность — רכז/ת נגישות", "Обязателен по закону (תקנה 35): контакт для обращений по доступности, "
      "показывается на странице הצהרת נגישות. Пустые поля — берутся контакты сайта выше.", (
