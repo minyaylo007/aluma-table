@@ -87,6 +87,10 @@ class PublishedCreativesTests(unittest.TestCase):
             self.assertEqual(f.stat().st_size, it["bytes"], it["file"])
             self.assertLessEqual(it["text_share"], 0.20, it["file"])
             self.assertGreaterEqual(it["min_contrast"], 4.5, it["file"])
+            # кожен товар креативу видно: інакше «від ₪…» — ціна товару, якого на картинці немає
+            self.assertEqual(len(it["tiles"]), len(it["products"]), it["file"])
+            for pid, share in zip(it["products"], it["tiles"]):
+                self.assertGreaterEqual(share, report["limits"]["min_tile_share"], f"{it['file']}: {pid}")
             for img in it["images"]:
                 self.assertTrue(img.startswith("site/assets/products/"), f"{it['file']}: кадр не з каталогу — {img}")
         self.assertTrue((OUT / "preview.html").is_file())
