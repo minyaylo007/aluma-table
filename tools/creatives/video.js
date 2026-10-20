@@ -40,29 +40,51 @@ function args(argv) {
   return out;
 }
 
-const imagesOf = (p) => (p.images || []).filter((i) => i.kind === 'visualization')
-  .map((i) => path.join(ROOT, 'site', i.src.replace(/^\//, ''))).filter((f) => fs.existsSync(f));
+const fileOf = (i) => path.join(ROOT, 'site', i.src.replace(/^\//, ''));
+const visuals = (p) => (p.images || []).filter((i) => i.kind === 'visualization' && fs.existsSync(fileOf(i)));
+const imagesOf = (p) => visuals(p).map(fileOf);
+
+// Розкладання результатом у перші 3 с (docs/META-TEST.md, розвідка Ad Library 21.10): якщо в каталозі є кадри
+// «розкладений» і «механізм наполовину» — ролик іде розкладений → механізм → звичайний вигляд. Інакше — два перші кадри.
+function storyOf(p) {
+  const vs = visuals(p);
+  const open = vs.find((i) => i.state === 'open');
+  const half = vs.find((i) => i.view === 'mechanism' && i.state === 'half');
+  const closed = vs.find((i) => i.state === 'closed');
+  return open && half && closed ? [open, half, closed].map(fileOf) : null;
+}
 const at = (t) => `data-text data-at="${t}"`;
 
-// Один товар (8 с): загальний кадр → деталь. Бренд і слоган — з першого кадру (його Meta бере обкладинкою),
+// Один товар (8 с): загальний кадр → деталь (або розкладений → механізм → звичайний, див. storyOf). Бренд і слоган — з першого кадру (його Meta бере обкладинкою),
 // далі по черзі розмір, смуга «складено → розкладено» (числа каталогу), ціна, заклик.
 function single(cfg, v, p) {
-  const imgs = imagesOf(p).slice(0, 2);
+  const story = p.sizes[0].extended_cm ? storyOf(p) : null;
+  const imgs = story || imagesOf(p).slice(0, 2);
   if (!imgs.length) throw new Error(`${v.id}: нема візуалізацій у каталозі`);
   const s = p.sizes[0];
   const duration = 8;
-  const half = imgs.length > 1 ? 4.2 : duration;
-  const shots = [{ from: 0, to: half, z: [1.0, 1.08], x: [0, -1.5] }];
-  if (imgs.length > 1) shots.push({ from: half, to: duration, z: [1.04, 1.12], x: [1, 0] });
+  let shots;
+  if (story) {
+    shots = [{ from: 0, to: 2.4, z: [1.0, 1.06], x: [0, -1] },
+      { from: 2.4, to: 5.2, z: [1.02, 1.1], x: [1, 0] },
+      { from: 5.2, to: duration, z: [1.04, 1.1], x: [0, -1] }];
+  } else {
+    const half = imgs.length > 1 ? 4.2 : duration;
+    shots = [{ from: 0, to: half, z: [1.0, 1.08], x: [0, -1.5] }];
+    if (imgs.length > 1) shots.push({ from: half, to: duration, z: [1.04, 1.12], x: [1, 0] });
+  }
+  // У «story» плашка «складено → розкладено» видна з першого кадру й доростає до розкладеного за першу секунду.
+  const sizeAt = story ? -1 : 1.2;
+  const grow = story ? { from: 0.2, to: 1.4 } : { from: 1.6, to: 3.0 };
   const sub = fill(v.sub, { length: esc(s.length_cm), extended: esc(s.extended_cm ?? '') });
-  const size = s.extended_cm ? `<div class="size" ${at(1.2)}><div class="nums"><span>${esc(s.length_cm)}</span>` +
+  const size = s.extended_cm ? `<div class="size" ${at(sizeAt)}><div class="nums"><span>${esc(s.length_cm)}</span>` +
     `<span>${esc(s.extended_cm)}</span></div><div class="track"><div class="bar"></div></div></div>` : '';
   const card = `<div class="card"><div class="brand" ${at(-1)}>${esc(cfg.brand)}</div>` +
     `<h1 class="headline" ${at(-1)}>${esc(p.tagline.he)}</h1><p class="sub" ${at(0.6)}>${sub}</p>${size}` +
     `<div class="foot"><div class="price"><b ${at(3.4)}>${fill(v.price, priceVars([p], cfg))}</b>` +
     `<small ${at(3.4)}>${esc(cfg.price_note)} · ${esc(cfg.includes)}</small></div><div class="cta" ${at(4.6)}>${esc(cfg.cta)}</div></div></div>`;
   const timeline = { duration, fade: FADE, shots, items: [],
-    size: { ratio: s.extended_cm ? s.length_cm / s.extended_cm : 1, from: 1.6, to: 3.0 } };
+    size: { ratio: s.extended_cm ? s.length_cm / s.extended_cm : 1, ...grow } };
   return { duration, imgs, card, timeline, products: [p.id] };
 }
 
