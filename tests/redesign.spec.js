@@ -192,7 +192,7 @@ test('legal pages: the coordinator line stays hidden without a config and shows 
   if (!(await line.count())) test.skip(true, 'legal.*.json ще немає');
   await expect(line).toBeHidden();
   await expect(page.locator('main')).not.toContainText(/\{[a-z0-9_]+\}/);
-  const cfg = { ...FULL_CONFIG, contact: { ...FULL_CONFIG.contact, phone: '+972500000000' } };
+  const cfg = { ...FULL_CONFIG, contact: { ...FULL_CONFIG.contact, phone: '+1 555 0100' } };
   await mockApi(page, { config: cfg });
   await page.goto('/accessibility');
   await expect(line).toBeVisible();
