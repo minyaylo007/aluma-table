@@ -12,3 +12,4 @@ tests.test_box_env            # оточення прода без друку з
 tests.test_lambda_no_fx_storage  # пастка «тиха втрата заявки»
 tests.test_catalog            # каталог товарів: схема, ціни «משוער», лише візуалізації
 tests.test_quality_creatives  # креативи Meta: чесний текст, ціни з каталогу, межі docs/creatives/
+tests.test_build_bidi         # розміри в he-описах: U+2066…U+2069 → <bdi dir="ltr">

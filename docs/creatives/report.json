@@ -3,15 +3,19 @@
   "limits": {
     "max_bytes": 512000,
     "max_text_share": 0.2,
-    "min_contrast": 4.5
+    "min_contrast": 4.5,
+    "min_tile_share": 0.05
   },
   "creatives": [
     {
       "file": "tavor-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 172388,
+      "bytes": 175556,
       "jpeg_quality": 88,
+      "tiles": [
+        0.6289
+      ],
       "products": [
         "tavor"
       ],
@@ -27,6 +31,9 @@
       "height": 1350,
       "bytes": 197804,
       "jpeg_quality": 88,
+      "tiles": [
+        0.6631
+      ],
       "products": [
         "tavor"
       ],
@@ -42,6 +49,9 @@
       "height": 1920,
       "bytes": 215393,
       "jpeg_quality": 88,
+      "tiles": [
+        0.8324
+      ],
       "products": [
         "tavor"
       ],
@@ -55,8 +65,11 @@
       "file": "sahar-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 162554,
+      "bytes": 165543,
       "jpeg_quality": 88,
+      "tiles": [
+        0.6289
+      ],
       "products": [
         "sahar"
       ],
@@ -72,6 +85,9 @@
       "height": 1350,
       "bytes": 204063,
       "jpeg_quality": 88,
+      "tiles": [
+        0.6631
+      ],
       "products": [
         "sahar"
       ],
@@ -87,6 +103,9 @@
       "height": 1920,
       "bytes": 218227,
       "jpeg_quality": 88,
+      "tiles": [
+        0.8324
+      ],
       "products": [
         "sahar"
       ],
@@ -100,8 +119,15 @@
       "file": "collection-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 173484,
+      "bytes": 187883,
       "jpeg_quality": 88,
+      "tiles": [
+        0.2511,
+        0.0889,
+        0.0889,
+        0.0889,
+        0.0889
+      ],
       "products": [
         "tavor",
         "sahar",
@@ -123,8 +149,15 @@
       "file": "collection-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 218405,
+      "bytes": 238297,
       "jpeg_quality": 88,
+      "tiles": [
+        0.2631,
+        0.0978,
+        0.0978,
+        0.0978,
+        0.0978
+      ],
       "products": [
         "tavor",
         "sahar",
@@ -148,6 +181,13 @@
       "height": 1920,
       "bytes": 372344,
       "jpeg_quality": 88,
+      "tiles": [
+        0.4037,
+        0.1127,
+        0.1127,
+        0.0985,
+        0.0985
+      ],
       "products": [
         "tavor",
         "sahar",

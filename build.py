@@ -58,6 +58,11 @@ def esc(s) -> str:
     return html.escape(str(s), quote=True)
 
 
+def esc_bidi(s) -> str:
+    """Текст тіла сторінки: каталог позначає розміри в he-описах U+2066 (LRI) … U+2069 (PDI) — стають <bdi dir="ltr">."""
+    return esc(s).replace("\u2066", '<bdi dir="ltr">').replace("\u2069", "</bdi>")
+
+
 def write_text_lf(f: pathlib.Path, text: str) -> None:
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_bytes(text.replace("\r\n", "\n").encode("utf-8"))
@@ -428,6 +433,23 @@ def product_jsonld(p: dict, loc: str, url: str) -> str:
     return json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
 
 
+def ld_script(data: dict) -> str:
+    return '<script type="application/ld+json">' + json.dumps(data, ensure_ascii=False).replace("</", "<\\/") + "</script>"
+
+
+def organization_jsonld(loc: str, url: str) -> str:
+    return ld_script({"@context": "https://schema.org", "@type": "Organization", "name": CONTENT["BRAND_LAT"],
+                      "alternateName": CONTENT.get("BRAND_HE") or CONTENT["BRAND_LAT"], "url": url})
+
+
+def faq_jsonld(items: list) -> str:
+    # відповідь у schema.org — чистий текст, без розмітки сторінки
+    plain = lambda h: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h))).strip()  # noqa: E731
+    return ld_script({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": plain(it["q"]), "acceptedAnswer": {"@type": "Answer", "text": plain(it["a"])}}
+        for it in items]})
+
+
 def product_data(products: list, loc: str) -> list:
     """Мінімум для форми й конфігуратора: id, назва, розміри з ціною, тонування, опори."""
     return [{"id": p["id"], "slug": p["slug"], "name": L(p.get("name"), loc),
@@ -499,7 +521,10 @@ def main() -> None:
         other = "en" if loc == "he" else "he"
         base_tokens = {
             "LANG": loc, "DIR": s["dir"], "PREFIX": prefix, "OTHER_LANG": other,
-            "TRACKING": '<script src="/assets/tracking.js" defer></script>' if tracking else "",
+            # піксель і Clarity не потрібні для першого кадру — вантажимо після load, коли потік вільний
+            "TRACKING": ('<script>addEventListener("load",function(){(window.requestIdleCallback||setTimeout)(function(){'
+                         'var s=document.createElement("script");s.src="/assets/tracking.js";document.head.appendChild(s)})})</script>'
+                         if tracking else ""),
             "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
             "GRID_ALL": grid(products, loc, prefix), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
             "PRODUCT_COUNT": str(len(products)),
@@ -526,6 +551,9 @@ def main() -> None:
             toks.setdefault("TITLE", "{{t." + title_key + "}}")
             toks.setdefault("DESC", "{{t." + desc_key + "}}")
             toks.setdefault("JSONLD", "")
+            # загальні сторінки: превью головної своєю мовою (tools/make-og-products.js), інакше старе og.png
+            home_og = f"/assets/og/home-{loc}.jpg"
+            toks.setdefault("OG_IMAGE", home_og if (SITE / home_og.lstrip("/")).is_file() else "/assets/og.png")
             toks.setdefault("BODY_CLASS", "")
             toks["CANONICAL"] = CONTENT["SITE_URL"] + prefix + path
             toks["ALT_HREF"] = (LOCALES[other] + alt_path) or "/"
@@ -538,20 +566,24 @@ def main() -> None:
         for name, path, tk, dk in STATIC_PAGES:
             rel = (prefix.lstrip("/") + "/" if prefix else "") + (
                 "index.html" if path == "/" else path.strip("/") + ("/index.html" if path.endswith("/") else ".html"))
-            emit(rel, templates[name], {"BODY_CLASS": f"page-{name}"}, tk, dk, path, path)
+            toks = {"BODY_CLASS": f"page-{name}"}
+            if name == "home":
+                toks["JSONLD"] = organization_jsonld(loc, CONTENT["SITE_URL"] + prefix + "/")
+            elif name == "faq" and s.get("faq"):
+                toks["JSONLD"] = faq_jsonld(s["faq"])
+            emit(rel, templates[name], toks, tk, dk, path, path)
             if path != "/404":
                 pages_out.append(prefix + path)
 
         for p in products:
             path = f"/p/{p['slug']}/"
-            imgs = [i for i in p.get("images") or [] if i.get("src")]
             lt = p.get("lead_time_weeks") or [10, 12]
             tokens = {
                 "TITLE": esc(L(p.get("name"), loc)) + " — {{t.brand_name}}",
                 "DESC": esc(L(p.get("tagline"), loc) or L(p.get("description"), loc) or s.get("catalog_desc", "")),
                 "BODY_CLASS": "page-product",
                 "P_ID": esc(p["id"]), "P_SLUG": p["slug"], "P_NAME": esc(L(p.get("name"), loc)),
-                "P_TAGLINE": esc(L(p.get("tagline"), loc)), "P_DESC": esc(L(p.get("description"), loc)),
+                "P_TAGLINE": esc_bidi(L(p.get("tagline"), loc)), "P_DESC": esc_bidi(L(p.get("description"), loc)),
                 "P_EST": ('<span class="badge-est">{{t.price_estimate}}</span>' if p.get("preliminary") else ""),
                 "P_EST_SHORT": ("<small>{{t.price_estimate_short}}</small>" if p.get("preliminary") else ""),
                 "P_LEAD_EST": (' <span class="muted">· {{t.estimate}}</span>' if p.get("preliminary") else ""),
@@ -560,7 +592,7 @@ def main() -> None:
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_CONFIG": configurator(p, loc),
                 "P_SPECS": specs(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
-                "P_OG_IMAGE": imgs[0]["src"] if imgs else "/assets/og.png",
+                "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{p['slug']}/index.html",
@@ -630,6 +662,20 @@ def main() -> None:
             body = read_text(t)
             if old_url in body:
                 write_text_lf(t, pat.sub(new_url, body))
+
+    # стилі одним <style> у head: без блокуючого запиту перед першим кадром (~10 КБ gzip, Lighthouse «render-blocking»)
+    css_url = hashed.get("/assets/aluma.css")
+    if css_url:
+        style = "<style>" + read_text(DIST / css_url.lstrip("/")).strip().replace("</", "<\\/") + "</style>"
+        link = f'<link rel="stylesheet" href="{css_url}">'
+        for t in DIST.rglob("*.html"):
+            body = read_text(t)
+            if link in body:
+                write_text_lf(t, body.replace(link, style))
+        for d in (DIST, DIST / "en"):          # копії без розширення (privacy, 404…) — з уже вбудованих
+            for name in ("privacy", "terms", "accessibility", "404"):
+                if (d / f"{name}.html").exists():
+                    shutil.copyfile(d / f"{name}.html", d / name)
 
     (ROOT / ".build").mkdir(exist_ok=True)
     write_text_lf(ROOT / ".build" / "asset-map.json", json.dumps(hashed, indent=1, sort_keys=True))
