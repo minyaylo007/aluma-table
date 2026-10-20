@@ -66,6 +66,9 @@ class CreativeConfigTests(unittest.TestCase):
         for v in self.cfg["variants"]:
             self.assertNotRegex(v["price"] + v["sub"], r"\d{3}", v["id"])
             self.assertIn("{price}", v["price"])
+            # «מ־» лише через {from}: build.js ставить його, коли цін кілька (у SAHAR одна — аудит, рядок 35)
+            self.assertNotIn("מ־", v["price"], v["id"])
+            self.assertIn("{from}", v["price"])
 
     def test_template_marks_every_text_for_the_checks(self):
         """Кожен текстовий плейсхолдер стоїть в елементі з data-text — інакше 20 % і контраст його не бачать."""
