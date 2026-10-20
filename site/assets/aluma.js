@@ -31,19 +31,58 @@
   qsa(".nav a").forEach(function (a) { if (a.getAttribute("href") === here) a.setAttribute("aria-current", "page"); });
 
   // ---------------------------------------------------------------- згода на cookies
+  // "1" — згода (tracking.js вантажить Pixel/Clarity), "0" — лише необхідне; без запису — питаємо.
   var notice = qs("#notice");
   var NOTICE_KEY = "fx_notice_v1";
-  var accepted = false;
-  try { accepted = localStorage.getItem(NOTICE_KEY) === "1"; } catch (e) {}
-  if (notice && !accepted) {
-    notice.hidden = false;
-    var ok = qs("[data-notice-ok]", notice);
-    if (ok) ok.addEventListener("click", function () {
+  var choice = null;
+  try { choice = localStorage.getItem(NOTICE_KEY); } catch (e) {}
+  var showNotice = function () { if (notice) { notice.hidden = false; var b = qs("[data-notice-ok]", notice); if (b) b.focus({ preventScroll: true }); } };
+  if (notice) {
+    if (choice !== "1" && choice !== "0") notice.hidden = false;
+    var okBtn = qs("[data-notice-ok]", notice), noBtn = qs("[data-notice-no]", notice);
+    if (okBtn) okBtn.addEventListener("click", function () {
       try { localStorage.setItem(NOTICE_KEY, "1"); } catch (e) {}
       notice.hidden = true;
       try { if (W.alumaConsent) W.alumaConsent(); } catch (e) {}
     });
+    if (noBtn) noBtn.addEventListener("click", function () {
+      var was = null;
+      try { was = localStorage.getItem(NOTICE_KEY); localStorage.setItem(NOTICE_KEY, "0"); } catch (e) {}
+      notice.hidden = true;
+      if (was === "1") location.reload();            // відкликання згоди: сторонній код уже на сторінці — перезавантажуємо без нього
+    });
   }
+  qsa("[data-cookie-settings]").forEach(function (b) { b.addEventListener("click", showNotice); });
+
+  // ---------------------------------------------------------------- меню נגישות
+  var A11Y_KEY = "fx_a11y", root = D.documentElement, a11y = {};
+  try { a11y = JSON.parse(localStorage.getItem(A11Y_KEY) || "{}") || {}; } catch (e) { a11y = {}; }
+  var aBox = qs("[data-a11y]");
+  if (aBox) {
+    var aBtn = qs(".a11y-btn", aBox), aPanel = qs(".a11y-panel", aBox);
+    var paint = function () {
+      qsa("[data-a11y-opt]", aBox).forEach(function (b) {
+        var k = b.getAttribute("data-a11y-opt");
+        root.classList.toggle("a11y-" + k, !!a11y[k]);
+        b.setAttribute("aria-pressed", a11y[k] ? "true" : "false");
+      });
+      try { localStorage.setItem(A11Y_KEY, JSON.stringify(a11y)); } catch (e) {}
+    };
+    var openPanel = function (open) {
+      aPanel.hidden = !open; aBtn.setAttribute("aria-expanded", String(open));
+      if (open) { var f = qs("button", aPanel); if (f) f.focus(); }
+    };
+    aBtn.addEventListener("click", function () { openPanel(aPanel.hidden); });
+    aBox.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-a11y-opt]");
+      if (b) { var k = b.getAttribute("data-a11y-opt"); a11y[k] = !a11y[k]; paint(); }
+      if (e.target.closest("[data-a11y-reset]")) { a11y = {}; paint(); }
+    });
+    D.addEventListener("keydown", function (e) { if (e.key === "Escape" && !aPanel.hidden) { openPanel(false); aBtn.focus(); } });
+    D.addEventListener("click", function (e) { if (!aPanel.hidden && !aBox.contains(e.target)) openPanel(false); });
+    paint();
+  }
+  if (a11y.still) reduced = true;
 
   // ---------------------------------------------------------------- контакти й WhatsApp з /api/fx/config
   var CFG = null;
@@ -79,6 +118,16 @@
     }
     var box = qs("[data-contact]");
     if (box && any) box.hidden = false;
+    // רכז/ת נגישות — з налаштувань /admin (сесія 3), порожнє не показуємо
+    var ac = cfg.accessibility_contact || {}, acAny = false;
+    qsa("[data-ac]").forEach(function (el) {
+      var k = el.getAttribute("data-ac"), v = ac[k];
+      if (!v) return;
+      acAny = true; el.textContent = v; el.hidden = false;
+      if (k === "phone") el.setAttribute("href", "tel:" + String(v).replace(/[^0-9+]/g, ""));
+      if (k === "email") el.setAttribute("href", "mailto:" + v);
+    });
+    qsa("[data-ac-box]").forEach(function (el) { el.hidden = !acAny; });
   }
   D.addEventListener("click", function (e) {
     var a = e.target.closest && e.target.closest(".js-wa, a[data-c='phone'], a[data-c='email']");

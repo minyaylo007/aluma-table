@@ -84,6 +84,9 @@ def load_locales() -> dict:
     out = {}
     for loc in LOCALES:
         data = json.loads(read_text(I18N / f"{loc}.json"))
+        legal = I18N / f"legal.{loc}.json"           # юридичні тексти сесії 3 мають перевагу над запасними
+        if legal.is_file():
+            data.update(json.loads(read_text(legal)))
         out[loc] = {k: v for k, v in data.items() if not k.startswith("_")}
     return out
 
@@ -351,6 +354,10 @@ def product_jsonld(p: dict, loc: str, url: str) -> str:
             "brand": {"@type": "Brand", "name": CONTENT["BRAND_LAT"]}, "material": L(p.get("material"), loc)}
     if imgs:
         data["image"] = imgs
+    prices = [int(sz["price_ils"]) for sz in p["sizes"]]
+    # пропозиція без рейтингів і відгуків; передзапуск = PreOrder, ціна — орієнтовна з каталогу
+    data["offers"] = {"@type": "AggregateOffer", "priceCurrency": "ILS", "lowPrice": min(prices), "highPrice": max(prices),
+                      "offerCount": len(prices), "availability": "https://schema.org/PreOrder"}
     return json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
 
 

@@ -435,6 +435,32 @@ bdi { unicode-bidi: isolate; }
 .notice .btn--dark { background: var(--cream); color: var(--ink); }
 body.has-sticky .notice { bottom: 84px; }
 @media (min-width: 900px) { body.has-sticky .notice { bottom: 12px; } }
+.notice-btns { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.notice .btn--ghost { background: transparent; color: var(--cream); border-color: rgba(246, 241, 233, .55); }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: start; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------------------------------------------------------------- меню נגישות (власне, без сторонніх оверлеїв) */
+.a11y { position: fixed; z-index: 45; inset-inline-end: 0; top: 42%; }
+.a11y-btn { display: grid; place-items: center; width: 48px; height: 48px; border: 0; cursor: pointer;
+  background: var(--ink); color: var(--paper); border-start-start-radius: var(--r); border-end-start-radius: var(--r); }
+.a11y-btn:hover { background: var(--oak-deep); }
+.a11y-panel { position: absolute; inset-inline-end: 52px; top: 50%; transform: translateY(-50%); width: min(260px, calc(100vw - 72px));
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: 0 18px 50px rgba(33, 28, 23, .18); padding: 16px; display: grid; gap: 8px; }
+.a11y-panel[hidden] { display: none; }
+.a11y-h { font-weight: 700; margin: 0 0 4px; }
+.a11y-panel button { min-height: 44px; padding: 8px 14px; border-radius: var(--r); border: 1px solid var(--line);
+  background: var(--paper); color: var(--ink); font: inherit; text-align: start; cursor: pointer; }
+.a11y-panel button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.a11y-panel a { color: var(--oak-deep); padding-block: 6px; }
+html.a11y-font { font-size: 118.75%; }
+html.a11y-links a { text-decoration: underline !important; text-underline-offset: 3px; }
+html.a11y-links a:not(.btn) { background: #fff3b0; color: #000 !important; }
+html.a11y-contrast { --paper: #fff; --linen: #fff; --sand: #fff; --ink: #000; --muted: #1a1a1a; --line: #000; --oak-deep: #4a2e14;
+  --esp: #000; --esp-2: #000; --dark: #000; --cream: #fff; --dark-muted: #fff; }
+html.a11y-contrast .media--tile, html.a11y-contrast .grain-panel { filter: contrast(1.25); }
+html.a11y-contrast :focus-visible { outline: 3px solid #000 !important; box-shadow: 0 0 0 6px #ff0 !important; }
+html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 
 /* ---------------------------------------------------------------- юридичні сторінки, 404 */
 .legal { padding-block: clamp(40px, 6vw, 88px); }
@@ -449,4 +475,4 @@ body.has-sticky .notice { bottom: 84px; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
-@media print { .top, .sticky-cta, .notice, .register, .foot { display: none !important; } }
+@media print { .top, .sticky-cta, .notice, .a11y, .register, .foot { display: none !important; } }

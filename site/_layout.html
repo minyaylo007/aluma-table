@@ -11,6 +11,7 @@
 <link rel="preload" href="{{t.font_display}}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{{t.font_body}}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/aluma.css">
+<script>try{var a=JSON.parse(localStorage.getItem("fx_a11y")||"{}");for(var k in a)if(a[k])document.documentElement.classList.add("a11y-"+k)}catch(e){}</script>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#f5f0e8">
 <meta property="og:type" content="website">
@@ -63,6 +64,7 @@
       <a href="{{PREFIX}}/privacy">{{t.nav_privacy}}</a>
       <a href="{{PREFIX}}/terms">{{t.nav_terms}}</a>
       <a href="{{PREFIX}}/accessibility">{{t.nav_a11y}}</a>
+      <button class="link-btn" type="button" data-cookie-settings>{{t.cookie_settings}}</button>
       <a href="{{ALT_HREF}}" hreflang="{{OTHER_LANG}}" lang="{{OTHER_LANG}}">{{t.switch_lang}}</a>
     </nav>
     <div class="foot-contact" data-contact hidden>
@@ -83,7 +85,22 @@
 
 <div class="notice" id="notice" role="region" aria-label="{{t.notice_label}}" hidden>
   <p>{{t.notice}} <a href="{{PREFIX}}/privacy">{{t.nav_privacy}}</a></p>
-  <button class="btn btn--sm btn--dark" type="button" data-notice-ok>{{t.notice_ok}}</button>
+  <div class="notice-btns">
+    <button class="btn btn--sm btn--dark" type="button" data-notice-ok>{{t.notice_ok}}</button>
+    <button class="btn btn--sm btn--ghost" type="button" data-notice-no>{{t.notice_no}}</button>
+  </div>
+</div>
+<div class="a11y" data-a11y>
+  <button class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11y-panel"><span class="sr">{{t.a11y_btn}}</span><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v5m0 0l-3.5 6.5M12 15l3.5 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <div class="a11y-panel" id="a11y-panel" role="group" aria-labelledby="a11y-h" hidden>
+    <p class="a11y-h" id="a11y-h">{{t.a11y_panel}}</p>
+    <button type="button" aria-pressed="false" data-a11y-opt="font">{{t.a11y_font}}</button>
+    <button type="button" aria-pressed="false" data-a11y-opt="contrast">{{t.a11y_contrast}}</button>
+    <button type="button" aria-pressed="false" data-a11y-opt="links">{{t.a11y_links}}</button>
+    <button type="button" aria-pressed="false" data-a11y-opt="still">{{t.a11y_motion}}</button>
+    <button type="button" data-a11y-reset>{{t.a11y_reset}}</button>
+    <a href="{{PREFIX}}/accessibility">{{t.a11y_statement}}</a>
+  </div>
 </div>
 <script type="application/json" id="aluma-data">{{DATA}}</script>
 </body>

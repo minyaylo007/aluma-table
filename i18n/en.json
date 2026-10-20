@@ -28,9 +28,8 @@
   "foot_viz": "Every image on this site is a 3D visualisation made from the specification, not a photograph of an existing piece.",
   "foot_prelaunch": "This site is in pre-launch: nothing is sold and nothing is paid here. Prices and lead times are estimates, not yet confirmed; a binding offer is sent in writing.",
   "notice_label": "Cookie notice",
-  "notice": "We use cookies to measure visits and advertising, only if you agree.",
-  "notice_ok": "Agree",
-
+  "notice": "We use cookies and the Meta pixel for measurement and advertising — only if you agree. Without consent we keep anonymous visit data only.",
+  "notice_ok": "Accept",
   "home_title": "ALUMA — made-to-order oak furniture, launch series",
   "home_desc": "Extending dining tables, a round table, a wall-hung media unit and a console in oak — in the size that fits your home. Delivery and assembly included. Early registration, no payment.",
   "catalog_title": "The launch series — ALUMA",
@@ -49,7 +48,6 @@
   "a11y_desc": "What we did to make the site accessible, and how to report a problem.",
   "nf_title": "Page not found — ALUMA",
   "nf_desc": "The page you were looking for does not exist.",
-
   "hero_eyebrow": "Launch series · Oak",
   "hero_h1": "Oak furniture, sized for your home.",
   "hero_lede": "Dining tables, a media unit and a console — clean lines, the finish you choose, the size your room needs. Made in our own workshop, delivered and assembled at yours.",
@@ -96,7 +94,6 @@
   "ws_link": "About the workshop",
   "faq_h2": "Questions",
   "faq_all": "All questions",
-
   "reg_eyebrow": "Early registration",
   "reg_h2": "Save your place in the launch series",
   "reg_lede": "Leave your details and we will come back with a proper offer. No payment on the site, no commitment.",
@@ -131,7 +128,6 @@
   "thx_2": "We will fine-tune size and finish together.",
   "thx_3": "You will get a written offer — no commitment.",
   "thx_back": "Back to the collection",
-
   "viz_tag": "Visualisation",
   "viz_soon": "Visualisations of this piece are coming soon. The drawing follows its dimensions.",
   "cm": "cm",
@@ -199,19 +195,44 @@
   "nf_h1": "Page not found",
   "nf_p": "The link may have changed. Start from the home page or the collection.",
   "nf_home": "Home page",
-
   "faq": [
-    {"q": "How long until I get the piece?", "a": "The estimated time is 10–12 weeks from accepting the written offer to assembly in your home. The piece is made specifically for you and shipped from the workshop, so it takes longer than furniture from stock. The exact time will be in the offer."},
-    {"q": "Is it solid wood?", "a": "Tops are natural oak veneer — a thin layer of real oak — on an MDF or plywood core that does not warp. Edges and fronts are solid oak. That is how we describe it everywhere, without calling it “solid wood” when it is not."},
-    {"q": "Can I order a different size?", "a": "Each piece comes in several set sizes. Need another one? Tell us in the form — we will check with the workshop and come back with an answer and a price."},
-    {"q": "Are delivery and assembly included?", "a": "Yes. The price includes VAT, delivery and assembly at home. If access to your home is special (a high floor without a lift, for example), we will discuss it in advance."},
-    {"q": "Do I need to pay now?", "a": "No. At this stage there is no payment on the site and no commitment. Leave your details, get a written offer, and only then decide."},
-    {"q": "Why is the price an “estimate”?", "a": "We are before the start of production of the series, and prices are not yet final. The binding price is the one in the written offer you receive."},
-    {"q": "What about warranty?", "a": "Warranty terms will be stated in the written offer, before any order."},
-    {"q": "Are the images real?", "a": "Images on the site are 3D visualisations made from the specification and are labelled “Visualisation”. Photographs of the furniture itself will follow when they exist."},
-    {"q": "How do I care for oak?", "a": "Wipe with a damp, well-wrung cloth, without harsh cleaners. Use coasters for hot dishes. Full instructions come with the piece."}
+    {
+      "q": "How long until I get the piece?",
+      "a": "The estimated time is 10–12 weeks from accepting the written offer to assembly in your home. The piece is made specifically for you and shipped from the workshop, so it takes longer than furniture from stock. The exact time will be in the offer."
+    },
+    {
+      "q": "Is it solid wood?",
+      "a": "Tops are natural oak veneer — a thin layer of real oak — on an MDF or plywood core that does not warp. Edges and fronts are solid oak. That is how we describe it everywhere, without calling it “solid wood” when it is not."
+    },
+    {
+      "q": "Can I order a different size?",
+      "a": "Each piece comes in several set sizes. Need another one? Tell us in the form — we will check with the workshop and come back with an answer and a price."
+    },
+    {
+      "q": "Are delivery and assembly included?",
+      "a": "Yes. The price includes VAT, delivery and assembly at home. If access to your home is special (a high floor without a lift, for example), we will discuss it in advance."
+    },
+    {
+      "q": "Do I need to pay now?",
+      "a": "No. At this stage there is no payment on the site and no commitment. Leave your details, get a written offer, and only then decide."
+    },
+    {
+      "q": "Why is the price an “estimate”?",
+      "a": "We are before the start of production of the series, and prices are not yet final. The binding price is the one in the written offer you receive."
+    },
+    {
+      "q": "What about warranty?",
+      "a": "Warranty terms will be stated in the written offer, before any order."
+    },
+    {
+      "q": "Are the images real?",
+      "a": "Images on the site are 3D visualisations made from the specification and are labelled “Visualisation”. Photographs of the furniture itself will follow when they exist."
+    },
+    {
+      "q": "How do I care for oak?",
+      "a": "Wipe with a damp, well-wrung cloth, without harsh cleaners. Use coasters for hot dishes. Full instructions come with the piece."
+    }
   ],
-
   "js": {
     "sending": "Sending…",
     "e_name": "Please enter a name (at least 2 letters).",
@@ -226,8 +247,18 @@
     "custom_text": "Requesting another size: ",
     "any": "—"
   },
-
   "privacy_html": "<h1 class=\"h1\">Privacy policy</h1><p class=\"muted\">Updated: 21 October 2026</p><h2>Who runs the site</h2><p>The site is run by the ALUMA team during pre-launch. Details of the legal entity that will sell the furniture will be published here before sales begin. For any privacy matter you can write to us through the form on the site<span data-c-inline=\"email\" hidden> or by email at <a data-c=\"email\" href=\"#\"></a></span>.</p><h2>What we collect</h2><p>When you fill in the registration form: name, phone, city (if given), the piece, size, finish and base you chose, when it is relevant, how to contact you, your note, and the consents you ticked.</p><p>Technical browsing data: pages viewed, where you came from (for example a campaign), device type, screen size and browser language. We do not store your IP address: it is passed through a one-way hash with a secret key and only the result is kept.</p><h2>Giving information is voluntary</h2><p>You are not legally required to give any information. Without a name and phone we cannot get back to you — that is the only consequence.</p><h2>How we use it</h2><ul><li>to get back to you about your request and send an offer;</li><li>to understand which pieces and sizes interest people, and to improve the site;</li><li>to measure our advertising — only if you accepted cookies.</li></ul><h2>Cookies and third-party tools</h2><p>The site stores a visit identifier and the source of your visit in your browser. If you agree in the notice at the bottom of the screen, Meta Pixel and Microsoft Clarity are also loaded, when they are enabled on the site. Without your consent they are not loaded.</p><h2>How long we keep it</h2><p>Requests are kept until you ask us to delete them. Browsing data is deleted after 180 days, visit identifiers after 400 days.</p><h2>Who we share it with</h2><p>We do not sell information. Your details reach the ALUMA team and the workshop to the extent needed for the offer and production. The server is hosted by a provider in Europe.</p><h2>Your rights</h2><p>You can ask to see, correct or delete your information — write to us and we will handle it promptly.</p>",
   "terms_html": "<h1 class=\"h1\">Terms of use</h1><p class=\"muted\">Updated: 21 October 2026</p><h2>Pre-launch</h2><p>The site presents a furniture series before production starts. Nothing is sold and nothing is paid on the site; registering is not an order and binds neither side.</p><h2>Prices and timing</h2><p>Prices and lead times on the site are estimates, not yet confirmed. A binding price, timing, specification and warranty terms appear only in a written offer sent to you, and only your written acceptance of that offer is an order.</p><h2>Images</h2><p>Images on the site are 3D visualisations from the specification. Wood tone and texture vary slightly from piece to piece in reality — that is the nature of wood.</p><h2>Site content</h2><p>Content and designs on the site belong to ALUMA. Do not copy them for commercial use without permission.</p>",
-  "accessibility_html": "<h1 class=\"h1\">Accessibility statement</h1><p class=\"muted\">Updated: 21 October 2026</p><p>We want everyone to be able to use this site. It was built to WCAG 2.1 level AA guidelines, as far as we managed.</p><h2>What we did</h2><ul><li>full keyboard navigation and a clear focus outline;</li><li>sufficient colour contrast and text that can be enlarged;</li><li>alternative text for every image, and a “Visualisation” label on every visualisation;</li><li>respect for the device's reduced-motion setting;</li><li>forms with labels and error messages announced to screen readers.</li></ul><h2>Found a problem?</h2><p>Write to us through the form on the site<span data-c-inline=\"email\" hidden> or by email at <a data-c=\"email\" href=\"#\"></a></span>, describing what you tried to do and on which page. We will get back to you and fix it.</p>"
+  "accessibility_html": "<h1 class=\"h1\">Accessibility statement</h1><p class=\"muted\">Last reviewed: 21 October 2026</p><p>We want everyone to be able to use this site. It is built to the Israeli standard IS 5568 (based on WCAG 2.0 level AA) and in practice to WCAG 2.1 level AA, under the Equal Rights for Persons with Disabilities (Service Accessibility Adjustments) Regulations, 2013.</p><h2>What we did</h2><ul><li>Full keyboard navigation, a “skip to content” link and a clearly visible focus;</li><li>Contrast of at least 4.5:1 for all text, and text that can be enlarged to 200% without losing content;</li><li>Alternative text for every image, and a “visualisation” label on every render;</li><li>Forms with written labels and text error messages announced to screen readers;</li><li>Language and direction set for every page and every Hebrew fragment;</li><li>The device’s “reduce motion” setting is respected;</li><li>Our own accessibility menu (no third-party plug-in): larger text, high contrast, highlighted links, stop animations.</li></ul><h2>Known limitations</h2><ul><li>The 3D view is a visual extra; everything it shows is also in the specification table on the product page.</li><li>Images are visualisations; real photographs will be added later with alternative text.</li></ul><h2>Accessibility coordinator</h2><p>Found a problem? Write to us through the form on the site<span data-c-inline=\"email\" hidden> or by e-mail at <a data-c=\"email\" href=\"#\"></a></span>, and describe what you tried to do and on which page. We will reply within 14 days and fix it.</p><p data-ac-box hidden><span data-ac=\"name\" hidden></span> <a data-ac=\"phone\" href=\"#\" hidden></a> <a data-ac=\"email\" href=\"#\" hidden></a></p>",
+  "notice_no": "Essential only",
+  "cookie_settings": "Cookie settings",
+  "a11y_btn": "Accessibility menu",
+  "a11y_panel": "Accessibility adjustments",
+  "a11y_font": "Larger text",
+  "a11y_contrast": "High contrast",
+  "a11y_links": "Highlight links",
+  "a11y_motion": "Stop animations",
+  "a11y_reset": "Reset",
+  "a11y_close": "Close",
+  "a11y_statement": "Accessibility statement"
 }
