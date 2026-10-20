@@ -137,7 +137,7 @@ test.describe('після згоди', () => {
 
   test('/p/tavor/ — розмір і тонування: CustomizeProduct', async ({ page }) => {
     await open(page, '/p/tavor/', { consent: '1' });
-    await waitFb(page, 'ViewContent');
+    await waitFb(page, 'PageView');  // tracking.js завантажено — далі лише події від дій
     await page.locator('label.pill:has(input[name="size"][value="180×90"])').click();
     let [c1] = await waitFb(page, 'CustomizeProduct', 1);
     expect(c1[2]).toMatchObject({ content_ids: ['tavor'], content_type: 'product', size: '180×90' });
@@ -172,7 +172,7 @@ test.describe('після згоди', () => {
 
   test('успішна форма — Lead з event_id як у POST /api/fx/lead, ads_consent = true, без ПД', async ({ page }) => {
     const net = await open(page, '/p/tavor/', { consent: '1' });
-    await waitFb(page, 'ViewContent');
+    await waitFb(page, 'PageView');  // tracking.js завантажено — далі лише події від дій
     await fillAndSend(page);
     const [lead] = await waitFb(page, 'Lead');
     expect(net.leads.length).toBe(1);
@@ -193,7 +193,7 @@ test.describe('після згоди', () => {
 
   test('приманка для ботів (id hp) — Lead не рахується', async ({ page }) => {
     const net = await open(page, '/p/tavor/', { consent: '1', lead: { ok: true, id: 'hp' } });
-    await waitFb(page, 'ViewContent');
+    await waitFb(page, 'PageView');  // tracking.js завантажено — далі лише події від дій
     await fillAndSend(page);
     await expect.poll(() => net.leads.length).toBe(1);
     await page.waitForTimeout(800);
