@@ -39,20 +39,18 @@
   var showNotice = function () { if (notice) { notice.hidden = false; var b = qs("[data-notice-ok]", notice); if (b) b.focus({ preventScroll: true }); } };
   if (notice) {
     if (choice !== "1" && choice !== "0") notice.hidden = false;
-    var okBtn = qs("[data-notice-ok]", notice), noBtn = qs("[data-notice-no]", notice);
-    if (okBtn) okBtn.addEventListener("click", function () {
-      try { localStorage.setItem(NOTICE_KEY, "1"); } catch (e) {}
-      notice.hidden = true;
-      try { if (W.alumaConsent) W.alumaConsent(true); } catch (e) {}
-    });
-    if (noBtn) noBtn.addEventListener("click", function () {
+    // вибір пише tracking.js (alumaConsent); без нього — сам ключ, щоб банер не питав знову
+    var choose = function (yes) {
       var was = null;
-      try { was = localStorage.getItem(NOTICE_KEY); localStorage.setItem(NOTICE_KEY, "0"); } catch (e) {}
+      try { was = localStorage.getItem(NOTICE_KEY); } catch (e) {}
       notice.hidden = true;
-      // alumaConsent(false) — лише у версії tracking.js із alumaConsentState: у першій аргумент ігнорується і це була б згода
-      try { if (W.alumaConsentState && W.alumaConsent) W.alumaConsent(false); } catch (e) {}
-      if (was === "1") location.reload();            // відкликання згоди: сторонній код уже на сторінці — перезавантажуємо без нього
-    });
+      if (W.alumaConsent) { try { W.alumaConsent(yes); } catch (e) {} }
+      else { try { localStorage.setItem(NOTICE_KEY, yes ? "1" : "0"); } catch (e) {} }
+      if (!yes && was === "1") location.reload();     // відкликання: сторонній код уже на сторінці — перезавантажуємо без нього
+    };
+    var okBtn = qs("[data-notice-ok]", notice), noBtn = qs("[data-notice-no]", notice);
+    if (okBtn) okBtn.addEventListener("click", function () { choose(true); });
+    if (noBtn) noBtn.addEventListener("click", function () { choose(false); });
   }
   qsa("[data-cookie-settings]").forEach(function (b) { b.addEventListener("click", function () {
     try { if (W.alumaConsentReset) W.alumaConsentReset(); } catch (e) {}
