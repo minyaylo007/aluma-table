@@ -9,7 +9,7 @@ Windows is simulated on any machine by doing the two things Windows does:
     on Windows; os.linesep cannot be patched for that — the C io layer decides at compile time);
   * the text sources in the working tree are CRLF (what core.autocrlf=true checks out).
 
-Every build runs in a temporary copy of build.py + site/ + i18n/ + content.json; the project's own
+Every build runs in a temporary copy of build.py + site/ + i18n/ + catalog/ + content.json; the project's own
 dist/ and .build/ are never touched.
 """
 
@@ -53,10 +53,10 @@ def is_text(f: pathlib.Path) -> bool:
 def make_tree(dst: pathlib.Path, crlf_sources: bool) -> pathlib.Path:
     for name in ("build.py", "content.json"):
         shutil.copy2(PROJECT / name, dst / name)
-    for name in ("site", "i18n"):
+    for name in ("site", "i18n", "catalog"):
         shutil.copytree(PROJECT / name, dst / name)
     if crlf_sources:
-        for f in [dst / "content.json", *(dst / "site").rglob("*"), *(dst / "i18n").rglob("*")]:
+        for f in [dst / "content.json", *(dst / "site").rglob("*"), *(dst / "i18n").rglob("*"), *(dst / "catalog").rglob("*")]:
             if f.is_file() and f.suffix.lower() in TEXT_SUFFIXES:
                 data = f.read_bytes().replace(b"\r\n", b"\n")
                 f.write_bytes(data.replace(b"\n", b"\r\n"))

@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
-"""Render furniture/site/ -> furniture/dist/.
+"""Збирає вітрину ALUMA: site/ + i18n/ + content.json + catalog/products.json -> dist/.
 
-    python build.py                 preview build (missing owner facts become visible markers)
-    python build.py --production    refuses to build while a required owner fact or asset is missing
+    python build.py                 preview (так сьогодні збирається прод)
+    python build.py --production    відмовляє, якщо каталог порожній чи товар без розмірів/ціни
 
-Jobs:
-  1. substitute {{TOKENS}} from content.json and {{t.key}} strings from i18n/<loc>.json, so every
-     name, number and sentence lives in exactly one place and the English twin is the same template;
-  2. draw the technical drawings from the SAME numbers (1 SVG unit = 1 cm, non-scaling strokes);
-  3. read the product asset manifest (site/assets/product/manifest*.json) and emit every <picture>,
-     preload and the JS asset map from it — the page never references a file by convention;
-  4. publish only what is referenced (explicit inventory), content-hash every asset filename and
-     rewrite the references, so immutable caching is honest and HTML stays revalidating;
-  5. print a readiness report: preview vs production.
+Що робить:
+  1. сторінки з шаблонів site/pages/*.html у макеті site/_layout.html для кожної мови
+     (he — корінь, en — /en/): головна, каталог, картка кожного товару /p/<slug>/, «як це працює»,
+     «про майстерню», FAQ, приватність, умови, доступність, 404;
+  2. {{t.key}} — рядки з i18n/<мова>.json, {{TOKEN}} — факти з content.json і блоки, що їх малює
+     цей файл із каталогу (картки, конфігуратор, специфікації, силуети-заглушки) — жодне число чи
+     речення не живе в HTML;
+  3. публікує лише те, на що посилаються сторінки, і дає ассетам імена з хешем вмісту;
+  4. LF і UTF-8 на будь-якій ОС (tests/test_build_eol.py).
 
-No dependencies beyond the standard library; Pillow is used only to read legacy image sizes.
+Лише стандартна бібліотека.
 """
 
 from __future__ import annotations
 
 import hashlib
+import html
 import json
+import os
 import pathlib
 import re
 import shutil
@@ -28,707 +30,603 @@ import sys
 
 ROOT = pathlib.Path(__file__).parent
 SITE = ROOT / "site"
+PAGES = SITE / "pages"
 DIST = ROOT / "dist"
 I18N = ROOT / "i18n"
-PRODUCT = SITE / "assets" / "product"
-RENDERS = SITE / "assets" / "renders"
-EDITORIAL = SITE / "assets" / "editorial"
+CATALOG = pathlib.Path(os.environ.get("ALUMA_CATALOG") or (ROOT / "catalog" / "products.json"))
 
 PRODUCTION = "--production" in sys.argv
-
-# --------------------------------------------------------------------------- facts (one source)
 CONTENT = json.loads((ROOT / "content.json").read_text(encoding="utf-8"))
-L_CLOSED = float(CONTENT["LEN_CLOSED"])
-L_LEAF = float(CONTENT["LEAF_CM"])
-L_OPEN = float(CONTENT["LEN_OPEN"])
-W = float(CONTENT["WIDTH"])
-H = float(CONTENT["HEIGHT"])
-TOP_T = float(CONTENT["TOP_MM"]) / 10.0
-SEATS_CLOSED = int(CONTENT["SEATS_CLOSED"])
-SEATS_OPEN = int(CONTENT["SEATS_OPEN"])
-assert abs(L_CLOSED + L_LEAF - L_OPEN) < 1e-6, "content.json: LEN_CLOSED + LEAF_CM must equal LEN_OPEN"
-# drawing-only geometry, provisional (goren3d.js spec; no manufacturer drawing exists)
-FRAME_INSET = 26.0    # A-frame centre, measured from the end of the closed top
-FOOT_W = 60.0         # foot spread across the width
-STOCK_X = 7.5         # trestle stock along the length
-SLIDE = L_LEAF / 2    # each half moves 30 cm outward when the table opens
-
-PAPER = "#f4f1ea"     # page ground = render ground
-
-
-def fmt(v: float) -> str:
-    return f"{v:.2f}".rstrip("0").rstrip(".")
-
-
-def path(*pts) -> str:
-    head = f"M{fmt(pts[0][0])} {fmt(pts[0][1])}"
-    rest = "".join(f"L{fmt(x)} {fmt(y)}" for x, y in pts[1:])
-    return head + rest + "Z"
-
-
-NS = 'vector-effect="non-scaling-stroke"'
-
-
-def overlay(items, vw: float, vh: float, cls_base: str = "dim-num") -> str:
-    """Dimension numerals / labels as HTML positioned over the drawing: real text in the page font,
-    readable on every screen. Percentages, physical left/top — drawings never mirror."""
-    out = []
-    for x, y, text, cls in items:
-        out.append(f'<span class="{cls_base} {cls}" style="left:{x / vw * 100:.2f}%;top:{y / vh * 100:.2f}%">{text}</span>')
-    return "".join(out)
-
-
-def grid_defs(uid: str) -> str:
-    return (f'<defs><pattern id="grid{uid}" width="10" height="10" patternUnits="userSpaceOnUse">'
-            f'<path class="gridline" d="M10 0H0V10" fill="none" {NS}/></pattern></defs>')
-
-
-# --------------------------------------------------------------------------- elevation
-
-
-def elevation_svg() -> str:
-    """Front view on a 10 cm grid. The two halves slide outward and the leaf, drawn dashed inside
-    the closed table (hidden-line convention), rises into the gap and turns solid."""
-    vw, vh = 260.0, 100.0
-    base = 80.0
-    top_y = base - H
-    cx = vw / 2
-    half = L_CLOSED / 2
-    frame_cx = L_CLOSED / 2 - FRAME_INSET
-    rail, foot, thick = 34.0, 56.0, 5.0
-    leg_top = top_y + TOP_T
-    ch = 1.6
-
-    def a_frame(sign: int) -> str:
-        c = cx + sign * frame_cx
-        outline = path(
-            (c - rail / 2, leg_top), (c + rail / 2, leg_top),
-            (c + foot / 2, base), (c + foot / 2 - thick, base),
-            (c + rail / 2 - thick, leg_top + thick),
-            (c - rail / 2 + thick, leg_top + thick),
-            (c - foot / 2 + thick, base), (c - foot / 2, base),
-        )
-        return f'<path class="oak-leg" d="{outline}" {NS}/>'
-
-    def slab(x0: float, x1: float, chamfer_left: bool, chamfer_right: bool) -> str:
-        bl = x0 + (ch if chamfer_left else 0)
-        br = x1 - (ch if chamfer_right else 0)
-        yb = top_y + TOP_T
-        d = path((x0, top_y), (x1, top_y), (x1, yb - (ch if chamfer_right else 0)),
-                 (br, yb), (bl, yb), (x0, yb - (ch if chamfer_left else 0)))
-        return f'<path class="oak-top" d="{d}" {NS}/>'
-
-    beam_h, beam_y = 9.0, leg_top + 6.0
-    leaf_hidden_y = top_y + TOP_T + 1.0
-    dim_y = base + 12.0
-
-    def dim_line(length_cm: float, cls: str) -> str:
-        w = length_cm / 2
-        return (
-            f'<g class="dim {cls}">'
-            f'<line x1="{fmt(cx - w)}" y1="{fmt(dim_y)}" x2="{fmt(cx + w)}" y2="{fmt(dim_y)}" {NS}/>'
-            f'<path d="M{fmt(cx - w + 3)} {fmt(dim_y - 1.6)}L{fmt(cx - w)} {fmt(dim_y)}L{fmt(cx - w + 3)} {fmt(dim_y + 1.6)}" {NS}/>'
-            f'<path d="M{fmt(cx + w - 3)} {fmt(dim_y - 1.6)}L{fmt(cx + w)} {fmt(dim_y)}L{fmt(cx + w - 3)} {fmt(dim_y + 1.6)}" {NS}/>'
-            f'<line x1="{fmt(cx - w)}" y1="{fmt(dim_y - 3)}" x2="{fmt(cx - w)}" y2="{fmt(dim_y + 3)}" {NS}/>'
-            f'<line x1="{fmt(cx + w)}" y1="{fmt(dim_y - 3)}" x2="{fmt(cx + w)}" y2="{fmt(dim_y + 3)}" {NS}/>'
-            "</g>"
-        )
-
-    svg = f'''<svg class="draw draw--elev" viewBox="0 0 {fmt(vw)} {fmt(vh)}" role="img"
-     aria-labelledby="elevTitle elevDesc" preserveAspectRatio="xMidYMid meet">
-  <title id="elevTitle">{{{{t.draw_elev_t}}}}</title>
-  <desc id="elevDesc">{{{{t.draw_elev_d}}}}</desc>
-  {grid_defs("E")}
-  <rect class="gridfill" x="0" y="0" width="{fmt(vw)}" height="{fmt(base)}" fill="url(#gridE)"/>
-  <g class="slide-r">{a_frame(-1)}</g>
-  <g class="slide-l">{a_frame(1)}</g>
-  <g class="beam-grp"><rect class="steel" x="{fmt(cx - frame_cx)}" y="{fmt(beam_y)}"
-     width="{fmt(frame_cx * 2)}" height="{fmt(beam_h)}"/></g>
-  <g class="leaf-grp"><rect class="leaf" x="{fmt(cx - L_LEAF / 2)}" y="{fmt(leaf_hidden_y)}" width="{fmt(L_LEAF)}" height="{fmt(TOP_T)}" {NS}/></g>
-  <g class="slide-r">{slab(cx - half, cx, True, False)}</g>
-  <g class="slide-l">{slab(cx, cx + half, False, True)}</g>
-  <line class="floor" x1="10" y1="{fmt(base)}" x2="{fmt(vw - 10)}" y2="{fmt(base)}" {NS}/>
-  {dim_line(L_CLOSED, "only-160")}
-  {dim_line(L_OPEN, "only-220")}
-  <g class="dim"><line x1="{fmt(vw - 12)}" y1="{fmt(top_y)}" x2="{fmt(vw - 12)}" y2="{fmt(base)}" {NS}/><path d="M{fmt(vw - 13.6)} {fmt(top_y + 3)}L{fmt(vw - 12)} {fmt(top_y)}L{fmt(vw - 10.4)} {fmt(top_y + 3)}" {NS}/><path d="M{fmt(vw - 13.6)} {fmt(base - 3)}L{fmt(vw - 12)} {fmt(base)}L{fmt(vw - 10.4)} {fmt(base - 3)}" {NS}/><line x1="{fmt(vw - 15)}" y1="{fmt(top_y)}" x2="{fmt(vw - 9)}" y2="{fmt(top_y)}" {NS}/></g>
-</svg>'''
-    nums = overlay([(cx, dim_y, f'<span id="dim-len" data-bind="len">{fmt(L_CLOSED)}</span>', "dim-num--mid"),
-                    (vw - 12, base - H / 2, fmt(H), "dim-num--side")], vw, vh)
-    return f'<div class="draw-wrap draw-wrap--elev">{svg}{nums}</div>'
-
-
-# --------------------------------------------------------------------------- plan
-
-
-def chair(cx_: float, cy: float, rot: int) -> str:
-    w, d = 44.0, 42.0
-    back_t = 5.0
-    seat_w, seat_d = 40.0, 34.0
-    return (
-        f'<g class="chair" transform="translate({fmt(cx_)} {fmt(cy)}) rotate({rot})">'
-        f'<rect class="chair-back" x="{fmt(-w/2)}" y="{fmt(-d/2)}" width="{fmt(w)}" height="{fmt(back_t)}"/>'
-        f'<rect class="chair-seat" x="{fmt(-seat_w/2)}" y="{fmt(-d/2 + back_t + 2)}" width="{fmt(seat_w)}" height="{fmt(seat_d)}" {NS}/>'
-        "</g>"
-    )
-
-
-def plan_svg() -> str:
-    """Top view, to scale, with illustrative chairs and the trestle footprints."""
-    hw = W / 2
-    gap = 13.0
-    chair_d = 42.0  # глибина стільця; ширина на кресленні не потрібна
-    vw = L_OPEN + 2 * (gap + chair_d) + 14
-    vh = 2 * (hw + gap + chair_d) + 14
-    cx, cy = vw / 2, vh / 2
-    chair_off = hw + gap + chair_d / 2
-
-    def side_chairs(length_cm: float, per_side: int) -> str:
-        step = length_cm / per_side
-        out = []
-        for i in range(per_side):
-            x = cx - length_cm / 2 + step * (i + 0.5)
-            out.append(chair(x, cy - chair_off, 0))
-            out.append(chair(x, cy + chair_off, 180))
-        return "".join(out)
-
-    def end_chairs(length_cm: float) -> str:
-        off = length_cm / 2 + gap + chair_d / 2
-        return chair(cx - off, cy, 90) + chair(cx + off, cy, 270)
-
-    half = L_CLOSED / 2
-    per_side_closed = SEATS_CLOSED // 2
-    per_side_open = (SEATS_OPEN - 2) // 2
-
-    def slab(x0: float, x1: float) -> str:
-        return (f'<rect class="oak-top" x="{fmt(x0)}" y="{fmt(cy - hw)}" '
-                f'width="{fmt(x1 - x0)}" height="{fmt(hw * 2)}" {NS}/>')
-
-    def foot(sign: int) -> str:
-        x = cx + sign * (L_CLOSED / 2 - FRAME_INSET)
-        return (f'<rect class="foot-print" x="{fmt(x - STOCK_X / 2)}" y="{fmt(cy - FOOT_W / 2)}" '
-                f'width="{fmt(STOCK_X)}" height="{fmt(FOOT_W)}" {NS}/>')
-
-    return f'''<svg class="draw draw--plan" viewBox="0 0 {fmt(vw)} {fmt(vh)}" role="img"
-     aria-labelledby="planTitle planDesc" preserveAspectRatio="xMidYMid meet">
-  <title id="planTitle">{{{{t.draw_plan_t}}}}</title>
-  <desc id="planDesc">{{{{t.draw_plan_d}}}}</desc>
-  <g class="only-160">{side_chairs(L_CLOSED, per_side_closed)}</g>
-  <g class="only-220">{side_chairs(L_OPEN, per_side_open)}{end_chairs(L_OPEN)}</g>
-  <g class="leaf-grp"><rect class="leaf leaf--plan" x="{fmt(cx - L_LEAF / 2)}" y="{fmt(cy - hw)}" width="{fmt(L_LEAF)}" height="{fmt(hw * 2)}" {NS}/></g>
-  <g class="slide-r">{slab(cx - half, cx + 0.5)}{foot(-1)}</g>
-  <g class="slide-l">{slab(cx - 0.5, cx + half)}{foot(1)}</g>
-</svg>'''
-
-
-# --------------------------------------------------------------------------- edge section (labelled diagram)
-
-
-def edge_svg() -> str:
-    """Schematic section through the edge of the top, 1 unit = 1 mm, with HTML labels: plywood core,
-    oak veneer on both faces, the solid-oak lip with its underside chamfer. Labelled as schematic."""
-    vw, vh = 400.0, 110.0
-    y0, y1 = 34.0, 74.0        # the 40 mm top sits between y0 and y1
-    lip = 40.0
-    svg = f'''<svg class="draw draw--edge" viewBox="0 0 {fmt(vw)} {fmt(vh)}" role="img"
-     aria-labelledby="edgeTitle edgeDesc" preserveAspectRatio="xMidYMid meet">
-  <title id="edgeTitle">{{{{t.dg_title}}}}</title>
-  <desc id="edgeDesc">{{{{t.dg_desc}}}}</desc>
-  <path class="oak-face-fill" d="M0 {fmt(y0)}H{fmt(vw)}V{fmt(y1)}H0Z"/>
-  <rect class="ply" x="{fmt(lip)}" y="{fmt(y0 + 4)}" width="{fmt(vw - lip)}" height="32"/>
-  <g class="grain">
-    <line x1="{fmt(lip)}" y1="{fmt(y0 + 9)}" x2="{fmt(vw)}" y2="{fmt(y0 + 9)}" {NS}/><line x1="{fmt(lip)}" y1="{fmt(y0 + 14)}" x2="{fmt(vw)}" y2="{fmt(y0 + 14)}" {NS}/>
-    <line x1="{fmt(lip)}" y1="{fmt(y0 + 19)}" x2="{fmt(vw)}" y2="{fmt(y0 + 19)}" {NS}/><line x1="{fmt(lip)}" y1="{fmt(y0 + 24)}" x2="{fmt(vw)}" y2="{fmt(y0 + 24)}" {NS}/>
-    <line x1="{fmt(lip)}" y1="{fmt(y0 + 29)}" x2="{fmt(vw)}" y2="{fmt(y0 + 29)}" {NS}/>
-  </g>
-  <path class="lip" d="M0 {fmt(y0)}H{fmt(lip)}V{fmt(y1)}H16L0 {fmt(y1 - 14)}Z" {NS}/>
-  <line class="veneer" x1="{fmt(lip)}" y1="{fmt(y0 + 3)}" x2="{fmt(vw)}" y2="{fmt(y0 + 3)}" {NS}/>
-  <line class="veneer" x1="{fmt(lip)}" y1="{fmt(y1 - 3)}" x2="{fmt(vw)}" y2="{fmt(y1 - 3)}" {NS}/>
-  <path class="dg-line" d="M230 {fmt(y0 + 3)}V18" {NS}/>
-  <path class="dg-line" d="M24 {fmt(y0)}V18" {NS}/>
-  <path class="dg-line" d="M10 {fmt(y1 - 8)}V92" {NS}/>
-</svg>'''
-    labels = overlay([
-        (230, 12, "{{t.dg_veneer}}", ""),
-        (230, 55, "{{t.dg_core}}", ""),
-        (64, 12, "{{t.dg_lip}}", ""),
-        (52, 98, "{{t.dg_chamfer}}", ""),
-    ], vw, vh, cls_base="dg-label")
-    return f'<div class="draw-wrap draw-wrap--edge">{svg}{labels}<p class="dg-title">{{{{t.dg_title}}}}</p></div>'
-
-
-# --------------------------------------------------------------------------- logo lockups
-
-
-def svg_paths(file: pathlib.Path) -> dict:
-    text = file.read_text(encoding="utf-8")
-    return dict(re.findall(r'<path id="([\w-]+)" d="([^"]+)"', text))
-
-
-def lockup(file: pathlib.Path, ids: list, viewbox: str, cls: str, title: str, uid: str) -> str:
-    paths = svg_paths(file)
-    body = "".join(f'<path d="{paths[i]}"/>' for i in ids if i in paths)
-    return (f'<svg class="{cls}" viewBox="{viewbox}" role="img" aria-labelledby="{uid}" fill="currentColor" '
-            f'preserveAspectRatio="xMidYMid meet"><title id="{uid}">{title}</title>{body}</svg>')
-
-
-def logo_tokens() -> dict:
-    """One lockup per placement: the same wordmark appears in the masthead and in the footer, and an
-    SVG <title id> must be unique on the page."""
-    a = SITE / "assets"
-    spec = {
-        "he": (a / "logo.svg", ["wordmark-he", "mark"], "0 -740 3703 740", "logo logo--he", "אלומה"),
-        "en": (a / "logo-en.svg", ["mark", "wordmark-en", "wordmark-he"], "0 -740 4496 1334", "logo logo--en", "ALUMA אלומה"),
-    }
-    out = {}
-    for loc, (f, ids, vb, cls, title) in spec.items():
-        out[loc] = {"logo": lockup(f, ids, vb, cls, title, "logoTitle"),
-                    "logo_foot": lockup(f, ids, vb, cls, title, "logoTitleFoot")}
-    return out
-
-
-# --------------------------------------------------------------------------- product asset manifest
-
-WIDTHS_LEGACY = (800, 1200, 1600)
-FALLBACKS_USED: list = []
-PROVISIONAL: list = []
-
-
-def image_size(f: pathlib.Path, default=(2400, 1500)) -> tuple:
-    try:
-        from PIL import Image
-        with Image.open(f) as im:
-            return im.size
-    except Exception:
-        return default
-
-
-def load_manifest() -> dict:
-    """id -> asset. Every manifest*.json in site/assets/product/ is merged (the render set and the
-    home scene are produced by different pipelines and write separate files)."""
-    assets = {}
-    if not PRODUCT.is_dir():
-        return assets
-    for f in sorted(PRODUCT.glob("manifest*.json")):
-        try:
-            data = json.loads(f.read_text(encoding="utf-8"))
-        except Exception as e:
-            print(f"  warning: {f.name} unreadable ({e}); skipped")
-            continue
-        for a in data.get("assets", []):
-            aid = a.get("id")
-            if not aid:
-                continue
-            files = a.get("files") or {}
-            ok = all((PRODUCT / v["path"]).exists() for m in files.values() for v in m.values())
-            if not files or not ok:
-                print(f"  warning: manifest asset {aid} lists missing files; ignored")
-                continue
-            a["base"] = "/assets/product/"
-            assets[aid] = a
-            if a.get("status") != "verified":
-                PROVISIONAL.append(aid)
-    return assets
-
-
-def legacy_asset(aid: str, stem: str, folder: pathlib.Path, base: str, widths=WIDTHS_LEGACY) -> dict | None:
-    files = {"avif": {}, "webp": {}}
-    for w in widths:
-        for ext in ("avif", "webp"):
-            f = folder / f"{stem}-{w}.{ext}"
-            if f.exists():
-                files[ext][str(w)] = {"path": f.name, "bytes": f.stat().st_size}
-    if not files["webp"]:
-        return None
-    biggest = max(int(k) for k in files["webp"])
-    wpx, hpx = image_size(folder / f"{stem}-{biggest}.webp")
-    return {"id": aid, "width": wpx, "height": hpx, "files": files, "base": base, "status": "fallback-legacy", "source": f"{folder.relative_to(ROOT).as_posix()}/{stem}-*"}
-
-
-def asset(assets: dict, aid: str, fallback: tuple | None) -> dict | None:
-    a = assets.get(aid)
-    if a:
-        return a
-    if fallback:
-        stem, folder, base = fallback
-        la = legacy_asset(aid, stem, folder, base)
-        if la:
-            FALLBACKS_USED.append(f"{aid} <- {folder.relative_to(ROOT).as_posix()}/{stem}")
-            return la
-    return None
-
-
-def srcset(a: dict, ext: str) -> str:
-    m = (a.get("files") or {}).get(ext) or {}
-    return ", ".join(f"{a['base']}{v['path']} {w}w" for w, v in sorted(m.items(), key=lambda kv: int(kv[0])))
-
-
-def pick(a: dict, ext: str, prefer: int) -> str:
-    m = (a.get("files") or {}).get(ext) or {}
-    if not m:
-        return ""
-    ws = sorted(int(w) for w in m)
-    w = prefer if prefer in ws else max(x for x in ws if x <= prefer) if any(x <= prefer for x in ws) else ws[0]
-    return a["base"] + m[str(w)]["path"]
-
-
-def picture(a: dict, alt: str, sizes: str, *, mobile: dict | None = None, mobile_sizes: str = "100vw",
-            pic_id: str = "", img_id: str = "", loading: str = "lazy", fetchpriority: str = "", prefer: int = 1200) -> str:
-    """<picture> from a manifest asset: AVIF then WebP, optional art-directed mobile asset first."""
-    def sources(x: dict, sz: str, media: str = "") -> str:
-        out = []
-        for ext in ("avif", "webp"):
-            ss = srcset(x, ext)
-            if ss:
-                out.append(f'<source{media} type="image/{ext}" srcset="{ss}" sizes="{sz}" width="{x["width"]}" height="{x["height"]}">')
-        return "".join(out)
-    parts = [f'<picture{" id=" + chr(34) + pic_id + chr(34) if pic_id else ""}>']
-    if mobile:
-        parts.append(sources(mobile, mobile_sizes, f' media="{HERO_MEDIA_M}"'))
-    parts.append(sources(a, sizes))
-    attrs = [f'src="{pick(a, "webp", prefer)}"', f'width="{a["width"]}"', f'height="{a["height"]}"', f'alt="{alt}"', 'decoding="async"']
-    if img_id:
-        attrs.insert(0, f'id="{img_id}"')
-    if loading:
-        attrs.append(f'loading="{loading}"')
-    if fetchpriority:
-        attrs.append(f'fetchpriority="{fetchpriority}"')
-    parts.append(f'<img {" ".join(attrs)}>')
-    parts.append("</picture>")
-    return "".join(parts)
-
-
-def preload(a: dict, sizes: str, media: str) -> str:
-    ss = srcset(a, "avif") or srcset(a, "webp")
-    typ = "image/avif" if srcset(a, "avif") else "image/webp"
-    return f'<link rel="preload" as="image" type="{typ}" media="{media}" imagesrcset="{ss}" imagesizes="{sizes}" fetchpriority="high">'
-
-
-def finish_img(assets: dict, tone_: str) -> str:
-    a = assets.get(f"goren-finish-{tone_}")
-    if a:
-        ss = srcset(a, "webp")
-        return (f'<img class="finish-img" src="{pick(a, "webp", 160)}" srcset="{ss}" sizes="{FINISH_SIZES}" '
-                f'width="{a["width"]}" height="{a["height"]}" alt="" loading="lazy" decoding="async">')
-    f = RENDERS / f"top-{tone_}-closed-800.webp"
-    if f.exists():
-        FALLBACKS_USED.append(f"goren-finish-{tone_} <- renders/top-{tone_}-closed-800 (css crop)")
-        return f'<img class="finish-img finish-img--legacy" src="/assets/renders/{f.name}" width="800" height="560" alt="" loading="lazy" decoding="async">'
-    return '<span class="finish-img" aria-hidden="true"></span>'
-
-
-# --------------------------------------------------------------------------- build
-
-
-def digest_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()[:10]
-
-
-# The build must not depend on the OS it runs on. Text-mode writes turn "\n" into "\r\n" on Windows,
-# and a Windows checkout (core.autocrlf) hands copytree CRLF sources — prod of 09.09 was built there
-# and differed from a Linux build in every page and in every CSS/JS/SVG content hash. So every text
-# file is written with an explicit LF and UTF-8, and copied text sources are normalised to LF.
-TEXT_SUFFIXES = (".html", ".css", ".js", ".svg", ".xml", ".txt", ".webmanifest", ".json")
+LOCALES = {"he": "", "en": "/en"}          # мова -> префікс шляху
+TEXT_EXT = (".html", ".css", ".js", ".webmanifest", ".xml", ".txt", ".svg", ".json")
+
+# сторінки: (шаблон, шлях без префікса мови, ключ заголовка, ключ опису)
+STATIC_PAGES = [
+    ("home", "/", "home_title", "home_desc"),
+    ("catalog", "/catalog/", "catalog_title", "catalog_desc"),
+    ("how", "/how/", "how_title", "how_desc"),
+    ("about", "/about/", "about_title", "about_desc"),
+    ("faq", "/faq/", "faq_title", "faq_desc"),
+    ("privacy", "/privacy", "privacy_title", "privacy_desc"),
+    ("terms", "/terms", "terms_title", "terms_desc"),
+    ("accessibility", "/accessibility", "a11y_title", "a11y_desc"),
+    ("404", "/404", "nf_title", "nf_desc"),
+]
+
+
+def esc(s) -> str:
+    return html.escape(str(s), quote=True)
 
 
 def write_text_lf(f: pathlib.Path, text: str) -> None:
-    f.write_text(text, encoding="utf-8", newline="\n")
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_bytes(text.replace("\r\n", "\n").encode("utf-8"))
 
 
-def normalise_eol(root: pathlib.Path) -> None:
-    for f in sorted(root.rglob("*")):
-        if f.is_file() and f.suffix.lower() in TEXT_SUFFIXES:
-            data = f.read_bytes()
-            if b"\r" in data:
-                f.write_bytes(data.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+def read_text(f: pathlib.Path) -> str:
+    return f.read_bytes().decode("utf-8").replace("\r\n", "\n")
+
+
+def digest_bytes(data: bytes, suffix: str) -> str:
+    if suffix.lower() in TEXT_EXT:            # джерело з CRLF (Windows checkout) хешується як LF
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()[:10]
+
+
+def money(v: int) -> str:
+    return "₪" + f"{int(v):,}"
+
+
+# --------------------------------------------------------------------------- дані
+
+
+# Плейсхолдери legal.*.json, що беруться з /api/fx/config у браузері (aluma.js, [data-lv]). Абзац, де є хоч один
+# із них, лежить прихованим, доки всі значення не прийдуть: «להשלמה» на сайті не буває. {company_name} — виняток:
+# поки фірми немає, на його місці бренд, і абзац видно.
+LEGAL_RUNTIME = ("company_name", "business_id", "address", "phone", "email", "a11y_name", "a11y_phone", "a11y_email",
+                 "court_city")
+LEGAL_LTR = ("business_id", "phone", "email", "a11y_phone", "a11y_email")
+
+
+def legal_text(text: str, loc: str) -> str:
+    """Рядок legal.*.json -> HTML: {brand}/{updated} — під час збірки, решта — спани для aluma.js."""
+    brand = CONTENT.get("BRAND_HE" if loc == "he" else "BRAND_LAT") or CONTENT.get("BRAND_LAT", "ALUMA")
+    out = esc(text).replace("{brand}", esc(brand)).replace("{updated}", esc(CONTENT.get("LEGAL_UPDATED", "")))
+
+    def span(m):
+        key = m.group(1)
+        if key not in LEGAL_RUNTIME:
+            raise SystemExit(f"legal.{loc}.json: unknown placeholder {{{key}}}")
+        fallback = esc(brand) if key == "company_name" else ""
+        inner = f'<span data-lv="{key}">{fallback}</span>'
+        return f'<bdi dir="ltr">{inner}</bdi>' if key in LEGAL_LTR else inner
+    return re.sub(r"\{([a-z0-9_]+)\}", span, out)
+
+
+def legal_block(tag: str, text: str, loc: str) -> str:
+    need = sorted(set(re.findall(r"\{([a-z0-9_]+)\}", text)) - {"brand", "updated", "company_name"})
+    attrs = f' data-lneed="{" ".join(need)}" hidden' if need else ""
+    return f"<{tag}{attrs}>{legal_text(text, loc)}</{tag}>"
+
+
+def legal_page(doc: dict, loc: str) -> str:
+    out = [f'<h1 class="h1">{legal_text(doc["title"], loc)}</h1>']
+    if doc.get("updated") and CONTENT.get("LEGAL_UPDATED"):
+        out.append(f'<p class="legal-updated">{legal_text(doc["updated"], loc)}</p>')
+    for sec in doc.get("sections", []):
+        ps = [legal_block("p", t, loc) for t in sec.get("p", [])]
+        lis = [legal_block("li", t, loc) for t in sec.get("li", [])]
+        empty = all(" hidden>" in b for b in ps + lis)       # розділ лише з незаданих даних — сховано цілком
+        out.append(f'<section class="legal-sec" data-lsec{" hidden" if empty else ""}><h2>{legal_text(sec["h"], loc)}</h2>')
+        out += ps
+        if lis:
+            out.append("<ul>" + "".join(lis) + "</ul>")
+        out.append("</section>")
+    return "\n".join(out)
 
 
 def load_locales() -> dict:
-    locales = {}
-    for f in sorted(I18N.glob("*.json")):
-        if "." in f.stem:  # legal.he.json etc.: page texts, not a UI locale
+    """i18n/<мова>.json + юридичні тексти сесії 3 (legal.<мова>.json): сторінки, банер, галочка реклами."""
+    out = {}
+    for loc in LOCALES:
+        data = json.loads(read_text(I18N / f"{loc}.json"))
+        legal_f = I18N / f"legal.{loc}.json"
+        if legal_f.is_file():
+            legal = json.loads(read_text(legal_f))
+            for page in ("privacy", "terms", "accessibility"):
+                if page in legal:
+                    data[f"{page}_html"] = legal_page(legal[page], loc)
+            ck, mk = legal.get("cookies") or {}, legal.get("marketing") or {}
+            for key, val in (("cookie_notice", ck.get("text")), ("notice_ok", ck.get("accept")),
+                             ("notice_no", ck.get("decline")), ("cookie_settings", ck.get("settings")),
+                             ("f_marketing", mk.get("label")), ("f_marketing_hint", mk.get("hint")),
+                             ("f_lead_notice", (legal.get("lead_notice") or {}).get("text"))):
+                if val:
+                    data[key] = legal_text(val, loc)
+        out[loc] = {k: v for k, v in data.items() if not k.startswith("_")}
+    return out
+
+
+def load_catalog() -> list:
+    if not CATALOG.is_file():
+        raise SystemExit(f"catalog missing: {CATALOG} (сесія 2 кладе catalog/products.json)")
+    data = json.loads(read_text(CATALOG))
+    items = data["products"] if isinstance(data, dict) else data
+    out, seen = [], set()
+    for p in items:
+        if p.get("hidden"):
             continue
-        locales[f.stem] = json.loads(f.read_text(encoding="utf-8"))
-    base = set(locales.get("he", {}))
-    for name, strings in locales.items():
-        missing = base - set(strings)
-        extra = set(strings) - base
-        if missing:
-            raise SystemExit(f"i18n/{name}.json is missing keys: {sorted(missing)[:8]}")
-        if extra:
-            raise SystemExit(f"i18n/{name}.json has keys he.json lacks: {sorted(extra)[:8]}")
-    return locales
+        slug = str(p.get("slug") or "").strip()
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug) or slug in seen:
+            raise SystemExit(f"catalog: bad or duplicate slug {slug!r}")
+        seen.add(slug)
+        sizes = [s for s in p.get("sizes") or [] if s.get("price_ils")]
+        if not sizes and PRODUCTION:
+            raise SystemExit(f"catalog: {slug} has no priced sizes")
+        p["sizes"] = sizes
+        p.setdefault("finishes", [])
+        p.setdefault("bases", [])
+        p.setdefault("images", [])
+        p.setdefault("badges", [])
+        if not p.get("price_from_ils") and sizes:
+            p["price_from_ils"] = min(int(s["price_ils"]) for s in sizes)
+        out.append(p)
+    if not out:
+        raise SystemExit("catalog: no visible products")
+    return out
 
 
-def render_faq(items: list) -> str:
-    return "".join(
-        f'<details><summary>{it["q"]}</summary><div class="answer"><p>{it["a"]}</p></div></details>'
-        for it in items
-    )
+def L(obj, loc: str) -> str:
+    """Поле {he, en} -> рядок мови; без перекладу — іврит; рядок — як є."""
+    if isinstance(obj, dict):
+        return str(obj.get(loc) or obj.get("he") or obj.get("en") or "")
+    return str(obj or "")
 
 
-# Fields only the owner can supply. Rendered as a visible marker in the reader's own language:
-# inventing a company is worse, a raw {{TOKEN}} is worse still, and --production refuses to build.
-OWNER_FIELDS = {
-    "COMPANY_NAME": ("שם העוסק — להשלמה", "operator name — to be supplied"),
-    "COMPANY_ID": ("מס׳ עוסק — להשלמה", "registration number — to be supplied"),
-    "ADDRESS": ("כתובת — להשלמה", "address — to be supplied"),
-    "CONTACT_EMAIL": ("כתובת דוא״ל — להשלמה", "e-mail — to be supplied"),
-    "PHONE": ("טלפון — להשלמה", "phone — to be supplied"),
-    "ACCESSIBILITY_CONTACT": ("שם האחראי — להשלמה", "accessibility contact — to be supplied"),
-    "COURT_CITY": ("עיר — להשלמה", "city — to be supplied"),
-}
+# --------------------------------------------------------------------------- силуети-заглушки
 
-JS_KEYS = ("f_name", "f_phone", "e_name", "e_phone", "e_phone_invalid", "e_consent", "e_consent_short", "s_missing",
-           "s_sending", "s_invalid", "s_offline", "wa_prefill", "f_note", "thanks_href", "cmp_alt",
-           "fit_hint", "fit_hint_bad", "fit_open_ok", "fit_open_exact", "fit_open_no",
-           "fit_closed_ok", "fit_closed_exact", "fit_closed_no", "fit_bar_alt", "gallery_title")
 
-# These must describe what the stylesheet actually renders: --stage and --gut are the CSS tokens.
-STAGE_PX = 1120          # styles-next.css --stage
-GUT_MAX = 64             # styles-next.css --gut upper clamp
-HERO_SIZES = f"(min-width: {STAGE_PX}px) {STAGE_PX}px, 100vw"
-COMPARE_SIZES = "(min-width: 62rem) min(1000px, calc(100vw - 2 * 64px - 48px - 26vw)), calc(100vw - 2 * 20px)"
-HOME_SIZES = f"(min-width: {STAGE_PX + 2 * GUT_MAX}px) {STAGE_PX}px, calc(100vw - 2 * clamp(20px, 4.4vw, {GUT_MAX}px))"
-EDGE_SIZES = "(min-width: 62rem) 40vw, calc(100vw - 40px)"
-FRAME_SIZES = "(min-width: 62rem) 52vw, calc(100vw - 40px)"
-FINISH_SIZES = "(min-width: 62rem) 96px, min(120px, calc((100vw - 2 * 20px - 28px) / 3))"
-# one breakpoint for the art-directed hero, written as a range so the two halves partition exactly
-HERO_MEDIA_M = "(width < 48rem)"
-HERO_MEDIA_D = "(width >= 48rem)"
+def silhouette(p: dict, cls: str = "") -> str:
+    """Лінійний силует виробу за його ж розмірами (1 одиниця = 1 см), поверх плитки кольору дуба.
+    Заглушка, доки нема візуалізацій: жодної фотографії, лише креслення."""
+    s = (p.get("sizes") or [{}])[0]
+    length = float(s.get("length_cm") or 160)
+    height = float(s.get("height_cm") or 75)
+    cat = str(p.get("category") or "")
+    slug = str(p.get("slug") or "")
+    vw, vh = 300.0, 200.0
+    scale = min(220 / max(length, 1), 120 / max(height, 1))
+    w, h = length * scale, height * scale
+    x0, base = (vw - w) / 2, 160.0
+    top = base - h
+    t = max(3.0, 4 * scale)
+    parts = []
+    round_ = "round" in slug or "round" in cat or str(s.get("label", "")).startswith("Ø")
+    if cat in ("media_unit", "storage") or "tv" in slug or "unit" in slug:
+        # підвісна тумба: корпус на стіні, тінь під ним, вертикальні фасади
+        y = top - 10
+        parts.append(f'<line class="sil-wall" x1="{x0 - 30:.1f}" y1="{y + h / 2:.1f}" x2="{x0 + w + 30:.1f}" y2="{y + h / 2:.1f}"/>')
+        parts.append(f'<rect class="sil-body" x="{x0:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="1.5"/>')
+        n = 3 if length < 170 else 4
+        for i in range(1, n):
+            xx = x0 + w * i / n
+            parts.append(f'<line class="sil-line" x1="{xx:.1f}" y1="{y + 4:.1f}" x2="{xx:.1f}" y2="{y + h - 4:.1f}"/>')
+        parts.append(f'<ellipse class="sil-shadow" cx="{vw / 2:.1f}" cy="{base + 6:.1f}" rx="{w / 2.2:.1f}" ry="4"/>')
+    else:
+        leg = max(3.0, 5 * scale)
+        inset = w * (0.08 if round_ else 0.06)
+        parts.append(f'<ellipse class="sil-shadow" cx="{vw / 2:.1f}" cy="{base + 2:.1f}" rx="{w / 2:.1f}" ry="5"/>')
+        if round_:
+            cx = vw / 2
+            parts.append(f'<path class="sil-leg" d="M{cx - leg:.1f} {top + t:.1f}H{cx + leg:.1f}L{cx + leg * 1.6:.1f} {base:.1f}H{cx - leg * 1.6:.1f}Z"/>')
+            parts.append(f'<rect class="sil-leg" x="{cx - w * 0.22:.1f}" y="{base - 3:.1f}" width="{w * 0.44:.1f}" height="3" rx="1.5"/>')
+        else:
+            for xx in (x0 + inset, x0 + w - inset - leg):
+                parts.append(f'<rect class="sil-leg" x="{xx:.1f}" y="{top + t:.1f}" width="{leg:.1f}" height="{base - top - t:.1f}"/>')
+            if cat == "console" or "console" in slug:
+                parts.append(f'<rect class="sil-line-r" x="{x0 + inset:.1f}" y="{base - h * 0.28:.1f}" width="{w - 2 * inset:.1f}" height="{t * 0.8:.1f}"/>')
+        parts.append(f'<rect class="sil-top" x="{x0:.1f}" y="{top:.1f}" width="{w:.1f}" height="{t:.1f}" rx="1.2"/>')
+    return (f'<svg class="sil {cls}" viewBox="0 0 {vw:.0f} {vh:.0f}" aria-hidden="true" focusable="false">'
+            + "".join(parts) + "</svg>")
+
+
+# --------------------------------------------------------------------------- блоки з каталогу
+
+
+def picture(img: dict, loc: str, *, eager: bool = False, sizes: str = "100vw", cls: str = "") -> str:
+    src = str(img.get("src") or "")
+    alt = esc(L(img.get("alt"), loc))
+    attrs = f'src="{esc(src)}" alt="{alt}" decoding="async"'
+    attrs += ' loading="eager" fetchpriority="high"' if eager else ' loading="lazy"'
+    if img.get("width") and img.get("height"):
+        attrs += f' width="{int(img["width"])}" height="{int(img["height"])}"'
+    if img.get("srcset"):
+        attrs += f' srcset="{esc(img["srcset"])}" sizes="{esc(sizes)}"'
+    sources = ""
+    if src.endswith(".webp"):
+        avif = src[:-5] + ".avif"
+        if (SITE / avif.lstrip("/")).is_file():
+            sources = f'<source type="image/avif" srcset="{esc(img.get("srcset_avif") or avif)}" sizes="{esc(sizes)}">'
+    return f'<picture class="{cls}">{sources}<img {attrs}></picture>'
+
+
+def media(p: dict, loc: str, *, eager: bool = False, sizes: str = "100vw") -> str:
+    """Перша візуалізація товару з позначкою «הדמיה» або плитка-силует."""
+    imgs = [i for i in p.get("images") or [] if i.get("src")]
+    if imgs:
+        return (f'<div class="media media--img">{picture(imgs[0], loc, eager=eager, sizes=sizes)}'
+                f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></div>')
+    return f'<div class="media media--tile">{silhouette(p)}</div>'
+
+
+def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
+    sizes = p.get("sizes") or []
+    dims = ""
+    if sizes:
+        labels = " / ".join(esc(s.get("label")) for s in sizes[:4])
+        dims = f'<span class="card-dims"><bdi dir="ltr">{labels}</bdi> {{{{t.cm}}}}</span>'
+    est = ' <small class="est">{{t.price_estimate_short}}</small>' if p.get("preliminary") else ""
+    price = (f'<span class="card-price">{{{{t.from}}}} <bdi dir="ltr">{money(p["price_from_ils"])}</bdi>{est}</span>'
+             if p.get("price_from_ils") else "")
+    tag = L(p.get("tagline"), loc)
+    return (f'<li class="card"><a class="card-link" href="{prefix}/p/{p["slug"]}/" data-product="{esc(p["id"])}">'
+            f'{media(p, loc, eager=eager, sizes="(min-width: 960px) 30vw, (min-width: 600px) 45vw, 92vw")}'
+            f'<span class="card-body"><span class="card-name">{esc(L(p.get("name"), loc))}</span>'
+            + (f'<span class="card-tag">{esc(tag)}</span>' if tag else "")
+            + f'<span class="card-meta">{dims}{price}</span></span></a></li>')
+
+
+def badges(p: dict, loc: str) -> str:
+    items = [b for b in p.get("badges") or [] if b.get("id") != "launch_series" and L(b.get("label"), loc)]
+    if not items:
+        return ""
+    return '<ul class="badges" role="list">' + "".join(
+        f'<li class="badge">{esc(L(b.get("label"), loc))}</li>' for b in items) + "</ul>"
+
+
+def grid(products: list, loc: str, prefix: str, limit: int | None = None) -> str:
+    items = products[:limit] if limit else products
+    return '<ul class="cards" role="list">' + "".join(card(p, loc, prefix, eager=False) for p in items) + "</ul>"
+
+
+def size_dims(s: dict) -> str:
+    parts = [s.get("length_cm"), s.get("width_cm"), s.get("height_cm")]
+    parts = [str(x) for x in parts if x]
+    return "×".join(parts)
+
+
+def configurator(p: dict, loc: str) -> str:
+    out = []
+    sizes = p.get("sizes") or []
+    if sizes:
+        out.append('<fieldset class="opt" data-opt="size"><legend>{{t.pick_size}}</legend><div class="pills">')
+        for i, s in enumerate(sizes):
+            ext = (f'<span class="pill-sub"><bdi dir="ltr">→ {esc(s["extended_cm"])}</bdi></span>'
+                   if s.get("extended_cm") else "")
+            out.append(
+                f'<label class="pill"><input type="radio" name="size" value="{esc(s.get("label"))}"'
+                f' data-price="{int(s["price_ils"])}"{" checked" if i == 0 else ""}>'
+                f'<span class="pill-main"><bdi dir="ltr">{esc(size_dims(s))}</bdi></span>{ext}'
+                f'<span class="pill-price"><bdi dir="ltr">{money(s["price_ils"])}</bdi></span></label>')
+        out.append('</div><a class="opt-custom js-custom" href="#register">{{t.custom_size}}</a></fieldset>')
+    fins = p.get("finishes") or []
+    if fins:
+        first = esc(L(fins[0].get("name"), loc))
+        out.append('<fieldset class="opt" data-opt="finish"><legend>{{t.pick_finish}} <span class="opt-val" data-finish-name>'
+                   + first + '</span></legend><div class="swatches">')
+        for i, f in enumerate(fins):
+            hexv = f.get("hex") or "#c8a27a"
+            if not re.fullmatch(r"#[0-9a-fA-F]{3,8}", hexv):
+                hexv = "#c8a27a"
+            name = esc(L(f.get("name"), loc))
+            out.append(f'<label class="swatch" title="{name}"><input type="radio" name="finish" value="{esc(f.get("id"))}"'
+                       f' data-name="{name}"{" checked" if i == 0 else ""}><span class="swatch-dot" style="--c:{hexv}"></span>'
+                       f'<span class="sr">{name}</span></label>')
+        out.append("</div></fieldset>")
+    bases = p.get("bases") or []
+    if bases:
+        out.append('<fieldset class="opt" data-opt="base"><legend>{{t.pick_base}}</legend><div class="pills pills--text">')
+        for i, b in enumerate(bases):
+            out.append(f'<label class="pill"><input type="radio" name="base" value="{esc(b.get("id"))}"{" checked" if i == 0 else ""}>'
+                       f'<span class="pill-main">{esc(L(b.get("name"), loc))}</span></label>')
+        out.append("</div></fieldset>")
+    return "".join(out)
+
+
+def size_bars(products: list) -> str:
+    """Смуги довжин першого товару з кількома розмірами — у масштабі, з його ж чисел."""
+    p = next((q for q in products if len(q.get("sizes") or []) > 1), None)
+    if not p:
+        return ""
+    sizes = [s for s in p["sizes"] if s.get("length_cm")]
+    longest = max(float(s.get("extended_cm") or s["length_cm"]) for s in sizes)
+    rows = []
+    for s in sizes:
+        w = float(s["length_cm"]) / longest * 100
+        ext = float(s.get("extended_cm") or 0) / longest * 100
+        extra = (f'<i class="gp-ext" style="width:{ext:.1f}%"></i>' if ext else "")
+        rows.append(f'<span class="gp-row"><b><bdi dir="ltr">{esc(s["length_cm"])}</bdi></b><span class="gp-bar">{extra}'
+                    f'<i class="gp-len" style="width:{w:.1f}%"></i></span>'
+                    + (f'<small><bdi dir="ltr">→ {esc(s["extended_cm"])}</bdi></small>' if ext else "") + "</span>")
+    return f'<div class="grain-panel" aria-hidden="true">{"".join(rows)}</div>'
+
+
+def specs(p: dict, loc: str) -> str:
+    rows = []
+    sizes = p.get("sizes") or []
+    if sizes:
+        lens = ", ".join(esc(s.get("label")) for s in sizes)
+        rows.append(("{{t.spec_sizes}}", f'<bdi dir="ltr">{lens}</bdi> {{{{t.cm}}}}'))
+        s0 = sizes[0]
+        if s0.get("width_cm"):
+            ws = sorted({int(s["width_cm"]) for s in sizes if s.get("width_cm")})
+            rows.append(("{{t.spec_width}}", f'<bdi dir="ltr">{" / ".join(map(str, ws))}</bdi> {{{{t.cm}}}}'))
+        if s0.get("height_cm"):
+            hs = sorted({int(s["height_cm"]) for s in sizes if s.get("height_cm")})
+            rows.append(("{{t.spec_height}}", f'<bdi dir="ltr">{" / ".join(map(str, hs))}</bdi> {{{{t.cm}}}}'))
+        ext = [s for s in sizes if s.get("extended_cm")]
+        if ext:
+            pairs = ", ".join(f'{esc(s["length_cm"])}→{esc(s["extended_cm"])}' for s in ext)
+            rows.append(("{{t.spec_extended}}", f'<bdi dir="ltr">{pairs}</bdi> {{{{t.cm}}}}'))
+    mat = L(p.get("material"), loc)
+    if mat:
+        rows.append(("{{t.spec_material}}", esc(mat)))
+    if p.get("finishes"):
+        rows.append(("{{t.spec_finishes}}", esc(", ".join(L(f.get("name"), loc) for f in p["finishes"]))))
+    if p.get("bases"):
+        rows.append(("{{t.spec_bases}}", esc(", ".join(L(b.get("name"), loc) for b in p["bases"]))))
+    lt = p.get("lead_time_weeks") or [10, 12]
+    rows.append(("{{t.spec_lead}}", f'<bdi dir="ltr">{esc(lt[0])}–{esc(lt[-1])}</bdi> {{{{t.weeks}}}}'
+                 + (" · {{t.estimate}}" if p.get("preliminary") else "")))
+    rows.append(("{{t.spec_incl}}", "{{t.spec_incl_v}}"))
+    return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
+
+
+def gallery(p: dict, loc: str) -> str:
+    imgs = [i for i in p.get("images") or [] if i.get("src")]
+    if not imgs:
+        return f'<div class="gallery gallery--tile"><div class="media media--tile media--hero">{silhouette(p)}</div>' \
+               f'<p class="gallery-note">{{{{t.viz_soon}}}}</p></div>'
+    slides = "".join(
+        f'<li class="g-slide" id="g-{p["slug"]}-{i}"><div class="media media--img">'
+        f'{picture(im, loc, eager=(i == 0), sizes="(min-width: 960px) 58vw, 100vw")}'
+        f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></div></li>' for i, im in enumerate(imgs))
+    dots = ""
+    if len(imgs) > 1:
+        dots = '<div class="g-thumbs" role="group" aria-label="{{t.gallery_nav}}">' + "".join(
+            f'<a class="g-thumb" href="#g-{p["slug"]}-{i}" aria-label="{{{{t.gallery_item}}}} {i + 1}">'
+            f'{picture(im, loc, sizes="80px")}</a>' for i, im in enumerate(imgs)) + "</div>"
+    viewer = ""
+    if p.get("model3d"):
+        viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="{esc(p["model3d"])}">'
+                  '{{t.view_3d}}</button><div class="viewer3d" hidden></div>')
+    return f'<div class="gallery"><ul class="g-track" role="list">{slides}</ul>{dots}{viewer}</div>'
+
+
+def product_jsonld(p: dict, loc: str, url: str) -> str:
+    imgs = [CONTENT["SITE_URL"] + i["src"] for i in p.get("images") or [] if i.get("src")]
+    data = {"@context": "https://schema.org", "@type": "Product", "name": L(p.get("name"), loc),
+            "description": L(p.get("tagline"), loc) or L(p.get("description"), loc), "url": url,
+            "brand": {"@type": "Brand", "name": CONTENT["BRAND_LAT"]}, "material": L(p.get("material"), loc)}
+    if imgs:
+        data["image"] = imgs
+    prices = [int(sz["price_ils"]) for sz in p["sizes"]]
+    # пропозиція без рейтингів і відгуків; передзапуск = PreOrder, ціна — орієнтовна з каталогу
+    data["offers"] = {"@type": "AggregateOffer", "priceCurrency": "ILS", "lowPrice": min(prices), "highPrice": max(prices),
+                      "offerCount": len(prices), "availability": "https://schema.org/PreOrder"}
+    return json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+
+
+def product_data(products: list, loc: str) -> list:
+    """Мінімум для форми й конфігуратора: id, назва, розміри з ціною, тонування, опори."""
+    return [{"id": p["id"], "slug": p["slug"], "name": L(p.get("name"), loc),
+             "sizes": [{"label": str(s.get("label")), "price": int(s["price_ils"])} for s in p["sizes"]],
+             "finishes": [{"id": f.get("id"), "name": L(f.get("name"), loc)} for f in p["finishes"]],
+             "bases": [{"id": b.get("id"), "name": L(b.get("name"), loc)} for b in p["bases"]],
+             "from": int(p.get("price_from_ils") or 0)} for p in products]
+
+
+# --------------------------------------------------------------------------- рендер
+
+
+class Renderer:
+    def __init__(self, strings: dict, loc: str):
+        self.s, self.loc, self.missing = strings, loc, set()
+
+    def __call__(self, text: str, tokens: dict) -> str:
+        def sub_t(m):
+            key = m.group(1)
+            if key not in self.s:
+                self.missing.add(f"{self.loc}:t.{key}")
+                return ""
+            v = self.s[key]
+            return v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+
+        def sub(m):
+            key = m.group(1)
+            if key in tokens:
+                return str(tokens[key])
+            if key in CONTENT and not key.startswith("_"):
+                return str(CONTENT[key])
+            self.missing.add(f"{self.loc}:{key}")
+            return ""
+
+        for _ in range(4):                     # токени всередині рядків і рядки всередині блоків
+            new = re.sub(r"\{\{t\.(\w+)\}\}", sub_t, text)
+            new = re.sub(r"\{\{([A-Z][A-Z0-9_]*)\}\}", sub, new)
+            if new == text:
+                break
+            text = new
+        return text
+
+
+def faq_html(items: list) -> str:
+    out = []
+    for it in items:
+        out.append(f'<details class="qa"><summary>{it["q"]}</summary><div class="qa-a">{it["a"]}</div></details>')
+    return '<div class="faq">' + "".join(out) + "</div>"
 
 
 def main() -> None:
-    content = CONTENT
-    locales = load_locales()
+    blanks = [k for k, v in (CONTENT.get("OWNER_FACTS") or {}).items() if not str(v).strip()]
+    if PRODUCTION and blanks:
+        raise SystemExit(f"--production refused: owner facts missing in content.json: {', '.join(blanks)}")
     if DIST.exists():
-        shutil.rmtree(DIST, ignore_errors=True)
-    shutil.copytree(SITE, DIST, dirs_exist_ok=True)
+        shutil.rmtree(DIST)
+    DIST.mkdir()
+    locales = load_locales()
+    products = load_catalog()
+    layout = read_text(SITE / "_layout.html")
+    templates = {f.stem: read_text(f) for f in sorted(PAGES.glob("*.html"))}
+    tracking = (SITE / "assets" / "tracking.js").is_file()
+    missing: set = set()
+    pages_out = []                              # (мова, шлях) для sitemap
 
-    LOCALISED = {"index.html": "index.html", "thanks.html": "thanks.html", "404.html": "404.html"}
-    for loc in locales:
-        if loc == "he":
-            continue
-        (DIST / loc).mkdir(exist_ok=True)
-        for src, dst in LOCALISED.items():
-            if (SITE / src).exists():
-                shutil.copyfile(SITE / src, DIST / loc / dst)
-    normalise_eol(DIST)
+    for loc, prefix in LOCALES.items():
+        s = locales[loc]
+        render = Renderer(s, loc)
+        other = "en" if loc == "he" else "he"
+        base_tokens = {
+            "LANG": loc, "DIR": s["dir"], "PREFIX": prefix, "OTHER_LANG": other,
+            "TRACKING": '<script src="/assets/tracking.js" defer></script>' if tracking else "",
+            "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
+            "GRID_ALL": grid(products, loc, prefix), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
+            "PRODUCT_COUNT": str(len(products)),
+            "SIZE_BARS": size_bars(products),
+            **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
+            "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),
+            "DATA": json.dumps({"lang": loc, "prefix": prefix, "consent": CONTENT.get("CONSENT_VERSION", "v1"),
+                                "s": s.get("js", {}), "products": product_data(products, loc)},
+                               ensure_ascii=False).replace("</", "<\\/"),
+        }
+        hero_p = next((p for p in products if p["slug"] == CONTENT.get("HERO_PRODUCT")), products[0])
+        hero_imgs = [i for i in hero_p.get("images") or [] if i.get("src")]
+        base_tokens["HERO_MEDIA"] = (
+            f'<div class="media media--img hero-media">{picture(hero_imgs[0], loc, eager=True, sizes="(min-width: 960px) 55vw, 100vw")}'
+            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></div>' if hero_imgs
+            else f'<div class="media media--tile hero-media">{silhouette(hero_p, "sil--hero")}</div>')
 
-    tokens = dict(content)
-    tokens["PLAN_SVG"] = plan_svg()
-    tokens["ELEVATION_SVG"] = elevation_svg()
-    tokens["EDGE_SVG"] = edge_svg()
+        def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str, alt_path: str):
+            toks = {**base_tokens, **tokens}
+            toks.setdefault("TITLE", "{{t." + title_key + "}}")
+            toks.setdefault("DESC", "{{t." + desc_key + "}}")
+            toks.setdefault("JSONLD", "")
+            toks.setdefault("BODY_CLASS", "")
+            toks["CANONICAL"] = CONTENT["SITE_URL"] + prefix + path
+            toks["ALT_HREF"] = (LOCALES[other] + alt_path) or "/"
+            toks["HREF_HE"] = CONTENT["SITE_URL"] + alt_path if loc == "en" else toks["CANONICAL"]
+            toks["HREF_EN"] = CONTENT["SITE_URL"] + "/en" + path if loc == "he" else toks["CANONICAL"]
+            toks["MAIN"] = body
+            text = render(layout, toks)
+            write_text_lf(DIST / rel, text)
 
-    # ---- product assets from the manifest (legacy renders as a labelled fallback in preview)
-    assets = load_manifest()
-    hero = asset(assets, "goren-studio-hero-natural-closed", ("hero-natural-closed", RENDERS, "/assets/renders/"))
-    hero_m = asset(assets, "goren-studio-hero-m-natural-closed", None) or hero
-    compare = {}
-    for t in ("natural", "smoked", "white"):
-        for s in ("closed", "open"):
-            compare[(t, s)] = asset(assets, f"goren-compare-{t}-{s}", (f"hero-{t}-{s}", RENDERS, "/assets/renders/"))
-    home = asset(assets, "goren-home-daylight", ("goren-daylight", EDITORIAL, "/assets/editorial/"))
-    home_m = asset(assets, "goren-home-daylight-m", None) or home
-    edge = asset(assets, "goren-edge-detail-natural", ("detail-natural-closed", RENDERS, "/assets/renders/"))
-    frame = asset(assets, "goren-frame-detail-natural", ("detail-natural-closed", RENDERS, "/assets/renders/"))
-    if not (hero and compare[("natural", "closed")] and home and edge and frame):
-        raise SystemExit("product assets missing and no legacy fallback available; run the render pipeline")
-
-    def L(loc: str, key: str) -> str:   # a locale string as a token placeholder, resolved in the t pass
-        return "{{t." + key + "}}"
-
-    tokens["HERO_PRELOAD"] = (preload(hero_m, "100vw", HERO_MEDIA_M) + "\n" +
-                              preload(hero, HERO_SIZES, HERO_MEDIA_D))
-    tokens["PIC_HERO"] = picture(hero, "{{t.hero_alt}}", HERO_SIZES, mobile=hero_m if hero_m is not hero else None,
-                                 img_id="hero-img", loading="eager", fetchpriority="high", prefer=1600)
-    cmp0 = compare[("natural", "closed")]
-    tokens["PIC_COMPARE"] = picture(cmp0, "{{t.cmp_alt_default}}", COMPARE_SIZES, pic_id="compare-pic", img_id="compare-img", loading="lazy")
-    tokens["COMPARE_W"], tokens["COMPARE_H"] = str(cmp0["width"]), str(cmp0["height"])
-    tokens["PIC_HOME"] = picture(home, "{{t.home_alt}}", HOME_SIZES, mobile=home_m if home_m is not home else None, mobile_sizes="100vw")
-    tokens["PIC_EDGE"] = picture(edge, "{{t.mat_edge_alt}}", EDGE_SIZES, prefer=1000)
-    tokens["PIC_FRAME"] = picture(frame, "{{t.mat_frame_alt}}", FRAME_SIZES, prefer=1000)
-    for t in ("natural", "smoked", "white"):
-        tokens[f"FINISH_{t.upper()}"] = finish_img(assets, t)
-    tokens["JSONLD_IMAGE"] = pick(hero, "webp", 1600)
-    tokens["CSS_V"] = tokens["JS_V"] = "hashed"
-
-    wa = (content.get("WA_NUMBER") or "").strip()
-    tokens["WA_HIDDEN"] = "" if wa else " hidden"
-    tokens["WA_CLASS"] = "" if wa else " is-off"
-    tokens["NO_WA_CLASS"] = " is-off" if wa else ""
-
-    company = str(content.get("COMPANY_NAME", "")).strip()
-    tokens["SELLER_JSONLD"] = (',"seller":{"@type":"Organization","name":' + json.dumps(company, ensure_ascii=False) + "}") if company else ""
-
-    unfilled = [k for k in OWNER_FIELDS if not str(content.get(k, "")).strip()]
-    owner_markers = {
-        loc: {k: f'<span class="todo">{OWNER_FIELDS[k][0 if loc == "he" else 1]}</span>' for k in unfilled}
-        for loc in locales
-    }
-
-    logos = logo_tokens()
-    missing = set()
-
-    def js_assets() -> dict:
-        out = {}
-        for (t, s), a in compare.items():
-            if not a:
+        for name, path, tk, dk in STATIC_PAGES:
+            if name == "404" and loc != "he":
                 continue
-            out[f"goren-compare-{t}-{s}"] = {
-                "w": a["width"], "h": a["height"],
-                "avif": {w: a["base"] + v["path"] for w, v in (a["files"].get("avif") or {}).items()},
-                "webp": {w: a["base"] + v["path"] for w, v in (a["files"].get("webp") or {}).items()},
+            rel = (prefix.lstrip("/") + "/" if prefix else "") + (
+                "index.html" if path == "/" else path.strip("/") + ("/index.html" if path.endswith("/") else ".html"))
+            emit(rel, templates[name], {"BODY_CLASS": f"page-{name}"}, tk, dk, path, path)
+            if path != "/404":
+                pages_out.append(prefix + path)
+
+        for p in products:
+            path = f"/p/{p['slug']}/"
+            imgs = [i for i in p.get("images") or [] if i.get("src")]
+            lt = p.get("lead_time_weeks") or [10, 12]
+            tokens = {
+                "TITLE": esc(L(p.get("name"), loc)) + " — {{t.brand_name}}",
+                "DESC": esc(L(p.get("tagline"), loc) or L(p.get("description"), loc) or s.get("catalog_desc", "")),
+                "BODY_CLASS": "page-product",
+                "P_ID": esc(p["id"]), "P_SLUG": p["slug"], "P_NAME": esc(L(p.get("name"), loc)),
+                "P_TAGLINE": esc(L(p.get("tagline"), loc)), "P_DESC": esc(L(p.get("description"), loc)),
+                "P_EST": ('<span class="badge-est">{{t.price_estimate}}</span>' if p.get("preliminary") else ""),
+                "P_EST_SHORT": ("<small>{{t.price_estimate_short}}</small>" if p.get("preliminary") else ""),
+                "P_LEAD_EST": (' <span class="muted">· {{t.estimate}}</span>' if p.get("preliminary") else ""),
+                "P_BADGES": badges(p, loc),
+                "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
+                "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
+                "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_CONFIG": configurator(p, loc),
+                "P_SPECS": specs(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_OG_IMAGE": imgs[0]["src"] if imgs else "/assets/og.png",
+                "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }
-        return out
-
-    def js_strings(strings: dict, loc: str) -> str:
-        blob = {k: strings.get(k, "") for k in JS_KEYS}
-        blob["s_rate"] = strings.get("s_rate_wa" if wa else "s_rate", "")
-        blob["s_fail"] = strings.get("s_fail_wa" if wa else "s_fail", "")
-        blob["toneLong"] = {"natural": strings.get("tone_natural_long"), "smoked": strings.get("tone_smoked_long"), "white": strings.get("tone_white_long")}
-        blob["stateWord"] = {"closed": strings.get("state_closed"), "open": strings.get("state_open")}
-        blob["sizes"] = {content["LEN_CLOSED"]: "closed", content["LEN_OPEN"]: "open"}
-        blob["lenClosed"], blob["lenOpen"] = content["LEN_CLOSED"], content["LEN_OPEN"]
-        blob["assets"] = js_assets()
-        blob["cfg"] = {"wa": wa, "pixel": content.get("META_PIXEL_ID", ""),
-                       "clarity": content.get("CLARITY_ID", ""), "brand": content["BRAND_HE"],
-                       "model": content["MODEL_HE"], "price": int(content["PRICE_PLAIN"]),
-                       "consentVersion": content.get("CONSENT_VERSION", "v1"), "ground": PAPER, "lang": loc}
-        return json.dumps(blob, ensure_ascii=False)
-
-    def render(text: str, strings: dict, loc: str) -> str:
-        def sub(m):
-            key = m.group(1)
-            marked = owner_markers.get(loc, owner_markers["he"])
-            if key in marked:
-                return marked[key]
-            if key not in tokens:
-                missing.add(key)
-                return ""
-            return str(tokens[key])
-
-        def sub_t(m):
-            key = m.group(1)
-            if key == "faq" and isinstance(strings.get("faq"), list):
-                return render_faq(strings["faq"])
-            if key == "js_strings":
-                return js_strings(strings, loc)
-            if key == "cmp_alt_default":
-                return (strings.get("cmp_alt", "").replace("{{tone}}", strings.get("tone_natural_long", ""))
-                        .replace("{{state}}", strings.get("state_closed", "")).replace("{{len}}", content["LEN_CLOSED"]))
-            if key in logos.get(loc, logos["he"]):
-                return logos.get(loc, logos["he"])[key]
-            if key not in strings:
-                missing.add("t." + key)
-                return ""
-            return str(strings[key])
-
-        text = re.sub(r"\{\{([A-Z][A-Z0-9_]*)\}\}", sub, text)
-        text = re.sub(r"\{\{t\.(\w+)\}\}", sub_t, text)
-        text = re.sub(r"\{\{t\.(\w+)\}\}", sub_t, text)
-        return re.sub(r"\{\{([A-Z][A-Z0-9_]*)\}\}", sub, text)
-
-    for f in sorted(DIST.rglob("*")):
-        if not f.is_file():
-            continue
-        if f.name.startswith("_"):
-            f.unlink()
-            continue
-        if f.suffix.lower() in (".html", ".css", ".js", ".webmanifest", ".xml", ".txt"):
-            rel = f.relative_to(DIST)
-            loc = rel.parts[0] if len(rel.parts) > 1 and rel.parts[0] in locales else "he"
-            text = f.read_text(encoding="utf-8")
-            if f.name == "styles-next.css":
-                text = text.replace('@import "/assets/fonts/fonts.css";', (SITE / "assets" / "fonts" / "fonts.css").read_text(encoding="utf-8"))
-            write_text_lf(f, render(text, locales[loc], loc))
+            emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{p['slug']}/index.html",
+                 templates["product"], tokens, "", "", path, path)
+            pages_out.append(prefix + path)
+        missing |= render.missing
 
     if missing:
-        raise SystemExit(f"unknown tokens in templates: {sorted(missing)}")
+        raise SystemExit(f"unknown tokens in templates: {sorted(missing)[:20]}")
 
-    # ---- publication inventory: only what the rendered pages and the sheet reference
-    REF = re.compile(r"/assets/[\w\-./]+?\.(?:avif|webp|png|jpg|svg|woff2|css|js)")
-    # Seed with the documents a visitor can actually reach, then follow references transitively: a
-    # stylesheet nobody links to must not keep its own dependencies alive in the publication set.
-    frontier = [f for f in DIST.rglob("*") if f.is_file() and f.suffix.lower() in (".html", ".xml", ".txt", ".webmanifest")]
+    # ---- sitemap, robots, сторінки без розширення
+    urls = "".join(f"<url><loc>{CONTENT['SITE_URL']}{u}</loc></url>" for u in pages_out)
+    write_text_lf(DIST / "sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n'
+                  f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n')
+    write_text_lf(DIST / "robots.txt", read_text(SITE / "robots.txt").replace("{{SITE_URL}}", CONTENT["SITE_URL"]))
+    for d in (DIST, DIST / "en"):
+        for name in ("privacy", "terms", "accessibility", "404"):
+            src = d / f"{name}.html"
+            if src.exists():
+                shutil.copyfile(src, d / name)
+
+    # ---- ассети: лише ті, на які посилаються, з хешем у імені
+    REF = re.compile(r"/assets/[\w\-./]+?\.(?:avif|webp|png|jpg|jpeg|svg|woff2|css|js|glb|hdr)")
     referenced, seen = set(), set()
+    frontier = [f for f in DIST.rglob("*") if f.is_file()]
     while frontier:
         f = frontier.pop()
-        if f in seen or not f.is_file():
+        if f in seen:
             continue
         seen.add(f)
-        for ref in REF.findall(f.read_text(encoding="utf-8")):
+        for ref in REF.findall(read_text(f) if f.suffix.lower() in TEXT_EXT or f.suffix == "" else ""):
+            if ref in referenced:
+                continue
             referenced.add(ref)
-            target = DIST / ref.lstrip("/")
-            if target.suffix.lower() in (".css", ".js") and target.exists():
-                frontier.append(target)
-    absent = sorted(p for p in referenced if not (DIST / p.lstrip("/")).exists())
-    if absent:
-        raise SystemExit(f"referenced assets missing from site/: {absent[:10]}")
-    removed = 0
-    for f in sorted((DIST / "assets").rglob("*")):
-        if f.is_file() and ("/" + f.relative_to(DIST).as_posix()) not in referenced:
-            f.unlink(); removed += 1
-    for d in sorted((DIST / "assets").rglob("*"), reverse=True):
-        if d.is_dir() and not any(d.iterdir()):
-            d.rmdir()
+            src = SITE / ref.lstrip("/")
+            if not src.is_file():
+                raise SystemExit(f"referenced asset missing from site/: {ref}")
+            dst = DIST / ref.lstrip("/")
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if src.suffix.lower() in TEXT_EXT:
+                write_text_lf(dst, read_text(src))
+                if dst.suffix in (".css", ".js"):
+                    frontier.append(dst)
+            else:
+                shutil.copyfile(src, dst)
 
-    # ---- content-hashed filenames, rewritten everywhere (leaf assets, then the sheet, then the script)
-    def current_text_files() -> list:
-        return [f for f in DIST.rglob("*") if f.is_file() and f.suffix.lower() in (".html", ".css", ".js")]
-
-    def rewrite_all(old: str, new: str) -> None:
-        pat = re.compile(re.escape(old) + r"(?![\w.\-/])")
-        for f in current_text_files():
-            t = f.read_text(encoding="utf-8")
-            if old in t:
-                write_text_lf(f, pat.sub(new, t))
+    def text_files() -> list:
+        return [f for f in DIST.rglob("*") if f.is_file() and (f.suffix.lower() in TEXT_EXT or f.suffix == "")]
 
     hashed = {}
-    files_now = sorted(f for f in (DIST / "assets").rglob("*") if f.is_file())
-    order = [f for f in files_now if f.suffix not in (".css", ".js")] + [f for f in files_now if f.suffix == ".css"] + [f for f in files_now if f.suffix == ".js"]
+    assets = sorted(f for f in (DIST / "assets").rglob("*") if f.is_file()) if (DIST / "assets").exists() else []
+    order = ([f for f in assets if f.suffix not in (".css", ".js")] + [f for f in assets if f.suffix == ".css"]
+             + [f for f in assets if f.suffix == ".js"])
+    # модулі three.js імпортують одне одного відносно — їх не перейменовуємо
+    keep = {f for f in assets if "/products/" in f.as_posix() and f.suffix == ".js"}
     for f in order:
-        h = digest_bytes(f.read_bytes())
+        if f in keep:
+            continue
+        h = digest_bytes(f.read_bytes(), f.suffix)
         new = f.with_name(f"{f.stem}.{h}{f.suffix}")
         f.rename(new)
         old_url = "/" + f.relative_to(DIST).as_posix()
         new_url = "/" + new.relative_to(DIST).as_posix()
         hashed[old_url] = new_url
-        rewrite_all(old_url, new_url)
-
-    shutil.copyfile(DIST / "index.html", DIST / "next")
-    for d in [DIST] + [DIST / loc for loc in locales if (DIST / loc).is_dir()]:
-        for name in ("privacy", "terms", "accessibility", "thanks", "404", "next"):
-            src = d / f"{name}.html"
-            if src.exists():
-                shutil.copyfile(src, d / name)
+        pat = re.compile(re.escape(old_url) + r"(?![\w.\-/])")
+        for t in text_files():
+            body = read_text(t)
+            if old_url in body:
+                write_text_lf(t, pat.sub(new_url, body))
 
     (ROOT / ".build").mkdir(exist_ok=True)
-    write_text_lf(ROOT / ".build" / "asset-map.json", json.dumps(hashed, indent=1))   # build record, not published
-
+    write_text_lf(ROOT / ".build" / "asset-map.json", json.dumps(hashed, indent=1, sort_keys=True))
     total = sum(f.stat().st_size for f in DIST.rglob("*") if f.is_file())
-    print(f"built {DIST}  ({total/1024:.0f} KB, {sum(1 for f in DIST.rglob('*') if f.is_file())} files; {len(hashed)} hashed assets, {removed} unreferenced source files not published)")
-    print(f"  hero {hero['width']}x{hero['height']} ({'manifest' if hero.get('base') == '/assets/product/' else 'FALLBACK'}); compare {cmp0['width']}x{cmp0['height']}; home {home['width']}x{home['height']}")
-
-    # ---- readiness
-    print("readiness:")
-    if FALLBACKS_USED:
-        print("  ASSETS ON LEGACY FALLBACK (preview only):")
-        for x in FALLBACKS_USED:
-            print(f"    - {x}")
-    if PROVISIONAL:
-        print(f"  provisional (unverified against a physical unit) product assets in use: {len(PROVISIONAL)}")
-    if not wa:
-        print("  WA_NUMBER empty -> every WhatsApp control is hidden, the callback button carries the page (optional)")
-    if unfilled:
-        print("  OWNER MUST SUPPLY (rendered as a visible 'להשלמה' marker):")
-        for k in unfilled:
-            print(f"    - {k} ({OWNER_FIELDS[k][1].split(' — ')[0]})")
-    blockers = [f"owner field {k}" for k in unfilled] + [f"legacy fallback: {x}" for x in FALLBACKS_USED]
-    if PRODUCTION and blockers:
-        # leave nothing behind for a naive `build; upload` sequence to pick up
-        shutil.rmtree(DIST, ignore_errors=True)
-        raise SystemExit("NOT PRODUCTION-READY (dist/ removed):\n  " + "\n  ".join(blockers))
-    print("  status: " + ("production build" if PRODUCTION else "PREVIEW build (not launch-ready while blockers remain)" if blockers else "preview build, no blockers found by the build"))
+    n_files = sum(1 for f in DIST.rglob("*") if f.is_file())
+    no_img = [p["slug"] for p in products if not any(i.get("src") for i in p.get("images") or [])]
+    print(f"built {DIST} ({total / 1024:.0f} KB, {n_files} files, {len(hashed)} hashed assets, {len(products)} products)")
+    if no_img:
+        print(f"  products without visualisations (wood tile shown): {', '.join(no_img)}")
+    print("  status: " + ("production build" if PRODUCTION else "preview build"))
 
 
 if __name__ == "__main__":

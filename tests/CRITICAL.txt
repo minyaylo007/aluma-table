@@ -10,6 +10,7 @@ tests.test_store_sqlite       # цілісність бази заявок
 tests.test_secret_scan        # секрети, червона межа флоту
 tests.test_health_version     # версія і здоров'я прода
 tests.test_build_eol          # збірка байт-у-байт: ціни й тексти на сторінці
+tests.test_build_site       # вітрина: сторінки обох мов, картки товарів, «משוער», SEO, без «להשלמה»
 tests.test_catalog            # каталог товарів: схема, ціни «משוער», лише візуалізації
 tests.test_user_units         # юніти прода
 tests.test_box_env            # оточення прода без друку значень
