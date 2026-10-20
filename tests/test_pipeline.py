@@ -142,6 +142,12 @@ class CiTests(unittest.TestCase):
         self.assertIn("sha256sum", body)
         self.assertNotRegex(code(self.ci), r"(?i)pillow|\bPIL\b")
 
+    def test_browser_runs_the_a11y_spec(self):
+        """Доступність (ת"י 5568, תקנה 35) — крок обов'язкової перевірки browser, а не окреме завдання."""
+        body = code(self.jobs["browser"])
+        self.assertIn("--config playwright.a11y.config.js", body)
+        self.assertLess(body.index("python build.py"), body.index("playwright.a11y.config.js"))
+
 
 class WorkflowSafetyTests(unittest.TestCase):
     NAMES = ("ci.yml", "release.yml", "deploy.yml", "rollback.yml")
