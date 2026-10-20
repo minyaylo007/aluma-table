@@ -411,7 +411,8 @@ def specs(p: dict, loc: str) -> str:
 
 
 def gallery(p: dict, loc: str) -> str:
-    imgs = [i for i in p.get("images") or [] if i.get("src")]
+    # mechanism і light — окремі блоки вітрини (catalog/README.md), у галерею картки не йдуть
+    imgs = [i for i in p.get("images") or [] if i.get("src") and i.get("view") not in ("mechanism", "light")]
     if not imgs:
         return f'<div class="gallery gallery--tile"><div class="media media--tile media--hero">{silhouette(p)}</div>' \
                f'<p class="gallery-note">{{{{t.viz_soon}}}}</p></div>'
