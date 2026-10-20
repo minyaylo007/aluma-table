@@ -28,11 +28,7 @@ PROJECT = pathlib.Path(__file__).resolve().parent.parent
 SITE = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["SITE_URL"].rstrip("/")
 OG_MIN = (1200, 630)
 
-KNOWN = {
-    "twitter:card": "немає <meta name=\"twitter:card\"> на жодній сторінці — X/WhatsApp-прев'ю без великої картинки",
-    "organization": "немає JSON-LD Organization на / і /en/",
-    "faqpage": "немає JSON-LD FAQPage на /faq/ і /en/faq/, хоча питання на сторінці є",
-}
+KNOWN: dict[str, str] = {}
 
 
 class Page(HTMLParser):
