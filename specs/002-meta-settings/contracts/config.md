@@ -11,9 +11,14 @@ Cache-Control: public, max-age=60
 ```json
 {
   "pixel_id": "123456789012345",
-  "wa_number": "972501234567",
+  "wa_number": "9725XXXXXXXX",
   "clarity_id": "abc123defg",
-  "contact": {"name": "ALUMA", "phone": "+972501234567", "email": "hello@example.com", "city": "תל אביב"},
+  "contact": {
+    "name": "ALUMA",
+    "phone": "+9725XXXXXXXX",
+    "email": "hello@example.com",
+    "city": "תל אביב"
+  },
   "launch_mode": true
 }
 ```
