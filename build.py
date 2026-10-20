@@ -266,7 +266,7 @@ def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
         labels = " / ".join(esc(s.get("label")) for s in sizes[:4])
         dims = f'<span class="card-dims"><bdi dir="ltr">{labels}</bdi> {{{{t.cm}}}}</span>'
     est = ' <small class="est">{{t.price_estimate_short}}</small>' if p.get("preliminary") else ""
-    price = (f'<span class="card-price">{{{{t.from}}}} <bdi dir="ltr">{money(p["price_from_ils"])}</bdi>{est}</span>'
+    price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"])}</bdi>{est}</span>'
              if p.get("price_from_ils") else "")
     tag = L(p.get("tagline"), loc)
     return (f'<li class="card"><a class="card-link" href="{prefix}/p/{p["slug"]}/" data-product="{esc(p["id"])}">'
@@ -521,8 +521,6 @@ def main() -> None:
             write_text_lf(DIST / rel, text)
 
         for name, path, tk, dk in STATIC_PAGES:
-            if name == "404" and loc != "he":
-                continue
             rel = (prefix.lstrip("/") + "/" if prefix else "") + (
                 "index.html" if path == "/" else path.strip("/") + ("/index.html" if path.endswith("/") else ".html"))
             emit(rel, templates[name], {"BODY_CLASS": f"page-{name}"}, tk, dk, path, path)

@@ -430,23 +430,35 @@ bdi { unicode-bidi: isolate; }
 .foot-legal { margin-block-start: 48px; padding-block-start: 20px; border-block-start: 1px solid #3A322A; display: grid; gap: 6px; font-size: .8rem; }
 
 /* ---------------------------------------------------------------- повідомлення про cookies */
-.notice { position: fixed; z-index: 50; inset-inline: 12px; bottom: 12px; max-width: 520px; display: flex; gap: 14px; align-items: center;
-  padding: 14px 16px; background: var(--ink); color: var(--cream); border-radius: var(--r-lg); font-size: .88rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+.notice { position: fixed; z-index: 50; inset-inline: 0; bottom: 0; display: grid; gap: 10px;
+  padding: 12px var(--gut) calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--cream);
+  border-start-start-radius: var(--r-lg); border-start-end-radius: var(--r-lg); font-size: .8rem; line-height: 1.45;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .2); }
+.notice p { margin: 0; }
 .notice a { color: var(--oak-light); }
 .notice .btn--dark { background: var(--cream); color: var(--ink); }
-body.has-sticky .notice { bottom: 84px; }
-@media (min-width: 900px) { body.has-sticky .notice { bottom: 12px; } }
-.notice-btns { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.notice-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.notice-btns .btn { min-height: 44px; padding-inline: 12px; }
 .notice .btn--ghost { background: transparent; color: var(--cream); border-color: rgba(246, 241, 233, .55); }
+body.has-sticky .notice { bottom: var(--sticky-h, 0px); }
+@media (min-width: 600px) and (max-width: 899px) { .notice { grid-template-columns: 1fr auto; align-items: center; } }
+/* десктоп: невелика картка в куті, не на всю ширину */
+@media (min-width: 900px) {
+  .notice { inset-inline: auto 20px; bottom: 20px; width: 380px; padding: 16px 18px; border-radius: var(--r-lg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+  body.has-sticky .notice { bottom: 20px; }
+}
 .link-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: start; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------------------------------------------------------------- меню נגישות (власне, без сторонніх оверлеїв) */
-.a11y { position: fixed; z-index: 45; inset-inline-end: 0; top: 42%; }
-.a11y-btn { display: grid; place-items: center; width: 48px; height: 48px; border: 0; cursor: pointer;
-  background: var(--ink); color: var(--paper); border-start-start-radius: var(--r); border-end-start-radius: var(--r); }
+/* кнопка 40 px у нижньому куті; --dock — висота того, що зараз унизу екрана (банер, липка смуга), рахує aluma.js */
+.a11y { position: fixed; z-index: 45; inset-inline-start: 12px; bottom: calc(12px + var(--dock, 0px)); transition: bottom .25s var(--ease); }
+.a11y-btn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--ink); color: var(--paper); box-shadow: 0 4px 14px rgba(33, 28, 23, .25); }
+.a11y-btn svg { width: 22px; height: 22px; }
 .a11y-btn:hover { background: var(--oak-deep); }
-.a11y-panel { position: absolute; inset-inline-end: 52px; top: 50%; transform: translateY(-50%); width: min(260px, calc(100vw - 72px));
+.a11y-panel { position: absolute; inset-inline-start: 0; bottom: 48px; width: min(260px, calc(100vw - 24px));
+  max-height: calc(100vh - 80px - var(--dock, 0px)); overflow: auto;
   background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg);
   box-shadow: 0 18px 50px rgba(33, 28, 23, .18); padding: 16px; display: grid; gap: 8px; }
 .a11y-panel[hidden] { display: none; }
