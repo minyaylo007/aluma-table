@@ -1,0 +1,81 @@
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">{{t.hero_eyebrow}}</p>
+      <h1 class="display">{{t.hero_h1}}</h1>
+      <p class="lede">{{t.hero_lede}}</p>
+      <div class="actions">
+        <a class="btn btn--dark" href="{{PREFIX}}/catalog/" data-cta="hero-catalog">{{t.cta_collection}}</a>
+        <a class="btn btn--line" href="#register" data-cta="hero-register">{{t.cta_register}}</a>
+      </div>
+      <p class="hero-note">{{t.hero_note}}</p>
+    </div>
+    {{HERO_MEDIA}}
+  </div>
+</section>
+
+<section class="values" aria-label="{{t.values_label}}">
+  <ul class="wrap values-list" role="list">
+    <li><span class="v-ico" aria-hidden="true">↔</span><h2 class="v-h">{{t.v1_h}}</h2><p>{{t.v1_p}}</p></li>
+    <li><span class="v-ico" aria-hidden="true">◐</span><h2 class="v-h">{{t.v2_h}}</h2><p>{{t.v2_p}}</p></li>
+    <li><span class="v-ico" aria-hidden="true">⌂</span><h2 class="v-h">{{t.v3_h}}</h2><p>{{t.v3_p}}</p></li>
+    <li><span class="v-ico" aria-hidden="true">✦</span><h2 class="v-h">{{t.v4_h}}</h2><p>{{t.v4_p}}</p></li>
+  </ul>
+</section>
+
+<section class="sec" id="collection">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">{{t.col_eyebrow}}</p>
+      <h2 class="h2">{{t.col_h2}}</h2>
+      <p class="sec-lede">{{t.col_lede}}</p>
+    </div>
+    {{GRID_HOME}}
+    <p class="price-note">{{t.price_note}}</p>
+  </div>
+</section>
+
+<section class="sec sec--paper split">
+  <div class="wrap split-grid">
+    <div class="split-art" aria-hidden="true">
+      {{SIZE_BARS}}
+    </div>
+    <div class="split-copy">
+      <p class="eyebrow">{{t.fit_eyebrow}}</p>
+      <h2 class="h2">{{t.fit_h2}}</h2>
+      <p>{{t.fit_p1}}</p>
+      <p>{{t.fit_p2}}</p>
+      <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.fit_link}}</a>
+    </div>
+  </div>
+</section>
+
+{{PART_STEPS}}
+
+<section class="sec sec--dark workshop">
+  <div class="wrap workshop-grid">
+    <div>
+      <p class="eyebrow">{{t.ws_eyebrow}}</p>
+      <h2 class="h2">{{t.ws_h2}}</h2>
+    </div>
+    <div>
+      <p>{{t.ws_p}}</p>
+      <a class="link-arrow" href="{{PREFIX}}/about/">{{t.ws_link}}</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="faq">
+  <div class="wrap wrap--mid">
+    <div class="sec-head">
+      <h2 class="h2">{{t.faq_h2}}</h2>
+    </div>
+    {{FAQ_TOP}}
+    <p><a class="link-arrow" href="{{PREFIX}}/faq/">{{t.faq_all}}</a></p>
+  </div>
+</section>
+
+{{PART_FORM}}
+<div class="sticky-cta" data-sticky hidden>
+  <a class="btn btn--dark btn--block" href="#register" data-cta="sticky">{{t.cta_register}}</a>
+</div>

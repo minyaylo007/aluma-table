@@ -1,0 +1,53 @@
+<nav class="wrap crumbs" aria-label="{{t.crumbs_label}}">
+  <a href="{{PREFIX}}/">{{t.nav_home}}</a><span aria-hidden="true">/</span><a href="{{PREFIX}}/catalog/">{{t.nav_catalog}}</a><span aria-hidden="true">/</span><span aria-current="page">{{P_NAME}}</span>
+</nav>
+<article class="wrap pdp" data-pdp data-product="{{P_ID}}" data-slug="{{P_SLUG}}">
+  <div class="pdp-media">{{P_GALLERY}}</div>
+  <div class="pdp-buy">
+    <p class="eyebrow">{{t.launch_series}}</p>{{P_BADGES}}
+    <h1 class="pdp-h1">{{P_NAME}}</h1>
+    <p class="pdp-tag">{{P_TAGLINE}}</p>
+    <div class="pdp-price">
+      <span class="price" data-price><bdi dir="ltr">{{P_PRICE}}</bdi></span>
+      <span class="price-incl">{{t.price_incl}}</span>
+      {{P_EST}}
+    </div>
+    <form class="pdp-config" data-config onsubmit="return false">{{P_CONFIG}}</form>
+    <p class="pdp-lead"><span class="dot" aria-hidden="true"></span>{{t.lead_label}} <bdi dir="ltr">{{P_LEAD}}</bdi> {{t.weeks}}{{P_LEAD_EST}}</p>
+    <div class="pdp-actions">
+      <a class="btn btn--dark btn--block" href="#register" data-cta="pdp">{{t.cta_register}}</a>
+      <a class="btn btn--wa btn--block js-wa" data-wa="pdp" href="#" hidden>{{t.whatsapp_ask}}</a>
+    </div>
+    <ul class="pdp-points" role="list">
+      <li>{{t.pt_1}}</li>
+      <li>{{t.pt_2}}</li>
+      <li>{{t.pt_3}}</li>
+    </ul>
+  </div>
+</article>
+
+<section class="sec sec--paper">
+  <div class="wrap pdp-detail">
+    <div>
+      <h2 class="h2">{{t.spec_h2}}</h2>
+      <p class="pdp-desc">{{P_DESC}}</p>
+      <p class="muted small">{{t.spec_note}}</p>
+    </div>
+    {{P_SPECS}}
+  </div>
+</section>
+
+{{PART_STEPS}}
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head"><h2 class="h2">{{t.more_h2}}</h2></div>
+    {{P_MORE}}
+  </div>
+</section>
+
+{{PART_FORM}}
+<div class="sticky-cta sticky-cta--pdp" data-sticky hidden>
+  <span class="sticky-price"><bdi dir="ltr" data-price-mini>{{P_PRICE}}</bdi>{{P_EST_SHORT}}</span>
+  <a class="btn btn--dark" href="#register" data-cta="sticky">{{t.cta_register}}</a>
+</div>

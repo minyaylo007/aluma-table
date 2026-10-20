@@ -1,0 +1,67 @@
+<section class="sec register" id="register">
+  <div class="wrap register-grid">
+    <div class="register-copy">
+      <p class="eyebrow">{{t.reg_eyebrow}}</p>
+      <h2 class="h2">{{t.reg_h2}}</h2>
+      <p>{{t.reg_lede}}</p>
+      <ul class="ticks" role="list">
+        <li>{{t.reg_t1}}</li>
+        <li>{{t.reg_t2}}</li>
+        <li>{{t.reg_t3}}</li>
+      </ul>
+    </div>
+    <div class="form-card">
+      <form class="lead-form" id="lead-form" novalidate data-form>
+        <div class="f-row f-row--2">
+          <div class="f"><label for="f-name">{{t.f_name}}</label><input id="f-name" name="name" autocomplete="name" required minlength="2" maxlength="80" aria-describedby="e-name"><p class="f-err" id="e-name" hidden></p></div>
+          <div class="f"><label for="f-phone">{{t.f_phone}}</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="e-phone"><p class="f-err" id="e-phone" hidden></p></div>
+        </div>
+        <div class="f-row f-row--2">
+          <div class="f"><label for="f-city">{{t.f_city}} <span class="opt-l">{{t.f_optional}}</span></label><input id="f-city" name="city" autocomplete="address-level2" maxlength="80"></div>
+          <div class="f"><label for="f-product">{{t.f_product}}</label><select id="f-product" name="product_id"><option value="">{{t.f_product_any}}</option>{{FORM_PRODUCTS}}</select></div>
+        </div>
+        <div class="f-row f-row--3" data-config-row hidden>
+          <div class="f"><label for="f-size">{{t.f_size}}</label><select id="f-size" name="size_label"></select></div>
+          <div class="f"><label for="f-finish">{{t.f_finish}}</label><select id="f-finish" name="finish_id"></select></div>
+          <div class="f"><label for="f-base">{{t.f_base}}</label><select id="f-base" name="base_id"></select></div>
+        </div>
+        <fieldset class="f f-choice">
+          <legend>{{t.f_timeframe}}</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="timeframe" value="now"><span>{{t.f_tf_now}}</span></label>
+            <label class="chip"><input type="radio" name="timeframe" value="1-3m"><span>{{t.f_tf_13}}</span></label>
+            <label class="chip"><input type="radio" name="timeframe" value="later"><span>{{t.f_tf_later}}</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="f f-choice">
+          <legend>{{t.f_contact_pref}}</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="contact_pref" value="whatsapp" checked><span>WhatsApp</span></label>
+            <label class="chip"><input type="radio" name="contact_pref" value="call"><span>{{t.f_call}}</span></label>
+          </div>
+        </fieldset>
+        <div class="f"><label for="f-comment">{{t.f_comment}} <span class="opt-l">{{t.f_optional}}</span></label><textarea id="f-comment" name="comment" rows="3" maxlength="1000" placeholder="{{t.f_comment_ph}}"></textarea></div>
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <label class="check"><input type="checkbox" name="consent" required aria-describedby="e-consent"><span>{{t.f_consent}}</span></label>
+        <p class="f-err" id="e-consent" hidden></p>
+        <label class="check"><input type="checkbox" name="consent_marketing"><span>{{t.f_marketing}}</span></label>
+        <button class="btn btn--dark btn--block" type="submit">{{t.f_submit}}</button>
+        <p class="f-status" role="status" aria-live="polite"></p>
+        <p class="f-fine">{{t.f_fine}}</p>
+      </form>
+      <div class="thanks" data-thanks hidden tabindex="-1">
+        <p class="thanks-mark" aria-hidden="true">✓</p>
+        <h3 class="h3">{{t.thx_h}}</h3>
+        <p>{{t.thx_p}}</p>
+        <ol class="thanks-steps">
+          <li>{{t.thx_1}}</li>
+          <li>{{t.thx_2}}</li>
+          <li>{{t.thx_3}}</li>
+        </ol>
+        <a class="btn btn--line js-wa" data-wa="thanks" href="#" hidden>{{t.whatsapp}}</a>
+        <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.thx_back}}</a>
+      </div>
+      <noscript><p class="f-status">{{t.f_nojs}}</p></noscript>
+    </div>
+  </div>
+</section>
