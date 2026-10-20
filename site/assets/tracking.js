@@ -216,5 +216,8 @@
   };
 
   window.alumaTrack("PageView", { event_id: pageViewId });
+  // події, які aluma.js надіслав до завантаження цього файлу
+  var early = window.alumaQ || []; window.alumaQ = [];
+  for (var qi = 0; qi < early.length; qi++) try { window.alumaTrack(early[qi][0], early[qi][1]); } catch (e) {}
   loadConfig();
 })();
