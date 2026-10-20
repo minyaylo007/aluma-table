@@ -1,0 +1,85 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>ALUMA — сцена рендерів каталогу</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<script src="../site/assets/products/aluma3d.js"></script>
+<style>html,body{margin:0;background:#f3f0ea;overflow:hidden}canvas{display:block}</style>
+</head><body>
+<script>
+// Сцена рендерів tools/render_products.js. Модель, світло й кадр — у site/assets/products/aluma3d.js,
+// тому кадр і перегляд на сторінці не розходяться. Одна сторінка — багато кадрів: window.shot(job) -> PNG (dataURL).
+//   job: { product, size, finish, base, state, scene: 'studio'|'interior'|'swatch', view: {az, el, fov, margin, shiftY, lift},
+//          w, h, bg, exposure, light: {...} — параметри studio()/interior() }
+const TEXDIR = '../renders-master/textures/';
+const TEXTURES = { albedo: TEXDIR + 'natural-albedo-2048.jpg', normal: TEXDIR + 'oak-normal-2048.jpg', rough: TEXDIR + 'oak-rough-2048.jpg' };
+let renderer = null;
+
+function ensure(w, h, bg, exposure) {
+  if (!renderer) {
+    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1);
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+  }
+  renderer.setSize(w, h);
+  renderer.toneMappingExposure = exposure || 1.0;
+  renderer.setClearColor(new THREE.Color(bg), 1);
+}
+
+window.shot = async function (job) {
+  const bg = '#' + (job.bg || 'f3f0ea').replace(/^#/, '');
+  ensure(job.w, job.h, bg, job.exposure);
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, job.w / job.h, 0.05, 60);
+  let model;
+  if (job.scene === 'swatch') {
+    model = await Aluma3D.build(THREE, { product: 'tal', size: { length_cm: 60, width_cm: 60, height_cm: 4, label: 'swatch' }, finish: job.finish, base: 'oak', textures: TEXTURES });
+  } else {
+    model = await Aluma3D.build(THREE, { product: job.product, size: job.size, finish: job.finish, base: job.base, state: job.state,
+      textures: TEXTURES, decor: job.scene === 'interior' });
+  }
+  scene.add(model.group);
+  if (job.scene === 'interior') Aluma3D.interior(THREE, scene, renderer, model, job.light || {});
+  else Aluma3D.studio(THREE, scene, renderer, model, job.light || {});
+  // fitRel — частка габариту виробу [[x0,y0,z0],[x1,y1,z1]] (0..1): кадр на деталь, напр. передній кут стільниці
+  let box = model.bounds();
+  if (job.fitRel) {
+    const s = box.getSize(new THREE.Vector3()), m = box.min.clone();
+    const at = r => new THREE.Vector3(m.x + s.x * r[0], m.y + s.y * r[1], m.z + s.z * r[2]);
+    box = new THREE.Box3(at(job.fitRel[0]), at(job.fitRel[1]));
+  }
+  const cam = Aluma3D.frame(THREE, camera, box, Object.assign({ aspect: job.w / job.h }, job.view || {}));
+  renderer.render(scene, camera);
+  renderer.render(scene, camera);   // VSM: другий прохід, тіні вже розмиті
+  const url = renderer.domElement.toDataURL('image/png');
+  model.dispose();
+  scene.traverse(o => { if (o.material && o.material.map && o.material.map.isCanvasTexture) o.material.map.dispose(); });
+  if (scene.environment) scene.environment.dispose();
+  const b = model.bounds();
+  return { png: url, camera: cam, bounds: [b.min.toArray(), b.max.toArray()] };
+};
+// Геометрія для Blender (tools/blender_scene.py): ті самі сітки, що в 3D-перегляді, по матеріалах.
+// Вершини — у світових координатах three (Y вгору, метри), UV — світові, як у Builder (TILE 1.2 м).
+window.geo = async function (job) {
+  const model = await Aluma3D.build(THREE, { product: job.product, size: job.size, finish: 'natural', base: job.base,
+    state: job.state, textures: TEXTURES });
+  model.group.updateMatrixWorld(true);
+  const keyOf = new Map();
+  model.group.children.forEach(o => { if (o.isMesh && o.name) keyOf.set(o.material, o.name); });
+  const meshes = [];
+  model.group.traverse(o => {
+    if (!o.isMesh) return;
+    const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    g.applyMatrix4(o.matrixWorld);
+    const p = g.getAttribute('position'), uv = g.getAttribute('uv');
+    meshes.push({ mat: keyOf.get(o.material) || o.name || 'oak',
+      p: Array.from(p.array, v => Math.round(v * 1e5) / 1e5), uv: uv ? Array.from(uv.array, v => Math.round(v * 1e5) / 1e5) : null });
+    g.dispose();
+  });
+  const b = model.bounds(), info = model.info;
+  model.dispose();
+  return { meshes, bounds: [b.min.toArray(), b.max.toArray()], info };
+};
+window.__ready = true;
+</script>
+</body></html>

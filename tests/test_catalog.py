@@ -145,6 +145,20 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertTrue((ASSETS / image["src"]).is_file(), image["src"])
                     self.assertIn("הדמיה", image["alt"]["he"])
                     self.assertIn("visualization", image["alt"]["en"].lower())
+                    self.assertIn(image["source"], {"ai", "render"})
+
+    def test_image_variants_exist_and_hero_is_light(self):
+        # Вітрина ставить <picture>: AVIF і WebP 800/1600 мають існувати; герой AVIF ≤ 180 КБ (контракт ночі).
+        for p in self.products:
+            if not p["images"]:
+                continue
+            with self.subTest(product=p["id"]):
+                self.assertEqual(p["images"][0]["view"], "hero")
+                for image in p["images"]:
+                    for fmt in ("avif", "webp"):
+                        for entry in image["srcset"][fmt].split(", "):
+                            self.assertTrue((ASSETS / entry.split(" ")[0]).is_file(), entry)
+                self.assertLessEqual((ASSETS / p["images"][0]["avif"]).stat().st_size, 180 * 1024)
 
     def test_model3d_exists(self):
         for p in self.products:

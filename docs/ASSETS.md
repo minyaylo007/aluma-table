@@ -1,0 +1,47 @@
+# Візуалізації каталогу: звідки кожен піксель
+
+Усі картинки товарів у `site/assets/products/` — **візуалізації**, не фото виробів: виробів ще немає. Тому кожна
+картинка в `catalog/products.json` має `kind: "visualization"`, поле `source` (`ai` | `render`) і підпис з «הדמיה» /
+«visualization» (контракт ночі 20.10, закон про захист споживача) — це перевіряє `tests/test_catalog.py`. Чужих фото
+(майстерні, конкуренти, стоки) на сайті немає й не буде.
+
+## Звідки що
+| Що | Джерело | Ліцензія |
+|---|---|---|
+| Герой і крупний план кожного товару (`source: "ai"`) | Figma AI, модель `gemini-3.1-flash-image`, файл Figma «ALUMA — фото товаров» (`RLTzPbAof8ObuvaBw6sQUL`), 20.10.2026, дозвіл власника | згенеровано для нас |
+| Геометрія всіх п'яти товарів | `site/assets/products/aluma3d.js` — параметрична модель із розмірів сітки каталогу | наш код |
+| Ракурси й розкладений стіл (`source: "render"`, наступний PR) | Blender 4.5 Cycles: `tools/blender_scene.py` над геометрією з `aluma3d.js` | наш код |
+| Дуб у рендерах і свотчах | Poly Haven «Oak Veneer 01», https://polyhaven.com/a/oak_veneer_01 | CC0 |
+| Тонування (світлий, мед, копчений, чорний) | фарбування того самого альбедо на canvas (`gradePixel` в `aluma3d.js`) | наш код |
+| Інтер'єр Blender: стіна, підлога, льон | Poly Haven: https://polyhaven.com/a/plastered_wall_04 · https://polyhaven.com/a/smooth_concrete_floor · https://polyhaven.com/a/rough_linen | CC0 |
+| Денне світло Blender (HDRI) | Poly Haven: https://polyhaven.com/a/photo_studio_loft_hall · https://polyhaven.com/a/lebombo | CC0 |
+| Декор Blender | Poly Haven: https://polyhaven.com/a/ceramic_vase_01 · https://polyhaven.com/a/ceramic_vase_02 · https://polyhaven.com/a/dry_branches_medium_01 · https://polyhaven.com/a/wooden_cutting_board · https://polyhaven.com/a/food_pears_asian_01 · https://polyhaven.com/a/wooden_bowl_02; стільці — наша процедурна модель | CC0 / наш код |
+
+Шрифтів, логотипів, людей і чужих брендів у кадрах немає.
+
+## Кадри Figma AI: звірка з моделлю
+Кожен кадр звірено з моделлю (кількість ніжок, опори, форма, пропорції); правило дирижера — при розбіжності
+підганяється **модель**, а не кадр (товари концептуальні). Генерацій — по одній на кадр, переробок не було.
+| Товар | Герой | Крупний план | Що підігнано в моделі й описі |
+|---|---|---|---|
+| tavor | прямокутний, 4 конусні дубові ніжки, царга | кромка зі скосом, царга, ніжка | — |
+| sahar | круглий, 4 дубові ніжки, царга | шов розсувної стільниці | — |
+| ofek | підвісна, канелюри, без ручок, 2 секції фасаду | канелюри, 2 двері | 2 двері для 160, 3 для 180/200 |
+| saf | паз замість ручки, нижня полиця, 4 ніжки | дві шухляди з пазом | дві шухляди замість однієї |
+| tal | 100×60, скруглені кути, круглі ніжки | товста кругла ніжка, скруглений кут | ніжки Ø9 см (було 6–7) |
+
+## Як перезібрати
+```bash
+# майстри Figma AI: /opt/ihor/aluma-table/tmp/figma-ai/<товар>-{hero,detail}-v1.png (не в git; інша тека — $ALUMA_FIGMA)
+python3 tools/fetch_assets.py && python3 tools/bake_textures.py   # раз: текстури свотчів у renders-master/textures
+export PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright
+node tools/render_products.js            # усі кадри + свотчі; catalog/products.json — поле images
+python3 -I tools/fetch_cc0.py            # раз: CC0 для Blender у /opt/ihor/aluma-table/tmp/cc0 (не в git)
+```
+Без власного порту: свотчі — сторінка `tools/render_products.html` з `file://`, three.js r160 з cdnjs. Запуск — у рамці
+CLAUDE.md §8. У дерево їдуть `<кадр>-{<ширина>,800}.{avif,webp}` і `<кадр>-<ширина>.jpg` у рідній ширині майстра
+(без збільшення); герой AVIF ≤ 180 КБ. Свотчі тонувань — `site/assets/products/finishes/<id>.{avif,webp,jpg}`, 240 px.
+
+Blender (портативний, `/opt/ihor/aluma-table/tmp/blender`, не в git) — лише в рамці дирижера, один процес за раз:
+`TMPDIR=/tmp timeout 60m nice -n 15 systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=4G -p CPUQuota=300% blender -b --factory-startup -P tools/blender_scene.py -- --geo <json> --out <png>`.
+Геометрію для нього віддає `window.geo(job)` у `tools/render_products.html`.
