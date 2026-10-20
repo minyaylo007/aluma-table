@@ -478,6 +478,7 @@ def put_lead(event):
     lang = clip(data.get("lang"), 8).strip()
     comment = clip(data.get("comment"), 1000).strip()
     consent = bool(data.get("consent"))
+    marketing = _flag(data.get("marketing_consent", data.get("consent_marketing")))
 
     errors = {}
     if len(name) < 2:
@@ -515,7 +516,9 @@ def put_lead(event):
         "lang": lang,
         "comment": comment,
         "consent": consent,
-        "consent_marketing": bool(data.get("consent_marketing")),
+        # חוק התקשורת ס' 30א: окрема НЕвідмічена галочка; згода — лише явне true, з часом (FR-019)
+        "consent_marketing": marketing,
+        "consent_marketing_at": ts if marketing else "",
         "consent_text_version": clip(data.get("consent_text_version"), 20) or "v1",
         "session_id": clip(data.get("session_id"), 64),
         "utm_source": clip(data.get("utm_source"), 100),
@@ -549,6 +552,13 @@ def _pick(value, limit: int, pattern=None, allowed=None) -> str:
     if pattern is not None and v and not pattern.fullmatch(v):
         return ""
     return v
+
+
+def _flag(value) -> bool:
+    """Галочка згоди: True лише на явне «так» — рядок "false" чи "0" згодою не є."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "on", "yes")
+    return value is True or value == 1
 
 
 def lead_extras(data: dict, event) -> dict:
@@ -1106,7 +1116,7 @@ TIMEFRAME_LABELS = {"now": "עכשיו", "1-3m": "1–3 חודשים", "later": 
 
 CSV_COLUMNS = (
     "ts", "id", "status", "name", "phone", "email", "city", "product_id", "size_label", "finish_id", "base_id",
-    "timeframe", "contact_pref", "color", "size", "lang", "comment", "consent_marketing",
+    "timeframe", "contact_pref", "color", "size", "lang", "comment", "consent_marketing", "consent_marketing_at",
     "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "page", "device", "is_test",
 )
 
