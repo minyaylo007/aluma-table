@@ -400,7 +400,7 @@ def gallery(p: dict, loc: str) -> str:
     if p.get("model3d"):
         viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="{esc(p["model3d"])}">'
                   '{{t.view_3d}}</button><div class="viewer3d" hidden></div>')
-    return f'<div class="gallery"><ul class="g-track" role="list">{slides}</ul>{dots}{viewer}</div>'
+    return f'<div class="gallery"><ul class="g-track" role="list" tabindex="0" aria-label="{{{{t.gallery_label}}}}">{slides}</ul>{dots}{viewer}</div>'
 
 
 def product_jsonld(p: dict, loc: str, url: str) -> str:

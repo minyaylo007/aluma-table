@@ -141,10 +141,28 @@ class CatalogSchemaTest(unittest.TestCase):
             for image in p["images"]:
                 with self.subTest(product=p["id"], src=image["src"]):
                     self.assertEqual(image["kind"], "visualization")
-                    self.assertTrue(image["src"].startswith("assets/products/"), image["src"])
-                    self.assertTrue((ASSETS / image["src"]).is_file(), image["src"])
+                    self.assertTrue(image["src"].startswith("/assets/products/"), image["src"])
+                    self.assertTrue((ASSETS / image["src"].lstrip("/")).is_file(), image["src"])
                     self.assertIn("הדמיה", image["alt"]["he"])
                     self.assertIn("visualization", image["alt"]["en"].lower())
+                    self.assertIn(image["source"], {"ai", "render"})
+
+    def test_image_variants_exist_and_hero_is_light(self):
+        # Вітрина (build.py picture()) ставить <picture>: srcset (WebP) і srcset_avif — рядки «/шлях 800w, ...»,
+        # кожен файл існує, і JPG теж; герой AVIF найбільшої ширини ≤ 180 КБ (контракт ночі).
+        for p in self.products:
+            if not p["images"]:
+                continue
+            with self.subTest(product=p["id"]):
+                self.assertEqual(p["images"][0]["view"], "hero")
+                for image in p["images"]:
+                    for key in ("srcset", "srcset_avif"):
+                        for entry in image[key].split(", "):
+                            self.assertTrue(entry.startswith("/assets/products/"), entry)
+                            self.assertTrue((ASSETS / entry.split(" ")[0].lstrip("/")).is_file(), entry)
+                    self.assertTrue((ASSETS / image["jpg"].lstrip("/")).is_file(), image["jpg"])
+                biggest = p["images"][0]["srcset_avif"].split(", ")[-1].split(" ")[0]
+                self.assertLessEqual((ASSETS / biggest.lstrip("/")).stat().st_size, 180 * 1024)
 
     def test_model3d_exists(self):
         for p in self.products:

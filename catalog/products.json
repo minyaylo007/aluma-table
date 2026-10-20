@@ -12,8 +12,8 @@
       "en": "Compact on weekdays. Long for the holidays."
     },
     "description": {
-      "he": "שולחן אוכל נפתח: פלטת הארכה של 80 ס״מ מאוחסנת מתחת למשטח, ונפתחת בתוך דקה. הקנט מעץ אלון מלא מקבל שיפוע מתחתיו, ולכן משטח בעובי 4 ס״מ נראה דק וקל. רגלי אלון שנוטות מעט פנימה, או בסיס פלדה שחור. נקרא על שם אלון התבור, העץ שגדל בגליל ובעמקים.",
-      "en": "An extending dining table: an 80 cm leaf is stored under the top and opens in under a minute. The solid-oak edge is bevelled underneath, so a 4 cm top reads thin and light. Oak legs with a slight inward lean, or a black steel base. Named after the Tabor oak that grows across the Galilee."
+      "he": "שולחן אוכל נפתח: פלטת הארכה של 80 ס״מ מאוחסנת מתחת למשטח, ונפתחת בתוך דקה. הקנט מעץ אלון מלא מקבל שיפוע מתחתיו, ולכן משטח בעובי 4 ס״מ נראה דק וקל. רגלי אלון שמתחדדות כלפי מטה, או בסיס פלדה שחור. נקרא על שם אלון התבור, העץ שגדל בגליל ובעמקים.",
+      "en": "An extending dining table: an 80 cm leaf is stored under the top and opens in under a minute. The solid-oak edge is bevelled underneath, so a 4 cm top reads thin and light. Oak legs that taper towards the floor, or a black steel base. Named after the Tabor oak that grows across the Galilee."
     },
     "price_from_ils": 4490,
     "preliminary": true,
@@ -143,7 +143,46 @@
       10,
       12
     ],
-    "images": [],
+    "images": [
+      {
+        "src": "/assets/products/tavor/hero-1264.webp",
+        "srcset": "/assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1264.webp 1264w",
+        "width": 1264,
+        "height": 848,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, בחלל מגורים באור יום",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1264.avif 1264w",
+        "jpg": "/assets/products/tavor/hero-1264.jpg"
+      },
+      {
+        "src": "/assets/products/tavor/detail-1200.webp",
+        "srcset": "/assets/products/tavor/detail-800.webp 800w, /assets/products/tavor/detail-1200.webp 1200w",
+        "width": 1200,
+        "height": 896,
+        "view": "detail",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, תקריב של הקנט המשופע מלמטה ושל הרגל המתחדדת",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the edge bevelled underneath and the tapered leg"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1200.avif 1200w",
+        "jpg": "/assets/products/tavor/detail-1200.jpg"
+      }
+    ],
     "badges": [
       {
         "id": "extendable",
@@ -159,7 +198,8 @@
           "en": "Launch series"
         }
       }
-    ]
+    ],
+    "model3d": "assets/products/aluma3d.js"
   },
   {
     "id": "sahar",
@@ -265,7 +305,46 @@
       10,
       12
     ],
-    "images": [],
+    "images": [
+      {
+        "src": "/assets/products/sahar/hero-1264.webp",
+        "srcset": "/assets/products/sahar/hero-800.webp 800w, /assets/products/sahar/hero-1264.webp 1264w",
+        "width": 1264,
+        "height": 848,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "Ø115",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, בחלל מגורים באור יום",
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a living room in daylight"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/sahar/hero-800.avif 800w, /assets/products/sahar/hero-1264.avif 1264w",
+        "jpg": "/assets/products/sahar/hero-1264.jpg"
+      },
+      {
+        "src": "/assets/products/sahar/detail-1200.webp",
+        "srcset": "/assets/products/sahar/detail-800.webp 800w, /assets/products/sahar/detail-1200.webp 1200w",
+        "width": 1200,
+        "height": 896,
+        "view": "detail",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "Ø115",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, תקריב של הפלטה העגולה ושל קו החיבור באמצע",
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of the round top and the seam where it opens"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/sahar/detail-800.avif 800w, /assets/products/sahar/detail-1200.avif 1200w",
+        "jpg": "/assets/products/sahar/detail-1200.jpg"
+      }
+    ],
     "badges": [
       {
         "id": "extendable",
@@ -281,7 +360,8 @@
           "en": "Launch series"
         }
       }
-    ]
+    ],
+    "model3d": "assets/products/aluma3d.js"
   },
   {
     "id": "ofek",
@@ -375,7 +455,46 @@
       10,
       12
     ],
-    "images": [],
+    "images": [
+      {
+        "src": "/assets/products/ofek/hero-1264.webp",
+        "srcset": "/assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1264.webp 1264w",
+        "width": 1264,
+        "height": 848,
+        "view": "hero",
+        "finish": "natural",
+        "base": "none",
+        "state": "closed",
+        "size": "180",
+        "alt": {
+          "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, בחלל מגורים באור יום",
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1264.avif 1264w",
+        "jpg": "/assets/products/ofek/hero-1264.jpg"
+      },
+      {
+        "src": "/assets/products/ofek/detail-1200.webp",
+        "srcset": "/assets/products/ofek/detail-800.webp 800w, /assets/products/ofek/detail-1200.webp 1200w",
+        "width": 1200,
+        "height": 896,
+        "view": "detail",
+        "finish": "natural",
+        "base": "none",
+        "state": "closed",
+        "size": "180",
+        "alt": {
+          "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, תקריב של החזיתות עם חריצים אנכיים, בלי ידיות",
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the fluted fronts with no handles"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/ofek/detail-800.avif 800w, /assets/products/ofek/detail-1200.avif 1200w",
+        "jpg": "/assets/products/ofek/detail-1200.jpg"
+      }
+    ],
     "badges": [
       {
         "id": "wall_mounted",
@@ -391,7 +510,8 @@
           "en": "Launch series"
         }
       }
-    ]
+    ],
+    "model3d": "assets/products/aluma3d.js"
   },
   {
     "id": "saf",
@@ -406,8 +526,8 @@
       "en": "35 cm deep. Room for keys, flowers and the mail."
     },
     "description": {
-      "he": "קונסולה צרה לכניסה או למסדרון. מגירה דקה עם חריץ אחיזה במקום ידית, ומדף תחתון לסל או לנעליים. המשטח והמגירה עם קנט מעץ אלון מלא; רגלי אלון או מסגרת פלדה דקה.",
-      "en": "A slim console for the entrance or the hallway. A shallow drawer with a finger groove instead of a handle, and a lower shelf for a basket or shoes. Top and drawer with solid-oak edges; oak legs or a slim steel frame."
+      "he": "קונסולה צרה לכניסה או למסדרון. שתי מגירות דקות עם חריץ אחיזה במקום ידית, ומדף תחתון לסל או לנעליים. המשטח והמגירות עם קנט מעץ אלון מלא; רגלי אלון או מסגרת פלדה דקה.",
+      "en": "A slim console for the entrance or the hallway. Two shallow drawers with a finger groove instead of a handle, and a lower shelf for a basket or shoes. Top and drawers with solid-oak edges; oak legs or a slim steel frame."
     },
     "price_from_ils": 2490,
     "preliminary": true,
@@ -500,7 +620,46 @@
       10,
       12
     ],
-    "images": [],
+    "images": [
+      {
+        "src": "/assets/products/saf/hero-1264.webp",
+        "srcset": "/assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1264.webp 1264w",
+        "width": 1264,
+        "height": 848,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "130",
+        "alt": {
+          "he": "הדמיה: קונסולה סף, גוון אלון טבעי, בחלל מגורים באור יום",
+          "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1264.avif 1264w",
+        "jpg": "/assets/products/saf/hero-1264.jpg"
+      },
+      {
+        "src": "/assets/products/saf/detail-1200.webp",
+        "srcset": "/assets/products/saf/detail-800.webp 800w, /assets/products/saf/detail-1200.webp 1200w",
+        "width": 1200,
+        "height": 896,
+        "view": "detail",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "130",
+        "alt": {
+          "he": "הדמיה: קונסולה סף, גוון אלון טבעי, תקריב של המגירה עם חריץ אחיזה במקום ידית",
+          "en": "Visualization: SAF console table, natural oak finish, close-up of the drawer with a finger groove instead of a handle"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/saf/detail-800.avif 800w, /assets/products/saf/detail-1200.avif 1200w",
+        "jpg": "/assets/products/saf/detail-1200.jpg"
+      }
+    ],
     "badges": [
       {
         "id": "launch_series",
@@ -509,7 +668,8 @@
           "en": "Launch series"
         }
       }
-    ]
+    ],
+    "model3d": "assets/products/aluma3d.js"
   },
   {
     "id": "tal",
@@ -524,8 +684,8 @@
       "en": "A low coffee table with soft corners."
     },
     "description": {
-      "he": "משטח בעובי 4 ס״מ עם פינות מעוגלות, שנוח לעבור לידו גם עם ילדים בבית. בשתי צורות: מלבן 100×60 או עיגול בקוטר 80. רגלי אלון עבות או בסיס פלדה שחור.",
-      "en": "A 4 cm top with rounded corners, easy to walk past even with kids around. Two shapes: a 100×60 rectangle or an 80 cm circle. Chunky oak legs or a black steel base."
+      "he": "משטח בעובי 4 ס״מ עם פינות מעוגלות, שנוח לעבור לידו גם עם ילדים בבית. בשתי צורות: מלבן 100×60 או עיגול בקוטר 80. רגלי אלון עגולות ועבות בקוטר 9 ס״מ או בסיס פלדה שחור.",
+      "en": "A 4 cm top with rounded corners, easy to walk past even with kids around. Two shapes: a 100×60 rectangle or an 80 cm circle. Chunky round oak legs, 9 cm across, or a black steel base."
     },
     "price_from_ils": 2190,
     "preliminary": true,
@@ -611,7 +771,46 @@
       10,
       12
     ],
-    "images": [],
+    "images": [
+      {
+        "src": "/assets/products/tal/hero-1264.webp",
+        "srcset": "/assets/products/tal/hero-800.webp 800w, /assets/products/tal/hero-1264.webp 1264w",
+        "width": 1264,
+        "height": 848,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "100×60",
+        "alt": {
+          "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, בחלל מגורים באור יום",
+          "en": "Visualization: TAL coffee table, natural oak finish, in a living room in daylight"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/tal/hero-800.avif 800w, /assets/products/tal/hero-1264.avif 1264w",
+        "jpg": "/assets/products/tal/hero-1264.jpg"
+      },
+      {
+        "src": "/assets/products/tal/detail-1200.webp",
+        "srcset": "/assets/products/tal/detail-800.webp 800w, /assets/products/tal/detail-1200.webp 1200w",
+        "width": 1200,
+        "height": 896,
+        "view": "detail",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "100×60",
+        "alt": {
+          "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, תקריב של הפינה המעוגלת ושל הרגל העגולה העבה",
+          "en": "Visualization: TAL coffee table, natural oak finish, close-up of the rounded corner and the chunky round leg"
+        },
+        "kind": "visualization",
+        "source": "ai",
+        "srcset_avif": "/assets/products/tal/detail-800.avif 800w, /assets/products/tal/detail-1200.avif 1200w",
+        "jpg": "/assets/products/tal/detail-1200.jpg"
+      }
+    ],
     "badges": [
       {
         "id": "launch_series",
@@ -620,6 +819,7 @@
           "en": "Launch series"
         }
       }
-    ]
+    ],
+    "model3d": "assets/products/aluma3d.js"
   }
 ]

@@ -54,3 +54,5 @@ docs/lighthouse/*/lighthouse-run.log
 **/.claude/*
 # Виняток — навички Spec Kit: вони потрібні в дереві й уже відслідковуються (лише кореневі).
 !.claude/skills/
+# портативний Blender, CC0-ассети, майстри Figma AI, venv — поза git
+tmp/
