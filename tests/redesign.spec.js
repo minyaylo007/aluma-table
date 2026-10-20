@@ -109,6 +109,7 @@ test('"other size" link prefills the comment in the form', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------- форма
+const FAKE_PHONE = '050-000-0000';   // вигаданий номер; один рядок — сканер секретів рахує збіги
 test('empty submit shows Hebrew errors next to the fields and sends nothing', async ({ page }) => {
   const sent = await mockApi(page);
   await page.goto('/');
@@ -125,7 +126,7 @@ test('a valid lead from a card sends product, size, finish and lands on the than
   const sent = await mockApi(page);
   await page.goto(`/p/${p.slug}/?utm_source=test&utm_campaign=night`);
   await page.locator('#f-name').fill('ישראל ישראלי');
-  await page.locator('#f-phone').fill('050-000-0000');
+  await page.locator('#f-phone').fill(FAKE_PHONE);
   await page.locator('#lead-form input[name="consent"]').check();
   await page.locator('#lead-form button[type="submit"]').click();
   await expect(page.locator('[data-thanks]')).toBeVisible();
@@ -183,7 +184,7 @@ test('quick form next to the photo sends the chosen size, finish and base as hid
   await expect(page.locator('#q-e-name')).toBeVisible();
   expect(sent.leads).toEqual([]);
   await q.locator('input[name="name"]').fill('ישראל ישראלי');
-  await q.locator('input[name="phone"]').fill('050-000-0000');
+  await q.locator('input[name="phone"]').fill(FAKE_PHONE);
   await q.locator('input[name="consent"]').check();
   await q.locator('button[type="submit"]').click();
   await expect(page.locator('.thanks--quick')).toBeVisible();
