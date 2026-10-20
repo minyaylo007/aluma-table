@@ -506,7 +506,7 @@ def main() -> None:
     urls = "".join(f"<url><loc>{CONTENT['SITE_URL']}{u}</loc></url>" for u in pages_out)
     write_text_lf(DIST / "sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n'
                   f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n')
-    write_text_lf(DIST / "robots.txt", read_text(SITE / "robots.txt"))
+    write_text_lf(DIST / "robots.txt", read_text(SITE / "robots.txt").replace("{{SITE_URL}}", CONTENT["SITE_URL"]))
     for d in (DIST, DIST / "en"):
         for name in ("privacy", "terms", "accessibility", "404"):
             src = d / f"{name}.html"
