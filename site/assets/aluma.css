@@ -105,7 +105,7 @@ bdi { unicode-bidi: isolate; }
 .h2 { font-size: clamp(1.8rem, 3.6vw, 2.75rem); line-height: 1.12; }
 .h3 { font-size: 1.4rem; line-height: 1.25; }
 [lang="en"] .display, [lang="en"] .h1, [lang="en"] .h2 { letter-spacing: -.02em; }
-.eyebrow { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-block-end: 14px; }
+.eyebrow { font-size: .78rem; letter-spacing: .14em; overflow-wrap: anywhere; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-block-end: 14px; }
 [lang="he"] .eyebrow { letter-spacing: .04em; font-size: .86rem; }
 .lede, .sec-lede { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: var(--muted); max-width: 46ch; }
 .sec-lede { margin-block-start: 14px; }
@@ -177,7 +177,7 @@ bdi { unicode-bidi: isolate; }
 .price-note { margin-block-start: 28px; font-size: .88rem; color: var(--muted); max-width: 70ch; }
 
 /* ---------------------------------------------------------------- hero: кадр на всю ширину */
-/* телефон: кадр зверху, текст під ним; від 900 px — текст на кадрі над м'яким затемненням знизу */
+/* телефон: кадр зверху, текст під ним; від 720 px (планшет) — текст на кадрі над м'яким затемненням знизу */
 .hero { position: relative; }
 .hero-media { position: relative; aspect-ratio: 5 / 4; overflow: hidden; background: var(--sand); }
 .hero-media picture, .hero-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -187,7 +187,7 @@ bdi { unicode-bidi: isolate; }
 .hero .lede { margin-block-start: 20px; }
 .hero-note { margin-block-start: 18px; font-size: .9rem; color: var(--muted); }
 .hero-media .viz-tag { inset-block: 14px auto; }
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   .hero { min-height: min(100svh - 100px, 880px); display: grid; align-items: end; color: var(--cream); }
   .hero-media { position: absolute; inset: 0; aspect-ratio: auto; }
   .hero-media::after { content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -348,6 +348,7 @@ bdi { unicode-bidi: isolate; }
 /* ---------------------------------------------------------------- форма */
 .register { background: var(--linen); }
 .register-grid { display: grid; gap: clamp(28px, 5vw, 72px); }
+.register-grid > * { min-width: 0; }
 @media (min-width: 960px) { .register-grid { grid-template-columns: 5fr 7fr; align-items: start; } }
 .register-copy p { margin-block-start: 16px; color: var(--muted); max-width: 44ch; }
 .ticks { margin-block-start: 24px; display: grid; gap: 10px; }
@@ -422,8 +423,9 @@ bdi { unicode-bidi: isolate; }
 .opt { border: 0; padding: 0; margin: 0; min-width: 0; }
 .opt legend { font-weight: 600; font-size: .9rem; margin-block-end: 10px; padding: 0; }
 .opt-val { font-weight: 400; color: var(--muted); }
-.pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
-.pills--text { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+/* мінімум колонки в rem: при 200 % тексту колонок менше, а не плашка за краєм екрана */
+.pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.4rem), 1fr)); gap: 8px; }
+.pills--text { grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.75rem), 1fr)); }
 .pill { position: relative; display: grid; gap: 2px; padding: 10px 12px; border: 1px solid #BFB2A0; border-radius: var(--r);
   cursor: pointer; background: #FFFDF9; transition: border-color .15s, box-shadow .15s; }
 .pill input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
@@ -432,7 +434,7 @@ bdi { unicode-bidi: isolate; }
 .pill:has(input:focus-visible) { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
 .pill-main { font-weight: 600; font-size: .95rem; }
 .pill-sub, .pill-price { font-size: .8rem; color: var(--muted); }
-.opt-custom { display: inline-block; margin-block-start: 10px; font-size: .88rem; }
+.opt-custom { display: inline-block; margin-block-start: 6px; padding-block: 4px; font-size: .88rem; }
 .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
 .swatch { position: relative; cursor: pointer; }
 .swatch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
@@ -486,8 +488,11 @@ bdi { unicode-bidi: isolate; }
 .notice p { margin: 0; }
 .notice a { color: var(--oak-light); }
 .notice .btn--dark { background: var(--cream); color: var(--ink); }
-.notice-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.notice-btns .btn { min-height: 44px; padding-inline: 12px; }
+.notice-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5em), 1fr)); gap: 8px; }
+/* відмова така ж доступна, як згода: обидві кнопки завжди в межах екрана, довгий текст переноситься */
+.notice-btns .btn { min-height: 44px; min-width: 0; padding-inline: 12px; white-space: normal; text-align: center; }
+/* телефон: поки фокус у формі, банер не накриває поля; повертається, щойно фокус вийде з форми */
+.notice.is-away { display: none; }
 .notice .btn--ghost { background: transparent; color: var(--cream); border-color: rgba(246, 241, 233, .55); }
 body.has-sticky .notice { bottom: var(--sticky-h, 0px); }
 @media (min-width: 600px) and (max-width: 899px) { .notice { grid-template-columns: 1fr auto; align-items: center; } }
@@ -510,10 +515,10 @@ body.has-sticky .notice { bottom: var(--sticky-h, 0px); }
   max-height: calc(100vh - 80px - var(--dock, 0px)); overflow: auto;
   background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg);
   box-shadow: 0 18px 50px rgba(33, 28, 23, .18); padding: 16px; display: grid; gap: 8px; }
-/* на телефоні текст вирівняний до початку рядка (ціна, заголовки) — кнопка йде в кінцевий кут, де рядки зазвичай порожні */
-@media (max-width: 899px) {
-  .a11y { inset-inline-start: auto; inset-inline-end: 12px; }
-  .a11y-panel { inset-inline-start: auto; inset-inline-end: 0; }
+/* телефон і планшет: кнопка у липкій шапці поруч із меню — завжди видно і не лежить на тексті, ціні чи кнопках */
+@media (max-width: 900px) {
+  .a11y { inset-inline-start: auto; inset-inline-end: calc(var(--gut) + 52px); top: 12px; bottom: auto; transition: none; }
+  .a11y-panel { inset-inline-start: auto; inset-inline-end: 0; top: 48px; bottom: auto; max-height: calc(100vh - 80px); }
 }
 .a11y-panel[hidden] { display: none; }
 .a11y-h { font-weight: 700; margin: 0 0 4px; }

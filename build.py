@@ -58,6 +58,11 @@ def esc(s) -> str:
     return html.escape(str(s), quote=True)
 
 
+def esc_bidi(s) -> str:
+    """Текст тіла сторінки: каталог позначає розміри в he-описах U+2066 (LRI) … U+2069 (PDI) — стають <bdi dir="ltr">."""
+    return esc(s).replace("\u2066", '<bdi dir="ltr">').replace("\u2069", "</bdi>")
+
+
 def write_text_lf(f: pathlib.Path, text: str) -> None:
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_bytes(text.replace("\r\n", "\n").encode("utf-8"))
@@ -546,7 +551,9 @@ def main() -> None:
             toks.setdefault("TITLE", "{{t." + title_key + "}}")
             toks.setdefault("DESC", "{{t." + desc_key + "}}")
             toks.setdefault("JSONLD", "")
-            toks.setdefault("OG_IMAGE", "/assets/og.png")
+            # загальні сторінки: превью головної своєю мовою (tools/make-og-products.js), інакше старе og.png
+            home_og = f"/assets/og/home-{loc}.jpg"
+            toks.setdefault("OG_IMAGE", home_og if (SITE / home_og.lstrip("/")).is_file() else "/assets/og.png")
             toks.setdefault("BODY_CLASS", "")
             toks["CANONICAL"] = CONTENT["SITE_URL"] + prefix + path
             toks["ALT_HREF"] = (LOCALES[other] + alt_path) or "/"
@@ -576,7 +583,7 @@ def main() -> None:
                 "DESC": esc(L(p.get("tagline"), loc) or L(p.get("description"), loc) or s.get("catalog_desc", "")),
                 "BODY_CLASS": "page-product",
                 "P_ID": esc(p["id"]), "P_SLUG": p["slug"], "P_NAME": esc(L(p.get("name"), loc)),
-                "P_TAGLINE": esc(L(p.get("tagline"), loc)), "P_DESC": esc(L(p.get("description"), loc)),
+                "P_TAGLINE": esc_bidi(L(p.get("tagline"), loc)), "P_DESC": esc_bidi(L(p.get("description"), loc)),
                 "P_EST": ('<span class="badge-est">{{t.price_estimate}}</span>' if p.get("preliminary") else ""),
                 "P_EST_SHORT": ("<small>{{t.price_estimate_short}}</small>" if p.get("preliminary") else ""),
                 "P_LEAD_EST": (' <span class="muted">· {{t.estimate}}</span>' if p.get("preliminary") else ""),
