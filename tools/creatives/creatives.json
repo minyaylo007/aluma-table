@@ -1,0 +1,37 @@
+{
+  "_comment": "Три креативи тесту Meta (docs/META-TEST.md §3). Ціни, розміри й слогани — з catalog/products.json, тут лише підписи. {length}/{extended}/{price} підставляє build.js. Жодних знижок, «залишилось N», відгуків: тільки факти каталогу й позначка «הדמיה».",
+  "brand": "ALUMA",
+  "mark": "הדמיה",
+  "cta": "להרשמה מוקדמת",
+  "price_note": "מחיר משוער, טרם אושר",
+  "price_note_many": "מחירים משוערים, טרם אושרו",
+  "includes": "כולל מע״מ, משלוח והרכבה",
+  "variants": [
+    {
+      "id": "tavor",
+      "products": ["tavor"],
+      "headline": "@tagline",
+      "sub": "שולחן אוכל נפתח מאלון · <bdi dir=\"ltr\">{length}→{extended}</bdi> ס״מ",
+      "price": "מ־₪{price}"
+    },
+    {
+      "id": "sahar",
+      "products": ["sahar"],
+      "headline": "@tagline",
+      "sub": "שולחן עגול נפתח מאלון · <bdi dir=\"ltr\">Ø{length}→{extended}</bdi> ס״מ",
+      "price": "מ־₪{price}"
+    },
+    {
+      "id": "collection",
+      "products": ["ofek", "tavor", "sahar", "saf", "tal"],
+      "headline": "סדרת ההשקה של ALUMA",
+      "sub": "חמישה דגמים מאלון · מידות וגוונים לבחירה",
+      "price": "מ־₪{price}"
+    }
+  ],
+  "formats": [
+    { "id": "1x1", "width": 1080, "height": 1080 },
+    { "id": "4x5", "width": 1080, "height": 1350 },
+    { "id": "9x16", "width": 1080, "height": 1920 }
+  ]
+}
