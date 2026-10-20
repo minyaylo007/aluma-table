@@ -32,7 +32,6 @@
   "foot_viz": "Every image on this site is a 3D visualisation made from the specification, not a photograph of an existing piece.",
   "foot_prelaunch": "This site is in pre-launch: nothing is sold and nothing is paid here. Prices and lead times are estimates, not yet confirmed; a binding offer is sent in writing.",
   "notice_label": "Cookie notice",
-  "notice": "This site uses cookies for its operation and for statistical analysis of use.",
   "notice_ok": "Accept",
   "home_title": "ALUMA — made-to-order oak furniture, launch series",
   "home_desc": "An extending dining table, an extending round table, a coffee table, a wall-hung media unit and a console in oak — in the size that fits your home. Delivery and assembly included. Early registration, no payment.",
@@ -71,7 +70,7 @@
   "col_lede": "Choose a piece, a size and a finish — we will come back with a proper offer.",
   "price_note": "Prices are estimates and not yet final. They include VAT, delivery and assembly. A binding offer is sent in writing before any order.",
   "fit_eyebrow": "Your size",
-  "fit_h2": "A table that fits the room, not the other way round.",
+  "fit_h2": "A table that fits the room — not the other way round.",
   "fit_p1": "Most pieces come in several lengths, and the extending tables add a leaf in the middle when guests arrive: compact day to day, long for the holidays.",
   "fit_p2": "Need a size that is not listed? Tell us in the form — we will check with the workshop and come back with an answer.",
   "fit_link": "Sizes and prices",
@@ -94,7 +93,7 @@
   "s5_long": "Delivery and assembly are included in the price. We agree on a date, bring the piece and assemble it in your home.",
   "ws_eyebrow": "The workshop",
   "ws_h2": "Made by us. Not from someone else's catalogue.",
-  "ws_p": "ALUMA furniture is made at an established furniture factory in Chernivtsi, Ukraine, that has worked with oak for years. There are no middlemen in between — which is why size and finish can be adjusted.",
+  "ws_p": "ALUMA furniture is made at an established furniture factory in Chernivtsi, Ukraine. There are no middlemen in between — which is why size and finish can be adjusted.",
   "ws_link": "About the workshop",
   "faq_h2": "Questions",
   "faq_all": "All questions",
@@ -176,11 +175,11 @@
   "how_lede": "We are in pre-launch: collecting registrations before we start production. Here is how it goes, step by step.",
   "about_eyebrow": "The workshop",
   "about_h1": "Furniture we make ourselves",
-  "about_lede": "ALUMA is a new series of oak furniture, made at an established furniture factory in Chernivtsi, Ukraine, and sold directly in Israel.",
+  "about_lede": "ALUMA is a new series of oak furniture, made at an established furniture factory in Chernivtsi, Ukraine, to be sold directly in Israel.",
   "about_photo_alt": "Space for photographs from the workshop",
   "about_photo_soon": "Photographs from the workshop are coming soon",
   "about_h_a": "Who we are",
-  "about_p_a": "The factory in Chernivtsi has made furniture for years, with its own equipment, team and processes. ALUMA is how we bring that work directly to homes in Israel — no importer, no showroom, no warehouse in between.",
+  "about_p_a": "The factory in Chernivtsi has made furniture for years, with its own equipment, team and processes. ALUMA is how we bring that work directly to homes in Israel — no outside importer, no showroom, no warehouse in between.",
   "about_h_b": "Why made to order",
   "about_p_b": "Every piece is made after the order is confirmed, in the size and finish you chose. So there is no stock waiting in a warehouse — and so it takes time: an estimated 10–12 weeks from confirmation to assembly.",
   "about_h_c": "Why registration now, not sales",
@@ -189,7 +188,7 @@
   "about_p_d": "We will not write years of experience, customer counts or reviews we do not have. Images on the site are visualisations from the specification; photographs from the workshop and of the furniture itself will follow when they exist.",
   "mat_h2": "Materials",
   "mat_1_k": "Tops",
-  "mat_1_v": "Natural oak veneer on an MDF or plywood core — stable, it does not warp in the heat and humidity of a home.",
+  "mat_1_v": "Natural oak veneer on an MDF or plywood core — more stable than solid wood and less prone to warping in the heat and humidity of a home.",
   "mat_2_k": "Edges and fronts",
   "mat_2_v": "Solid oak, where you touch it and where you see it.",
   "mat_3_k": "Bases",
@@ -208,7 +207,7 @@
     },
     {
       "q": "Is it solid wood?",
-      "a": "Tops are natural oak veneer — a thin layer of real oak — on an MDF or plywood core that does not warp. Edges and fronts are solid oak. That is how we describe it everywhere, without calling it “solid wood” when it is not."
+      "a": "Tops are natural oak veneer — a thin layer of real oak — on an MDF or plywood core, more stable than solid wood. Edges and fronts are solid oak. That is how we describe it everywhere, without calling it “solid wood” when it is not."
     },
     {
       "q": "Can I order a different size?",
@@ -224,7 +223,7 @@
     },
     {
       "q": "Why is the price an “estimate”?",
-      "a": "We are before the start of production of the series, and prices are not yet final. The binding price is the one in the written offer you receive."
+      "a": "Production of the series has not started yet, and prices are not yet final. The binding price is the one in the written offer you receive."
     },
     {
       "q": "What about warranty?",
@@ -267,7 +266,7 @@
   "a11y_reset": "Reset",
   "a11y_close": "Close",
   "a11y_statement": "Accessibility statement",
-  "cookie_notice": "We use cookies and the Meta pixel for measurement and advertising — only if you agree. Without consent we keep anonymous visit data only.",
+  "cookie_notice": "This site uses essential cookies to work. If you accept, we will also turn on Meta Pixel and Microsoft Clarity to measure advertising and improve the site. You can change your choice at any time.",
   "f_marketing_hint": "Optional.",
   "f_lead_notice": "",
   "finishes_label": "Finishes",
