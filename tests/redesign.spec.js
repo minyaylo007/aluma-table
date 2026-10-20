@@ -118,6 +118,36 @@ test('size choice changes the price, finish choice its name, and both reach the 
   await expect(page.locator('#f-product')).toHaveValue(p.id);
 });
 
+test('plan "closed / open" follows the chosen size and the mechanism frames carry the visualization tag', async ({ page }) => {
+  const p = PRODUCTS.find(x => x.seats && x.sizes.filter(s => s.extended_cm).length > 1);
+  const errors = watchErrors(page);
+  await mockApi(page);
+  await page.goto(`/p/${p.slug}/`);
+  await page.locator('[data-notice-no]').click();
+  const plans = page.locator('[data-plan-size]');
+  await expect(plans.first()).toBeVisible();
+  await expect(page.locator('[data-plan-size]:visible')).toHaveCount(1);
+  const last = p.sizes[p.sizes.length - 1];
+  await page.locator(`label:has(input[name="size"][value="${last.label}"])`).click();
+  const shown = page.locator(`[data-plan-size="${last.label}"]`);
+  await expect(shown).toBeVisible();
+  await expect(page.locator('[data-plan-size]:visible')).toHaveCount(1);
+  // числа з каталогу: довжина відкритого й межі місць
+  await expect(shown).toContainText(`${last.extended_cm}×${last.width_cm}`);
+  const n = (await shown.locator('figcaption').allInnerTexts()).map(t => +t.match(/(\d+)\D*$/)[1]);
+  expect(n[0]).toBeGreaterThanOrEqual(p.seats.closed[0]);
+  expect(n[0]).toBeLessThanOrEqual(p.seats.closed[1]);
+  expect(n[1]).toBeGreaterThanOrEqual(p.seats.extended[0]);
+  expect(n[1]).toBeLessThanOrEqual(p.seats.extended[1]);
+  if ((p.images || []).filter(i => i.view === 'mechanism').length >= 2) {
+    const steps = page.locator('.how-steps li');
+    await expect(steps).toHaveCount(3);
+    for (let i = 0; i < 3; i++) await expect(steps.nth(i).locator('.viz-tag')).toBeVisible();
+  }
+  expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+  expect(errors).toEqual([]);
+});
+
 test('"other size" link prefills the comment in the form', async ({ page }) => {
   await mockApi(page);
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
