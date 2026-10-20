@@ -113,6 +113,11 @@ class BuiltSiteTests(unittest.TestCase):
             self.assertIn('property="og:image"', html)
             self.assertRegex(html, r'<meta name="description" content="[^"]{20,}">')
 
+    def test_share_preview_is_own_language_and_product(self):
+        # WhatsApp/Facebook: головна he/en — власне превью мовою сторінки, товар — свій герой, не старе og.png
+        for rel, name in (("", "home-he"), ("en/", "home-en"), (f"p/{PRODUCTS[0]['slug']}/", PRODUCTS[0]["slug"])):
+            self.assertRegex(self.page(rel), rf'property="og:image" content="[^"]*/assets/og/{name}\.[0-9a-f]+\.jpg"', rel)
+
     def test_sitemap_lists_products_and_robots_points_to_it(self):
         sm = (self.dist / "sitemap.xml").read_text(encoding="utf-8")
         for p in PRODUCTS:

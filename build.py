@@ -551,7 +551,9 @@ def main() -> None:
             toks.setdefault("TITLE", "{{t." + title_key + "}}")
             toks.setdefault("DESC", "{{t." + desc_key + "}}")
             toks.setdefault("JSONLD", "")
-            toks.setdefault("OG_IMAGE", "/assets/og.png")
+            # загальні сторінки: превью головної своєю мовою (tools/make-og-products.js), інакше старе og.png
+            home_og = f"/assets/og/home-{loc}.jpg"
+            toks.setdefault("OG_IMAGE", home_og if (SITE / home_og.lstrip("/")).is_file() else "/assets/og.png")
             toks.setdefault("BODY_CLASS", "")
             toks["CANONICAL"] = CONTENT["SITE_URL"] + prefix + path
             toks["ALT_HREF"] = (LOCALES[other] + alt_path) or "/"
