@@ -36,14 +36,27 @@
   var NOTICE_KEY = "fx_notice_v1";
   var choice = null;
   try { choice = localStorage.getItem(NOTICE_KEY); } catch (e) {}
-  var showNotice = function () { if (notice) { notice.hidden = false; var b = qs("[data-notice-ok]", notice); if (b) b.focus({ preventScroll: true }); } };
+  // --dock: скільки знизу екрана зараз займають банер і липка смуга — кнопка נגישות стоїть над ними, не перекриває
+  var dock = function () {
+    var top = W.innerHeight, st = qs("[data-sticky]");
+    var stOn = st && st.classList.contains("is-on") && st.offsetHeight;
+    D.documentElement.style.setProperty("--sticky-h", (stOn ? st.offsetHeight : 0) + "px");
+    if (stOn) top -= st.offsetHeight;   // не getBoundingClientRect: смуга ще їде transform-ом
+    // на десктопі банер — картка в протилежному куті, кнопку не піднімаємо
+    if (notice && !notice.hidden && !notice.classList.contains("is-away") && notice.offsetWidth > W.innerWidth * .8) top = Math.min(top, notice.getBoundingClientRect().top);
+    D.documentElement.style.setProperty("--dock", Math.max(0, Math.round(W.innerHeight - top)) + "px");
+  };
+  W.addEventListener("resize", function () { dock(); }, { passive: true });
+  var showNotice = function () { if (notice) { notice.hidden = false; dock(); var b = qs("[data-notice-ok]", notice); if (b) b.focus({ preventScroll: true }); } };
   if (notice) {
     if (choice !== "1" && choice !== "0") notice.hidden = false;
+    dock();
     // вибір пише tracking.js (alumaConsent); без нього — сам ключ, щоб банер не питав знову
     var choose = function (yes) {
       var was = null;
       try { was = localStorage.getItem(NOTICE_KEY); } catch (e) {}
       notice.hidden = true;
+      dock();
       if (W.alumaConsent) { try { W.alumaConsent(yes); } catch (e) {} }
       else { try { localStorage.setItem(NOTICE_KEY, yes ? "1" : "0"); } catch (e) {} }
       if (!yes && was === "1") location.reload();     // відкликання: сторонній код уже на сторінці — перезавантажуємо без нього
@@ -51,6 +64,17 @@
     var okBtn = qs("[data-notice-ok]", notice), noBtn = qs("[data-notice-no]", notice);
     if (okBtn) okBtn.addEventListener("click", function () { choose(true); });
     if (noBtn) noBtn.addEventListener("click", function () { choose(false); });
+    // телефон: банер на всю ширину накрив би поле у фокусі — ховаємо, поки фокус у формі
+    var form = qs("#lead-form");
+    if (form) {
+      form.addEventListener("focusin", function () {
+        if (!notice.hidden && notice.offsetWidth > W.innerWidth * .8) { notice.classList.add("is-away"); dock(); }
+      });
+      form.addEventListener("focusout", function (e) {
+        if (form.contains(e.relatedTarget)) return;
+        notice.classList.remove("is-away"); dock();
+      });
+    }
   }
   qsa("[data-cookie-settings]").forEach(function (b) { b.addEventListener("click", function () {
     try { if (W.alumaConsentReset) W.alumaConsentReset(); } catch (e) {}
@@ -389,6 +413,7 @@
       sticky.classList.toggle("is-on", on);
       sticky.inert = !on;
       D.body.classList.toggle("has-sticky", on);
+      dock();
     };
     var schedule = function () { if (!queued) { queued = true; W.requestAnimationFrame(apply); } };
     W.addEventListener("scroll", schedule, { passive: true });

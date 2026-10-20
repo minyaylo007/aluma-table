@@ -28,12 +28,7 @@ PROJECT = pathlib.Path(__file__).resolve().parent.parent
 SITE = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["SITE_URL"].rstrip("/")
 OG_MIN = (1200, 630)
 
-KNOWN = {
-    "twitter:card": "немає <meta name=\"twitter:card\"> на жодній сторінці — X/WhatsApp-прев'ю без великої картинки",
-    "organization": "немає JSON-LD Organization на / і /en/",
-    "faqpage": "немає JSON-LD FAQPage на /faq/ і /en/faq/, хоча питання на сторінці є",
-    "broken:/en/404": "/404 посилається на /en/404, такої сторінки в dist/ немає",
-}
+KNOWN: dict[str, str] = {}
 
 
 class Page(HTMLParser):
@@ -139,7 +134,7 @@ class PagesQualityTests(unittest.TestCase):
         self.fail(f"{len(problems)} проблем:\n  " + "\n  ".join(problems[:40]))
 
     def content_pages(self):
-        return {rel: p for rel, p in self.parsed.items() if rel != "404.html"}
+        return {rel: p for rel, p in self.parsed.items() if rel not in ("404.html", "en/404.html")}
 
     # --- перевірки ---------------------------------------------------------------------------------
 

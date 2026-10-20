@@ -85,6 +85,24 @@ class BuiltSiteTests(unittest.TestCase):
                 self.assertRegex(text[max(0, m.start() - 30):m.start()], "קנט|חזית|רגל|מסגר", f"{rel}: «עץ אלון מלא» про виріб цілком")
             self.assertIsNone(re.search(r">\s*(קנה|קנו|Buy now|Add to cart)\s*<", html), f"{rel}: кнопка купівлі")
 
+    def test_no_launch_discount_promise(self):
+        # знижки для перших нема — ціни лише «משוער · טרם אושר»
+        for rel, html in self.all_html():
+            text = re.sub(r"<[^>]+>", " ", html)
+            for phrase in ("מחיר השקה", "מחיר ההשקה", "launch price"):
+                self.assertFalse(phrase in text, f"{rel}: «{phrase}»")
+            # «справжній дуб» заголовком двозначний — у нас шпон; у FAQ пояснення шару шпону лишається
+            self.assertIsNone(re.search(r">\s*(אלון אמיתי|Real oak)\s*<", html), f"{rel}: «אלון אמיתי» заголовком")
+
+    def test_internal_links_resolve(self):
+        for rel, html in self.all_html():
+            for href in re.findall(r'href="(/[^"#?]*)', html):
+                if href.startswith("/assets/") or href.startswith("/api/") or href.startswith("/admin"):
+                    continue
+                p = self.dist / href.lstrip("/")
+                ok = p.is_file() or (p / "index.html").is_file() or p.with_suffix(".html").is_file()
+                self.assertTrue(ok, f"{rel}: бите посилання {href}")
+
     def test_seo_head_canonical_hreflang_og(self):
         site = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["SITE_URL"]
         for rel in ("", "en/", f"p/{PRODUCTS[0]['slug']}/"):
@@ -94,6 +112,11 @@ class BuiltSiteTests(unittest.TestCase):
             self.assertIn('hreflang="en"', html)
             self.assertIn('property="og:image"', html)
             self.assertRegex(html, r'<meta name="description" content="[^"]{20,}">')
+
+    def test_share_preview_is_own_language_and_product(self):
+        # WhatsApp/Facebook: головна he/en — власне превью мовою сторінки, товар — свій герой, не старе og.png
+        for rel, name in (("", "home-he"), ("en/", "home-en"), (f"p/{PRODUCTS[0]['slug']}/", PRODUCTS[0]["slug"])):
+            self.assertRegex(self.page(rel), rf'property="og:image" content="[^"]*/assets/og/{name}\.[0-9a-f]+\.jpg"', rel)
 
     def test_sitemap_lists_products_and_robots_points_to_it(self):
         sm = (self.dist / "sitemap.xml").read_text(encoding="utf-8")

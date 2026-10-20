@@ -21,6 +21,7 @@ const ORIGIN = 'https://creative.test';
 const MAX_BYTES = 500 * 1024;
 const MAX_TEXT_SHARE = 0.20;
 const MIN_CONTRAST = 4.5;
+const MIN_TILE_SHARE = 0.05;   // кожен кадр товару — щонайменше 5 % полотна
 const TYPES = { '.webp': 'image/webp', '.avif': 'image/avif', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.woff2': 'font/woff2' };
 
@@ -127,12 +128,21 @@ function measure() {
     texts.push({ text: el.textContent.trim().slice(0, 40), contrast: bg ? (a + 0.05) / (b + 0.05) : 0,
       inside: box.left >= 0 && box.top >= 0 && box.right <= W && box.bottom <= H });
   }
+  // Яка частка полотна реально показує кожен кадр (сітка точок + elementFromPoint: враховує обрізання
+  // сіткою й картку 9:16 поверх кадру). Товар, якого не видно, не може стояти в креативі — і його ціна теж.
+  const STEP = 12;
+  const tiles = [...document.querySelectorAll('.media img')].map((img) => {
+    let hit = 0;
+    for (let y = STEP / 2; y < H; y += STEP) for (let x = STEP / 2; x < W; x += STEP) if (document.elementFromPoint(x, y) === img) hit += 1;
+    return hit * STEP * STEP / (W * H);
+  });
   const panel = document.querySelector('.panel');
   const mark = document.querySelector('.mark');
   const mbox = mark.getBoundingClientRect();
   return {
     textShare: textArea / (W * H),
     texts,
+    tiles,
     panelOverflow: panel.scrollHeight > panel.clientHeight + 1 || panel.scrollWidth > panel.clientWidth + 1,
     mark: mark.textContent.trim(), markVisible: mbox.width > 0 && mbox.height > 0 && mbox.top >= 0 && mbox.left >= 0,
     imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
@@ -202,7 +212,7 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
   const failures = [];
-  const report = { generated_by: 'tools/creatives/build.js', limits: { max_bytes: MAX_BYTES, max_text_share: MAX_TEXT_SHARE, min_contrast: MIN_CONTRAST }, creatives: [] };
+  const report = { generated_by: 'tools/creatives/build.js', limits: { max_bytes: MAX_BYTES, max_text_share: MAX_TEXT_SHARE, min_contrast: MIN_CONTRAST, min_tile_share: MIN_TILE_SHARE }, creatives: [] };
   const rows = [];
   try {
     for (const { v, products, images } of plan) {
@@ -236,11 +246,14 @@ async function main() {
         if (m.mark !== cfg.mark || !m.markVisible) problems.push('нема позначки «הדמיה»');
         if (m.panelOverflow) problems.push('панель переповнена');
         if (!m.imagesOk) problems.push('кадр не завантажився');
+        m.tiles.forEach((share, i) => {
+          if (share < MIN_TILE_SHARE) problems.push(`кадр ${products[i] ? products[i].id : i} видно на ${(share * 100).toFixed(1)} % < ${MIN_TILE_SHARE * 100} %`);
+        });
         if (!m.fontsOk) problems.push('шрифт сайту не завантажився');
         if (shot.bytes > MAX_BYTES) problems.push(`${Math.round(shot.bytes / 1024)} КБ > 500`);
         if (problems.length) failures.push(`${name}: ${problems.join('; ')}`);
         const item = { file: name, width: f.width, height: f.height, bytes: shot.bytes, jpeg_quality: shot.quality,
-          textShare: m.textShare, minContrast, products: products.map((p) => p.id),
+          textShare: m.textShare, minContrast, tiles: m.tiles.map((t) => Number(t.toFixed(4))), products: products.map((p) => p.id),
           images: images.map((p) => path.relative(ROOT, p).split(path.sep).join('/')) };
         row.items[f.id] = item;
         report.creatives.push({ ...item, text_share: Number(m.textShare.toFixed(4)), min_contrast: Number(minContrast.toFixed(2)),

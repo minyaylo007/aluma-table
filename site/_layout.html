@@ -19,7 +19,10 @@
 <meta property="og:title" content="{{TITLE}}">
 <meta property="og:description" content="{{DESC}}">
 <meta property="og:url" content="{{CANONICAL}}">
-<meta property="og:image" content="{{SITE_URL}}/assets/og.png">
+<meta property="og:image" content="{{SITE_URL}}{{OG_IMAGE}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta property="og:locale" content="{{t.locale}}">
 {{JSONLD}}
 {{TRACKING}}
@@ -27,6 +30,18 @@
 </head>
 <body class="{{BODY_CLASS}}">
 <a class="skip" href="#main">{{t.skip}}</a>
+<div class="a11y" data-a11y>
+  <button class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11y-panel"><span class="sr">{{t.a11y_btn}}</span><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v5m0 0l-3.5 6.5M12 15l3.5 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <div class="a11y-panel" id="a11y-panel" role="group" aria-labelledby="a11y-h" hidden>
+    <p class="a11y-h" id="a11y-h">{{t.a11y_panel}}</p>
+    <button type="button" aria-pressed="false" data-a11y-opt="font">{{t.a11y_font}}</button>
+    <button type="button" aria-pressed="false" data-a11y-opt="contrast">{{t.a11y_contrast}}</button>
+    <button type="button" aria-pressed="false" data-a11y-opt="links">{{t.a11y_links}}</button>
+    <button type="button" aria-pressed="false" data-a11y-opt="still">{{t.a11y_motion}}</button>
+    <button type="button" data-a11y-reset>{{t.a11y_reset}}</button>
+    <a href="{{PREFIX}}/accessibility">{{t.a11y_statement}}</a>
+  </div>
+</div>
 <header class="top" data-top>
   <div class="wrap top-row">
     <a class="logo" href="{{PREFIX}}/">
@@ -89,18 +104,6 @@
   <div class="notice-btns">
     <button class="btn btn--sm btn--dark" type="button" data-notice-ok>{{t.notice_ok}}</button>
     <button class="btn btn--sm btn--ghost" type="button" data-notice-no>{{t.notice_no}}</button>
-  </div>
-</div>
-<div class="a11y" data-a11y>
-  <button class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11y-panel"><span class="sr">{{t.a11y_btn}}</span><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v5m0 0l-3.5 6.5M12 15l3.5 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  <div class="a11y-panel" id="a11y-panel" role="group" aria-labelledby="a11y-h" hidden>
-    <p class="a11y-h" id="a11y-h">{{t.a11y_panel}}</p>
-    <button type="button" aria-pressed="false" data-a11y-opt="font">{{t.a11y_font}}</button>
-    <button type="button" aria-pressed="false" data-a11y-opt="contrast">{{t.a11y_contrast}}</button>
-    <button type="button" aria-pressed="false" data-a11y-opt="links">{{t.a11y_links}}</button>
-    <button type="button" aria-pressed="false" data-a11y-opt="still">{{t.a11y_motion}}</button>
-    <button type="button" data-a11y-reset>{{t.a11y_reset}}</button>
-    <a href="{{PREFIX}}/accessibility">{{t.a11y_statement}}</a>
   </div>
 </div>
 <script type="application/json" id="aluma-data">{{DATA}}</script>
