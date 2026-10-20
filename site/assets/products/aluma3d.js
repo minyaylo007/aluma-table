@@ -257,15 +257,16 @@
   // TAVOR — розсувний прямокутний: стільниця 40 мм зі скосом знизу 20×26 мм, царги, ніжки звужуються донизу.
   PRODUCTS.tavor = function (THREE, P, sz, base, state) {
     var L = sz.length_cm / 100, W = sz.width_cm / 100, H = sz.height_cm / 100, leaf = (sz.extended_cm - sz.length_cm) / 100;
+    // state 'half' — кадр механізму: половини розведені на пів вставки, видно напрямні й складену вставку під ними
     var open = state === 'open', T = 0.04, y0 = H - T, foot = [];
-    var halves = open ? [[-(L + leaf) / 2, -leaf / 2 - GAP / 2], [leaf / 2 + GAP / 2, (L + leaf) / 2]] : [[-L / 2, -GAP / 2], [GAP / 2, L / 2]];
+    var ext = open ? leaf : state === 'half' ? leaf / 2 : 0, ends = [-(L + ext) / 2, (L + ext) / 2];
+    var halves = [[ends[0], -ext / 2 - GAP / 2], [ext / 2 + GAP / 2, ends[1]]];
     halves.forEach(function (h, i) {
       chamferSlab(P.face, P.oak, P.under, h[0], h[1], -W / 2, W / 2, y0, T, 0.020, 0.026,
         { l: i === 0, r: i === 1, f: true, b: true }, [0, 0]);
     });
     if (open) chamferSlab(P.face, P.oak, P.under, -leaf / 2 + GAP / 2, leaf / 2 - GAP / 2, -W / 2, W / 2, y0, T, 0.020, 0.026,
       { l: false, r: false, f: true, b: true }, [0.31, 0.5]);
-    var ext = open ? leaf : 0, ends = [-(L + ext) / 2, (L + ext) / 2];
     if (base === 'steel') {
       // дві П-рами з профілю 60×20 біля торців: стійки, верхня й нижня поперечка
       ends.forEach(function (e) {
@@ -293,11 +294,21 @@
       [-1, 1].forEach(function (s) {
         var z = s * (W / 2 - inset - aprT / 2 - 0.012);
         halves.forEach(function (h, i) {
-          var a = i === 0 ? ends[0] + inset + legT : (open ? 0.03 + leaf / 2 : GAP / 2);
-          var b = i === 0 ? (open ? -0.03 - leaf / 2 : -GAP / 2) : ends[1] - inset - legT;
+          var a = i === 0 ? ends[0] + inset + legT : (open ? 0.03 + leaf / 2 : ext / 2 + GAP / 2);
+          var b = i === 0 ? (open ? -0.03 - leaf / 2 : -ext / 2 - GAP / 2) : ends[1] - inset - legT;
           box(P.oak, (a + b) / 2, y0 - aprH / 2, z, b - a, aprH, aprT, 'x');
         });
       });
+      // напрямні: дві сталеві шини 30×25 мм під стільницею, між царгами; довжина — закритий стіл без ніжок
+      var railZ = W / 2 - inset - aprT - 0.05, railL = L - 2 * (inset + legT) - 0.04;
+      [-1, 1].forEach(function (s) { box(P.steel, 0, y0 - 0.0125 - SINK, s * railZ, railL + ext, 0.025, 0.03, 'x'); });
+      // вставка зберігається складеною вдвоє (80×W -> 80×W/2, два шари) між шинами; у розкладеному стані вона на місці
+      if (!open) {
+        var lw = Math.min(W / 2, 2 * railZ - 0.05) / 2, yl = y0 - aprH;
+        chamferSlab(P.under, P.oak, P.under, -leaf / 2, leaf / 2, -lw, lw, yl, T, 0.020, 0.026, { l: false, r: false, f: false, b: false }, [0.2, 0.1]);
+        chamferSlab(P.face, P.oak, P.under, -leaf / 2, leaf / 2, -lw, lw, yl + T + 0.001, T, 0.020, 0.026,
+          { l: false, r: false, f: false, b: false }, [0.31, 0.5]);
+      }
     }
     return { foot: foot };
   };

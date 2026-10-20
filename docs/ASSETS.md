@@ -10,7 +10,7 @@
 |---|---|---|
 | Герой і крупний план кожного товару (`source: "ai"`) | Figma AI, модель `gemini-3.1-flash-image`, файл Figma «ALUMA — фото товаров» (`RLTzPbAof8ObuvaBw6sQUL`), 20.10.2026, дозвіл власника | згенеровано для нас |
 | Геометрія всіх п'яти товарів | `site/assets/products/aluma3d.js` — параметрична модель із розмірів сітки каталогу | наш код |
-| Ракурси й розкладений стіл (`source: "render"`, наступний PR) | Blender 4.5 Cycles: `tools/blender_scene.py` над геометрією з `aluma3d.js` | наш код |
+| Ракурси, розкладений стіл, механізм tavor, пара «ранок / вечір», текстура дуба (`source: "render"`) | Blender 4.5 Cycles: `tools/blender_scene.py` над геометрією з `aluma3d.js`; лампа над столом — наша процедурна модель | наш код |
 | Дуб у рендерах і свотчах | Poly Haven «Oak Veneer 01», https://polyhaven.com/a/oak_veneer_01 | CC0 |
 | Тонування (світлий, мед, копчений, чорний) | фарбування того самого альбедо на canvas (`gradePixel` в `aluma3d.js`) | наш код |
 | Інтер'єр Blender: стіна, підлога, льон | Poly Haven: https://polyhaven.com/a/plastered_wall_04 · https://polyhaven.com/a/smooth_concrete_floor · https://polyhaven.com/a/rough_linen | CC0 |
@@ -30,18 +30,29 @@
 | saf | паз замість ручки, нижня полиця, 4 ніжки | дві шухляди з пазом | дві шухляди замість однієї |
 | tal | 100×60, скруглені кути, круглі ніжки | товста кругла ніжка, скруглений кут | ніжки Ø9 см (було 6–7) |
 
+## Кадри Blender: що показують
+- **mechanism** (tavor): у моделі — стан `half`: половини розведені на 40 см (пів вставки), видно дві сталеві
+  напрямні 30×25 мм і вставку 80 см, складену вдвоє між царгами — як у описі («מאוחסנת מתחת למשטח»).
+  Пара `half` / `closed` знята однією камерою над швом (вікно ±0,42 м від центру).
+- **light** (tavor): одна камера й одна сцена; підвісна лампа в кадрі в обох, ранок — холодне бічне сонце з вікна,
+  вечір — сутінки за вікном і тепла лампа (2700 K). Кадри збігаються по композиції — вітрина змінює їх плавно.
+- **texture** (ofek, saf): кут стільниці на 85 мм, f/2.8 — торець, кромка і шпон, без декору.
+
 ## Як перезібрати
 ```bash
 # майстри Figma AI: /opt/ihor/aluma-table/tmp/figma-ai/<товар>-{hero,detail}-v1.png (не в git; інша тека — $ALUMA_FIGMA)
 python3 tools/fetch_assets.py && python3 tools/bake_textures.py   # раз: текстури свотчів у renders-master/textures
 export PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright
 node tools/render_products.js            # усі кадри + свотчі; catalog/products.json — поле images
+node tools/render_products.js tavor --preview --frames=light-morning,light-evening   # звірка ракурсу: ½ сторони, 12 семплів
 python3 -I tools/fetch_cc0.py            # раз: CC0 для Blender у /opt/ihor/aluma-table/tmp/cc0 (не в git)
 ```
 Без власного порту: свотчі — сторінка `tools/render_products.html` з `file://`, three.js r160 з cdnjs. Запуск — у рамці
-CLAUDE.md §8. У дерево їдуть `<кадр>-{<ширина>,800}.{avif,webp}` і `<кадр>-<ширина>.jpg` у рідній ширині майстра
+CLAUDE.md §8. У дерево їдуть `<кадр>-{<ширина>,800}.{avif,webp}` (для hero і angle ще `-400`) і `<кадр>-<ширина>.jpg` у рідній ширині майстра
 (без збільшення); герой AVIF ≤ 180 КБ. Свотчі тонувань — `site/assets/products/finishes/<id>.{avif,webp,jpg}`, 240 px.
 
 Blender (портативний, `/opt/ihor/aluma-table/tmp/blender`, не в git) — лише в рамці дирижера, один процес за раз:
-`TMPDIR=/tmp timeout 60m nice -n 15 systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=4G -p CPUQuota=300% blender -b --factory-startup -P tools/blender_scene.py -- --geo <json> --out <png>`.
+`TMPDIR=/tmp timeout 120m nice -n 19 systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=4G -p CPUQuota=200% blender -b --factory-startup -P tools/blender_scene.py -- --geo <json> --out <png> --threads 2`
+(рамку пом'якшено 21.10 на прохання дирижера: поруч бойові сервіси; кадр 1600×1200 при 32 семплах — 5–60 хв залежно
+від навантаження машини). Пайплайн рендерить по одному товару (`--reuse` не перераховує готові майстри).
 Геометрію для нього віддає `window.geo(job)` у `tools/render_products.html`.

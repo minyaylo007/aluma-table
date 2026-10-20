@@ -390,7 +390,7 @@ win = bpy.data.lights.new("window", "AREA")
 win.shape = "RECTANGLE"
 win.size, win.size_y = 2.4, 1.9
 win.energy = CAM.get("window", 200)
-win.color = (1.0, 0.97, 0.93)
+win.color = tuple(CAM.get("window_color", (1.0, 0.97, 0.93)))
 wo = bpy.data.objects.new("window", win)
 col.objects.link(wo)
 
@@ -398,7 +398,7 @@ col.objects.link(wo)
 sun = bpy.data.lights.new("sun", "SUN")
 sun.energy = CAM.get("sun", 5.0)
 sun.angle = math.radians(1.5)
-sun.color = (1.0, 0.9, 0.78)
+sun.color = tuple(CAM.get("sun_color", (1.0, 0.9, 0.78)))
 so = bpy.data.objects.new("sun", sun)
 col.objects.link(so)
 sun_dir = Vector(CAM.get("sun_dir", (0.85, 0.3, -0.42))).normalized()   # куди світить
@@ -419,6 +419,46 @@ wo.visible_camera = False
 wo.location = (gx - 0.15, (y0 + y1) / 2, (z0 + z1) / 2)
 win.size, win.size_y = (y1 - y0), (z1 - z0)
 wo.rotation_euler = (0, math.radians(-90), 0)
+
+
+# ---- підвісна лампа над столом (пара кадрів «ранок / вечір»): у кадрі однакова, світить лише ввечері -----------
+def pendant(lit, energy, color):
+    cx, cy, z = (LO.x + HI.x) / 2 + CAM.get("pendant_dx", 0.0), (LO.y + HI.y) / 2, TOP + CAM.get("pendant_h", 0.78)
+    shade_m = pbr("shade", rough=0.7, color=(0.86, 0.83, 0.78))[0]
+    bpy.ops.mesh.primitive_cone_add(vertices=64, radius1=0.2, radius2=0.06, depth=0.2, end_fill_type="NOTHING",
+                                    location=(cx, cy, z + 0.1))
+    sh = bpy.context.object
+    sh.name = "pendant"
+    sh.data.materials.append(shade_m)
+    sh.modifiers.new("solid", "SOLIDIFY").thickness = 0.004
+    sh.data.shade_smooth()
+    cord_m = pbr("cord", rough=0.5, color=(0.05, 0.05, 0.05))[0]
+    cube("cord", (0.006, 0.006, 2.75 - z - 0.2), (cx, cy, (2.75 + z + 0.2) / 2), cord_m)
+    if not lit:
+        return
+    bulb_m = bpy.data.materials.new("bulb")
+    bulb_m.use_nodes = True
+    em = bulb_m.node_tree.nodes.new("ShaderNodeEmission")
+    em.inputs["Color"].default_value = (*color, 1)
+    em.inputs["Strength"].default_value = 30.0
+    bulb_m.node_tree.links.new(em.outputs["Emission"], bulb_m.node_tree.nodes["Material Output"].inputs["Surface"])
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.035, location=(cx, cy, z + 0.05))
+    bpy.context.object.data.materials.append(bulb_m)
+    la = bpy.data.lights.new("lamp", "AREA")
+    la.shape, la.size = "DISK", 0.34
+    la.energy, la.color = energy, color
+    lo = bpy.data.objects.new("lamp", la)
+    col.objects.link(lo)
+    lo.location = (cx, cy, z + 0.02)                               # світить униз, у стільницю
+    glow = bpy.data.lights.new("glow", "POINT")                    # слабке світло вгору й у кімнату крізь абажур
+    glow.energy, glow.color, glow.shadow_soft_size = energy * CAM.get("glow", 0.12), color, 0.1
+    go = bpy.data.objects.new("glow", glow)
+    col.objects.link(go)
+    go.location = (cx, cy, z + 0.14)
+
+
+if CAM.get("pendant"):
+    pendant(CAM["pendant"] == "on", CAM.get("lamp", 90.0), tuple(CAM.get("lamp_color", (1.0, 0.66, 0.36))))
 
 
 # ---- камера: 50 мм на рівні очей, вписати виріб -----------------------------------------------------------
