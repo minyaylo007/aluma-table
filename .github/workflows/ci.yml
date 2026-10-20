@@ -141,3 +141,6 @@ jobs:
         # Без порту: dist/ через page.route. Падає на serious/critical на будь-якій сторінці he/en
         # (תקנה 35, docs/COMPLIANCE-IL.md). dist/ уже зібраний кроком вище — npm run test:a11y зібрав би вдруге.
         run: npx playwright test --config playwright.a11y.config.js
+      - name: responsive.spec.js (ширини 320–1920, zoom 200 %, фокус, липка кнопка, bdi)
+        # Без порту, той самий dist/. Відомі дірки вітрини — у KNOWN самого spec, нове — червоне.
+        run: npx playwright test --config playwright.responsive.config.js
