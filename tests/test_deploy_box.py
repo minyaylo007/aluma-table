@@ -38,6 +38,12 @@ class DeployBoxTextTests(unittest.TestCase):
                 any(forbidden in ln for ln in code_lines), f"у коді скрипта не може бути «{forbidden}»"
             )
 
+    def test_health_gets_git_sha_from_own_dropin(self) -> None:
+        # git_sha у health був null: юніт на ящику не мав GIT_SHA; drop-in лише для свого юніта
+        self.assertIn('DROPIN_DIR="${ALUMA_DROPIN_DIR:-$HOME/.config/systemd/user/$UNIT.d}"', TEXT)
+        self.assertIn("printf 'GIT_SHA=%s\\n'", TEXT)
+        self.assertLess(TEXT.index('mark_release "$(git'), TEXT.index('systemctl --user restart "$UNIT"'))
+
     def test_static_is_published_with_chmod_and_trailing_slash(self) -> None:
         m = re.search(r"rsync (.+?) \"\$CLONE/dist/\" \"\$STATIC/\"", TEXT)
         self.assertIsNotNone(m, "rsync має брати dist/ зі скісною рискою і класти в /srv/aluma/")
