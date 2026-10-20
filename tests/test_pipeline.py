@@ -148,6 +148,12 @@ class CiTests(unittest.TestCase):
         self.assertIn("--config playwright.a11y.config.js", body)
         self.assertLess(body.index("python build.py"), body.index("playwright.a11y.config.js"))
 
+    def test_browser_runs_the_responsive_spec(self):
+        """Верстка на всіх ширинах (WCAG 1.4.10, 2.5.8, 2.4.7) — теж крок browser, після збірки."""
+        body = code(self.jobs["browser"])
+        self.assertIn("--config playwright.responsive.config.js", body)
+        self.assertLess(body.index("python build.py"), body.index("playwright.responsive.config.js"))
+
 
 class WorkflowSafetyTests(unittest.TestCase):
     NAMES = ("ci.yml", "release.yml", "deploy.yml", "rollback.yml")
