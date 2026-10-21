@@ -18,29 +18,26 @@
   "nav_a11y": "Accessibility",
   "switch_lang": "עברית",
   "menu": "Menu",
-  "cta_register": "Join the launch list",
-  "cta_register_short": "Register",
-  "quick_h": "Early registration for this model, no payment",
-  "quick_fine": "Your choice (size, finish, base) is sent with your details.",
-  "quick_more": "Full form",
-  "launch_bar": "Launch series — early registration, no payment, no commitment",
+  "cta_register": "Ask about size or finish",
+  "cta_register_short": "Ask",
+  "launch_bar": "Launch series · prices include VAT, delivery and assembly",
   "foot_line": "Oak furniture sized for your home. Made in our own workshop, delivered and assembled at yours.",
   "foot_nav_label": "Links",
   "foot_legal_label": "Legal",
   "foot_contact": "Contact",
   "whatsapp": "Message us on WhatsApp",
   "foot_viz": "Every image on this site is a 3D visualisation made from the specification, not a photograph of an existing piece.",
-  "foot_prelaunch": "This site is in pre-launch: nothing is sold and nothing is paid here. Prices and lead times are estimates, not yet confirmed; a binding offer is sent in writing.",
+  "foot_prelaunch": "This site takes advance orders. No payment is made on the site: every order is confirmed with you — price, specification and delivery date — before any payment.",
   "notice_label": "Cookie notice",
   "notice_ok": "Accept",
   "home_title": "ALUMA — made-to-order oak furniture, launch series",
-  "home_desc": "An extending dining table, an extending round table, a coffee table, a wall-hung media unit and a console in oak — in the size that fits your home. Delivery and assembly included. Early registration, no payment.",
+  "home_desc": "An extending dining table, an extending round table, a coffee table, a wall-hung media unit and a console in oak — in the size that fits your home. Price includes delivery and assembly.",
   "catalog_title": "The launch series — ALUMA",
-  "catalog_desc": "Every piece of the ALUMA launch series: sizes, finishes and estimated prices. Early registration, no payment.",
+  "catalog_desc": "Every piece of the ALUMA launch series: sizes, finishes and prices — incl. VAT, delivery and assembly.",
   "how_title": "How it works — ALUMA",
-  "how_desc": "From early registration to assembly in your home: five steps, no upfront payment on the site.",
+  "how_desc": "From choosing on the site to assembly in your home: five steps, and every order is confirmed with you before payment.",
   "about_title": "The workshop — ALUMA",
-  "about_desc": "Who makes ALUMA furniture, from what materials, and why it takes {{LEAD_WEEKS}} weeks.",
+  "about_desc": "Who makes ALUMA furniture, from what materials, and why every piece is made to order.",
   "faq_title": "FAQ — ALUMA",
   "faq_desc": "Lead time, materials, veneer and solid wood, custom sizes, delivery, assembly and warranty.",
   "privacy_title": "Privacy policy — ALUMA",
@@ -55,7 +52,7 @@
   "hero_h1": "Oak furniture, <span class=\"acc\">sized for your home.</span>",
   "hero_lede": "Dining tables, a coffee table, a media unit and a console — clean lines, the finish you choose, the size your room needs. Made in our own workshop, delivered and assembled at yours.",
   "cta_collection": "See the collection",
-  "hero_note": "Early registration, no payment. Prices are estimates, not yet confirmed.",
+  "hero_note": "Price includes VAT, delivery and assembly. Exact delivery time — on order confirmation.",
   "values_label": "Why ALUMA",
   "v1_h": "Sized to the room",
   "v1_p": "Several sizes for most pieces, and another size on request.",
@@ -67,8 +64,8 @@
   "v4_p": "We make it ourselves, with no middlemen in between.",
   "col_eyebrow": "The launch series",
   "col_h2": "Few pieces, in several sizes.",
-  "col_lede": "Choose a piece, a size and a finish — we will come back with a proper offer.",
-  "price_note": "Prices are estimates and not yet final. They include VAT, delivery and assembly. A binding offer is sent in writing before any order.",
+  "col_lede": "Choose a piece, a size and a finish — the price includes delivery and assembly.",
+  "price_note": "Prices include VAT, delivery and assembly. Every order is confirmed with you — price, specification and date — before any payment.",
   "fit_eyebrow": "Your size",
   "fit_h2": "A table that fits the room — not the other way round.",
   "fit_p1": "Most pieces come in several lengths, and the extending tables add a leaf in the middle when guests arrive: compact day to day, long for the holidays.",
@@ -84,19 +81,19 @@
   "matb_3_p": "On screen a tone is an approximation; a finish sample can be requested on the call.",
   "matb_link": "More about the materials",
   "how_eyebrow": "How it works",
-  "how_h2": "From registration to the first dinner around the table",
-  "s1_h": "Early registration",
-  "s1_p": "Choose a piece and leave your details. No payment, no commitment.",
-  "s1_long": "Choose a piece, a size and a finish — or just leave your details. Registering costs nothing and does not oblige you to buy.",
-  "s2_h": "Call and offer",
-  "s2_p": "We get back to you, fine-tune size and finish, and send a written offer.",
-  "s2_long": "We get back to you on WhatsApp or by phone, go through the sizes against your room and the finish together, and send a written offer with the price, timing and terms.",
-  "s3_h": "Written offer",
-  "s3_p": "Prices on the site are estimates, not yet confirmed; the final price is in the written offer.",
-  "s3_long": "Prices on the site are estimates, not yet confirmed. After you register we send a written offer with price, timing and specification — only your written acceptance is an order.",
+  "how_h2": "From choosing on the site to the first dinner around the table",
+  "s1_h": "Choose on the site",
+  "s1_p": "Choose a piece, a size and a finish and add it to the cart. The cart total includes delivery and assembly.",
+  "s1_long": "Choose a piece, a size, a finish and a base and add it to the cart. The cart shows the full total — with VAT, delivery and assembly. No payment is made on the site.",
+  "s2_h": "A call and confirmation",
+  "s2_p": "We get back to you and fine-tune size and finish to the room.",
+  "s2_long": "We get back to you on WhatsApp or by phone, go over the measurements against your room and the finish together, and settle the order details.",
+  "s3_h": "Written order confirmation",
+  "s3_p": "Price, specification and delivery date are confirmed with you in writing before any payment.",
+  "s3_long": "Before any payment you get a written order confirmation: final price, specification and delivery date. Only after you confirm does the order go into production.",
   "s4_h": "Production",
   "s4_p": "The workshop makes the piece specifically for you.",
-  "s4_long": "Once you accept the written offer, the workshop makes the piece in the size and finish you chose. The estimated time is {{LEAD_WEEKS}} weeks from acceptance; we keep you updated along the way.",
+  "s4_long": "Once the order is confirmed, the workshop makes the piece in the size and finish you chose. The exact delivery time is given on order confirmation, and we keep you updated along the way.",
   "s5_h": "Delivery and assembly",
   "s5_p": "We bring it to your home and assemble it there. It is included in the price.",
   "s5_long": "Delivery and assembly are included in the price. We agree on a date, bring the piece and assemble it in your home.",
@@ -106,12 +103,12 @@
   "ws_link": "About the workshop",
   "faq_h2": "Questions",
   "faq_all": "All questions",
-  "reg_eyebrow": "Early registration",
-  "reg_h2": "Register for the launch series",
-  "reg_lede": "Leave your details and we will come back with a proper offer. No payment on the site, no commitment.",
-  "reg_t1": "Early registration, no payment",
+  "reg_eyebrow": "Talk to us",
+  "reg_h2": "A question about size or finish?",
+  "reg_lede": "A custom size, the size of your room, a finish to match your floor — leave your details and we will get back to you.",
+  "reg_t1": "Help choosing a size for your room",
   "reg_t2": "Size and finish fine-tuned on a call",
-  "reg_t3": "A written offer before any decision",
+  "reg_t3": "Every order is confirmed with you before payment",
   "f_name": "Full name",
   "f_phone": "Phone",
   "f_city": "City",
@@ -131,21 +128,19 @@
   "f_comment_ph": "Custom size, room size, a question…",
   "f_consent": "I have read the <a href=\"/en/privacy\" target=\"_blank\" rel=\"noopener\">privacy policy</a> and agree that you contact me about this request.",
   "f_marketing": "I would like launch updates (optional).",
-  "f_submit": "Join the launch list",
-  "f_fine": "No payment on the site. Prices are estimates, not yet confirmed.",
+  "f_submit": "Send the question",
+  "f_fine": "Your details are used only to get back to you about this request.",
   "f_nojs": "Please enable JavaScript to send the form.",
-  "thx_h": "Thank you, you are on the list.",
+  "thx_h": "Thank you, we have it.",
   "thx_p": "We have your details and will get back to you soon.",
   "thx_1": "We will contact you the way you chose.",
   "thx_2": "We will fine-tune size and finish together.",
-  "thx_3": "You will get a written offer — no commitment.",
+  "thx_3": "Order details — price, specification and date — are confirmed with you before any payment.",
   "thx_back": "Back to the collection",
   "viz_tag": "Visualisation",
   "viz_soon": "Visualisations of this piece are coming soon. The drawing follows its dimensions.",
   "cm": "cm",
   "from": "from ",
-  "weeks": "weeks",
-  "estimate": "estimate",
   "gallery_nav": "Images of the piece",
   "gallery_label": "Visualisation gallery",
   "gallery_item": "Visualisation",
@@ -173,15 +168,12 @@
   "crumbs_label": "Breadcrumbs",
   "launch_series": "Launch series",
   "price_incl": "incl. VAT, delivery and assembly",
-  "price_estimate": "Estimated price, not yet confirmed",
-  "price_estimate_short": "estimate",
-  "lead_label": "Production and delivery:",
   "whatsapp_ask": "Ask on WhatsApp",
-  "pt_1": "Registration with no payment and no commitment",
-  "pt_2": "A written offer before any decision",
+  "pt_1": "Price includes VAT, delivery and assembly",
+  "pt_2": "Written order confirmation before any payment",
   "pt_3": "All images are visualisations from the specification",
   "spec_h2": "Specification",
-  "spec_note": "The specification may change until production is confirmed; the binding figures will be in the written offer.",
+  "spec_note": "The specification may change until production is confirmed; the binding figures will be in the order confirmation.",
   "unfold_h2": "How the table opens",
   "unfold_lede": "The leaf folds away under the top. Pull the two halves apart on their runners, unfold the leaf between them — and the table is longer.",
   "unfold_closed": "Closed",
@@ -197,12 +189,12 @@
   "ch_label": "On this page",
   "ch_unfold": "Opening",
   "ch_light": "Morning & evening",
-  "ch_register": "Register",
+  "ch_register": "Ask",
   "more_h2": "More from the series",
   "catalog_h1": "The launch series",
-  "catalog_lede": "Every piece in oak and in {{FINISH_COUNT}} finishes, most in several sizes. Choose a piece to see sizes, finishes and the estimated price.",
+  "catalog_lede": "Every piece in oak and in {{FINISH_COUNT}} finishes, most in several sizes. Choose a piece to see sizes, finishes and the price.",
   "how_h1": "How it works",
-  "how_lede": "We are in pre-launch: collecting registrations before we start production. Here is how it goes, step by step.",
+  "how_lede": "This is how an ALUMA order works, step by step.",
   "about_eyebrow": "The workshop",
   "about_h1": "Furniture we make ourselves",
   "about_lede": "ALUMA is a new series of oak furniture, made at an established furniture factory in Chernivtsi, Ukraine, to be sold directly in Israel.",
@@ -211,9 +203,9 @@
   "about_h_a": "Who we are",
   "about_p_a": "The factory in Chernivtsi has made furniture for years, with its own equipment, team and processes. ALUMA is how we bring that work directly to homes in Israel — no outside importer, no showroom, no warehouse in between.",
   "about_h_b": "Why made to order",
-  "about_p_b": "Every piece is made after the order is confirmed, in the size and finish you chose. So there is no stock waiting in a warehouse — and so it takes time: an estimated {{LEAD_WEEKS}} weeks from confirmation to assembly.",
-  "about_h_c": "Why registration now, not sales",
-  "about_p_c": "Before producing a series we want to know what really interests you: which piece, which size, which finish. So at this stage we collect registrations, not money.",
+  "about_p_b": "Every piece is made after the order is confirmed, in the size and finish you chose. So there is no stock waiting in a warehouse — and the exact delivery time is given on order confirmation.",
+  "about_h_c": "Why we start with a launch series",
+  "about_p_c": "Before producing a series we want to know what really interests you: which piece, which size, which finish. So the first series is small, and orders open step by step.",
   "about_h_d": "What we do not claim",
   "about_p_d": "We will not write years of experience, customer counts or reviews we do not have. Images on the site are visualisations from the specification; photographs from the workshop and of the furniture itself will follow when they exist.",
   "mat_h2": "Materials",
@@ -233,7 +225,7 @@
   "faq": [
     {
       "q": "How long until I get the piece?",
-      "a": "The estimated time is {{LEAD_WEEKS}} weeks from accepting the written offer to assembly in your home. The piece is made specifically for you and shipped from the workshop, so it takes longer than furniture from stock. The exact time will be in the offer."
+      "a": "Every piece is made specifically for you and shipped from the workshop, so it takes longer than furniture from stock. The exact delivery time is given on order confirmation."
     },
     {
       "q": "Is it solid wood?",
@@ -248,12 +240,12 @@
       "a": "Yes. The price includes VAT, delivery and assembly at home. If access to your home is special (a high floor without a lift, for example), we will discuss it in advance. The area and access will be confirmed in the offer."
     },
     {
-      "q": "Do I need to pay now?",
-      "a": "No. At this stage there is no payment on the site and no commitment. Leave your details, get a written offer, and only then decide."
+      "q": "How do I pay?",
+      "a": "No payment is made on the site. First we confirm the order with you in writing — price, specification and delivery date — and only then you pay."
     },
     {
-      "q": "Why is the price an “estimate”?",
-      "a": "Production of the series has not started yet, and prices are not yet final. The binding price is the one in the written offer you receive."
+      "q": "Is the price on the site final?",
+      "a": "Production of the series has not started yet, so prices on the site are still estimates. The final price is confirmed with you in writing before any payment."
     },
     {
       "q": "What about warranty?",
@@ -285,7 +277,11 @@
     "preview": "This is a preview: the form was not sent.",
     "wa_text": "Hello, I would like to hear about",
     "custom_text": "Requesting another size: ",
-    "any": "—"
+    "any": "—",
+    "e_city": "Please choose a city.",
+    "e_when": "Please choose when you need it.",
+    "items": "items",
+    "item": "item"
   },
   "privacy_html": "<h1 class=\"h1\">Privacy policy</h1><p class=\"muted\">Updated: 21 October 2026</p><h2>Who runs the site</h2><p>The site is run by the ALUMA team during pre-launch. Details of the legal entity that will sell the furniture will be published here before sales begin. For any privacy matter you can write to us through the form on the site<span data-c-inline=\"email\" hidden> or by email at <a data-c=\"email\" href=\"#\"></a></span>.</p><h2>What we collect</h2><p>When you fill in the registration form: name, phone, city (if given), the piece, size, finish and base you chose, when it is relevant, how to contact you, your note, and the consents you ticked.</p><p>Technical browsing data: pages viewed, where you came from (for example a campaign), device type, screen size and browser language. We do not store your IP address: it is passed through a one-way hash with a secret key and only the result is kept.</p><h2>Giving information is voluntary</h2><p>You are not legally required to give any information. Without a name and phone we cannot get back to you — that is the only consequence.</p><h2>How we use it</h2><ul><li>to get back to you about your request and send an offer;</li><li>to understand which pieces and sizes interest people, and to improve the site;</li><li>to measure our advertising — only if you accepted cookies.</li></ul><h2>Cookies and third-party tools</h2><p>The site stores a visit identifier and the source of your visit in your browser. If you agree in the notice at the bottom of the screen, Meta Pixel and Microsoft Clarity are also loaded, when they are enabled on the site. Without your consent they are not loaded.</p><h2>How long we keep it</h2><p>Requests are kept until you ask us to delete them. Browsing data is deleted after 180 days, visit identifiers after 400 days.</p><h2>Who we share it with</h2><p>We do not sell information. Your details reach the ALUMA team and the workshop to the extent needed for the offer and production. The server is hosted by a provider in Europe.</p><h2>Your rights</h2><p>You can ask to see, correct or delete your information — write to us and we will handle it promptly.</p>",
   "terms_html": "<h1 class=\"h1\">Terms of use</h1><p class=\"muted\">Updated: 21 October 2026</p><h2>Pre-launch</h2><p>The site presents a furniture series before production starts. Nothing is sold and nothing is paid on the site; registering is not an order and binds neither side.</p><h2>Prices and timing</h2><p>Prices and lead times on the site are estimates, not yet confirmed. A binding price, timing, specification and warranty terms appear only in a written offer sent to you, and only your written acceptance of that offer is an order.</p><h2>Images</h2><p>Images on the site are 3D visualisations from the specification. Wood tone and texture vary slightly from piece to piece in reality — that is the nature of wood.</p><h2>Site content</h2><p>Content and designs on the site belong to ALUMA. Do not copy them for commercial use without permission.</p>",
@@ -305,5 +301,147 @@
   "f_marketing_hint": "Optional.",
   "f_lead_notice": "",
   "finishes_label": "Finishes",
-  "band_cap": "Natural oak veneer, solid wood at the edges. Every piece is made to order."
+  "band_cap": "Natural oak veneer, solid wood at the edges. Every piece is made to order.",
+  "nav_cart": "Cart",
+  "cart_items": "items in the cart",
+  "add_to_cart": "Add to cart",
+  "lead_exact": "Exact delivery time — on order confirmation",
+  "cart_title": "Your cart — ALUMA",
+  "cart_desc": "Your ALUMA cart: piece, size, finish and the total, with delivery and assembly.",
+  "cart_h1": "Your cart",
+  "cart_empty": "Your cart is empty.",
+  "cart_qty": "Quantity",
+  "cart_less": "One less",
+  "cart_more": "One more",
+  "cart_remove": "Remove",
+  "cart_total": "Total",
+  "cart_pay": "Checkout",
+  "cart_continue": "Keep browsing",
+  "cart_fine": "Estimated price, not yet confirmed: the final price, specification and delivery date are confirmed with you in writing before any payment.",
+  "cart_nojs": "Please enable JavaScript to see the cart.",
+  "checkout_title": "Checkout — ALUMA",
+  "checkout_desc": "Delivery and payment for your ALUMA order.",
+  "co_h1": "Checkout",
+  "co_steps": "Order steps",
+  "co_step_cart": "Cart",
+  "co_step_ship": "Delivery",
+  "co_step_pay": "Payment",
+  "co_summary": "Your order",
+  "co_city": "Delivery city",
+  "co_city_pick": "Choose a city",
+  "co_when": "When do you need it?",
+  "co_when_now": "Within a month",
+  "co_when_13": "In 1–3 months",
+  "co_when_browse": "Just looking",
+  "co_name": "Name",
+  "co_phone": "Phone",
+  "co_next": "Continue to payment",
+  "co_empty": "There is nothing in the order yet.",
+  "pay_h": "Payment",
+  "pay_closed_h": "The launch series is closed for orders",
+  "pay_closed_p": "Orders open soon. No order was placed and you were not charged.",
+  "pay_keep": "Leave your phone and we will keep this price for you.",
+  "pay_phone": "Phone or WhatsApp",
+  "pay_submit": "Keep this price for me",
+  "pay_back": "Back to cart",
+  "pay_thx_h": "We have kept this price for you.",
+  "pay_thx_p": "We will get back to you when orders open. No order was placed and you were not charged.",
+  "cities": [
+    {
+      "id": "tel-aviv",
+      "name": "Tel Aviv–Yafo"
+    },
+    {
+      "id": "jerusalem",
+      "name": "Jerusalem"
+    },
+    {
+      "id": "haifa",
+      "name": "Haifa"
+    },
+    {
+      "id": "rishon",
+      "name": "Rishon LeZion"
+    },
+    {
+      "id": "petah-tikva",
+      "name": "Petah Tikva"
+    },
+    {
+      "id": "ashdod",
+      "name": "Ashdod"
+    },
+    {
+      "id": "netanya",
+      "name": "Netanya"
+    },
+    {
+      "id": "beer-sheva",
+      "name": "Be'er Sheva"
+    },
+    {
+      "id": "holon",
+      "name": "Holon"
+    },
+    {
+      "id": "ramat-gan",
+      "name": "Ramat Gan"
+    },
+    {
+      "id": "bnei-brak",
+      "name": "Bnei Brak"
+    },
+    {
+      "id": "bat-yam",
+      "name": "Bat Yam"
+    },
+    {
+      "id": "ashkelon",
+      "name": "Ashkelon"
+    },
+    {
+      "id": "rehovot",
+      "name": "Rehovot"
+    },
+    {
+      "id": "herzliya",
+      "name": "Herzliya"
+    },
+    {
+      "id": "kfar-saba",
+      "name": "Kfar Saba"
+    },
+    {
+      "id": "raanana",
+      "name": "Ra'anana"
+    },
+    {
+      "id": "hod-hasharon",
+      "name": "Hod HaSharon"
+    },
+    {
+      "id": "modiin",
+      "name": "Modi'in"
+    },
+    {
+      "id": "givatayim",
+      "name": "Givatayim"
+    },
+    {
+      "id": "ramat-hasharon",
+      "name": "Ramat HaSharon"
+    },
+    {
+      "id": "rosh-haayin",
+      "name": "Rosh HaAyin"
+    },
+    {
+      "id": "krayot",
+      "name": "Krayot"
+    },
+    {
+      "id": "other",
+      "name": "Other"
+    }
+  ]
 }

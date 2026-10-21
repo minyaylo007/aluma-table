@@ -100,14 +100,19 @@ class LegalTextsTests(unittest.TestCase):
         self.assertIn("הסרה", he["hint"])
         self.assertIn("Optional", self.en["marketing"]["hint"])
 
-    def test_terms_pre_launch_no_payment_estimated_prices(self):
+    def test_terms_advance_orders_no_payment_estimated_prices(self):
+        # магазин (specs/003): сайт приймає попередні замовлення, оплати й поля карти на сайті немає,
+        # замовлення підтверджується окремо письмово; ціни — «משוער, טרם אושר»
         he = text(self.he["terms"])
-        for must in ("טרום השקה", "לא נגבה בו תשלום", "מע״מ", "מחיר משוער, טרם אושר", "הצעה כתובה",
-                     "חוק הגנת הצרכן", "{business_id}", "{phone}", "{email}", "{court_city}", "הדמיה"):
+        for must in ("הזמנות מוקדמות", "לא מתבצע באתר תשלום", "כרטיס אשראי", "אישור הזמנה כתוב", "מע״מ",
+                     "מחיר משוער, טרם אושר", "חוק הגנת הצרכן", "{business_id}", "{phone}", "{email}", "{court_city}", "הדמיה"):
             self.assertIn(must, he)
         en = text(self.en["terms"])
-        for must in ("no payment", "VAT", "estimates, not yet confirmed", "written offer"):
+        for must in ("advance orders", "No payment is made on the site", "card details", "VAT",
+                     "estimates, not yet confirmed", "written order confirmation"):
             self.assertIn(must, en)
+        for gone in ("הרשמה מוקדמת", "ללא תשלום וללא התחייבות", "שבועות"):
+            self.assertNotIn(gone, he)
 
     def test_tracking_js_banner_copy_matches(self):
         js = (ROOT / "site/assets/tracking.js").read_text(encoding="utf-8")

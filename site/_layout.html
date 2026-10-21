@@ -6,7 +6,7 @@
 <title>{{TITLE}}</title>
 <meta name="description" content="{{DESC}}">
 <link rel="canonical" href="{{CANONICAL}}">
-<link rel="alternate" hreflang="he" href="{{HREF_HE}}">
+{{ROBOTS}}<link rel="alternate" hreflang="he" href="{{HREF_HE}}">
 <link rel="alternate" hreflang="en" href="{{HREF_EN}}">
 <link rel="alternate" hreflang="x-default" href="{{HREF_HE}}">
 <link rel="preload" href="{{t.font_display}}" as="font" type="font/woff2" crossorigin>
@@ -28,6 +28,7 @@
 {{TRACKING}}
 <script>/* фото картки «перелітає» в галерею товару і назад; лише там, де є View Transitions */(function(){if(!window.PageSwapEvent)return;function pick(u){if(!u)return null;var g=document.querySelector(".gallery .media");if(g&&/\/p\/[^/]+\/$/.test(location.pathname))return g;return document.querySelector('.card-link[href="'+new URL(u).pathname+'"] .card-media')}function tag(t,u){var e=t&&pick(u);if(!e)return;e.style.viewTransitionName="p-img";t.finished.finally(function(){e.style.viewTransitionName=""})}addEventListener("pageswap",function(e){tag(e.viewTransition,e.activation&&e.activation.entry.url)});addEventListener("pagereveal",function(e){var a=window.navigation&&navigation.activation;tag(e.viewTransition,a&&a.from&&a.from.url)})})();</script>
 <script src="/assets/aluma.js" defer></script>
+<script src="/assets/shop.js" defer></script>
 </head>
 <body class="{{BODY_CLASS}}">
 <a class="skip" href="#main">{{t.skip}}</a>
@@ -55,7 +56,7 @@
       <a href="{{PREFIX}}/faq/">{{t.nav_faq}}</a>
       <a class="nav-lang" href="{{ALT_HREF}}" hreflang="{{OTHER_LANG}}" lang="{{OTHER_LANG}}">{{t.switch_lang}}</a>
     </nav>
-    <a class="btn btn--sm btn--dark top-cta" href="{{PREFIX}}/#register" data-cta="header">{{t.cta_register}}</a>
+    <a class="btn btn--sm btn--dark top-cta top-cart" href="{{PREFIX}}/cart/" data-cta="header">{{t.nav_cart}}<span class="cart-n" data-cart-n hidden></span><span class="sr" data-cart-sr hidden> {{t.cart_items}}</span></a>
     <button class="menu-btn" type="button" aria-controls="nav" aria-expanded="false"><span class="sr">{{t.menu}}</span><span class="menu-ico" aria-hidden="true"></span></button>
   </div>
   <p class="launch-bar">{{t.launch_bar}}</p>

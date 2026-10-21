@@ -52,7 +52,11 @@ STATIC_PAGES = [
     ("terms", "/terms", "terms_title", "terms_desc"),
     ("accessibility", "/accessibility", "a11y_title", "a11y_desc"),
     ("404", "/404", "nf_title", "nf_desc"),
+    ("cart", "/cart/", "cart_title", "cart_desc"),
+    ("checkout", "/checkout/", "checkout_title", "checkout_desc"),
 ]
+# кошик і оформлення — кроки магазину (specs/003-shop-funnel): не для пошуковика і не в sitemap
+NOINDEX = {"cart", "checkout"}
 
 
 def esc(s) -> str:
@@ -299,8 +303,7 @@ def media(p: dict, loc: str, *, eager: bool = False, sizes: str = "100vw") -> st
 
 def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
     """Картка товару: фото 4:5 (другий кадр — при наведенні), назва, ціна «מ־₪», кружки тонувань."""
-    est = ' <small class="est">{{t.price_estimate_short}}</small>' if p.get("preliminary") else ""
-    price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"])}</bdi>{est}</span>'
+    price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"])}</bdi></span>'
              if p.get("price_from_ils") else "")
     sz = "(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw"
     imgs = [i for i in p.get("images") or [] if i.get("src")]
@@ -337,6 +340,12 @@ def size_dims(s: dict) -> str:
     parts = [s.get("length_cm"), s.get("width_cm"), s.get("height_cm")]
     parts = [str(x) for x in parts if x]
     return "×".join(parts)
+
+
+def thumb_src(p: dict) -> str:
+    """Перший кадр товару — мініатюра в кошику (shop.js); без кадру — порожньо."""
+    img = next((i for i in p.get("images") or [] if i.get("src")), None)
+    return img["src"] if img else ""
 
 
 def thumb(p: dict) -> str:
@@ -431,9 +440,8 @@ def specs(p: dict, loc: str) -> str:
         rows.append(("{{t.spec_finishes}}", esc(", ".join(L(f.get("name"), loc) for f in p["finishes"]))))
     if p.get("bases"):
         rows.append(("{{t.spec_bases}}", esc(", ".join(L(b.get("name"), loc) for b in p["bases"]))))
-    lt = p.get("lead_time_weeks") or [10, 12]
-    rows.append(("{{t.spec_lead}}", f'<bdi dir="ltr">{esc(lt[0])}–{esc(lt[-1])}</bdi> {{{{t.weeks}}}}'
-                 + (" · {{t.estimate}}" if p.get("preliminary") else "")))
+    # строк із каталогу (lead_time_weeks) на сайт не виводимо — точний лише в підтвердженні замовлення
+    rows.append(("{{t.spec_lead}}", "{{t.lead_exact}}"))
     rows.append(("{{t.spec_incl}}", "{{t.spec_incl_v}}"))
     return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
 
@@ -625,7 +633,7 @@ def product_data(products: list, loc: str) -> list:
                        for s in p["sizes"]],
              "finishes": [{"id": f.get("id"), "name": L(f.get("name"), loc)} for f in p["finishes"]],
              "bases": [{"id": b.get("id"), "name": L(b.get("name"), loc)} for b in p["bases"]],
-             "from": int(p.get("price_from_ils") or 0)} for p in products]
+             "from": int(p.get("price_from_ils") or 0), "img": thumb_src(p)} for p in products]
 
 
 # --------------------------------------------------------------------------- рендер
@@ -699,10 +707,12 @@ def main() -> None:
             "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
             **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),
+            "CITY_OPTIONS": "".join(f'<option value="{esc(c["id"])}">{esc(c["name"])}</option>' for c in s.get("cities", [])),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
             "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),
             "DATA": json.dumps({"lang": loc, "prefix": prefix, "consent": CONTENT.get("CONSENT_VERSION", "v1"),
-                                "s": s.get("js", {}), "products": product_data(products, loc)},
+                                "s": s.get("js", {}), "products": product_data(products, loc),
+                                "cities": s.get("cities", [])},
                                ensure_ascii=False).replace("</", "<\\/"),
         }
         hero_p = next((p for p in products if p["slug"] == CONTENT.get("HERO_PRODUCT")), products[0])
@@ -736,6 +746,7 @@ def main() -> None:
             home_og = f"/assets/og/home-{loc}.jpg"
             toks.setdefault("OG_IMAGE", home_og if (SITE / home_og.lstrip("/")).is_file() else "/assets/og.png")
             toks.setdefault("BODY_CLASS", "")
+            toks.setdefault("ROBOTS", "")
             toks["CANONICAL"] = CONTENT["SITE_URL"] + prefix + path
             toks["ALT_HREF"] = (LOCALES[other] + alt_path) or "/"
             toks["HREF_HE"] = CONTENT["SITE_URL"] + alt_path if loc == "en" else toks["CANONICAL"]
@@ -748,17 +759,18 @@ def main() -> None:
             rel = (prefix.lstrip("/") + "/" if prefix else "") + (
                 "index.html" if path == "/" else path.strip("/") + ("/index.html" if path.endswith("/") else ".html"))
             toks = {"BODY_CLASS": f"page-{name}"}
+            if name in NOINDEX:
+                toks["ROBOTS"] = '<meta name="robots" content="noindex">\n'
             if name == "home":
                 toks["JSONLD"] = organization_jsonld(loc, CONTENT["SITE_URL"] + prefix + "/")
             elif name == "faq" and s.get("faq"):
                 toks["JSONLD"] = faq_jsonld(s["faq"])
             emit(rel, templates[name], toks, tk, dk, path, path)
-            if path != "/404":
+            if path != "/404" and name not in NOINDEX:
                 pages_out.append(prefix + path)
 
         for p in products:
             path = f"/p/{p['slug']}/"
-            lt = p.get("lead_time_weeks") or [10, 12]
             p_how, p_light = how(p, loc), light(p, loc)
             tokens = {
                 "TITLE": esc(L(p.get("name"), loc)) + " — {{t.brand_name}}",
@@ -766,13 +778,10 @@ def main() -> None:
                 "BODY_CLASS": "page-product",
                 "P_ID": esc(p["id"]), "P_SLUG": p["slug"], "P_NAME": esc(L(p.get("name"), loc)),
                 "P_TAGLINE": esc_bidi(L(p.get("tagline"), loc)), "P_DESC": esc_bidi(L(p.get("description"), loc)),
-                "P_EST": ('<span class="badge-est">{{t.price_estimate}}</span>' if p.get("preliminary") else ""),
-                "P_EST_SHORT": ("<small>{{t.price_estimate_short}}</small>" if p.get("preliminary") else ""),
-                "P_LEAD_EST": (' <span class="muted">· {{t.estimate}}</span>' if p.get("preliminary") else ""),
                 "P_BADGES": badges(p, loc),
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
-                "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
+                "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
                 "P_SPECS": specs(p, loc), "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),

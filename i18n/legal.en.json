@@ -80,7 +80,7 @@
       {
         "h": "What we collect",
         "li": [
-          "From the form: name, phone, city, e-mail (if given), comment, the product and your choices (size, finish, base), your expected purchase time and preferred contact channel, and whether and when you agreed to marketing;",
+          "From the form, the cart and the checkout: name, phone, city, e-mail (if given), comment, the products and your choices (size, finish, base, quantity) and the cart total, when you need it and your preferred contact channel, and whether and when you agreed to marketing;",
           "About your visit: pages viewed, how you arrived (including UTM parameters and an ad click id), device type, screen size and language;",
           "We do not keep your IP address: only a one-way hash of it with a secret key, to count visitors and prevent abuse."
         ]
@@ -92,7 +92,7 @@
       {
         "h": "What we use it for",
         "li": [
-          "To get back to you about your request and prepare an offer;",
+          "To get back to you about your request or order, and to keep the price you chose;",
           "To tell you about the launch date, availability and price;",
           "To send advertising — only if you ticked the separate consent box;",
           "To measure advertising and site use and improve the site — third-party tools only after you accept cookies."
@@ -119,7 +119,7 @@
       },
       {
         "h": "Cookies",
-        "p": ["Essential: your cookie choice, a temporary visit id and your product choices. Measurement and advertising cookies (Meta Pixel, Microsoft Clarity) load only after “Accept”. You can change your choice at any time with “Cookie settings” at the bottom of the page, or clear cookies in your browser."]
+        "p": ["Essential: your cookie choice, a temporary visit id and your product choices and cart. Measurement and advertising cookies (Meta Pixel, Microsoft Clarity) load only after “Accept”. You can change your choice at any time with “Cookie settings” at the bottom of the page, or clear cookies in your browser."]
       },
       {
         "h": "Security",
@@ -150,20 +150,20 @@
         "p": ["This site is run by {company_name}, company/business no. {business_id}, {address}; phone {phone}, e-mail {email} (the “Company”). Use of the site is subject to these terms and to the privacy policy."]
       },
       {
-        "h": "Pre-launch",
-        "p": ["The site shows products before commercial production starts. It is not a shop: nothing can be bought and no payment is taken here. Sending the form expresses interest and asks us to contact you — it is not an order, a reservation or a commitment by anyone."]
+        "h": "Advance orders",
+        "p": ["The site shows the launch series and takes advance orders. No payment is made on the site, and it has no field for card details. Adding to the cart and going to checkout are not a transaction: every order is confirmed with you separately, in a written order confirmation, and only your acceptance of it binds.", "While the launch series is closed for orders, you can leave your phone so that we keep the price you saw in the cart and get back to you when orders open. Leaving a phone is not an order and does not bind you."]
       },
       {
         "h": "Prices",
-        "p": ["Prices are in new Israeli shekels and include VAT. At this stage they are estimates, not yet confirmed. The final price, specification, delivery time, delivery and assembly terms and cancellation terms will be given to you in a written offer before any payment, and only they bind."]
+        "p": ["Prices are in new Israeli shekels and include VAT. At this stage they are estimates, not yet confirmed. The final price, specification, delivery time, delivery and assembly terms and cancellation terms will be given to you in a written order confirmation before any payment, and only they bind."]
       },
       {
         "h": "What is included",
-        "p": ["What the price includes (for example delivery and assembly) is listed on the product page and confirmed in the written offer, after we check the delivery area and building access."]
+        "p": ["What the price includes (for example delivery and assembly) is listed on the product page and in the cart, and confirmed in the written order confirmation, after we check the delivery area and building access."]
       },
       {
         "h": "Cancellation",
-        "p": ["As long as no order is confirmed in writing and nothing is paid, there is no transaction to cancel. If a transaction is made, the cancellation rights of the Consumer Protection Law, 5741-1981, and its regulations apply, and the details will be in the written offer. If the product is made especially for you to a size or finish you chose, the right to cancel may be limited as far as the law allows — and the offer will say so plainly before payment. Nothing here limits rights that cannot be waived."]
+        "p": ["As long as no order is confirmed in writing and nothing is paid, there is no transaction to cancel. If a transaction is made, the cancellation rights of the Consumer Protection Law, 5741-1981, and its regulations apply, and the details will be in the written order confirmation. If the product is made especially for you to a size or finish you chose, the right to cancel may be limited as far as the law allows — and the order confirmation will say so plainly before payment. Nothing here limits rights that cannot be waived."]
       },
       {
         "h": "Images and information",

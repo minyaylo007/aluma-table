@@ -19,7 +19,7 @@ from tests.test_build_eol import make_tree, run_build
 PROJECT = pathlib.Path(__file__).resolve().parent.parent
 CATALOG = json.loads((PROJECT / "catalog" / "products.json").read_text(encoding="utf-8"))
 PRODUCTS = [p for p in (CATALOG["products"] if isinstance(CATALOG, dict) else CATALOG) if not p.get("hidden")]
-PAGES = ("", "catalog/", "how/", "about/", "faq/", "privacy", "terms", "accessibility")
+PAGES = ("", "catalog/", "how/", "about/", "faq/", "privacy", "terms", "accessibility", "cart/", "checkout/")
 
 
 class BuiltSiteTests(unittest.TestCase):
@@ -111,12 +111,43 @@ class BuiltSiteTests(unittest.TestCase):
                 for banned in ("aggregateRating", "review", "Review"):
                     self.assertNotIn(banned, json.dumps(ld), f"{p['slug']}: вигаданий рейтинг у schema.org")
 
-    def test_preliminary_prices_carry_the_estimate_mark(self):
+    def test_preliminary_prices_carry_the_estimate_mark_in_cart_and_payment(self):
+        # specs/003: на картці — ціна без позначки на виду; чесна дрібна примітка — у кошику й на екрані оплати
+        if not any(p.get("preliminary") for p in PRODUCTS):
+            self.skipTest("усі ціни підтверджені")
+        for rel in ("cart/", "checkout/"):
+            self.assertIn("מחיר משוער, טרם אושר", self.page(rel), rel)
+            self.assertIn("not yet confirmed", self.page("en/" + rel).lower(), rel)
         for p in PRODUCTS:
-            if not p.get("preliminary"):
-                continue
-            self.assertIn("מחיר משוער, טרם אושר", self.page(f"p/{p['slug']}/"), p["slug"])
-            self.assertIn("not yet confirmed", self.page(f"en/p/{p['slug']}/").lower(), p["slug"])
+            self.assertNotIn("טרם אושר", re.sub(r"<[^>]+>", " ", self.page(f"p/{p['slug']}/")).split("pdp-points")[0], p["slug"])
+
+    def test_no_lead_weeks_early_registration_or_free_promise(self):
+        # specs/003: «10–12 שבועות» → «זמן אספקה מדויק — באישור ההזמנה»; без «הרשמה מוקדמת» і «ללא תשלום וללא התחייבות»
+        for rel, html in self.all_html():
+            text = re.sub(r"<script\b.*?</script>|<[^>]+>", " ", html, flags=re.S)
+            self.assertIsNone(re.search(r"\d+\s*[–-]\s*\d+\s*(שבועות|weeks)", text), rel)
+            for phrase in ("הרשמה מוקדמת", "ללא תשלום וללא התחייבות", "Early registration", "No payment, no commitment"):
+                self.assertNotIn(phrase, text, rel)
+        for p in PRODUCTS:
+            self.assertIn("זמן אספקה מדויק — באישור ההזמנה", self.page(f"p/{p['slug']}/"), p["slug"])
+
+    def test_shop_pages_have_no_card_fields_and_are_noindex(self):
+        # оплати на сайті немає: жодного поля карти, жодного «מספר כרטיס» / CVV; кошик і оформлення — не для пошуку
+        for rel, html in self.all_html():
+            self.assertIsNone(re.search(r'autocomplete="cc-|name="(card|cc|cvv|cvc)', html, re.I), rel)
+            self.assertIsNone(re.search(r"מספר כרטיס|CVV|CVC|Card number", re.sub(r"<script\b.*?</script>", " ", html, flags=re.S)), rel)
+        for rel in ("cart/", "checkout/", "en/cart/", "en/checkout/"):
+            self.assertIn('<meta name="robots" content="noindex">', self.page(rel), rel)
+        sitemap = (self.dist / "sitemap.xml").read_text(encoding="utf-8")
+        self.assertNotIn("/cart/", sitemap)
+        self.assertNotIn("/checkout/", sitemap)
+
+    def test_add_to_cart_on_every_product_card_and_sticky_bar(self):
+        for p in PRODUCTS:
+            for rel, label in ((f"p/{p['slug']}/", "הוספה לסל"), (f"en/p/{p['slug']}/", "Add to cart")):
+                html = self.page(rel)
+                self.assertEqual(len(re.findall(r'data-add-cart data-cta="(pdp|sticky)">' + label + "<", html)), 2, rel)
+                self.assertNotIn("data-quick", html, rel)
 
     def test_no_placeholders_buy_buttons_or_solid_oak_claims(self):
         for rel, html in self.all_html():
@@ -126,7 +157,8 @@ class BuiltSiteTests(unittest.TestCase):
             # масив дозволено лише про кромки, фасади, ніжки, раму; виріб цілком — шпон
             for m in re.finditer("עץ אלון מלא", text):
                 self.assertRegex(text[max(0, m.start() - 30):m.start()], "קנט|חזית|רגל|מסגר", f"{rel}: «עץ אלון מלא» про виріб цілком")
-            self.assertIsNone(re.search(r">\s*(קנה|קנו|Buy now|Add to cart)\s*<", html), f"{rel}: кнопка купівлі")
+            # «הוספה לסל» — так (specs/003); «קנה עכשיו» без оплати на сайті — обіцянка, якої нема
+            self.assertIsNone(re.search(r">\s*(קנה|קנו|Buy now)\s*<", html), f"{rel}: кнопка «купити»")
 
     def test_no_launch_discount_promise(self):
         # знижки для перших нема — ціни лише «משוער · טרם אושר»

@@ -196,7 +196,8 @@
     try { localStorage.removeItem(NOTICE_KEY); } catch (e) {}
     if (config) start(); else loadConfig();
   };
-  window.alumaTrack = function (name, params) {
+  // opts.pixel === false — лише в нашу аналітику (scroll, leave): Meta ці події не потрібні
+  window.alumaTrack = function (name, params, opts) {
     name = String(name || "").slice(0, 60);
     if (!name) return "";
     var p = {}, k;
@@ -210,6 +211,7 @@
     if (queue.length >= 12) send(false);
     else { clearTimeout(flushTimer); flushTimer = setTimeout(function () { send(false); }, 2500); }
     var ev = { name: name, params: p, id: id };
+    if (opts && opts.pixel === false) return id;
     if (pixelOn) toPixel(ev);
     else if ((!config || wantsThirdParty()) && pending.length < 50) pending.push(ev);   // до конфігу/згоди — черга для пікселя
     return id;
@@ -218,6 +220,6 @@
   window.alumaTrack("PageView", { event_id: pageViewId });
   // події, які aluma.js надіслав до завантаження цього файлу
   var early = window.alumaQ || []; window.alumaQ = [];
-  for (var qi = 0; qi < early.length; qi++) try { window.alumaTrack(early[qi][0], early[qi][1]); } catch (e) {}
+  for (var qi = 0; qi < early.length; qi++) try { window.alumaTrack(early[qi][0], early[qi][1], early[qi][2]); } catch (e) {}
   loadConfig();
 })();
