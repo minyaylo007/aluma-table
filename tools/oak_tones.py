@@ -9,7 +9,7 @@
 пігмент), а не перефарбування одного дуба в «пастель». Звідки береться кожен тон і на які палітри олій ми
 орієнтувались — docs/ASSETS.md, розділ «Тони дуба». Коротко:
 
-  natural  oak_veneer_01           прозора олія: той самий запечений natural-albedo, що й досі (tools/bake_textures.py)
+  natural  oak_veneer_01           прозора олія: запечений natural-albedo (tools/bake_textures.py), теплішим і світлішим на ~13 %
   light    washed_grey_oak_veneer  справжній вибілений дуб (біла пігментна олія), трохи прибрано рожевий відлив скану
   honey    oak_veneer_01           бурштинова олія: плівка тепла, але жовта — не помаранчева (зелений гасимо менше за синій)
   smoked   black_oak_veneer        фумований (копчений) дуб: темний скан, трохи теплішого коричневого — він не сірий
@@ -20,7 +20,7 @@ oak_veneer_01 (1,83 м). Масштаб: SCALE — у скільки разів 
 моделі був 1 м (aluma3d.js TONE_TEX і blender_scene.py читають той самий множник).
 
 Виходи
-  renders-master/textures/tone-<id>-albedo-2048.jpg       Blender (gitignored); natural — natural-albedo-2048.jpg
+  renders-master/textures/tone-<id>-albedo-2048.jpg       Blender (gitignored); natural — з natural-albedo-2048.jpg
   renders-master/textures/<scan>-{normal,rough}-2048.jpg   нормалі й упакована шорсткість (R = AO, G = rough)
   site/assets/textures/tone-<id>-albedo-1024.jpg           3D-перегляд; карти скану — <scan>-{normal,rough}-1024.jpg
   site/assets/products/finishes/<id>.{webp,jpg}            зразок: шматок ~12 см цього ж альбедо, 240 px
@@ -50,6 +50,14 @@ def natural(a):
     lum = a @ LUM
     a = a * 0.86 + lum[..., None] * 0.14
     return a * np.array([0.99, 0.985, 0.98])
+
+
+def natural_oiled(a):
+    # прозора олія на натуральному дубі (21.10): сире альбедо скану на зразку й у кадрі читалось сіруватим і темним
+    # (L 130 проти 182 старого «пастельного»). Олія світлить і гріє: гамма 0,94 підтягує тіні, R і G угору,
+    # синій майже не чіпаємо -> L ~147 (+13 %), тон тепліший; natural() не міняємо — з нього складається honey
+    a = np.power(np.clip(a, 0, 1), 0.94)
+    return a * np.array([1.12, 1.08, 0.99])
 
 
 def light(a):
@@ -85,7 +93,7 @@ def black(a):
 
 # тон -> (скан, грейд, ім'я альбедо без розміру)
 TONES = {
-    "natural": ("oak", natural, "natural-albedo"),
+    "natural": ("oak", natural_oiled, "tone-natural-albedo"),
     "light": ("washed-oak", light, "tone-light-albedo"),
     "honey": ("oak", honey, "tone-honey-albedo"),
     "smoked": ("black-oak", smoked, "tone-smoked-albedo"),
@@ -147,12 +155,13 @@ def bake():
     for tone, (key, fn, stem) in TONES.items():
         name, scan_m, rot, _ = SCANS[key]
         if tone == "natural":
-            im = Image.open(MASTER / "natural-albedo-2048.jpg").convert("RGB")
+            # основа natural — уже запечений bake_textures.py natural-albedo (його бачать і студійні кадри)
+            diff = np.asarray(Image.open(MASTER / "natural-albedo-2048.jpg").convert("RGB")).astype(np.float32) / 255.0
         else:
             diff = np.asarray(load(name, "Diffuse", rot).convert("RGB")).astype(np.float32) / 255.0
-            im = Image.fromarray((np.clip(fn(diff), 0, 1) * 255 + 0.5).astype(np.uint8))
-            save_jpg(im, MASTER / f"{stem}-2048.jpg", 92)
-            save_jpg(im.resize((1024, 1024), Image.LANCZOS), SITE_TEX / f"{stem}-1024.jpg", 82)
+        im = Image.fromarray((np.clip(fn(diff), 0, 1) * 255 + 0.5).astype(np.uint8))
+        save_jpg(im, MASTER / f"{stem}-2048.jpg", 92)
+        save_jpg(im.resize((1024, 1024), Image.LANCZOS), SITE_TEX / f"{stem}-1024.jpg", 82)
         sw = swatch(im, scan_m, tone)
         m = np.asarray(im).reshape(-1, 3).mean(0)
         ms = np.asarray(sw).reshape(-1, 3).mean(0)

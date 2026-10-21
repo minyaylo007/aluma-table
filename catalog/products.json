@@ -84,7 +84,7 @@
           "he": "אלון טבעי",
           "en": "Natural oak"
         },
-        "hex": "#9C7F5F"
+        "hex": "#B48F64"
       },
       {
         "id": "light",
@@ -144,6 +144,25 @@
       12
     ],
     "images": [
+      {
+        "src": "/assets/products/tavor/home-1600.webp",
+        "srcset": "/assets/products/tavor/home-400.webp 400w, /assets/products/tavor/home-800.webp 800w, /assets/products/tavor/home-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/home-400.avif 400w, /assets/products/tavor/home-800.avif 800w, /assets/products/tavor/home-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/home-1600.jpg",
+        "width": 1600,
+        "height": 1068,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "180×90",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
       {
         "src": "/assets/products/tavor/hero-1600.webp",
         "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1600.webp 1600w",
@@ -362,7 +381,7 @@
           "he": "אלון טבעי",
           "en": "Natural oak"
         },
-        "hex": "#9C7F5F"
+        "hex": "#B48F64"
       },
       {
         "id": "light",
@@ -422,6 +441,25 @@
       12
     ],
     "images": [
+      {
+        "src": "/assets/products/sahar/home-1600.webp",
+        "srcset": "/assets/products/sahar/home-400.webp 400w, /assets/products/sahar/home-800.webp 800w, /assets/products/sahar/home-1600.webp 1600w",
+        "srcset_avif": "/assets/products/sahar/home-400.avif 400w, /assets/products/sahar/home-800.avif 800w, /assets/products/sahar/home-1600.avif 1600w",
+        "jpg": "/assets/products/sahar/home-1600.jpg",
+        "width": 1600,
+        "height": 1068,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "Ø115",
+        "alt": {
+          "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
       {
         "src": "/assets/products/sahar/hero-1600.webp",
         "srcset": "/assets/products/sahar/hero-400.webp 400w, /assets/products/sahar/hero-800.webp 800w, /assets/products/sahar/hero-1600.webp 1600w",
@@ -584,7 +622,7 @@
           "he": "אלון טבעי",
           "en": "Natural oak"
         },
-        "hex": "#9C7F5F"
+        "hex": "#B48F64"
       },
       {
         "id": "light",
@@ -630,10 +668,10 @@
     ],
     "images": [
       {
-        "src": "/assets/products/ofek/hero-1600.webp",
-        "srcset": "/assets/products/ofek/hero-400.webp 400w, /assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1600.webp 1600w",
-        "srcset_avif": "/assets/products/ofek/hero-400.avif 400w, /assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1600.avif 1600w",
-        "jpg": "/assets/products/ofek/hero-1600.jpg",
+        "src": "/assets/products/ofek/home-1600.webp",
+        "srcset": "/assets/products/ofek/home-400.webp 400w, /assets/products/ofek/home-800.webp 800w, /assets/products/ofek/home-1600.webp 1600w",
+        "srcset_avif": "/assets/products/ofek/home-400.avif 400w, /assets/products/ofek/home-800.avif 800w, /assets/products/ofek/home-1600.avif 1600w",
+        "jpg": "/assets/products/ofek/home-1600.jpg",
         "width": 1600,
         "height": 1068,
         "view": "hero",
@@ -642,8 +680,8 @@
         "state": "closed",
         "size": "180",
         "alt": {
-          "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight"
+          "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, at home by a window in daylight, on a terrazzo floor"
         },
         "kind": "visualization",
         "source": "render"
@@ -663,6 +701,25 @@
         "alt": {
           "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, תקריב של פורניר האלון ושל קנט האלון המלא",
           "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the oak veneer and the solid-oak edge"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
+      {
+        "src": "/assets/products/ofek/hero-1600.webp",
+        "srcset": "/assets/products/ofek/hero-400.webp 400w, /assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1600.webp 1600w",
+        "srcset_avif": "/assets/products/ofek/hero-400.avif 400w, /assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1600.avif 1600w",
+        "jpg": "/assets/products/ofek/hero-1600.jpg",
+        "width": 1600,
+        "height": 1068,
+        "view": "hero",
+        "finish": "natural",
+        "base": "none",
+        "state": "closed",
+        "size": "180",
+        "alt": {
+          "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, בחלל מגורים באור יום",
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
         "source": "render"
@@ -772,7 +829,7 @@
           "he": "אלון טבעי",
           "en": "Natural oak"
         },
-        "hex": "#9C7F5F"
+        "hex": "#B48F64"
       },
       {
         "id": "light",
@@ -833,10 +890,10 @@
     ],
     "images": [
       {
-        "src": "/assets/products/saf/hero-1600.webp",
-        "srcset": "/assets/products/saf/hero-400.webp 400w, /assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1600.webp 1600w",
-        "srcset_avif": "/assets/products/saf/hero-400.avif 400w, /assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1600.avif 1600w",
-        "jpg": "/assets/products/saf/hero-1600.jpg",
+        "src": "/assets/products/saf/home-1600.webp",
+        "srcset": "/assets/products/saf/home-400.webp 400w, /assets/products/saf/home-800.webp 800w, /assets/products/saf/home-1600.webp 1600w",
+        "srcset_avif": "/assets/products/saf/home-400.avif 400w, /assets/products/saf/home-800.avif 800w, /assets/products/saf/home-1600.avif 1600w",
+        "jpg": "/assets/products/saf/home-1600.jpg",
         "width": 1600,
         "height": 1068,
         "view": "hero",
@@ -845,8 +902,8 @@
         "state": "closed",
         "size": "130",
         "alt": {
-          "he": "הדמיה: קונסולה סף, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight"
+          "he": "הדמיה: קונסולה סף, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
+          "en": "Visualization: SAF console table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
         },
         "kind": "visualization",
         "source": "render"
@@ -866,6 +923,25 @@
         "alt": {
           "he": "הדמיה: קונסולה סף, גוון אלון טבעי, תקריב של פורניר האלון ושל קנט האלון המלא",
           "en": "Visualization: SAF console table, natural oak finish, close-up of the oak veneer and the solid-oak edge"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
+      {
+        "src": "/assets/products/saf/hero-1600.webp",
+        "srcset": "/assets/products/saf/hero-400.webp 400w, /assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1600.webp 1600w",
+        "srcset_avif": "/assets/products/saf/hero-400.avif 400w, /assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1600.avif 1600w",
+        "jpg": "/assets/products/saf/hero-1600.jpg",
+        "width": 1600,
+        "height": 1068,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "130",
+        "alt": {
+          "he": "הדמיה: קונסולה סף, גוון אלון טבעי, בחלל מגורים באור יום",
+          "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
         "source": "render"
@@ -961,7 +1037,7 @@
           "he": "אלון טבעי",
           "en": "Natural oak"
         },
-        "hex": "#9C7F5F"
+        "hex": "#B48F64"
       },
       {
         "id": "light",
@@ -1021,6 +1097,25 @@
       12
     ],
     "images": [
+      {
+        "src": "/assets/products/tal/home-1600.webp",
+        "srcset": "/assets/products/tal/home-400.webp 400w, /assets/products/tal/home-800.webp 800w, /assets/products/tal/home-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tal/home-400.avif 400w, /assets/products/tal/home-800.avif 800w, /assets/products/tal/home-1600.avif 1600w",
+        "jpg": "/assets/products/tal/home-1600.jpg",
+        "width": 1600,
+        "height": 1068,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "100×60",
+        "alt": {
+          "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
+          "en": "Visualization: TAL coffee table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+        },
+        "kind": "visualization",
+        "source": "render"
+      },
       {
         "src": "/assets/products/tal/hero-1264.webp",
         "srcset": "/assets/products/tal/hero-400.webp 400w, /assets/products/tal/hero-800.webp 800w, /assets/products/tal/hero-1264.webp 1264w",

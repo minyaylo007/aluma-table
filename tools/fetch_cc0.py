@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Завантажує CC0-ассети фотореальної сцени (Poly Haven) у окрему теку поза git.
+"""Завантажує CC0-ассети фотореальної сцени (Poly Haven, ambientCG) у окрему теку поза git.
 
     python3 -I tools/fetch_cc0.py              # усе з ASSETS
     python3 -I tools/fetch_cc0.py rough_linen  # один ассет
 
 Тека — $ALUMA_CC0 або /opt/ihor/aluma-table/tmp/cc0 (не в git, не в публікацію). Джерела й ліцензія кожного
-файла — docs/ASSETS.md. Чужих фото виробів тут немає й не буде: лише матеріали, HDRI і предмети декору.
+файла — docs/ASSETS.md. ambientCG (https://ambientcg.com/) — теж CC0. Чужих фото виробів тут немає й не буде: лише матеріали, HDRI і предмети декору.
 """
-import json, os, pathlib, sys, urllib.request
+import io, json, os, pathlib, sys, urllib.request, zipfile
 
 DST = pathlib.Path(os.environ.get("ALUMA_CC0", "/opt/ihor/aluma-table/tmp/cc0"))
 UA = {"User-Agent": "Mozilla/5.0 (aluma-fetch-cc0)"}
 API = "https://api.polyhaven.com/files/{}"
 MAPS = ("Diffuse", "nor_gl", "Rough", "AO", "Displacement")
+# ambientCG: архів <id>_2K-JPG.zip; карти перейменовуємо в ту саму розкладку, що Poly Haven (tex_material у Blender)
+ACG = "https://ambientcg.com/get?file={}_{}-JPG.zip"
+ACG_MAPS = {"Color": "Diffuse", "NormalGL": "nor_gl", "Roughness": "Rough", "AmbientOcclusion": "AO",
+            "Displacement": "Displacement"}
 
 # ассет -> (вид, роздільність)   вид: textures | hdris | models
 ASSETS = {
@@ -28,6 +32,13 @@ ASSETS = {
     "wooden_cutting_board": ("models", "2k"),
     "food_pears_asian_01": ("models", "2k"),
     "wooden_bowl_02": ("models", "2k"),
+    # жилий кадр «home» (21.10): ізраїльська квартира — плитка-терацо «балата», вікно з видом, рослини, текстиль
+    "Tiles110": ("acg", "2K"),                    # ambientCG: бежева плитка-терацо з швами — підлога
+    "bloem_olive_house": ("hdris", "2k"),         # вид за вікном: оливкове дерево, будинок, сонце (лише для камери)
+    "hessian_380": ("textures", "2k"),            # джутовий килим
+    "potted_plant_02": ("models", "2k"),          # рослина в горщику на підлозі
+    "potted_plant_04": ("models", "2k"),          # сукулент на підвіконні
+    "wicker_basket_02": ("models", "2k"),         # плетений кошик
 }
 
 
@@ -46,6 +57,19 @@ def save(path: pathlib.Path, url: str) -> None:
 
 def fetch(name: str) -> None:
     kind, res = ASSETS[name]
+    if kind == "acg":
+        if (DST / "tex" / name / "Diffuse.jpg").exists():
+            return
+        z = zipfile.ZipFile(io.BytesIO(get(ACG.format(name, res))))
+        for member in z.namelist():
+            stem = member.rsplit(".", 1)[0]
+            for key, out in ACG_MAPS.items():
+                if stem.endswith("_" + key) and member.endswith(".jpg"):
+                    path = DST / "tex" / name / f"{out}.jpg"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(z.read(member))
+        print(f"{name}: ok")
+        return
     files = json.loads(get(API.format(name)))
     if kind == "hdris":
         save(DST / "hdri" / f"{name}_{res}.hdr", files["hdri"][res]["hdr"]["url"])
