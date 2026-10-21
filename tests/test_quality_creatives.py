@@ -105,14 +105,14 @@ VIDEO = OUT / "video"
 
 @unittest.skipUnless((VIDEO / "report.json").exists(), "docs/creatives/video/ ще не зібрано")
 class PublishedVideosTests(unittest.TestCase):
-    """Відео (tools/creatives/video.js): 3 ролики × 9:16 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
+    """Відео (tools/creatives/video.js): 3 ролики × 9:16, 4:5 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
 
     def test_report_matches_files_and_limits(self):
         report = json.loads((VIDEO / "report.json").read_text(encoding="utf-8"))
         cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
         items = report["videos"]
         self.assertEqual({(it["file"].rsplit("-", 1)[0], it["width"], it["height"]) for it in items},
-                         {(v["id"], w, h) for v in cfg["variants"] for w, h in ((1080, 1920), (1080, 1080))})
+                         {(v["id"], w, h) for v in cfg["variants"] for w, h in ((1080, 1920), (1080, 1350), (1080, 1080))})
         for it in items:
             f = VIDEO / it["file"]
             self.assertTrue(f.is_file(), it["file"])
