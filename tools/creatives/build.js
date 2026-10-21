@@ -159,19 +159,22 @@ function measure() {
     for (let y = STEP / 2; y < H; y += STEP) for (let x = STEP / 2; x < W; x += STEP) if (document.elementFromPoint(x, y) === img) hit += 1;
     return hit * STEP * STEP / (W * H);
   });
+  // Аватар і обкладинки Highlights (pagekit.js) — без кадру, позначки й панелі: тоді поля порожні.
+  const none = { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+  const boxOf = (sel) => { const el = document.querySelector(sel); return el ? el.getBoundingClientRect() : none; };
   const panel = document.querySelector('.panel');
   const mark = document.querySelector('.mark');
-  const mbox = mark.getBoundingClientRect();
-  const pbox = panel.getBoundingClientRect();
-  const media = document.querySelector('.media').getBoundingClientRect();
+  const mbox = boxOf('.mark');
+  const pbox = boxOf('.panel');
+  const media = boxOf('.media');
   return {
     panelBox: { top: pbox.top, bottom: pbox.bottom }, mediaBottom: media.bottom, tall: !!document.querySelector('.canvas.tall'),
     tallNot916: [...document.querySelectorAll('.canvas.tall .media img')].some((i) => i.naturalWidth * 16 !== i.naturalHeight * 9),
     textShare: textArea / (W * H),
     texts,
     tiles,
-    panelOverflow: panel.scrollHeight > panel.clientHeight + 1 || panel.scrollWidth > panel.clientWidth + 1,
-    mark: mark.textContent.trim(), markVisible: mbox.width > 0 && mbox.height > 0 && mbox.top >= 0 && mbox.left >= 0,
+    panelOverflow: !!panel && (panel.scrollHeight > panel.clientHeight + 1 || panel.scrollWidth > panel.clientWidth + 1),
+    mark: mark ? mark.textContent.trim() : '', markVisible: mbox.width > 0 && mbox.height > 0 && mbox.top >= 0 && mbox.left >= 0,
     imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
     fontsOk: document.fonts.check('600 26px "IBM Plex Sans Hebrew"', 'הדמיה'),
   };

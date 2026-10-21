@@ -1,0 +1,133 @@
+{
+  "_comment": "Стартовий набір сторінки Facebook/Instagram (tools/creatives/pagekit.js → docs/page-kit/). Цифри, назви, слогани, тони — з catalog/products.json, плашки ціни й «הדמיה» — з creatives.json. Тут лише підписи без цифр: {name}, {tagline}, {sizes}, {length}, {extended}, {seats}, {seats_extended}, {from}, {price}, {n_tones}, {tones} підставляє pagekit.js. Ні знижок, ні відгуків, ні «років досвіду», ні адрес.",
+  "_order": "Порядок у posts — порядок публікації (від найстаршого): у сітці Instagram останній (tavor) стає зліва вгорі, його й закріплюємо.",
+  "avatar": {
+    "he": "אלומה"
+  },
+  "cover": {
+    "image": "tavor/home",
+    "headline": "רהיטי אלון בהזמנה",
+    "sub": "המחיר כולל מע״מ, משלוח והרכבה"
+  },
+  "posts": [
+    {
+      "id": "material",
+      "product": "saf",
+      "images": [
+        "saf/texture"
+      ],
+      "headline": "פורניר אלון, קנטים מעץ מלא",
+      "sub": "הגוף והמשטח — פורניר אלון טבעי, הקנטים — עץ מלא. <bdi dir=\"ltr\">{n_tones}</bdi> גוונים לבחירה.",
+      "note": "@tone_note"
+    },
+    {
+      "id": "mechanism",
+      "product": "tavor",
+      "images": [
+        "tavor/mechanism-closed",
+        "tavor/mechanism-half",
+        "tavor/open"
+      ],
+      "headline": "כך נפתח {name}",
+      "sub": "סגור · באמצע · פתוח — <bdi dir=\"ltr\">{length}→{extended}</bdi> ס״מ. פלטת ההארכה מקופלת מתחת למשטח.",
+      "note": "@includes"
+    },
+    {
+      "id": "tones",
+      "product": "tavor",
+      "images": "@tones",
+      "headline": "<bdi dir=\"ltr\">{n_tones}</bdi> גוונים של פורניר אלון",
+      "sub": "{tones}",
+      "note": "@tone_note"
+    },
+    {
+      "id": "tal",
+      "product": "tal",
+      "images": [
+        "tal/home"
+      ],
+      "headline": "{tagline}",
+      "sub": "{name} — שולחן סלון, פורניר אלון · <bdi dir=\"ltr\">{sizes}</bdi> ס״מ",
+      "price": true
+    },
+    {
+      "id": "saf",
+      "product": "saf",
+      "images": [
+        "saf/home"
+      ],
+      "headline": "{tagline}",
+      "sub": "{name} — קונסולה, פורניר אלון · <bdi dir=\"ltr\">{sizes}</bdi> ס״מ",
+      "price": true
+    },
+    {
+      "id": "ofek",
+      "product": "ofek",
+      "images": [
+        "ofek/home"
+      ],
+      "headline": "{tagline}",
+      "sub": "{name} — מזנון תלוי, פורניר אלון · <bdi dir=\"ltr\">{sizes}</bdi> ס״מ",
+      "price": true
+    },
+    {
+      "id": "sahar",
+      "product": "sahar",
+      "images": [
+        "sahar/home"
+      ],
+      "headline": "{tagline}",
+      "sub": "{name} — שולחן עגול נפתח, פורניר אלון · <bdi dir=\"ltr\">Ø{length}→{extended}</bdi> ס״מ",
+      "price": true
+    },
+    {
+      "id": "delivery",
+      "product": "tavor",
+      "images": [
+        "tavor/hero"
+      ],
+      "headline": "משלוח והרכבה כלולים",
+      "sub": "מביאים עד הבית ומרכיבים במקום. זמן אספקה מדויק — באישור ההזמנה.",
+      "note": "@includes"
+    },
+    {
+      "id": "tavor",
+      "product": "tavor",
+      "images": [
+        "tavor/home"
+      ],
+      "headline": "{seats} סועדים ביום רגיל, עד {seats_extended} בחג.",
+      "sub": "{name} — שולחן אוכל נפתח, פורניר אלון · <bdi dir=\"ltr\">{length}→{extended}</bdi> ס״מ",
+      "price": true
+    }
+  ],
+  "highlights": [
+    {
+      "id": "series",
+      "title": "הסדרה",
+      "icon": "mark"
+    },
+    {
+      "id": "tones",
+      "title": "גוונים",
+      "icon": "tones"
+    },
+    {
+      "id": "how",
+      "title": "איך זה עובד",
+      "icon": "extend"
+    }
+  ],
+  "formats": [
+    {
+      "id": "1x1",
+      "width": 1080,
+      "height": 1080
+    },
+    {
+      "id": "4x5",
+      "width": 1080,
+      "height": 1350
+    }
+  ]
+}
