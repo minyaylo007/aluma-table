@@ -384,6 +384,20 @@ test('reduced motion: the page renders fully without scroll animations', async (
   for (const card of await page.locator('.card').all()) expect(await card.evaluate(el => getComputedStyle(el).opacity)).toBe('1');
 });
 
+test('gallery thumbs are filled edge to edge and morning/evening has no empty column on desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mockApi(page);
+  await page.goto('/p/tavor/');
+  for (const t of await page.locator('.g-thumb').all()) {
+    const [box, img] = await t.evaluate(el => [el.clientHeight, el.querySelector('img').getBoundingClientRect().height]);
+    expect(Math.abs(box - img)).toBeLessThanOrEqual(1);
+  }
+  const [wrap, fig] = await page.locator('section.light').evaluate(s => [s.querySelector('.wrap'), s.querySelector('.light-media')]
+    .map(el => { const r = el.getBoundingClientRect(), c = getComputedStyle(el); return [r.left + parseFloat(c.paddingLeft), r.right - parseFloat(c.paddingRight)]; }));
+  // RTL: кадр притиснутий до лівого краю контейнера, текст — праворуч
+  expect(Math.abs(fig[0] - wrap[0])).toBeLessThanOrEqual(2);
+});
+
 for (const rm of ['no-preference', 'reduce']) {
   test(`arch window (${rm}): the close-up enters as an arch and opens to full width; static when motion is reduced`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
