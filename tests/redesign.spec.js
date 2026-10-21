@@ -397,3 +397,26 @@ test('gallery thumbs are filled edge to edge and morning/evening has no empty co
   // RTL: кадр притиснутий до лівого краю контейнера, текст — праворуч
   expect(Math.abs(fig[0] - wrap[0])).toBeLessThanOrEqual(2);
 });
+
+for (const rm of ['no-preference', 'reduce']) {
+  test(`arch window (${rm}): the close-up enters as an arch and opens to full width; static when motion is reduced`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.emulateMedia({ reducedMotion: rm });
+    await mockApi(page);
+    await page.goto('/');
+    const band = page.locator('.band');
+    const clipAt = async f => {
+      await band.evaluate((el, f) => scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight * f), f);
+      await page.waitForTimeout(200);
+      return band.locator('picture').evaluate(el => getComputedStyle(el).clipPath);
+    };
+    const entering = await clipAt(0.4), settled = await clipAt(0);
+    if (rm === 'reduce') {
+      expect([entering, settled]).toEqual(['none', 'none']);
+    } else {
+      expect(entering).toMatch(/round [1-9]/);
+      expect(settled).not.toMatch(/round [1-9]/);
+    }
+    await expect(band.locator('.viz-tag')).toBeVisible();
+  });
+}

@@ -70,6 +70,16 @@ class CreativeConfigTests(unittest.TestCase):
             self.assertNotIn("מ־", v["price"], v["id"])
             self.assertIn("{from}", v["price"])
 
+    def test_seats_in_headline_come_from_catalog(self):
+        """Місця в заголовку — лише {seats}/{seats_extended} з catalog seats, без цифр у конфігу (розвідка 21.10)."""
+        for v in self.cfg["variants"]:
+            self.assertNotRegex(v["headline"], r"\d", v["id"])
+            if "{seats" in v["headline"]:
+                for pid in v["products"]:
+                    self.assertIn("seats", self.catalog[pid], f"{v['id']}: у каталозі нема seats")
+        tavor = next(v for v in self.cfg["variants"] if v["id"] == "tavor")
+        self.assertIn("{seats}", tavor["headline"])
+
     def test_template_marks_every_text_for_the_checks(self):
         """Кожен текстовий плейсхолдер стоїть в елементі з data-text — інакше 20 % і контраст його не бачать."""
         html = TEMPLATE.read_text(encoding="utf-8")

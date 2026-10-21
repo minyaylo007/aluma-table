@@ -11,7 +11,7 @@
     {
       "id": "tavor",
       "products": ["tavor"],
-      "headline": "@tagline",
+      "headline": "{seats} סועדים ביום רגיל, עד {seats_extended} בחג.",
       "sub": "שולחן אוכל נפתח, פורניר אלון · <bdi dir=\"ltr\">{length}→{extended}</bdi> ס״מ",
       "price": "{from}₪{price}"
     },
