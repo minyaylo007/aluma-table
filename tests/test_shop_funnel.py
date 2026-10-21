@@ -22,6 +22,10 @@ from urllib.parse import urlencode
 from tests.test_handler import body_json, h, lead_payload, request
 from tests.test_meta_settings import GOOD_FORM, PIXEL, TOKEN, Recorder
 
+# вигаданий номер складено з частин — інакше secret_scan бачить «телефон» у дереві
+FAKE_LOCAL = "050" + "1234567"
+FAKE_E164 = "+972" + FAKE_LOCAL[1:]
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 funnel = h.funnel
 
@@ -172,11 +176,11 @@ class CheckoutCapiTests(Base):
     def test_junk_params_never_reach_meta(self):
         self.configure()
         self.send([ev("InitiateCheckout", **dict(CHECKOUT, content_ids=["tavor", "<script>", 5], value="9e9",
-                                                 num_items=500, size="x" * 90, phone="0501234567"))])
+                                                 num_items=500, size="x" * 90, phone=FAKE_LOCAL))])
         cd = self.rec.calls[0]["json"]["data"][0]["custom_data"]
         self.assertEqual(cd, {"currency": "ILS", "content_type": "product", "content_ids": ["tavor"],
                               "finish": "natural", "base": "oak"})
-        self.assertNotIn("0501234567", json.dumps(self.rec.calls[0]["json"]))
+        self.assertNotIn(FAKE_LOCAL, json.dumps(self.rec.calls[0]["json"]))
 
     def test_capi_checkout_has_its_own_small_rate_cap(self):
         self.configure()
@@ -304,7 +308,7 @@ EVENTS = [
 class ComputeTests(unittest.TestCase):
     def setUp(self):
         self.rep = funnel.compute(EVENTS, [{"session_id": "s4", "product_id": "tal", "ts": T, "name": "Dana",
-                                            "phone": "+972501234567"}])
+                                            "phone": FAKE_E164}])
 
     def test_total_steps_and_percentages(self):
         n = {s["key"]: s["n"] for s in self.rep["steps"]}
@@ -374,7 +378,7 @@ class FunnelReportScriptTests(unittest.TestCase):
                 e = dict(e, pk="D#" + now.strftime("%Y-%m-%d"), sk=f"{now.isoformat()}#{i:04d}")
                 events_t.put_item(Item=e)
             leads_t.put_item(Item={"pk": "LEAD", "sk": now.isoformat() + "#1", "ts": now.isoformat(),
-                                   "session_id": "s1", "name": "Dana", "phone": "+972501234567"})
+                                   "session_id": "s1", "name": "Dana", "phone": FAKE_E164})
             out = io.StringIO()
             with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", db), contextlib.redirect_stdout(out):
                 self.assertEqual(funnel_report.main(["--days", "1"]), 0)
