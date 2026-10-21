@@ -185,3 +185,94 @@ sudo systemctl reload caddy
 (`sha256sum` = `f6655ba9…37a9`), вместо `sed` можно вернуть копию `.bak-aluma-20260911-144236`.
 Папки `/etc/caddy/aluma` и `/srv/aluma` на работу чужих сайтов не влияют; убирать их — только
 когда нет ни одной строки `import aluma/…`.
+
+## 7. 404 по локали (подготовлено 22.10, не применено)
+
+**Статус: файл готов и проверен на копии, в `/etc/caddy` НЕ положен, reload НЕ делался.**
+Применяет отдельная сессия, в задании которой есть строки «разрешено sudo» (OWNER-RULES п. 20).
+
+**Зачем.** Аудит покупателя 22.10 (раздел (а)): битый адрес под `/ru/*` и `/en/*` отдаёт
+ивритскую `/404.html`. `build.py` публикует 404 на каждую локаль — `/srv/aluma/en/404.html`
+(«Page not found — ALUMA») и `/srv/aluma/ru/404.html` («Страница не найдена — ALUMA») на
+проде уже лежат. Утром идёт русская реклама.
+
+**Что меняется.** Только `aluma-site-body.caddyfile`, только блок `handle_errors 403 404` в
+конце (+ две строки в шапке). Вместо одного `rewrite * /404.html` — три взаимоисключающих
+`handle`: `@err_en path /en/*` → `/en/404.html`, `@err_ru path /ru/*` → `/ru/404.html`,
+остальное → `/404.html`; в каждом `file_server { status 404 }`, `Cache-Control no-store` —
+как было. `/etc/caddy/Caddyfile` и файлы имён (`aluma-table*.caddyfile`) не меняются. Тело
+импортируют оба имени — `table` и `table-new`, reload меняет 404 на обоих.
+
+| Файл | sha256 |
+|---|---|
+| сейчас в `/etc/caddy/aluma/aluma-site-body.caddyfile` (= §1) | `7d53564ed7791891b65792674f881bfe1bbdc83b33df1fd8f081641e647a2077` |
+| новый, `deploy/caddy/aluma-site-body.caddyfile` в `master` | `1533699ab3d1023f04734838be36b8319786abd15c027c1afe12afbc2ef8ce84` |
+
+**Проверено 22.10 на копии** (Caddy v2.11.4; три файла блока + глобальный блок `admin off`,
+`storage file_system` в ту же временную папку; порт 2019 не трогался, Caddy не поднимался):
+
+- `caddy fmt` — вывод совпадает с файлом байт в байт;
+- `caddy adapt` — rc 0; в `errors.routes` каждого имени одна группа из трёх веток:
+  `path /en/*` → `rewrite /en/404.html`, `path /ru/*` → `rewrite /ru/404.html`, без матчера →
+  `rewrite /404.html`, у всех `file_server` `status_code: 404`; предупреждения — только два
+  ожидаемых `Unnecessary header_up X-Forwarded-For` (по одному на имя);
+- `caddy validate` — `Valid configuration`;
+- тест `tests/test_caddy_404_locale.py` (в `QUICK.txt` и `CRITICAL.txt`): на каждый префикс
+  из `build.LOCALES` — своя ветка; на старом файле краснеет.
+
+Живыми запросами не замерено — это делает применяющая сессия (шаг 8).
+
+**Шаги применения** — только для сессии с «разрешено sudo». Время записывать в журнал по
+образцу §6 (таблица «время / шаг / итог», sha до и после, чужие сайты до и после).
+
+```bash
+# 1. базовая линия: чужие сайты и sha до — первая строка ответа каждого
+for h in 95-216-10-169.sslip.io iiko.95-216-10-169.sslip.io atmo.95-216-10-169.sslip.io tennis.95-216-10-169.sslip.io; do
+    printf '%s ' "$h"; curl -sI -m 10 "https://$h/" | head -1
+done
+sha256sum /etc/caddy/Caddyfile /etc/caddy/aluma/aluma-site-body.caddyfile   # тело = 7d53564e…2077, иначе СТОП
+curl -sI -m 10 https://table.central-aparts.store/ru/net-takoi/ | head -1     # сейчас: 404, но ивритская страница
+
+# 2. новый файл — из master, со сверкой sha
+git -C ~/repos/aluma-table pull --rebase
+cp ~/repos/aluma-table/deploy/caddy/aluma-site-body.caddyfile /tmp/aluma-site-body.caddyfile.new
+cd /tmp && echo '1533699ab3d1023f04734838be36b8319786abd15c027c1afe12afbc2ef8ce84  aluma-site-body.caddyfile.new' | sha256sum -c
+
+# 3. копии с датой: Caddyfile и прежнее тело
+sudo cp -p /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-aluma-404-$(date +%Y%m%d-%H%M%S)
+sudo cp -p /etc/caddy/aluma/aluma-site-body.caddyfile /etc/caddy/aluma/aluma-site-body.caddyfile.bak-404-$(date +%Y%m%d-%H%M%S)
+
+# 4. положить файл
+sudo install -m 0644 -o root -g root /tmp/aluma-site-body.caddyfile.new /etc/caddy/aluma/aluma-site-body.caddyfile
+sha256sum /etc/caddy/aluma/aluma-site-body.caddyfile                         # = 1533699a…ce84
+
+# 5. проверка всего конфига
+sudo caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile        # Valid configuration, иначе откат шага 4
+
+# 6. объявить главному дирижёру за 10 минут до reload; ждать окно
+# 7. reload — ТОЛЬКО так, никаких других подкоманд
+sudo systemctl reload caddy && systemctl is-active caddy                     # rc 0, active
+
+# 8. проверка на живом
+curl -sI -m 10 https://table.central-aparts.store/ru/net-takoi/ | head -1     # HTTP/2 404
+curl -s  -m 10 https://table.central-aparts.store/ru/net-takoi/ | grep -o '<title>[^<]*'   # Страница не найдена — ALUMA
+curl -s  -m 10 https://table.central-aparts.store/en/no-such/   | grep -o '<title>[^<]*'   # Page not found — ALUMA
+curl -s  -m 10 https://table.central-aparts.store/no-such/      | grep -o '<title>[^<]*'   # העמוד לא נמצא — ALUMA
+curl -sI -m 10 https://table.central-aparts.store/ru/net-takoi/ | grep -i '^cache-control'  # no-store
+curl -sI -m 10 https://table.central-aparts.store/ | head -1                  # HTTP/2 200
+curl -s  -m 10 https://table.central-aparts.store/api/fx/health              # {"ok": true, ...}
+# затем таблица чужих сайтов из шага 1 — должна совпасть; journalctl -u caddy с момента reload — без новых ошибок
+```
+
+**Откат** — вернуть прежнее тело (sha `7d53564e…2077`) и тот же reload:
+
+```bash
+sudo install -m 0644 -o root -g root /etc/caddy/aluma/aluma-site-body.caddyfile.bak-404-<дата> /etc/caddy/aluma/aluma-site-body.caddyfile
+sha256sum /etc/caddy/aluma/aluma-site-body.caddyfile                         # = 7d53564e…2077
+sudo caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+Затем — таблица чужих сайтов. Копии `.bak-404-*` удалять только после «да» владельца.
+`scripts/deploy-box.sh` эту правку не применяет: он переключает прод-клон на коммит (в
+`/opt/ihor/aluma-table/deploy/caddy/` окажется новый файл), но в `/etc/caddy` ничего не кладёт.
