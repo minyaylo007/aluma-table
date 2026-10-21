@@ -424,8 +424,10 @@ bdi { unicode-bidi: isolate; }
 .g-slide { scroll-snap-align: start; }
 .g-slide .media { aspect-ratio: 4 / 3; }
 .g-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: thin; padding-block-end: 4px; }
-.g-thumb { flex: none; width: 72px; aspect-ratio: 1; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
-.g-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.g-thumb { flex: none; width: 88px; aspect-ratio: 4 / 3; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
+/* picture — рядковий, без display: block висота 100% не спрацьовує і знизу лишається порожня смуга */
+.g-thumb picture { display: block; height: 100%; }
+.g-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .g-thumb[aria-current="true"] { border-color: var(--ink); }
 .viewer3d { aspect-ratio: 4 / 3; border-radius: var(--r); background: var(--linen); }
 .pdp-h1 { font-size: clamp(2.4rem, 4.6vw, 3.4rem); line-height: 1.05; }
@@ -504,7 +506,15 @@ bdi { unicode-bidi: isolate; }
   font: inherit; color: var(--ink); cursor: pointer; }
 .light-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .light-btn:focus-visible { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
-.light-media { aspect-ratio: 4 / 3; max-width: 1040px; }
+.light-media { aspect-ratio: 4 / 3; }
+/* широкий екран: заголовок і перемикач збоку, кадр на дві третини — без порожньої колонки */
+@media (min-width: 960px) {
+  .light .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-rows: auto 1fr;
+    column-gap: clamp(32px, 4vw, 64px); align-items: start; }
+  .light .sec-head { grid-column: 1; grid-row: 1; }
+  .light-switch { grid-column: 1; grid-row: 2; justify-self: start; }
+  .light-media { grid-column: 2; grid-row: 1 / 3; margin: 0; }
+}
 .light-l { position: absolute; inset: 0; transition: opacity .7s var(--ease); }
 .light-l[data-l="evening"], [data-on="evening"] .light-l[data-l="morning"] { opacity: 0; }
 [data-on="evening"] .light-l[data-l="evening"] { opacity: 1; }
