@@ -574,7 +574,15 @@ bdi { unicode-bidi: isolate; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
 .pdp-actions { display: grid; gap: 10px; margin-block: 20px; }
 .pdp-actions > *, .pdp-buy > * { min-width: 0; }
-.pdp-points { display: grid; gap: 6px; font-size: .88rem; color: var(--muted); }
+/* «מה כלול במחיר» і «איך לבחור מידה» — під кнопкою кошика, до «מפרט» */
+.pdp-inc, .pdp-size { margin-block-start: 22px; padding-block-start: 16px; border-top: 1px solid var(--line); }
+.pdp-inc-h { font-size: 1rem; font-weight: 700; margin: 0 0 10px; }
+.pdp-inc ul { display: grid; gap: 8px; }
+.pdp-inc li { display: flex; gap: 10px; align-items: flex-start; font-size: .95rem; }
+.pdp-inc svg { flex: none; margin-block-start: 1px; fill: none; stroke: var(--esp); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.pdp-size ul { display: grid; gap: 6px; padding-inline-start: 1.1em; list-style: disc; font-size: .95rem; }
+.pdp-size p { margin: 10px 0 0; }
+.pdp-points { display: grid; gap: 6px; font-size: .88rem; color: var(--muted); margin-block-start: 18px; }
 .pdp-points li::before { content: "— "; }
 .pdp-detail { display: grid; gap: 32px; }
 .pdp-detail > * { min-width: 0; }
