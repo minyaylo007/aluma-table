@@ -78,6 +78,29 @@ class BuiltSiteTests(unittest.TestCase):
                         self.assertIn(f'<div class="viewer3d" id="{vid}" hidden>', html)
                         self.assertEqual('data-state="open"' in html, any(sz.get("extended_cm") for sz in p["sizes"]))
 
+    def test_price_includes_and_size_help_from_catalog(self):
+        # 22.10: «מה כלול במחיר» на кожній картці; місця — з seats каталогу; «איך לבחור מידה» — лише на столах,
+        # відстань — з content.json (CLEARANCE_CM), місце на людину — SEAT_CM плану
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        for p in PRODUCTS:
+            for prefix in ("", "en/"):
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    inc = re.search(r'<section class="pdp-inc".*?</section>', html, re.S)
+                    self.assertIsNotNone(inc)
+                    self.assertEqual(inc.group(0).count("<li>"), 5 + bool(p.get("seats")))
+                    if p.get("seats"):
+                        lo, hi = p["seats"]["closed"][0], p["seats"]["extended"][-1]
+                        self.assertIn(f'<bdi dir="ltr">{lo}', inc.group(0))
+                        self.assertIn(f'{hi}</bdi>', inc.group(0))
+                    size = re.search(r'<section class="pdp-size".*?</section>', html, re.S)
+                    self.assertEqual(size is not None, p["category"] in ("dining_table", "coffee_table"))
+                    if size:
+                        self.assertIn(f'{content["CLEARANCE_CM"]} ', size.group(0))
+                        self.assertEqual("55 " in size.group(0), p["category"] == "dining_table")
+                        self.assertIn('data-wa="size"', size.group(0))
+                    self.assertNotIn("{{", html)
+
     def test_no_cdn_for_3d(self):
         # three.js — свій файл: при відкритті 3D жодного зовнішнього запиту (приватність)
         for f in (self.dist / "assets").rglob("*.js"):

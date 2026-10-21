@@ -472,6 +472,52 @@ def specs(p: dict, loc: str) -> str:
     return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
 
 
+# ---- «מה כלול במחיר»: лише факти з каталогу (матеріал, розміри, місця) і з i18n; жодних порівнянь з іншими
+INC_ICONS = {  # 20×20, штрих currentColor, декоративні
+    "veneer": '<path d="M3 6h14M3 10h14M3 14h14" /><path d="M7 6c1 1.5 1 2.5 0 4M12 10c1 1.5 1 2.5 0 4" />',
+    "edge": '<rect x="3" y="6" width="14" height="8" rx="1" /><path d="M3 9h14" />',
+    "size": '<path d="M2 13l11-11 5 5-11 11z" /><path d="M6 9l2 2M9 6l2 2M12 3l2 2" />',
+    "seats": '<circle cx="7" cy="7" r="2.5" /><circle cx="14" cy="8" r="2" /><path d="M2.5 17c.5-3 2.3-4.5 4.5-4.5s4 1.5 4.5 4.5M11.5 13.5c.7-.6 1.5-1 2.5-1 2 0 3.3 1.5 3.6 4" />',
+    "incl": '<path d="M2 6h10v8H2zM12 9h3l3 3v2h-6" /><circle cx="5.5" cy="15" r="1.5" /><circle cx="14.5" cy="15" r="1.5" />',
+    "own": '<path d="M3 17V8l5-3v3l5-3v3l4-2v11z" /><path d="M7 17v-4h3v4" />',
+}
+
+
+def seat_span(lo_hi: list) -> str:
+    lo, hi = int(lo_hi[0]), int(lo_hi[-1])
+    return str(lo) if lo == hi else f"{lo}–{hi}"
+
+
+def included(p: dict, loc: str) -> str:
+    rows = [("veneer", "{{t.inc_veneer}}")]
+    # кромка чи фасади — як написано в матеріалі каталогу (OFEK: фасади з масиву)
+    rows.append(("edge", "{{t.inc_fronts}}" if "fronts" in L(p.get("material"), "en") else "{{t.inc_edges}}"))
+    n = len(p.get("sizes") or [])
+    rows.append(("size", f'<bdi dir="ltr">{n}</bdi> {{{{t.inc_sizes}}}}' if n > 1 else "{{t.inc_size_other}}"))
+    seats = p.get("seats") or {}
+    if seats.get("closed") and seats.get("extended"):
+        rows.append(("seats", f'<bdi dir="ltr">{seat_span(seats["closed"])}</bdi> {{{{t.unfold_seats}}}} · '
+                              f'{{{{t.inc_seats_open}}}} <bdi dir="ltr">{seat_span(seats["extended"])}</bdi>'))
+    rows += [("incl", "{{t.inc_vat}}"), ("own", "{{t.inc_own}}")]
+    lis = "".join(f'<li><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">{INC_ICONS[k]}</svg>'
+                  f"<span>{v}</span></li>" for k, v in rows)
+    return f'<section class="pdp-inc" aria-labelledby="inc-h"><h2 class="pdp-inc-h" id="inc-h">{{{{t.inc_h}}}}</h2><ul role="list">{lis}</ul></section>'
+
+
+SIZE_HELP = {"dining_table": ("{{t.size_clear}}", "{{t.size_seat}}"), "coffee_table": ("{{t.size_clear_pass}}",)}
+
+
+def size_help(p: dict, loc: str) -> str:
+    """«איך לבחור מידה» — лише для столів; числа — токени CLEARANCE_CM (content.json) і SEAT_CM (план місць)."""
+    lines = SIZE_HELP.get(p.get("category"))
+    if not lines:
+        return ""
+    lis = "".join(f"<li>{x}</li>" for x in lines)
+    return ('<section class="pdp-size" aria-labelledby="size-h"><h2 class="pdp-inc-h" id="size-h">{{t.size_h}}</h2>'
+            f'<ul role="list">{lis}</ul>'
+            '<p><a class="link-arrow js-wa" data-wa="size" href="#" hidden>{{t.size_help}}</a></p></section>')
+
+
 # ---- план «סגור / פתוח»: вигляд згори з кріслами; числа — лише з каталогу
 SEAT_CM = 55  # ширина місця за столом уздовж краю; число місць затиснуте в діапазон seats каталогу
 
@@ -836,6 +882,7 @@ def main() -> None:
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
+                "P_INC": included(p, loc), "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
