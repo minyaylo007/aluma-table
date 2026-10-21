@@ -23,7 +23,7 @@ OUT = ROOT / "docs" / "creatives"
 # Закон про захист споживача + правила власника: ні знижок, ні дефіциту, ні відгуків, ні «в наявності», ні «купи».
 FORBIDDEN = [
     r"הנחה", r"מבצע", r"%", r"נותר", r"אחרונ", r"מוגבל", r"במלאי", r"ביקורות", r"לקוחות מרוצים",
-    r"★", r"קנ[הו]\b", r"רק היום", r"חינם", r"עץ אלון מלא",
+    r"★", r"קנ[הו]\b", r"רק היום", r"חינם", r"עץ אלון מלא", r"שנות ניסיון",
     r"(?<!\w)מאלון(?!\w)",  # шпон: «פורניר אלון», як на сайті, а не «з дуба» — читається як масив
 ]
 
@@ -272,6 +272,126 @@ class MetaTestPlanTests(unittest.TestCase):
         self.assertIn(phrase, site["launch_bar"])
         for bad in ("הרשמה", "ללא תשלום", "שבועות"):
             self.assertNotIn(bad, self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0])
+
+
+PAGEKIT = ROOT / "tools" / "creatives" / "pagekit.json"
+KIT = ROOT / "docs" / "page-kit"
+PAGE_BUTTON = ("https://table.central-aparts.store/catalog/"
+               "?utm_source=facebook&utm_medium=page&utm_campaign=page_button")
+
+
+def catalog_numbers(catalog: dict) -> set[str]:
+    """Усі числа каталогу (розміри, розкладені довжини, місця, ціни) — інших цифр у підписах сторінки бути не може."""
+    nums = set()
+    for p in catalog.values():
+        nums.add(str(p["price_from_ils"]))
+        for s in p["sizes"]:
+            for k in ("length_cm", "width_cm", "height_cm", "extended_cm", "price_ils"):
+                if k in s:
+                    nums.add(str(s[k]))
+        for pair in p.get("seats", {}).values():
+            nums.update(str(n) for n in pair)
+    return nums
+
+
+class PageKitTests(unittest.TestCase):
+    """Стартовий набір сторінки Meta (tools/creatives/pagekit.js, docs/page-kit/): ті самі заборони, факти — з каталогу."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cfg = json.loads(PAGEKIT.read_text(encoding="utf-8"))
+        cls.catalog = {p["id"]: p for p in json.loads(CATALOG.read_text(encoding="utf-8"))}
+        cls.readme = (KIT / "README.md").read_text(encoding="utf-8")
+        # підписи для копіювання — блоки ```text (іврит), посилання з них прибираємо перед перевіркою цифр
+        cls.blocks = re.findall(r"```text\n(.*?)```", cls.readme, re.S)
+
+    def config_texts(self) -> list[str]:
+        c = self.cfg
+        out = [c["avatar"]["he"], c["cover"]["headline"], c["cover"]["sub"]] + [h["title"] for h in c["highlights"]]
+        for post in c["posts"]:
+            out += [post["headline"], post["sub"]]
+        return out
+
+    def test_nine_posts_three_highlights(self):
+        self.assertEqual(len(self.cfg["posts"]), 9)
+        self.assertEqual(len({p["id"] for p in self.cfg["posts"]}), 9)
+        self.assertEqual([h["title"] for h in self.cfg["highlights"]], ["הסדרה", "גוונים", "איך זה עובד"])
+        self.assertEqual({(f["width"], f["height"]) for f in self.cfg["formats"]}, {(1080, 1080), (1080, 1350)})
+
+    def test_config_text_is_honest_and_has_no_own_numbers(self):
+        for t in self.config_texts():
+            for pat in FORBIDDEN:
+                self.assertIsNone(re.search(pat, t), f"{pat}: {t}")
+            # цифри лише з каталогу: у JSON — тільки {плейсхолдери}
+            self.assertNotRegex(re.sub(r"\{[a-z_]+\}", "", t), r"\d", t)
+
+    def test_frames_come_from_catalog(self):
+        frames = {i["jpg"] for p in self.catalog.values() for i in p["images"] if i.get("kind") == "visualization"}
+        keys = [self.cfg["cover"]["image"]] + [k for p in self.cfg["posts"] if p["images"] != "@tones" for k in p["images"]]
+        for key in keys:
+            pid, view = key.split("/")
+            self.assertIn(f"/assets/products/{pid}/{view}-1600.jpg", frames, key)
+        for post in self.cfg["posts"]:
+            self.assertIn(post["product"], self.catalog, post["id"])
+
+    def test_template_marks_every_text(self):
+        js = (ROOT / "tools" / "creatives" / "pagekit.js").read_text(encoding="utf-8")
+        for snippet in ('<div class="mark" data-text>', '<h1 class="headline" data-text>', '<p class="sub" data-text>',
+                        '<div class="brand" data-text>', 'class="logo-lat keep" data-text'):
+            self.assertIn(snippet, js)
+
+    def test_readme_captions_are_honest(self):
+        self.assertGreaterEqual(len(self.blocks), 12)  # 3 «אודות»/bio + 9 підписів постів
+        nums = catalog_numbers(self.catalog)
+        for b in self.blocks:
+            for pat in FORBIDDEN + [r"שבועות", r"הרשמה"]:
+                self.assertIsNone(re.search(pat, b), f"{pat}: {b[:60]}")
+            plain = re.sub(r"https?://\S+", "", b)
+            for n in re.findall(r"\d[\d,]*", plain):
+                self.assertIn(n.replace(",", ""), nums, f"число не з каталогу: {n}")
+
+    def test_readme_links(self):
+        self.assertIn(PAGE_BUTTON, self.readme)
+        ids = [p["id"] for p in self.cfg["posts"]]
+        posts = [b for b in self.blocks if "utm_campaign=page_posts" in b]
+        self.assertEqual(len(posts), 9)
+        for n, (pid, b) in enumerate(zip(ids, posts), 1):
+            url = re.search(r"https://table\.central-aparts\.store(/\S*)\?(\S+)", b)
+            self.assertIsNotNone(url, pid)
+            page, query = url.groups()
+            self.assertIn(f"utm_content=post-{n:02d}-{pid}", query, "підпис не до того поста")
+            m = re.fullmatch(r"/p/([a-z]+)/", page)
+            if m:
+                self.assertIn(m.group(1), self.catalog, page)
+            else:
+                self.assertIn(page, ("/catalog/", "/faq/"), page)
+
+
+@unittest.skipUnless((KIT / "report.json").exists(), "docs/page-kit/ ще не зібрано")
+class PublishedPageKitTests(unittest.TestCase):
+    def test_report_matches_files_and_limits(self):
+        report = json.loads((KIT / "report.json").read_text(encoding="utf-8"))
+        items = report["items"]
+        sizes = sorted((it["kind"], it["width"], it["height"]) for it in items)
+        self.assertEqual(sizes, sorted([("avatar", 1080, 1080), ("cover", 1640, 624)]
+                                       + [("post", 1080, h) for h in (1080, 1350) for _ in range(9)]
+                                       + [("hl", 1080, 1920)] * 3))
+        for it in items:
+            f = KIT / it["file"]
+            self.assertTrue(f.is_file(), it["file"])
+            self.assertEqual(f.stat().st_size, it["bytes"], it["file"])
+            self.assertLessEqual(it["bytes"], 500 * 1024, it["file"])
+            self.assertLessEqual(it["text_share"], 0.20, it["file"])
+            if it["min_contrast"] is not None:
+                self.assertGreaterEqual(it["min_contrast"], 4.5, it["file"])
+            if it["images"]:
+                self.assertTrue(it["has_mark"], f"{it['file']}: немає «הדמיה»")
+            for img in it["images"]:
+                self.assertTrue(img.startswith("site/assets/products/"), f"{it['file']}: кадр не з каталогу — {img}")
+        self.assertTrue(all(it["has_mark"] for it in items if it["kind"] == "post"))
+        self.assertEqual(report["limits"]["cover_safe_width"], 1080)
+        self.assertTrue((KIT / "preview.html").is_file())
+        self.assertLessEqual((KIT / "preview.jpg").stat().st_size, 900 * 1024)
 
 
 if __name__ == "__main__":

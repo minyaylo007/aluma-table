@@ -1,0 +1,523 @@
+{
+  "generated_by": "tools/creatives/pagekit.js",
+  "limits": {
+    "max_bytes": 512000,
+    "max_text_share": 0.2,
+    "min_contrast": 4.5,
+    "min_tile_share": 0.05,
+    "cover_safe_width": 1080
+  },
+  "items": [
+    {
+      "file": "avatar-1080x1080.jpg",
+      "kind": "avatar",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 22837,
+      "jpeg_quality": 88,
+      "text_share": 0.1273,
+      "min_contrast": 6.49,
+      "has_mark": false,
+      "tiles": [],
+      "products": [],
+      "images": []
+    },
+    {
+      "file": "cover-1640x624.jpg",
+      "kind": "cover",
+      "width": 1640,
+      "height": 624,
+      "bytes": 133864,
+      "jpeg_quality": 88,
+      "text_share": 0.0478,
+      "min_contrast": 6.49,
+      "has_mark": true,
+      "tiles": [
+        0.8961
+      ],
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-01-material-1080x1080.jpg",
+      "kind": "post",
+      "post": "material",
+      "order": 1,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 91487,
+      "jpeg_quality": 88,
+      "text_share": 0.0631,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.64
+      ],
+      "products": [
+        "saf"
+      ],
+      "images": [
+        "site/assets/products/saf/texture-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-01-material-1080x1350.jpg",
+      "kind": "post",
+      "post": "material",
+      "order": 1,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 103651,
+      "jpeg_quality": 88,
+      "text_share": 0.0601,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.6631
+      ],
+      "products": [
+        "saf"
+      ],
+      "images": [
+        "site/assets/products/saf/texture-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-02-mechanism-1080x1080.jpg",
+      "kind": "post",
+      "post": "mechanism",
+      "order": 2,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 138191,
+      "jpeg_quality": 88,
+      "text_share": 0.0585,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.3733,
+        0.1333,
+        0.1333
+      ],
+      "products": [
+        "tavor",
+        "tavor",
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/mechanism-closed-1600.jpg",
+        "site/assets/products/tavor/mechanism-half-1600.jpg",
+        "site/assets/products/tavor/open-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-02-mechanism-1080x1350.jpg",
+      "kind": "post",
+      "post": "mechanism",
+      "order": 2,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 158255,
+      "jpeg_quality": 88,
+      "text_share": 0.0537,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.3787,
+        0.1378,
+        0.1378
+      ],
+      "products": [
+        "tavor",
+        "tavor",
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/mechanism-closed-1600.jpg",
+        "site/assets/products/tavor/mechanism-half-1600.jpg",
+        "site/assets/products/tavor/open-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-03-tones-1080x1080.jpg",
+      "kind": "post",
+      "post": "tones",
+      "order": 3,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 171337,
+      "jpeg_quality": 88,
+      "text_share": 0.0534,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.2622,
+        0.0944,
+        0.0944,
+        0.0944,
+        0.0944
+      ],
+      "products": [
+        "tavor",
+        "tavor",
+        "tavor",
+        "tavor",
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/finish-natural-1600.jpg",
+        "site/assets/products/tavor/finish-light-1600.jpg",
+        "site/assets/products/tavor/finish-honey-1600.jpg",
+        "site/assets/products/tavor/finish-smoked-1600.jpg",
+        "site/assets/products/tavor/finish-black-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-03-tones-1080x1350.jpg",
+      "kind": "post",
+      "post": "tones",
+      "order": 3,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 210114,
+      "jpeg_quality": 88,
+      "text_share": 0.0506,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.2631,
+        0.0978,
+        0.0978,
+        0.0978,
+        0.0978
+      ],
+      "products": [
+        "tavor",
+        "tavor",
+        "tavor",
+        "tavor",
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/finish-natural-1600.jpg",
+        "site/assets/products/tavor/finish-light-1600.jpg",
+        "site/assets/products/tavor/finish-honey-1600.jpg",
+        "site/assets/products/tavor/finish-smoked-1600.jpg",
+        "site/assets/products/tavor/finish-black-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-04-tal-1080x1080.jpg",
+      "kind": "post",
+      "post": "tal",
+      "order": 4,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 151140,
+      "jpeg_quality": 88,
+      "text_share": 0.0769,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.64
+      ],
+      "products": [
+        "tal"
+      ],
+      "images": [
+        "site/assets/products/tal/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-04-tal-1080x1350.jpg",
+      "kind": "post",
+      "post": "tal",
+      "order": 4,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 174444,
+      "jpeg_quality": 88,
+      "text_share": 0.0724,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.6631
+      ],
+      "products": [
+        "tal"
+      ],
+      "images": [
+        "site/assets/products/tal/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-05-saf-1080x1080.jpg",
+      "kind": "post",
+      "post": "saf",
+      "order": 5,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 140384,
+      "jpeg_quality": 88,
+      "text_share": 0.0967,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.64
+      ],
+      "products": [
+        "saf"
+      ],
+      "images": [
+        "site/assets/products/saf/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-05-saf-1080x1350.jpg",
+      "kind": "post",
+      "post": "saf",
+      "order": 5,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 156718,
+      "jpeg_quality": 88,
+      "text_share": 0.0917,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.6631
+      ],
+      "products": [
+        "saf"
+      ],
+      "images": [
+        "site/assets/products/saf/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-06-ofek-1080x1080.jpg",
+      "kind": "post",
+      "post": "ofek",
+      "order": 6,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 132133,
+      "jpeg_quality": 88,
+      "text_share": 0.0803,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.64
+      ],
+      "products": [
+        "ofek"
+      ],
+      "images": [
+        "site/assets/products/ofek/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-06-ofek-1080x1350.jpg",
+      "kind": "post",
+      "post": "ofek",
+      "order": 6,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 154760,
+      "jpeg_quality": 88,
+      "text_share": 0.0758,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.6631
+      ],
+      "products": [
+        "ofek"
+      ],
+      "images": [
+        "site/assets/products/ofek/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-07-sahar-1080x1080.jpg",
+      "kind": "post",
+      "post": "sahar",
+      "order": 7,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 153926,
+      "jpeg_quality": 88,
+      "text_share": 0.0739,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.64
+      ],
+      "products": [
+        "sahar"
+      ],
+      "images": [
+        "site/assets/products/sahar/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-07-sahar-1080x1350.jpg",
+      "kind": "post",
+      "post": "sahar",
+      "order": 7,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 177628,
+      "jpeg_quality": 88,
+      "text_share": 0.0693,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.6631
+      ],
+      "products": [
+        "sahar"
+      ],
+      "images": [
+        "site/assets/products/sahar/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-08-delivery-1080x1080.jpg",
+      "kind": "post",
+      "post": "delivery",
+      "order": 8,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 106234,
+      "jpeg_quality": 88,
+      "text_share": 0.0599,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.64
+      ],
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-08-delivery-1080x1350.jpg",
+      "kind": "post",
+      "post": "delivery",
+      "order": 8,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 125156,
+      "jpeg_quality": 88,
+      "text_share": 0.0561,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.6631
+      ],
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/hero-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-09-tavor-1080x1080.jpg",
+      "kind": "post",
+      "post": "tavor",
+      "order": 9,
+      "width": 1080,
+      "height": 1080,
+      "bytes": 148400,
+      "jpeg_quality": 88,
+      "text_share": 0.0778,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.64
+      ],
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "post-09-tavor-1080x1350.jpg",
+      "kind": "post",
+      "post": "tavor",
+      "order": 9,
+      "width": 1080,
+      "height": 1350,
+      "bytes": 167858,
+      "jpeg_quality": 88,
+      "text_share": 0.073,
+      "min_contrast": 5.88,
+      "has_mark": true,
+      "tiles": [
+        0.6631
+      ],
+      "products": [
+        "tavor"
+      ],
+      "images": [
+        "site/assets/products/tavor/home-1600.jpg"
+      ]
+    },
+    {
+      "file": "highlight-series-1080x1920.jpg",
+      "kind": "hl",
+      "title": "הסדרה",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 23871,
+      "jpeg_quality": 88,
+      "text_share": 0,
+      "min_contrast": null,
+      "has_mark": false,
+      "tiles": [],
+      "products": [],
+      "images": []
+    },
+    {
+      "file": "highlight-tones-1080x1920.jpg",
+      "kind": "hl",
+      "title": "גוונים",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 30012,
+      "jpeg_quality": 88,
+      "text_share": 0,
+      "min_contrast": null,
+      "has_mark": false,
+      "tiles": [],
+      "products": [],
+      "images": []
+    },
+    {
+      "file": "highlight-how-1080x1920.jpg",
+      "kind": "hl",
+      "title": "איך זה עובד",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 31094,
+      "jpeg_quality": 88,
+      "text_share": 0,
+      "min_contrast": null,
+      "has_mark": false,
+      "tiles": [],
+      "products": [],
+      "images": []
+    }
+  ]
+}
