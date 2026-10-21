@@ -53,11 +53,19 @@ class BuiltSiteTests(unittest.TestCase):
                 self.assertEqual(len(re.findall(r"<h1[\s>]", html)), 1, f"{prefix + rel}: рівно один h1")
         self.assertIn('lang="he"', (self.dist / "404.html").read_text(encoding="utf-8"))
 
+    def test_no_dead_3d_button(self):
+        # 21.10: кнопка 3D мовчала на живому — поки переглядач не працює, її немає на жодній сторінці виробу
+        for p in PRODUCTS:
+            for prefix in ("", "en/"):
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    self.assertNotIn("js-3d", self.page(f"{prefix}p/{p['slug']}/"))
+
     def test_gallery_skips_mechanism_and_light(self):
         # mechanism і light — окремі блоки вітрини (catalog/README.md); у галереї й мініатюрах лише решта кадрів
         for p in PRODUCTS:
             html = self.page(f"p/{p['slug']}/")
-            track = html[html.index('<ul class="g-track"'):html.index('<div class="viewer3d"')] if p.get("images") else ""
+            start = html.index('<ul class="g-track"') if p.get("images") else 0
+            track = html[start:html.index("</ul>", start)] if p.get("images") else ""
             shown = [i for i in p.get("images") or [] if i["view"] not in ("mechanism", "light")]
             with self.subTest(product=p["id"]):
                 self.assertEqual(track.count('class="g-slide"'), len(shown))

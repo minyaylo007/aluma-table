@@ -552,6 +552,10 @@ def how(p: dict, loc: str) -> str:
             + (f'<h3 class="h3 plan-h">{{{{t.unfold_plan_h3}}}}</h3>{pl}' if pl else "") + "</div></section>")
 
 
+# кнопка 3D вимкнена, доки переглядач не працює на живому (21.10: модуль не вантажився, кнопка мовчала)
+VIEWER_3D = False
+
+
 def gallery(p: dict, loc: str) -> str:
     # mechanism і light — окремі блоки вітрини (catalog/README.md), у галерею картки не йдуть
     imgs = [i for i in p.get("images") or [] if i.get("src") and i.get("view") not in ("mechanism", "light")]
@@ -568,7 +572,7 @@ def gallery(p: dict, loc: str) -> str:
             f'<a class="g-thumb" href="#g-{p["slug"]}-{i}" aria-label="{{{{t.gallery_item}}}} {i + 1}">'
             f'{picture(im, loc, sizes="88px")}</a>' for i, im in enumerate(imgs)) + "</div>"
     viewer = ""
-    if p.get("model3d"):
+    if VIEWER_3D and p.get("model3d"):
         viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="{esc(p["model3d"])}">'
                   '{{t.view_3d}}</button><div class="viewer3d" hidden></div>')
     return f'<div class="gallery"><ul class="g-track" role="list" tabindex="0" aria-label="{{{{t.gallery_label}}}}">{slides}</ul>{dots}{viewer}</div>'
