@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Відео-креативи для Reels / Stories / стрічки (docs/META-TEST.md): 3 ролики × 1080×1920 і 1080×1080 → docs/creatives/video/.
+// Відео-креативи для Reels / Stories / стрічки (docs/META-TEST.md): 3 ролики × 1080×1920, 1080×1350 і 1080×1080 → docs/creatives/video/.
 // Кадри й тексти — з catalog/products.json і tools/creatives/creatives.json (ті самі, що в статичних креативах);
 // шаблон — tools/creatives/video.html. Кожен кадр малює window.render(t) і знімає Playwright (без порту й мережі),
 // ролик збирає системний /usr/bin/ffmpeg (H.264, yuv420p, faststart, тиха AAC-доріжка).
@@ -27,7 +27,8 @@ const MAX_BYTES = 4 * 1024 * 1024;
 const MIN_CONTRAST = 4.5;
 const SAFE = 0.14;            // Reels/Stories: верх і низ по 14 % — під інтерфейсом
 const FADE = 0.6;
-const FORMATS = [{ id: '9x16', width: 1080, height: 1920 }, { id: '1x1', width: 1080, height: 1080 }];
+const FORMATS = [{ id: '9x16', width: 1080, height: 1920 }, { id: '4x5', width: 1080, height: 1350 },
+  { id: '1x1', width: 1080, height: 1080 }];
 const SHEET_AT = [0, 3, 6];   // секунди для листа кадрів
 
 function args(argv) {

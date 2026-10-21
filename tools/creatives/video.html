@@ -48,9 +48,11 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 .item .from { font: 700 var(--fs-price)/1.1 var(--sans); color: var(--ink); }
 .card.collection { height: var(--card-h); }
 
-/* 9:16 — Reels/Stories: верхні й нижні 14 % (269 px) без тексту. 1:1 — стрічка. */
+/* 9:16 — Reels/Stories: верхні й нижні 14 % (269 px) без тексту. 4:5 і 1:1 — стрічка (4:5 займає більше екрана). */
 .f-9x16 { --safe-top: 300px; --safe-bottom: 300px; --h1: 66px; --fs-sub: 32px; --fs-price: 44px; --fs-cta: 32px; --fs-size: 40px; --card-h: 420px; }
+.f-4x5 { --safe-top: 36px; --safe-bottom: 36px; --h1: 56px; --fs-sub: 29px; --fs-price: 40px; --fs-cta: 30px; --fs-size: 36px; --card-h: 340px; }
 .f-1x1 { --safe-top: 32px; --safe-bottom: 32px; --h1: 50px; --fs-sub: 27px; --fs-price: 36px; --fs-cta: 28px; --fs-size: 32px; --card-h: 300px; }
+.f-4x5 .card { padding: 34px 46px; gap: 12px; }
 .f-1x1 .card { padding: 28px 40px; gap: 10px; }
 </style>
 </head>
