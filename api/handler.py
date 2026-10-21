@@ -87,7 +87,7 @@ EVENTS_PER_IP_PER_MINUTE = 120
 VALID_STATUSES = ("new", "called", "interested", "not_interested", "deposit", "spam")
 VALID_COLORS = ("natural", "smoked", "white")
 VALID_SIZES = ("160", "220")      # cm; the client sends the string as-is
-VALID_LANGS = ("he", "en")        # <html lang> of the page the lead came from
+VALID_LANGS = ("he", "en", "ru")  # <html lang> of the page the lead came from
 # Поля вітрини (specs/002-meta-settings/contracts/lead.md). Невідоме значення → "", заявку не відхиляє.
 VALID_TIMEFRAMES = ("now", "1-3m", "later", "browsing")   # browsing — «רק בודק/ת» на оформленні
 VALID_CONTACT_PREFS = ("whatsapp", "call")

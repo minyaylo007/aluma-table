@@ -17,7 +17,11 @@
     return "";
   };
   var byId = function (id) { for (var i = 0; i < PRODUCTS.length; i++) if (PRODUCTS[i].id === id) return PRODUCTS[i]; return null; };
-  var money = function (n) { return "₪" + Number(n || 0).toLocaleString("en-US"); };
+  // ціна як у build.py money(): «₪4,490»; у ru — «4 490 ₪» з нерозривними пробілами
+  var money = function (n) {
+    var s = Number(n || 0).toLocaleString("en-US");
+    return D.documentElement.lang === "ru" ? s.replace(/,/g, "\u00a0") + "\u00a0₪" : "₪" + s;
+  };
 
   // ---------------------------------------------------------------- меню
   var menuBtn = qs(".menu-btn"), nav = qs("#nav");

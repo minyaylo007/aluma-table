@@ -44,7 +44,7 @@ FINISH_PHOTO_MAX = 60 * 1024
 
 PRODUCTION = "--production" in sys.argv
 CONTENT = json.loads((ROOT / "content.json").read_text(encoding="utf-8"))
-LOCALES = {"he": "", "en": "/en"}          # мова -> префікс шляху; перша — x-default і корінь сайту
+LOCALES = {"he": "", "en": "/en", "ru": "/ru"}          # мова -> префікс шляху; перша — x-default і корінь сайту
 TEXT_EXT = (".html", ".css", ".js", ".webmanifest", ".xml", ".txt", ".svg", ".json")
 
 # сторінки: (шаблон, шлях без префікса мови, ключ заголовка, ключ опису)
@@ -89,7 +89,10 @@ def digest_bytes(data: bytes, suffix: str) -> str:
     return hashlib.sha256(data).hexdigest()[:10]
 
 
-def money(v: int) -> str:
+def money(v: int, loc: str = "he") -> str:
+    """Ціна: «₪4,490»; у ru — як пишуть російською, «4 490 ₪» з нерозривними пробілами (так само в aluma.js/shop.js)."""
+    if loc == "ru":
+        return f"{int(v):,}".replace(",", "\u00a0") + "\u00a0₪"
     return "₪" + f"{int(v):,}"
 
 
@@ -192,14 +195,17 @@ def load_catalog() -> list:
     return out
 
 
-# Числа словами для рядків i18n («בחמישה גוונים», «in five finishes»): іменники там чоловічого роду.
+# Числа словами для рядків i18n («בחמישה גוונים», «in five finishes», «в пяти тонах»): іменники там чоловічого роду;
+# у ru — прийменниковий відмінок (рядки ru.json пишуть лише «в {{FINISH_COUNT}} тонах»).
 # Поза словником — цифри (у he з макафом: «וב־11 גוונים»).
 NUM_WORDS = {"he": {2: "שניים", 3: "שלושה", 4: "ארבעה", 5: "חמישה", 6: "שישה", 7: "שבעה", 8: "שמונה", 9: "תשעה", 10: "עשרה"},
-             "en": {2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}}
+             "en": {2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"},
+             "ru": {2: "двух", 3: "трёх", 4: "четырёх", 5: "пяти", 6: "шести", 7: "семи", 8: "восьми", 9: "девяти",
+                    10: "десяти"}}
 
 
 def num_word(n: int, loc: str) -> str:
-    return NUM_WORDS[loc].get(n) or (f"־{n}" if loc == "he" else str(n))
+    return NUM_WORDS.get(loc, {}).get(n) or (f"־{n}" if loc == "he" else str(n))
 
 
 def catalog_facts(products: list, loc: str) -> dict:
@@ -210,10 +216,11 @@ def catalog_facts(products: list, loc: str) -> dict:
         for f in p.get("finishes") or []:
             finishes.setdefault(f.get("id"), L(f.get("name"), loc))
     names = list(finishes.values())
-    if loc == "en":
+    if loc != "he":
         names = [n[:1].lower() + n[1:] for n in names]
-    # «א, ב וג» / «a, b and c»: у he сполучник «ו» пишеться разом зі словом
-    joined = ", ".join(names[:-1]) + (" ו" if loc == "he" else " and ") + names[-1] if len(names) > 1 else "".join(names)
+    # «א, ב וג» / «a, b and c» / «а, б и в»: у he сполучник «ו» пишеться разом зі словом
+    conj = {"he": " ו", "ru": " и "}.get(loc, " and ")
+    joined = ", ".join(names[:-1]) + conj + names[-1] if len(names) > 1 else "".join(names)
     word = num_word(len(names), loc)
     return {"LEAD_WEEKS": f"{min(lt[0] for lt in lts)}–{max(lt[-1] for lt in lts)}",
             "FINISH_COUNT": word, "FINISH_COUNT_CAP": word[:1].upper() + word[1:], "FINISH_NAMES": joined}
@@ -332,7 +339,7 @@ def finishes_viz(fins: list) -> bool:
 
 def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
     """Картка товару: фото 4:5 (другий кадр — при наведенні), назва, ціна «מ־₪», кружки тонувань."""
-    price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"])}</bdi></span>'
+    price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"], loc)}</bdi></span>'
              if p.get("price_from_ils") else "")
     sz = "(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw"
     imgs = [i for i in p.get("images") or [] if i.get("src")]
@@ -399,7 +406,7 @@ def configurator(p: dict, loc: str) -> str:
                 f'<label class="pill"><input type="radio" name="size" value="{esc(s.get("label"))}"'
                 f' data-price="{int(s["price_ils"])}"{" checked" if i == 0 else ""}>'
                 f'<span class="pill-main"><bdi dir="ltr">{esc(size_dims(s))}</bdi></span>{ext}'
-                f'<span class="pill-price"><bdi dir="ltr">{money(s["price_ils"])}</bdi></span>'
+                f'<span class="pill-price"><bdi dir="ltr">{money(s["price_ils"], loc)}</bdi></span>'
                 # «הנבחר ביותר» — лише коли каталог сам позначив розмір; вигаданої популярності не показуємо
                 + ('<span class="pill-pop">{{t.size_popular}}</span>' if s.get("popular") is True else "") + '</label>')
         out.append('</div><a class="opt-custom js-custom" href="#register">{{t.custom_size}}</a></fieldset>')
@@ -447,18 +454,18 @@ def specs(p: dict, loc: str) -> str:
     sizes = p.get("sizes") or []
     if sizes:
         lens = ", ".join(esc(s.get("label")) for s in sizes)
-        rows.append(("{{t.spec_sizes}}", f'<bdi dir="ltr">{lens}</bdi> {{{{t.cm}}}}'))
+        rows.append(("{{t.spec_sizes}}", f'<bdi dir="ltr">{lens}</bdi>&nbsp;{{{{t.cm}}}}'))
         s0 = sizes[0]
         if s0.get("width_cm"):
             ws = sorted({int(s["width_cm"]) for s in sizes if s.get("width_cm")})
-            rows.append(("{{t.spec_width}}", f'<bdi dir="ltr">{" / ".join(map(str, ws))}</bdi> {{{{t.cm}}}}'))
+            rows.append(("{{t.spec_width}}", f'<bdi dir="ltr">{" / ".join(map(str, ws))}</bdi>&nbsp;{{{{t.cm}}}}'))
         if s0.get("height_cm"):
             hs = sorted({int(s["height_cm"]) for s in sizes if s.get("height_cm")})
-            rows.append(("{{t.spec_height}}", f'<bdi dir="ltr">{" / ".join(map(str, hs))}</bdi> {{{{t.cm}}}}'))
+            rows.append(("{{t.spec_height}}", f'<bdi dir="ltr">{" / ".join(map(str, hs))}</bdi>&nbsp;{{{{t.cm}}}}'))
         ext = [s for s in sizes if s.get("extended_cm")]
         if ext:
             pairs = ", ".join(f'{esc(s["length_cm"])}→{esc(s["extended_cm"])}' for s in ext)
-            rows.append(("{{t.spec_extended}}", f'<bdi dir="ltr">{pairs}</bdi> {{{{t.cm}}}}'))
+            rows.append(("{{t.spec_extended}}", f'<bdi dir="ltr">{pairs}</bdi>&nbsp;{{{{t.cm}}}}'))
     mat = L(p.get("material"), loc)
     if mat:
         rows.append(("{{t.spec_material}}", esc(mat)))
@@ -579,7 +586,7 @@ def plan(p: dict, loc: str) -> str:
             n = plan_seats(ln, width, round_ and state == "closed", rng)
             dims = f"Ø{ln:.0f}" if round_ and state == "closed" else f"{ln:.0f}×{width:.0f}"
             figs.append(f'<figure class="plan-fig">{plan_svg(ln, width, span, n, round_, state)}'
-                        f'<figcaption><b>{{{{t.unfold_{state}}}}}</b> · <bdi dir="ltr">{dims}</bdi> {{{{t.cm}}}}'
+                        f'<figcaption><b>{{{{t.unfold_{state}}}}}</b> · <bdi dir="ltr">{dims}</bdi>&nbsp;{{{{t.cm}}}}'
                         f' · {n} {{{{t.unfold_seats}}}}</figcaption></figure>')
         out.append(f'<div class="plan-size" data-plan-size="{esc(lab)}"{"" if i == 0 else " hidden"}>{"".join(figs)}</div>')
     return '<div class="plan" data-plan>' + "".join(out) + '<p class="muted small">{{t.unfold_plan_note}}</p></div>'
@@ -879,7 +886,7 @@ def main() -> None:
                 "P_ID": esc(p["id"]), "P_SLUG": p["slug"], "P_NAME": esc(L(p.get("name"), loc)),
                 "P_TAGLINE": esc_bidi(L(p.get("tagline"), loc)), "P_DESC": esc_bidi(L(p.get("description"), loc)),
                 "P_BADGES": badges(p, loc),
-                "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
+                "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0, loc),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
                 "P_INC": included(p, loc), "P_SIZE_HELP": size_help(p, loc),
