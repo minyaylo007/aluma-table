@@ -3,7 +3,7 @@
 **On any conflict, `~/maestro/OWNER-RULES.md` and `~/.claude/CLAUDE.md` win over this file.** Machine-wide invariants —
 `.specify/memory/constitution.md`. How the project got here (AWS teardown, public re-publish, cutover) — `docs/HISTORY.md`.
 
-Prelaunch storefront for the five pieces of `catalog/products.json`: Hebrew (RTL) at `/`, English at `/en/`; lead form →
+Prelaunch storefront for the five pieces of `catalog/products.json`: Hebrew (RTL) at `/`, English at `/en/`, Russian at `/ru/`; lead form →
 owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn + SQLite behind Caddy, user units
 `ihor-aluma-api.service` / `ihor-aluma-purge.timer` (leads never purged) run from the clone `/opt/ihor/aluma-table`
 (env `~/.config/aluma/aluma.env`, 127.0.0.1:8005), static in `/srv/aluma`, health `GET /api/fx/health`.
@@ -17,7 +17,7 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
 
 ## 2. Core principles
 - **Others' systems are untouchable**, Caddy included; deploys go by `docs/DELIVERY.md` and skill `/aluma-deploy` (§9).
-- **One source for every fact.** Numbers in `content.json`, UI strings in `i18n/he.json` + `i18n/en.json`; templates in
+- **One source for every fact.** Numbers in `content.json`, UI strings in `i18n/{he,en,ru}.json` (+ `legal.*`); templates in
   `site/` only reference them — never hardcode a number or a sentence in HTML/JS.
 - **Same code, two runtimes.** `api/handler.py` runs unchanged under gunicorn (`api/wsgi.py`) and in a Lambda; storage is
   picked by `FX_STORAGE` — never add runtime-specific logic to the handler. **Build is byte-identical on any OS** (LF,
