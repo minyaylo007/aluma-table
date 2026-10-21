@@ -87,10 +87,12 @@ const ANGLE = {
   tal:   { az: 36, eye: 0.85, margin: 0.08, end_chair: false }
 };
 const ANGLE_ALT = { sahar: ['תקריב של הרגל ושל המסגרת מתחת למשטח', 'close-up of a leg and the apron under the top'] };
+// Світло героя (HERO_RENDER): крупний план під тим самим світлом, інакше шпон виходить темнішим і теплішим, ніж у героя.
+const HERO_LIGHT = { sun: 7.0, window: 180, hdri_strength: 0.18, exposure: 1.6 };
 // Крупний план дуба: кут стільниці — торець, кромка і шпон; fit — частка габариту (x, y, z), об'єктив 85 мм.
 const TEXTURE = {
-  ofek: { az: 40, eye: 1.25, lens: 85, fstop: 2.8, margin: 0.02, fit: [[0.78, 0, 0.7], [1, 0.6, 1]], end_chair: false },
-  saf:  { az: 40, eye: 1.05, lens: 85, fstop: 2.8, margin: 0.02, fit: [[0.78, 0, 0.82], [1, 0.6, 1]], end_chair: false }
+  ofek: { az: 40, eye: 1.25, lens: 85, fstop: 2.8, margin: 0.02, fit: [[0.78, 0, 0.7], [1, 0.6, 1]], end_chair: false, ...HERO_LIGHT },
+  saf:  { az: 40, eye: 1.05, lens: 85, fstop: 2.8, margin: 0.02, fit: [[0.78, 0, 0.82], [1, 0.6, 1]], end_chair: false, ...HERO_LIGHT }
 };
 // Світло пари: ранок — холодне бічне сонце з вікна; вечір — сутінки за вікном і тепла лампа над столом.
 const LIGHT = {
