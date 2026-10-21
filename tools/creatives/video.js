@@ -6,6 +6,7 @@
 //
 //   nice -n 19 node tools/creatives/video.js                  # → docs/creatives/video/*.mp4, sheet.jpg, report.json
 //   nice -n 19 node tools/creatives/video.js --only tavor --out "$TMPDIR/v"   # чернетка
+//   nice -n 19 node tools/creatives/video.js --lang ru        # → docs/creatives/ru/video/ (тексти — creatives.json "ru")
 //
 // Перевірки на кадрах кожні 0.5 с, інакше вихід 1: «הדמיה» видно на кожному, текст не заходить у верхні й нижні 14 %
 // (9:16, інтерфейс Reels), контраст кожного видимого тексту ≥ 4.5:1 до його тла, картка не переповнена,
@@ -15,7 +16,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { ROOT, TYPES, esc, fontFaces, fill, priceVars, headlineOf } = require('./build');
+const { ROOT, TYPES, LANGS, localize, local, esc, fontFaces, fill, priceVars, headlineOf } = require('./build');
 
 process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/ihor/aluma-table/ms-playwright';
 const { chromium } = require('@playwright/test');
@@ -32,12 +33,14 @@ const FORMATS = [{ id: '9x16', width: 1080, height: 1920 }, { id: '4x5', width: 
 const SHEET_AT = [0, 3, 6];   // секунди для листа кадрів
 
 function args(argv) {
-  const out = { out: null, only: null };
+  const out = { out: null, only: null, lang: 'he' };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--out') out.out = path.resolve(argv[++i]);
+    else if (argv[i] === '--lang') out.lang = argv[++i];
     else if (argv[i] === '--only') out.only = argv[++i];
     else throw new Error(`невідомий аргумент: ${argv[i]}`);
   }
+  if (!LANGS[out.lang]) throw new Error(`невідома мова: ${out.lang}`);
   return out;
 }
 
@@ -92,7 +95,7 @@ function single(cfg, v, p) {
   const size = s.extended_cm ? `<div class="size" ${at(sizeAt)}><div class="nums"><span>${esc(s.length_cm)}</span>` +
     `<span>${esc(s.extended_cm)}</span></div><div class="track"><div class="bar"></div></div></div>` : '';
   const card = `<div class="card"><div class="brand" ${at(-1)}>${esc(cfg.brand)}</div>` +
-    `<h1 class="headline" ${at(-1)}>${headlineOf(v, [p])}</h1><p class="sub" ${at(0.6)}>${sub}</p>${size}` +
+    `<h1 class="headline" ${at(-1)}>${headlineOf(v, [p], cfg.lang)}</h1><p class="sub" ${at(0.6)}>${sub}</p>${size}` +
     `<div class="foot"><div class="price"><b ${at(3.4)}>${fill(v.price, priceVars([p], cfg))}</b>` +
     `<small ${at(3.4)}>${esc(cfg.price_note)} · ${esc(cfg.includes)}</small></div><div class="act"><div class="cta" ${at(4.6)}>${esc(cfg.cta)}</div>` +
     `<small class="cta-note" ${at(4.6)}>${esc(cfg.cta_note)}</small></div></div></div>`;
@@ -111,8 +114,8 @@ function collection(cfg, v, products) {
     z: [1.0, 1.06], x: [i % 2 ? 1 : -1, 0] }));
   const items = products.map((_, i) => ({ from: i * step, to: (i + 1) * step }));
   items.push({ from: end, to: duration });
-  const rows = products.map((p) => `<div class="item"><div class="name" data-text>${esc(p.name.he)}</div>` +
-    `<div class="line" data-text>${esc(p.tagline.he)}</div>` +
+  const rows = products.map((p) => `<div class="item"><div class="name" data-text>${esc(local(p.name, cfg.lang, `${p.id}.name`))}</div>` +
+    `<div class="line" data-text>${esc(local(p.tagline, cfg.lang, `${p.id}.tagline`))}</div>` +
     `<div class="from" data-text>${fill(v.price, priceVars([p], cfg))}</div></div>`).join('');
   const last = `<div class="item"><div class="brand" data-text>${esc(cfg.brand)}</div>` +
     `<h1 class="headline" data-text>${esc(v.headline)}</h1><p class="sub" data-text>${esc(v.sub)}</p>` +
@@ -124,8 +127,9 @@ function collection(cfg, v, products) {
 }
 
 function html(template, cfg, f, plan, fonts, id) {
+  const lang = { LANG: cfg.lang, DIR: LANGS[cfg.lang].dir };
   const shots = plan.imgs.map((file, i) => `<div class="shot${fullIn(file, f) ? ' full' : ''}${frameFor(file, f) !== file ? ' tall' : ''}"><img src="${ORIGIN}/img/${id}/${i}" alt=""></div>`).join('');
-  const map = { FONTS: fonts.css, SERIF: fonts.serif, W: f.width, H: f.height, FORMAT: f.id, SHOTS: shots,
+  const map = { ...lang, FONTS: fonts.css, SERIF: fonts.serif, W: f.width, H: f.height, FORMAT: f.id, SHOTS: shots,
     CARD: plan.card, MARK: esc(cfg.mark), TIMELINE: JSON.stringify(plan.timeline) };
   return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in map)) throw new Error(`шаблон: невідомий ${m}`);
@@ -149,6 +153,18 @@ function inspect(safe) {
     return null;
   };
   const alpha = (el) => { let a = 1; for (let n = el; n; n = n.parentElement) a *= Number(getComputedStyle(n).opacity); return a; };
+  // Шрифт позначки: жодне обличчя не впало, і письмо позначки (іврит чи кирилиця) покриває завантажене обличчя Plex
+  // потрібної ваги. fonts.check() тут не годиться: у ru він чекає й іврит-обличчя, якого на кадрі нема.
+  const covers = (f, cp) => f.unicodeRange.split(',').some((r) => {
+    const [a, b] = r.trim().replace(/^U\+/i, '').split('-').map((x) => parseInt(x, 16));
+    return cp >= a && cp <= (Number.isNaN(b) || b === undefined ? a : b);
+  });
+  const fontFor = (text, weight) => {
+    const faces = [...document.fonts];
+    const cp = text.codePointAt(0);
+    return !faces.some((f) => f.status === 'error') && faces.some((f) => f.status === 'loaded'
+      && f.family.replace(/"/g, '') === 'IBM Plex Sans Hebrew' && String(f.weight) === weight && covers(f, cp));
+  };
   const W = innerWidth, H = innerHeight;
   const out = [];
   for (const el of document.querySelectorAll('[data-text]')) {
@@ -173,7 +189,7 @@ function inspect(safe) {
   const low = safe > 0 && cr.bottom > 0.8 * H + 0.5;
   return { texts: out, covered, low, fullTooHigh, fullNot916, mark: mark.textContent.trim(), markAlpha: alpha(mark), markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
     over, imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
-    fontsOk: document.fonts.check('600 30px "IBM Plex Sans Hebrew"', 'הדמיה') };
+    fontsOk: fontFor(mark.textContent.trim(), '600') };
 }
 
 function ffmpeg(argv) {
@@ -217,12 +233,12 @@ figcaption{font-size:12px;color:#5E554C}</style></head><body><h1>ALUMA — ві�
 async function main() {
   const opts = args(process.argv.slice(2));
   if (!fs.existsSync(FFMPEG)) throw new Error(`нема ${FFMPEG}`);
-  const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'creatives.json'), 'utf8'));
+  const cfg = localize(JSON.parse(fs.readFileSync(path.join(__dirname, 'creatives.json'), 'utf8')), opts.lang);
   const catalog = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'products.json'), 'utf8'));
   const byId = Object.fromEntries(catalog.map((p) => [p.id, p]));
   const template = fs.readFileSync(path.join(__dirname, 'video.html'), 'utf8');
-  const outDir = opts.out || path.join(ROOT, 'docs', 'creatives', 'video');
-  const fonts = fontFaces();
+  const outDir = opts.out || path.join(ROOT, 'docs', 'creatives', LANGS[opts.lang].out, 'video');
+  const fonts = fontFaces(opts.lang);
   const tmp = fs.mkdtempSync(path.join(process.env.TMPDIR || os.tmpdir(), 'aluma-video-'));
   fs.mkdirSync(outDir, { recursive: true });
 
@@ -234,14 +250,14 @@ async function main() {
 
   const browser = await chromium.launch();
   const failures = [];
-  const report = { generated_by: 'tools/creatives/video.js', fps: FPS,
+  const report = { generated_by: 'tools/creatives/video.js', ...(cfg.lang === 'he' ? {} : { lang: cfg.lang }), fps: FPS,
     limits: { max_bytes: MAX_BYTES, min_contrast: MIN_CONTRAST, safe_zone: SAFE }, videos: [] };
   try {
     for (const { v, plan } of plans) {
       for (const f of FORMATS) {
         const name = `${v.id}-${f.width}x${f.height}.mp4`;
         const safe = f.id === '9x16' ? SAFE : 0;
-        const page = await browser.newPage({ viewport: { width: f.width, height: f.height }, deviceScaleFactor: 1, locale: 'he-IL' });
+        const page = await browser.newPage({ viewport: { width: f.width, height: f.height }, deviceScaleFactor: 1, locale: LANGS[cfg.lang].locale });
         await page.route('**/*', (route) => {
           const url = new URL(route.request().url());
           if (url.origin !== ORIGIN) return route.abort();
@@ -265,7 +281,7 @@ async function main() {
           await page.evaluate((x) => window.render(x), t);
           if (i % (FPS / 2) === 0) {
             const c = await page.evaluate(inspect, safe);
-            if (c.mark !== cfg.mark || c.markAlpha < 0.999 || !c.markInside) problems.add(`${t.toFixed(1)} с: нема «הדמיה»`);
+            if (c.mark !== cfg.mark || c.markAlpha < 0.999 || !c.markInside) problems.add(`${t.toFixed(1)} с: нема «${cfg.mark}»`);
             if (c.over) problems.add(`${t.toFixed(1)} с: картка переповнена`);
             if (c.covered) problems.add(`${t.toFixed(1)} с: картка закриває кадр товару`);
             if (c.fullNot916) problems.add('вертикальний рендер не 9:16');

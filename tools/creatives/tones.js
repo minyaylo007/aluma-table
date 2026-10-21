@@ -7,6 +7,7 @@
 //
 //   node tools/creatives/tones.js                                          # → docs/creatives/tones/
 //   node tools/creatives/tones.js --out "$TMPDIR/t" --image natural=x.jpg  # чернетка (підміна кадру — лише з --out)
+//   node tools/creatives/tones.js --lang ru                                # → docs/creatives/ru/tones/ (назви тонів — catalog ru)
 //
 // Перевірки ті самі, що в build.js (measure): текст ≤ 20 %, контраст ≥ 4.5:1, «הדמיה», JPG ≤ 500 КБ; плюс
 // кадри всіх тонів — різні файли одного розміру (одна камера), інакше вихід 1.
@@ -23,14 +24,16 @@ const frameOf = (pid, tone) => path.join(B.ROOT, 'site', 'assets', 'products', p
 const swatchOf = (tone) => path.join(B.ROOT, 'site', 'assets', 'products', 'finishes', `${tone}.jpg`);
 
 function args(argv) {
-  const out = { out: null, images: {} };
+  const out = { out: null, images: {}, lang: 'he' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--out') out.out = path.resolve(argv[++i]);
+    else if (a === '--lang') out.lang = argv[++i];
     else if (a === '--image') { const [id, p] = argv[++i].split('='); out.images[id] = path.resolve(p); }
     else throw new Error(`невідомий аргумент: ${a}`);
   }
   if (Object.keys(out.images).length && !out.out) throw new Error('--image (чернетка) — лише разом з --out');
+  if (!B.LANGS[out.lang]) throw new Error(`невідома мова: ${out.lang}`);
   return out;
 }
 
@@ -47,11 +50,12 @@ function jpegSize(file) {
 }
 
 function cardHtml(template, cfg, product, tone, i, n, format, fonts, note) {
+  const lang = cfg.lang;
   const map = {
-    FONTS: fonts.css, SERIF: fonts.serif, W: format.width, H: format.height, FORMAT: format.id,
+    LANG: lang, DIR: B.LANGS[lang].dir, FONTS: fonts.css, SERIF: fonts.serif, W: format.width, H: format.height, FORMAT: format.id,
     IMAGE: `${B.ORIGIN}/img/frame`, SWATCH: `${B.ORIGIN}/img/swatch`,
-    MARK: B.esc(cfg.mark), BRAND: B.esc(cfg.brand), TONE: B.esc(tone.name.he),
-    SUB: B.fill(cfg.tones.sub, { name: B.esc(product.name.he), i, n }), NOTE: B.esc(note),
+    MARK: B.esc(cfg.mark), BRAND: B.esc(cfg.brand), TONE: B.esc(B.local(tone.name, lang, `finishes.${tone.id}.name`)),
+    SUB: B.fill(cfg.tones.sub, { name: B.esc(B.local(product.name, lang, `${product.id}.name`)), i, n }), NOTE: B.esc(note),
   };
   return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in map)) throw new Error(`шаблон: невідомий ${m}`);
@@ -61,16 +65,16 @@ function cardHtml(template, cfg, product, tone, i, n, format, fonts, note) {
 
 async function main() {
   const opts = args(process.argv.slice(2));
-  const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'creatives.json'), 'utf8'));
+  const cfg = B.localize(JSON.parse(fs.readFileSync(path.join(__dirname, 'creatives.json'), 'utf8')), opts.lang);
   const catalog = JSON.parse(fs.readFileSync(path.join(B.ROOT, 'catalog', 'products.json'), 'utf8'));
-  const he = JSON.parse(fs.readFileSync(path.join(B.ROOT, 'i18n', 'he.json'), 'utf8'));
+  const site = JSON.parse(fs.readFileSync(path.join(B.ROOT, 'i18n', `${opts.lang}.json`), 'utf8'));
   const product = catalog.find((p) => p.id === cfg.tones.product);
   if (!product) throw new Error(`${cfg.tones.product}: товару нема в каталозі`);
   // Те саме застереження, що на сайті поруч із тонами, — перша частина речення, до «;».
-  const note = he.matb_3_p.split(';')[0].trim();
+  const note = site.matb_3_p.split(';')[0].trim();
   const template = fs.readFileSync(path.join(__dirname, 'tones.html'), 'utf8');
-  const outDir = opts.out || path.join(B.ROOT, 'docs', 'creatives', 'tones');
-  const fonts = B.fontFaces();
+  const outDir = opts.out || path.join(B.ROOT, 'docs', 'creatives', B.LANGS[opts.lang].out, 'tones');
+  const fonts = B.fontFaces(opts.lang);
 
   const tones = product.finishes;
   const frames = tones.map((t) => opts.images[t.id] || frameOf(product.id, t.id));
@@ -89,12 +93,12 @@ async function main() {
 
   fs.mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
-  const report = { generated_by: 'tools/creatives/tones.js', product: product.id, note,
+  const report = { generated_by: 'tools/creatives/tones.js', ...(cfg.lang === 'he' ? {} : { lang: cfg.lang }), product: product.id, note,
     limits: { max_bytes: B.MAX_BYTES, max_text_share: B.MAX_TEXT_SHARE, min_contrast: B.MIN_CONTRAST }, cards: [] };
   try {
     for (const [k, tone] of tones.entries()) {
       for (const f of FORMATS) {
-        const page = await browser.newPage({ viewport: { width: f.width, height: f.height }, deviceScaleFactor: 1, locale: 'he-IL' });
+        const page = await browser.newPage({ viewport: { width: f.width, height: f.height }, deviceScaleFactor: 1, locale: B.LANGS[cfg.lang].locale });
         await page.route('**/*', (route) => {
           const url = new URL(route.request().url());
           if (url.origin !== B.ORIGIN) return route.abort();
@@ -119,13 +123,13 @@ async function main() {
           if (t.contrast < B.MIN_CONTRAST) problems.push(`контраст ${t.contrast.toFixed(2)} «${t.text}»`);
           if (!t.inside) problems.push(`виходить за кадр «${t.text}»`);
         }
-        if (m.mark !== cfg.mark || !m.markVisible) problems.push('нема позначки «הדמיה»');
+        if (m.mark !== cfg.mark || !m.markVisible) problems.push(`нема позначки «${cfg.mark}»`);
         if (m.panelOverflow) problems.push('панель переповнена');
         if (!m.imagesOk) problems.push('кадр не завантажився');
         if (!m.fontsOk) problems.push('шрифт сайту не завантажився');
         if (shot.bytes > B.MAX_BYTES) problems.push(`${Math.round(shot.bytes / 1024)} КБ > 500`);
         if (problems.length) problemsAll.push(`${name}: ${problems.join('; ')}`);
-        report.cards.push({ file: name, tone: tone.id, tone_name: tone.name.he, width: f.width, height: f.height,
+        report.cards.push({ file: name, tone: tone.id, tone_name: tone.name[cfg.lang], width: f.width, height: f.height,
           bytes: shot.bytes, text_share: Number(m.textShare.toFixed(4)), min_contrast: Number(minContrast.toFixed(2)),
           image: path.relative(B.ROOT, frames[k]).split(path.sep).join('/') });
         console.log(`${problems.length ? '✗' : '✓'} ${name}  ${Math.round(shot.bytes / 1024)} KB  текст ${(m.textShare * 100).toFixed(1)} %  контраст ≥ ${minContrast.toFixed(1)}`);
