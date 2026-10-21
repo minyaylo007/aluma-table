@@ -230,18 +230,23 @@
         p.city = d.city; p.when = d.when; p.has_name = !!d.name; p.has_phone = !!d.phone;
         track("checkout_details", p);
         var ph = qs("#pay-phone", co); if (ph && !ph.value && d.phone) ph.value = d.phone;
+        var pn = qs("#pay-name", co); if (pn && !pn.value && d.name) pn.value = d.name;
         try { history.pushState({ step: "pay" }, "", "#pay"); } catch (x) {}
         showStep("pay", true);
       });
       W.addEventListener("popstate", function () { showStep(location.hash === "#pay" && detailsOk(readSaved()) ? "pay" : "ship", true); });
       var first = location.hash === "#pay" && detailsOk(readSaved()) ? "pay" : "ship";
-      if (first === "pay") { var ph0 = qs("#pay-phone", co); if (ph0 && saved.phone) ph0.value = saved.phone; }
+      if (first === "pay") {
+        var ph0 = qs("#pay-phone", co), pn0 = qs("#pay-name", co);
+        if (ph0 && saved.phone) ph0.value = saved.phone;
+        if (pn0 && saved.name) pn0.value = saved.name;
+      }
       showStep(first, false);
       wireKeep(qs("[data-co-keep]", co), lines, readSaved, setErr);
     }
   }
 
-  // «שמרו לי את המחיר» — заявка через /api/fx/lead (ім'я необов'язкове, lead_source=checkout)
+  // «לאישור ההזמנה» — прохання підтвердити замовлення через /api/fx/lead (телефон обов'язковий, ім'я ні; lead_source=checkout)
   var PHONE_NATIONAL = /^(?:5\d{8}|[23489]\d{7}|7[2-9]\d{7})$/;
   function phoneOk(raw) {
     var d = String(raw || "").replace(/[^0-9]/g, "");
@@ -276,7 +281,7 @@
       if (busy) return;
       var d = readSaved(), city = find(CITIES, "id", d.city), first = lines[0], attr = attribution(), ap = attr.p || {};
       var data = {
-        name: d.name || "", phone: String(el.phone.value || "").trim(), city: city ? city.name : "", comment: "",
+        name: String(el.name.value || "").trim() || d.name || "", phone: String(el.phone.value || "").trim(), city: city ? city.name : "", comment: "",
         website: el.website ? el.website.value : "", consent: !!el.consent.checked, consent_marketing: false, marketing_consent: false,
         ads_consent: adsConsent(), consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
         product_id: first.id, size_label: first.size, finish_id: first.finish, base_id: first.base,

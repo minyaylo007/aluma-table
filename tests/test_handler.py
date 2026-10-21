@@ -465,6 +465,22 @@ class NotifyTests(HandlerTestCase):
         self.assertIn("abc123def456", text)
         self.assertIn(h.SITE_DOMAIN, text)
 
+    def test_checkout_lead_is_marked_as_an_order_confirmation_request(self):
+        """Крок «תשלום»: власник з першого рядка бачить, що це прохання підтвердити замовлення."""
+        rec = TelegramRecorder()
+        self.notify_once(rec, self.sample_item(lead_source="checkout", product_id="tavor", size_label="220×95",
+                                               finish_id="natural", cart="tavor:220×95:natural:black:1",
+                                               order_total=12900, timeframe="now"))
+        text = rec.texts[0]
+        self.assertTrue(text.startswith("בקשה לאישור הזמנה — "))
+        self.assertRegex(text, r"(?m)^Product:\s+tavor$")
+        self.assertRegex(text, r"(?m)^Total:\s+12900\s+From: checkout$")
+        self.assertRegex(text, r"(?m)^When:\s+now\b")
+        self.assertRegex(text, r"(?m)^City:\s+חיפה$")
+        rec = TelegramRecorder()
+        self.notify_once(rec, self.sample_item(lead_source="form"))
+        self.assertTrue(rec.texts[0].startswith("ליד חדש — "))
+
     def test_marketing_flag_no(self):
         rec = TelegramRecorder()
         self.notify_once(rec, self.sample_item(consent_marketing=False, lang="en", page="/en/"))

@@ -150,6 +150,13 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN]]) {
       // 4. екран оплати: чесна закрита двері, поля карти нема
       await expect(page.locator('[data-co-pay]')).toBeVisible();
       await expect(page.locator('.pay-closed')).toContainText(T.pay_closed_h);
+      // чесно: заголовок — підтвердження до оплати, кнопка — «לאישור ההזמנה», ім'я необов'язкове
+      await expect(page.locator('[data-co-pay] h2')).toHaveText(T.pay_h);
+      await expect(page.locator('.pay-closed')).toContainText(T.pay_closed_p);
+      await expect(page.locator('[data-co-keep] button[type="submit"]')).toHaveText(T.pay_submit);
+      await expect(page.locator('#pay-name')).toBeVisible();
+      expect(await page.locator('#pay-name').evaluate((i) => i.required)).toBe(false);
+      expect(await page.locator('#pay-phone').evaluate((i) => i.required)).toBe(true);
       expect(page.url()).toMatch(/#pay$/);
       await expect(page.locator('input[autocomplete^="cc-"], input[name*="card" i], input[name*="cvv" i], input[name*="cvc" i]')).toHaveCount(0);
       expect(await noOverflow(page)).toBeLessThanOrEqual(0);
@@ -166,6 +173,9 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN]]) {
       await keep.locator('button[type="submit"]').click();
       await expect(page.locator('[data-co-thanks]')).toBeVisible();
       await expect(page.locator('[data-co-thanks]')).toContainText(T.pay_thx_h);
+      const thx = page.locator('[data-co-thanks] .thanks-steps li');
+      await expect(thx).toHaveText([T.pay_thx_1, T.pay_thx_2, T.pay_thx_3]);
+      await expect(page.locator('[data-co-thanks]')).toContainText(T.cart_continue);
 
       // заявка: кошик і сума — з каталогу, джерело checkout
       expect(net.leads).toHaveLength(1);
