@@ -139,6 +139,17 @@ class PublishedVideosTests(unittest.TestCase):
         self.assertAlmostEqual(report["limits"]["safe_zone"], 0.14)
         self.assertTrue((VIDEO / "sheet.jpg").is_file())
 
+    def test_vertical_formats_keep_product_above_card(self):
+        # 9:16 і 4:5: кадр — смуга над карткою (весь стіл на 0 с), video.js падає, якщо картка заходить на кадр
+        # або в нижні 20 % 9:16. Без цього картка закривала ніжки й довжину стола (дирижер, 21.10).
+        html = (ROOT / "tools" / "creatives" / "video.html").read_text(encoding="utf-8")
+        js = (ROOT / "tools" / "creatives" / "video.js").read_text(encoding="utf-8")
+        self.assertIn(".f-9x16 .shot, .f-4x5 .shot { inset: auto 0 auto 0; top: var(--media-top); height: var(--media-h); }", html)
+        top, media = (int(x) for x in re.search(r"\.f-9x16 \{ --media-top: (\d+)px; --media-h: (\d+)px; \}", html).groups())
+        self.assertLessEqual(top + media, 0.55 * 1920, "9:16: стіл має бути у верхніх 55 %")
+        self.assertIn("картка закриває кадр товару", js)
+        self.assertIn("картка в нижніх 20 %", js)
+
 
 class MetaTestPlanTests(unittest.TestCase):
     """docs/META-TEST.md: реклама веде на сторінки, що є, а текст оголошень — за тими ж заборонами."""
