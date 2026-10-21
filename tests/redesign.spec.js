@@ -148,6 +148,31 @@ test('plan "closed / open" follows the chosen size and the mechanism frames carr
   expect(errors).toEqual([]);
 });
 
+test('morning / evening switch swaps the light layer, keeps the tag and hides the inactive picture from screen readers', async ({ page }) => {
+  const p = PRODUCTS.find(x => (x.images || []).filter(i => i.view === 'light').length >= 2);
+  const errors = watchErrors(page);
+  await mockApi(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`/p/${p.slug}/`);
+  await page.locator('[data-notice-no]').click();
+  const fig = page.locator('[data-light-fig]');
+  await expect(fig).toHaveAttribute('data-on', 'morning');
+  await expect(fig.locator('.viz-tag')).toBeVisible();
+  await expect(fig.locator('[data-l="evening"]')).toHaveAttribute('aria-hidden', 'true');
+  await page.locator('[data-light="evening"]').click();
+  await expect(fig).toHaveAttribute('data-on', 'evening');
+  await expect(page.locator('[data-light="evening"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-light="morning"]')).toHaveAttribute('aria-pressed', 'false');
+  await expect(fig.locator('[data-l="morning"]')).toHaveAttribute('aria-hidden', 'true');
+  await expect(fig.locator('[data-l="evening"]')).toHaveAttribute('aria-hidden', 'false');
+  await expect(fig.locator('[data-l="evening"]')).toHaveCSS('opacity', '1');
+  // без пари кадрів блоку немає
+  const other = PRODUCTS.find(x => !(x.images || []).some(i => i.view === 'light'));
+  await page.goto(`/p/${other.slug}/`);
+  await expect(page.locator('[data-light-fig]')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('"other size" link prefills the comment in the form', async ({ page }) => {
   await mockApi(page);
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
@@ -386,5 +411,28 @@ for (const rm of ['no-preference', 'reduce']) {
     expect(there).toEqual({ vt: on, gal: on ? 'p-img' : '', card: false });
     expect(back).toEqual({ vt: on, gal: null, card: on });
     expect(errors).toEqual([]);
+  });
+}
+
+for (const rm of ['no-preference', 'reduce']) {
+  test(`arch window (${rm}): the close-up enters as an arch and opens to full width; static when motion is reduced`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.emulateMedia({ reducedMotion: rm });
+    await mockApi(page);
+    await page.goto('/');
+    const band = page.locator('.band');
+    const clipAt = async f => {
+      await band.evaluate((el, f) => scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight * f), f);
+      await page.waitForTimeout(200);
+      return band.locator('picture').evaluate(el => getComputedStyle(el).clipPath);
+    };
+    const entering = await clipAt(0.4), settled = await clipAt(0);
+    if (rm === 'reduce') {
+      expect([entering, settled]).toEqual(['none', 'none']);
+    } else {
+      expect(entering).toMatch(/round [1-9]/);
+      expect(settled).not.toMatch(/round [1-9]/);
+    }
+    await expect(band.locator('.viz-tag')).toBeVisible();
   });
 }
