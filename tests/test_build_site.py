@@ -14,6 +14,7 @@ import shutil
 import tempfile
 import unittest
 
+from tests.locales import DIRS, DIST_PREFIX, LOCALES
 from tests.test_build_eol import make_tree, run_build
 
 PROJECT = pathlib.Path(__file__).resolve().parent.parent
@@ -45,8 +46,9 @@ class BuiltSiteTests(unittest.TestCase):
         return [(f.relative_to(self.dist).as_posix(), f.read_text(encoding="utf-8"))
                 for f in sorted(self.dist.rglob("*.html"))]
 
-    def test_every_page_exists_in_both_languages(self):
-        for prefix, lang, direction in (("", "he", "rtl"), ("en/", "en", "ltr")):
+    def test_every_page_exists_in_every_language(self):
+        for lang, prefix in DIST_PREFIX.items():
+            direction = DIRS[lang]
             for rel in PAGES:
                 html = self.page(prefix + rel)
                 self.assertIn(f'<html lang="{lang}" dir="{direction}">', html, prefix + rel)
@@ -58,7 +60,7 @@ class BuiltSiteTests(unittest.TestCase):
         # Тепер: шлях абсолютний, файл у dist/, і все, на що посилається модуль (three.js, текстури), теж там
         ref = re.compile(r"/assets/[\w\-./]+?\.(?:js|jpg|png|webp|hdr)")
         for p in PRODUCTS:
-            for prefix in ("", "en/"):
+            for prefix in DIST_PREFIX.values():
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 models = re.findall(r'data-model="([^"]*)"', html)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
@@ -96,10 +98,10 @@ class BuiltSiteTests(unittest.TestCase):
                     if i["view"] in ("mechanism", "light"):
                         self.assertNotIn(f"/{p['id']}/{stem}-", track)
 
-    def test_every_catalog_product_has_a_card_in_both_languages(self):
+    def test_every_catalog_product_has_a_card_in_every_language(self):
         self.assertTrue(PRODUCTS)
         for p in PRODUCTS:
-            for prefix in ("", "en/"):
+            for prefix in DIST_PREFIX.values():
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 self.assertIn(f'data-product="{p["id"]}"', html)
                 for s in p["sizes"]:
@@ -180,11 +182,11 @@ class BuiltSiteTests(unittest.TestCase):
 
     def test_seo_head_canonical_hreflang_og(self):
         site = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["SITE_URL"]
-        for rel in ("", "en/", f"p/{PRODUCTS[0]['slug']}/"):
+        for rel in [*DIST_PREFIX.values(), f"p/{PRODUCTS[0]['slug']}/"]:
             html = self.page(rel)
             self.assertIn(f'<link rel="canonical" href="{site}/{rel}', html, rel)
-            self.assertIn('hreflang="he"', html)
-            self.assertIn('hreflang="en"', html)
+            for lang in [*LOCALES, "x-default"]:
+                self.assertIn(f'hreflang="{lang}"', html, rel)
             self.assertIn('property="og:image"', html)
             self.assertRegex(html, r'<meta name="description" content="[^"]{20,}">')
 
@@ -196,10 +198,28 @@ class BuiltSiteTests(unittest.TestCase):
     def test_sitemap_lists_products_and_robots_points_to_it(self):
         sm = (self.dist / "sitemap.xml").read_text(encoding="utf-8")
         for p in PRODUCTS:
-            self.assertIn(f"/p/{p['slug']}/", sm)
-            self.assertIn(f"/en/p/{p['slug']}/", sm)
+            for prefix in LOCALES.values():
+                self.assertIn(f"{prefix}/p/{p['slug']}/", sm)
         robots = (self.dist / "robots.txt").read_text(encoding="utf-8")
         self.assertRegex(robots, r"Sitemap: https://[^\s{]+/sitemap\.xml")
+
+    def test_language_switcher_lists_every_language_current_not_a_link(self):
+        # шапка і підвал: кожна мова своєю назвою, на ту саму сторінку; поточна — текст з aria-current
+        names = [json.loads((PROJECT / "i18n" / f"{loc}.json").read_text(encoding="utf-8"))["lang_name"] for loc in LOCALES]
+        for loc, prefix in DIST_PREFIX.items():
+            for rel in ("", "catalog/", f"p/{PRODUCTS[0]['slug']}/", "privacy"):
+                html = self.page(prefix + rel)
+                groups = re.findall(r'<span class="(?:nav|foot)-lang" role="group"[^>]*>(.*?)</span>\n', html)
+                with self.subTest(page=prefix + rel):
+                    self.assertEqual(len(groups), 2, "перемикач у шапці і в підвалі")
+                    for g in groups:
+                        self.assertEqual(re.findall(r">([^<]+)</(?:a|span)>", g), names)
+                        self.assertIn(f'<span class="lang-cur" lang="{loc}" aria-current="true">', g)
+                        self.assertNotIn(f'hreflang="{loc}"', g, "поточна мова — не посилання")
+                        for other, pre in LOCALES.items():
+                            if other != loc:
+                                href = f"{pre}/{rel}" if pre or rel else "/"
+                                self.assertIn(f'<a href="{href}" hreflang="{other}"', g)
 
     def test_lead_form_has_unchecked_marketing_consent(self):
         html = self.page("")
@@ -210,7 +230,7 @@ class BuiltSiteTests(unittest.TestCase):
 
     def test_accessibility_menu_and_cookie_choice_on_every_page(self):
         for rel, html in self.all_html():
-            if not rel.endswith("index.html") and rel not in ("privacy.html", "en/privacy.html"):
+            if not rel.endswith("index.html") and rel not in [pre + "privacy.html" for pre in DIST_PREFIX.values()]:
                 continue
             self.assertIn('class="skip"', html, rel)
             self.assertIn("data-a11y-opt=", html, rel)
@@ -219,7 +239,7 @@ class BuiltSiteTests(unittest.TestCase):
     def test_legal_pages_hide_blocks_until_the_config_fills_them(self):
         if not (PROJECT / "i18n" / "legal.he.json").is_file():
             self.skipTest("legal.*.json ще немає (сесія 3)")
-        for prefix in ("", "en/"):
+        for prefix in DIST_PREFIX.values():
             for rel in ("privacy", "terms", "accessibility"):
                 html = self.page(prefix + rel + ".html")
                 text = re.sub(r"<script.*?</script>", " ", html, flags=re.S)
