@@ -99,6 +99,7 @@ const LIGHT = {
 // з вікна ліворуч, м'яка тінь; 3:2, як герой Figma.
 const HERO_RENDER = {
   tavor: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18 },
+  sahar: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18 },
   ofek:  { az: 28, eye: 1.2, margin: 0.22, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false },
   saf:   { az: 30, eye: 1.2, margin: 0.22, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false }
 };
@@ -108,7 +109,13 @@ const DETAIL_RENDER = {
   sahar: { az: 15, eye: 1.25, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.3, 0, 0.6], [0.7, 0.35, 1]], sun: 7.0, window: 180 },
   ofek:  { az: 22, eye: 1.0, lens: 70, fstop: 2.8, margin: 0.04, fit: [[0, 0, 0], [0.52, 1, 1]], sun: 7.0, window: 180, end_chair: false },
   saf:   { az: 25, eye: 1.15, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.05, 0, 0.7], [0.6, 0.3, 1]], sun: 7.0, window: 180,
+           end_chair: false },
+  tal:   { az: 40, eye: 0.7, lens: 85, fstop: 2.8, margin: 0.03, fit: [[0.8, 0, 0.35], [1, 0.3, 1]], sun: 7.0, window: 180,
            end_chair: false }
+};
+// Широкий кадр 16:9 рендером, де кадр AI не збігся з моделлю: та сама сцена, що в героя, камера далі.
+const WIDE_RENDER = {
+  sahar: { az: 26, eye: 1.3, lens: 85, margin: 0.5, sun: 7.0, window: 180, hdri_strength: 0.18 }
 };
 // Тонування рендером (карусель Meta, сесія 4): той самий кадр, камера й світло, міняється лише матеріал стола —
 // альбедо шпону, пофарбоване gradePixel з aluma3d.js (як свотч і 3D на сторінці), а не готовий кадр.
@@ -313,17 +320,33 @@ async function openPage() {
         console.log(`${p.id}/${f.name} ${W}`);
       }
     }
+    if (!opt.preview) p.images = images;
+    // широкий кадр 16:9 (Figma AI або рендер, WIDE_RENDER) — для шапки й обкладинок Meta; окреме поле, не в images: у галерею картки не йде
+    let wide = path.join(FIGMA, `${p.id}-wide-v1.png`);
+    if (WIDE_RENDER[p.id]) {
+      const f = { name: 'wide', view: 'hero', finish: 'natural', base: p.bases.length ? 'oak' : 'none', w: 1600, h: 900,
+        decor: p.category === 'dining_table' ? 'dining' : 'top', cam: WIDE_RENDER[p.id] };
+      const pdir = opt.preview ? path.join(MASTER, 'preview', p.id) : path.join(MASTER, p.id);
+      wide = path.join(pdir, 'wide.png');
+      if (!(opt.reuse && fs.existsSync(wide)) && (!opt.preview || (opt.frames || '').split(',').includes('wide'))) {
+        const g = await page.evaluate(j => window.geo(j), { product: p.id, size: sizeFor(p), base: f.base, state: 'closed' });
+        const geoFile = path.join(pdir, 'wide.geo.json');
+        fs.mkdirSync(pdir, { recursive: true });
+        fs.writeFileSync(geoFile, JSON.stringify(g));
+        const t0 = Date.now();
+        blender(geoFile, wide, opt.preview ? Object.assign({}, f, { w: 800, h: 450 }) : f, opt.preview ? 12 : undefined);
+        console.log(`${p.id}/wide blender ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+      }
+    }
     if (opt.preview) continue;
-    p.images = images;
-    // широкий кадр 16:9 (Figma AI) — для шапки й обкладинок Meta; окреме поле, не в images: у галерею картки не йде
-    const wide = path.join(FIGMA, `${p.id}-wide-v1.png`);
     if (fs.existsSync(wide)) {
       const { w, h } = dims(wide), W = Math.min(1600, w), H = Math.round(h * W / w), widths = widthsFor('wide', W);
       encode(wide, path.join(dir, 'wide'), W, false, widths);
       const rel = `/assets/products/${p.id}/wide`, set = ext => widths.map(x => `${rel}-${x}.${ext} ${x}w`).join(', ');
       p.wide = { src: `${rel}-${W}.webp`, srcset: set('webp'), srcset_avif: set('avif'), jpg: `${rel}-${W}.jpg`, width: W, height: H,
         view: 'wide', finish: 'natural', base: p.bases.length ? 'oak' : 'none', state: 'closed', size: sizeFor(p).label,
-        alt: altFor(p, 'wide', p.finishes.find(x => x.id === 'natural').name, 'oak'), kind: 'visualization', source: 'ai' };
+        alt: altFor(p, 'wide', p.finishes.find(x => x.id === 'natural').name, 'oak'), kind: 'visualization',
+        source: WIDE_RENDER[p.id] ? 'render' : 'ai' };
       console.log(`${p.id}/wide ${W}×${H}`);
     } else delete p.wide;
     p.model3d = 'assets/products/aluma3d.js';

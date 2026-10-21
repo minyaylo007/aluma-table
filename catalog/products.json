@@ -423,12 +423,12 @@
     ],
     "images": [
       {
-        "src": "/assets/products/sahar/hero-1264.webp",
-        "srcset": "/assets/products/sahar/hero-400.webp 400w, /assets/products/sahar/hero-800.webp 800w, /assets/products/sahar/hero-1264.webp 1264w",
-        "srcset_avif": "/assets/products/sahar/hero-400.avif 400w, /assets/products/sahar/hero-800.avif 800w, /assets/products/sahar/hero-1264.avif 1264w",
-        "jpg": "/assets/products/sahar/hero-1264.jpg",
-        "width": 1264,
-        "height": 848,
+        "src": "/assets/products/sahar/hero-1600.webp",
+        "srcset": "/assets/products/sahar/hero-400.webp 400w, /assets/products/sahar/hero-800.webp 800w, /assets/products/sahar/hero-1600.webp 1600w",
+        "srcset_avif": "/assets/products/sahar/hero-400.avif 400w, /assets/products/sahar/hero-800.avif 800w, /assets/products/sahar/hero-1600.avif 1600w",
+        "jpg": "/assets/products/sahar/hero-1600.jpg",
+        "width": 1600,
+        "height": 1068,
         "view": "hero",
         "finish": "natural",
         "base": "oak",
@@ -439,7 +439,7 @@
           "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       },
       {
         "src": "/assets/products/sahar/angle-1600.webp",
@@ -517,12 +517,12 @@
     ],
     "model3d": "assets/products/aluma3d.js",
     "wide": {
-      "src": "/assets/products/sahar/wide-1376.webp",
-      "srcset": "/assets/products/sahar/wide-800.webp 800w, /assets/products/sahar/wide-1376.webp 1376w",
-      "srcset_avif": "/assets/products/sahar/wide-800.avif 800w, /assets/products/sahar/wide-1376.avif 1376w",
-      "jpg": "/assets/products/sahar/wide-1376.jpg",
-      "width": 1376,
-      "height": 768,
+      "src": "/assets/products/sahar/wide-1600.webp",
+      "srcset": "/assets/products/sahar/wide-800.webp 800w, /assets/products/sahar/wide-1600.webp 1600w",
+      "srcset_avif": "/assets/products/sahar/wide-800.avif 800w, /assets/products/sahar/wide-1600.avif 1600w",
+      "jpg": "/assets/products/sahar/wide-1600.jpg",
+      "width": 1600,
+      "height": 900,
       "view": "wide",
       "finish": "natural",
       "base": "oak",
@@ -533,7 +533,7 @@
         "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a bright room, wide view"
       },
       "kind": "visualization",
-      "source": "ai"
+      "source": "render"
     }
   },
   {
@@ -1060,12 +1060,12 @@
         "source": "render"
       },
       {
-        "src": "/assets/products/tal/detail-1200.webp",
-        "srcset": "/assets/products/tal/detail-800.webp 800w, /assets/products/tal/detail-1200.webp 1200w",
-        "srcset_avif": "/assets/products/tal/detail-800.avif 800w, /assets/products/tal/detail-1200.avif 1200w",
-        "jpg": "/assets/products/tal/detail-1200.jpg",
-        "width": 1200,
-        "height": 896,
+        "src": "/assets/products/tal/detail-1600.webp",
+        "srcset": "/assets/products/tal/detail-800.webp 800w, /assets/products/tal/detail-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tal/detail-800.avif 800w, /assets/products/tal/detail-1600.avif 1600w",
+        "jpg": "/assets/products/tal/detail-1600.jpg",
+        "width": 1600,
+        "height": 1200,
         "view": "detail",
         "finish": "natural",
         "base": "oak",
@@ -1076,7 +1076,7 @@
           "en": "Visualization: TAL coffee table, natural oak finish, close-up of the rounded corner and the chunky round leg"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       }
     ],
     "badges": [
