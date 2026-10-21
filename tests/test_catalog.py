@@ -196,6 +196,14 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertEqual(sorted(i["light"] for i in light), ["evening", "morning"])
                     self.assertEqual(len({(i["width"], i["height"]) for i in light}), 1)
 
+    def test_tavor_hero_in_every_finish(self):
+        # Карусель Meta (сесія 4): герой tavor у кожному тонуванні каталогу — finish-<id>-1600.jpg, файли різні
+        tavor = next(p for p in self.products if p["id"] == "tavor")
+        files = [ASSETS / "assets" / "products" / "tavor" / f"finish-{f['id']}-1600.jpg" for f in tavor["finishes"]]
+        for f in files:
+            self.assertTrue(f.is_file(), f.name)
+        self.assertEqual(len({f.read_bytes() for f in files}), len(files))
+
     def test_hebrew_dimensions_isolated(self):
         # «100×60» у RTL-тексті браузер переставляє в «60×100»: розмір лише всередині ізолятора U+2066…U+2069
         # (рівнозначно <bdi dir="ltr">; тег у JSON не можна — build.py екранує тексти через esc()).

@@ -118,7 +118,7 @@
       "height": 1920,
       "duration": 10,
       "fps": 30,
-      "bytes": 2162058,
+      "bytes": 1934695,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -131,8 +131,8 @@
       "images": [
         "site/assets/products/tavor/hero-1600.webp",
         "site/assets/products/sahar/hero-1264.webp",
-        "site/assets/products/ofek/hero-1264.webp",
-        "site/assets/products/saf/hero-1264.webp",
+        "site/assets/products/ofek/hero-1600.webp",
+        "site/assets/products/saf/hero-1600.webp",
         "site/assets/products/tal/hero-1264.webp"
       ]
     },
@@ -142,7 +142,7 @@
       "height": 1350,
       "duration": 10,
       "fps": 30,
-      "bytes": 1772123,
+      "bytes": 1619166,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -155,8 +155,8 @@
       "images": [
         "site/assets/products/tavor/hero-1600.webp",
         "site/assets/products/sahar/hero-1264.webp",
-        "site/assets/products/ofek/hero-1264.webp",
-        "site/assets/products/saf/hero-1264.webp",
+        "site/assets/products/ofek/hero-1600.webp",
+        "site/assets/products/saf/hero-1600.webp",
         "site/assets/products/tal/hero-1264.webp"
       ]
     },
@@ -166,7 +166,7 @@
       "height": 1080,
       "duration": 10,
       "fps": 30,
-      "bytes": 1617246,
+      "bytes": 1504106,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -179,8 +179,8 @@
       "images": [
         "site/assets/products/tavor/hero-1600.webp",
         "site/assets/products/sahar/hero-1264.webp",
-        "site/assets/products/ofek/hero-1264.webp",
-        "site/assets/products/saf/hero-1264.webp",
+        "site/assets/products/ofek/hero-1600.webp",
+        "site/assets/products/saf/hero-1600.webp",
         "site/assets/products/tal/hero-1264.webp"
       ]
     }
