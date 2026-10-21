@@ -14,7 +14,7 @@
       "tone_name": "אלון טבעי",
       "width": 1080,
       "height": 1080,
-      "bytes": 104141,
+      "bytes": 144069,
       "text_share": 0.0286,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-natural-1600.jpg"
@@ -25,7 +25,7 @@
       "tone_name": "אלון טבעי",
       "width": 1080,
       "height": 1350,
-      "bytes": 107821,
+      "bytes": 147913,
       "text_share": 0.0312,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-natural-1600.jpg"
@@ -36,7 +36,7 @@
       "tone_name": "אלון בהיר",
       "width": 1080,
       "height": 1080,
-      "bytes": 98950,
+      "bytes": 140051,
       "text_share": 0.0285,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-light-1600.jpg"
@@ -47,7 +47,7 @@
       "tone_name": "אלון בהיר",
       "width": 1080,
       "height": 1350,
-      "bytes": 100489,
+      "bytes": 144627,
       "text_share": 0.0311,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-light-1600.jpg"
@@ -58,7 +58,7 @@
       "tone_name": "דבש",
       "width": 1080,
       "height": 1080,
-      "bytes": 102518,
+      "bytes": 142488,
       "text_share": 0.0226,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-honey-1600.jpg"
@@ -69,7 +69,7 @@
       "tone_name": "דבש",
       "width": 1080,
       "height": 1350,
-      "bytes": 105113,
+      "bytes": 145565,
       "text_share": 0.0228,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-honey-1600.jpg"
@@ -80,7 +80,7 @@
       "tone_name": "אלון מעושן",
       "width": 1080,
       "height": 1080,
-      "bytes": 103742,
+      "bytes": 142977,
       "text_share": 0.0299,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-smoked-1600.jpg"
@@ -91,7 +91,7 @@
       "tone_name": "אלון מעושן",
       "width": 1080,
       "height": 1350,
-      "bytes": 108128,
+      "bytes": 148011,
       "text_share": 0.033,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-smoked-1600.jpg"
@@ -102,7 +102,7 @@
       "tone_name": "שחור פחם",
       "width": 1080,
       "height": 1080,
-      "bytes": 100728,
+      "bytes": 140550,
       "text_share": 0.029,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-black-1600.jpg"
@@ -113,7 +113,7 @@
       "tone_name": "שחור פחם",
       "width": 1080,
       "height": 1350,
-      "bytes": 103239,
+      "bytes": 143887,
       "text_share": 0.0319,
       "min_contrast": 5.88,
       "image": "site/assets/products/tavor/finish-black-1600.jpg"
