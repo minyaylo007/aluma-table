@@ -128,8 +128,8 @@
 
   // Тексти — i18n/legal.<lang>.json → cookies (вітрина може передати свої через data-атрибути тега <script>).
   var TEXT = {
-    he: {"label": "הודעת עוגיות", "text": "האתר משתמש בעוגיות הכרחיות לתפעולו. אם תאשרו, נפעיל גם את Meta Pixel ו־Microsoft Clarity — למדידת הפרסום ולשיפור האתר. אפשר לשנות את הבחירה בכל עת.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
-    en: {"label": "Cookie notice", "text": "This site uses essential cookies to work. If you accept, we will also turn on Meta Pixel and Microsoft Clarity to measure advertising and improve the site. You can change your choice at any time.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"}
+    he: {"label": "הודעת עוגיות", "text": "עוגיות הכרחיות פועלות תמיד. Meta Pixel ו־Microsoft Clarity רק באישור, למדידת פרסום ולשיפור האתר. ניתן לשנות.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
+    en: {"label": "Cookie notice", "text": "Essential cookies always run. Meta Pixel and Microsoft Clarity only if you accept, to measure ads and improve the site. You can change this.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"}
   };
   function attr(name) { return (SCRIPT && SCRIPT.getAttribute(name)) || ""; }
   function hideNotice() { var b = doc.getElementById("aluma-notice"); if (b && b.parentNode) b.parentNode.removeChild(b); }

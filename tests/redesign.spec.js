@@ -540,3 +540,19 @@ test('first screen 390×844 of a card: price and the register button are on scre
   });
   for (const b of [r.btn, r.price]) { expect(b.bottom).toBeLessThanOrEqual(r.h); expect(b.top).toBeGreaterThanOrEqual(r.noticeBottom); }
 });
+
+test('cookie notice on 390: two lines of Hebrew text with the policy link, and both choices look the same', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page);
+  await page.goto('/');
+  const n = page.locator('#notice');
+  await expect(n).toBeVisible();
+  await expect(n.locator('p a[href$="/privacy"]')).toBeVisible();
+  const r = await n.evaluate(el => {
+    const p = el.querySelector('p'), lines = Math.round(p.getBoundingClientRect().height / parseFloat(getComputedStyle(p).lineHeight));
+    const look = b => { const s = getComputedStyle(b); return [s.backgroundColor, s.color, s.borderColor, s.fontWeight, Math.round(b.getBoundingClientRect().width)].join('|'); };
+    return { lines, ok: look(el.querySelector('[data-notice-ok]')), no: look(el.querySelector('[data-notice-no]')) };
+  });
+  expect(r.lines).toBeLessThanOrEqual(2);
+  expect(r.ok).toBe(r.no);                                     // без темних патернів: «אישור» не виділено проти «רק הכרחיות»
+});
