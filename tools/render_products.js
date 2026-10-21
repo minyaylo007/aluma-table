@@ -96,7 +96,16 @@ const LIGHT = {
 // Герой рендером моделі (а не Figma AI), де кадр AI не збігся з моделлю (docs/ASSETS.md): інтер'єр, ранкове сонце
 // з вікна ліворуч, м'яка тінь; 3:2, як герой Figma.
 const HERO_RENDER = {
-  tavor: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18 }
+  tavor: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18 },
+  ofek:  { az: 28, eye: 1.2, margin: 0.22, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false },
+  saf:   { az: 30, eye: 1.2, margin: 0.22, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false }
+};
+// Крупний план рендером, де деталь AI не збіглася з моделлю: fit — частка габариту (x, y, z), спереду y = 0.
+const DETAIL_RENDER = {
+  tavor: { az: 42, eye: 1.05, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.78, 0, 0.35], [1, 0.45, 1]], sun: 7.0, window: 180 },
+  sahar: { az: 15, eye: 1.25, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.3, 0, 0.6], [0.7, 0.35, 1]], sun: 7.0, window: 180 },
+  saf:   { az: 25, eye: 1.15, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.05, 0, 0.7], [0.6, 0.3, 1]], sun: 7.0, window: 180,
+           end_chair: false }
 };
 function framesFor(p) {
   const base = p.bases.length ? 'oak' : 'none', ext = p.badges.some(b => b.id === 'extendable');
@@ -106,7 +115,9 @@ function framesFor(p) {
       ? { name: 'hero', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HERO_RENDER[p.id] }
       : { name: 'hero', view: 'hero', source: 'ai', file: `${p.id}-hero-v1.png`, finish: 'natural', base },
     { name: 'angle', view: 'angle', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor, cam: ANGLE[p.id] },
-    { name: 'detail', view: 'detail', source: 'ai', file: `${p.id}-detail-v1.png`, finish: 'natural', base }
+    DETAIL_RENDER[p.id]
+      ? { name: 'detail', view: 'detail', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor: 'none', cam: DETAIL_RENDER[p.id] }
+      : { name: 'detail', view: 'detail', source: 'ai', file: `${p.id}-detail-v1.png`, finish: 'natural', base }
   ];
   if (ext) L.push({ name: 'open', view: 'open', source: 'render', finish: 'natural', base, state: 'open', w: 1600, h: 1000, decor,
     cam: { az: 30, eye: 1.42, margin: 0.1 } });

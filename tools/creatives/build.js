@@ -108,7 +108,7 @@ function variantHtml(template, cfg, variant, format, products, fonts, imagePaths
     COUNT: imagePaths.length, TILES: tiles, MARK: esc(cfg.mark), BRAND: esc(cfg.brand), HEADLINE: headline,
     SUB: fill(variant.sub, vars), PRICE: fill(variant.price, vars),
     PRICE_NOTE: esc(products.length > 1 ? cfg.price_note_many : cfg.price_note), INCLUDES: esc(cfg.includes),
-    CTA: esc(cfg.cta),
+    CTA: esc(cfg.cta), CTA_NOTE: esc(cfg.cta_note),
   };
   return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in map)) throw new Error(`шаблон: невідомий ${m}`);
