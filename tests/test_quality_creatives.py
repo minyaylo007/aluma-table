@@ -112,6 +112,62 @@ class PublishedCreativesTests(unittest.TestCase):
         self.assertLessEqual((OUT / "preview.jpg").stat().st_size, 500 * 1024)
 
 
+class TonesCarouselTests(unittest.TestCase):
+    """Карусель «один стіл у п'яти тонах» (tools/creatives/tones.js, висновок 4): тони й застереження — з каталогу та сайту."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+        cls.catalog = {p["id"]: p for p in json.loads(CATALOG.read_text(encoding="utf-8"))}
+        cls.he = json.loads((ROOT / "i18n" / "he.json").read_text(encoding="utf-8"))
+
+    def test_config_has_no_own_facts(self):
+        t = self.cfg["tones"]
+        self.assertIn(t["product"], self.catalog)
+        self.assertNotRegex(t["sub"].replace("{i}/{n}", ""), r"\d", "номер картки й кількість тонів рахує tones.js")
+        self.assertTrue(self.he["matb_3_p"].startswith("הגוון במסך הוא קירוב;"), "застереження сайту змінилось")
+        for pat in FORBIDDEN:
+            self.assertIsNone(re.search(pat, t["sub"]), pat)
+
+    def test_meta_test_card_names_are_catalog_tones(self):
+        doc = (ROOT / "docs" / "META-TEST.md").read_text(encoding="utf-8")
+        line = re.search(r"\*\*Заголовки карточек:\*\* (.+)", doc).group(1)
+        names = [f["name"]["he"] for f in self.catalog[self.cfg["tones"]["product"]]["finishes"]]
+        self.assertEqual(line.split(" · "), names)
+
+    def test_template_marks_every_text(self):
+        html = (ROOT / "tools" / "creatives" / "tones.html").read_text(encoding="utf-8")
+        for key in ("MARK", "BRAND", "TONE", "SUB", "NOTE"):
+            self.assertRegex(html, r"data-text>[^<]*\{\{" + key + r"\}\}", key)
+
+
+TONES = OUT / "tones"
+
+
+@unittest.skipUnless((TONES / "report.json").exists(), "docs/creatives/tones/ ще не зібрано")
+class PublishedTonesTests(unittest.TestCase):
+    def test_report_matches_files_and_limits(self):
+        report = json.loads((TONES / "report.json").read_text(encoding="utf-8"))
+        catalog = {p["id"]: p for p in json.loads(CATALOG.read_text(encoding="utf-8"))}
+        tones = catalog[report["product"]]["finishes"]
+        cards = report["cards"]
+        self.assertEqual({(c["tone"], c["width"], c["height"]) for c in cards},
+                         {(t["id"], 1080, h) for t in tones for h in (1080, 1350)})
+        names = {t["id"]: t["name"]["he"] for t in tones}
+        images = set()
+        for c in cards:
+            f = TONES / c["file"]
+            self.assertEqual(f.stat().st_size, c["bytes"], c["file"])
+            self.assertLessEqual(c["bytes"], 500 * 1024, c["file"])
+            self.assertLessEqual(c["text_share"], 0.20, c["file"])
+            self.assertGreaterEqual(c["min_contrast"], 4.5, c["file"])
+            self.assertEqual(c["tone_name"], names[c["tone"]])
+            self.assertEqual(c["image"], f"site/assets/products/{report['product']}/finish-{c['tone']}-1600.jpg")
+            images.add(c["image"])
+        self.assertEqual(len(images), len(tones), "у кожного тону свій рендер")
+        self.assertTrue((TONES / "sheet.jpg").is_file())
+
+
 VIDEO = OUT / "video"
 
 
@@ -178,10 +234,10 @@ class MetaTestPlanTests(unittest.TestCase):
             self.assertNotIn("מקבלים מחיר השקה", t, "знижку раннім ніхто не підтвердив")
 
     def test_every_ad_says_no_payment_no_commitment(self):
-        """Висновок 5 розвідки 21.10: у описі кожного з трьох оголошень — фраза launch-bar сайту, дослівно."""
+        """Висновок 5 розвідки 21.10: в описі кожного оголошення — фраза launch-bar сайту, дослівно."""
         section = self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0]
         descs = re.findall(r"^- \*\*Описание:\*\* (.+)$", section, re.M)
-        self.assertEqual(len(descs), 3, descs)
+        self.assertEqual(len(descs), 4, descs)  # три креативи + карусель тонів
         for d in descs:
             self.assertIn("ללא תשלום וללא התחייבות", d)
         site = json.loads((ROOT / "i18n" / "he.json").read_text(encoding="utf-8"))
