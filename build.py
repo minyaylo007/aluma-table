@@ -677,6 +677,17 @@ def main() -> None:
             f'<figure class="band">{picture(band, loc, sizes="100vw")}<span class="viz-tag">{{{{t.viz_tag}}}}</span>'
             f'<figcaption class="band-cap"><span class="wrap">{{{{t.band_cap}}}}</span></figcaption></figure>' if band else "")
 
+        # «עץ אמיתי, בלי סיפורים»: крупний план фанери й крайки з каталогу (рендер — з «הדמיה»), тони — з каталогу
+        tex = next((i for q in [hero_p] + products for i in q.get("images") or [] if i.get("view") == "texture" and i.get("src")), None)
+        base_tokens["MAT_MEDIA"] = (
+            f'<figure class="media media--img mat-media">{picture(tex, loc, sizes="(min-width: 900px) 50vw, 100vw")}'
+            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure>' if tex else "")
+        tones = []
+        for f in (hero_p.get("finishes") or []):
+            hexv = f.get("hex") if re.fullmatch(r"#[0-9a-fA-F]{3,8}", str(f.get("hex") or "")) else "#c8a27a"
+            tones.append(f'<li><span class="swatch-dot" style="--c:{hexv}" aria-hidden="true"></span>{esc(L(f.get("name"), loc))}</li>')
+        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>' if tones else ""
+
         def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str, alt_path: str):
             toks = {**base_tokens, **tokens}
             toks.setdefault("TITLE", "{{t." + title_key + "}}")
