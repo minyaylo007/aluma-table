@@ -131,6 +131,31 @@ test('plan "closed / open" follows the chosen size and the mechanism frames carr
   expect(errors).toEqual([]);
 });
 
+test('morning / evening switch swaps the light layer, keeps the tag and hides the inactive picture from screen readers', async ({ page }) => {
+  const p = PRODUCTS.find(x => (x.images || []).filter(i => i.view === 'light').length >= 2);
+  const errors = watchErrors(page);
+  await mockApi(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`/p/${p.slug}/`);
+  await page.locator('[data-notice-no]').click();
+  const fig = page.locator('[data-light-fig]');
+  await expect(fig).toHaveAttribute('data-on', 'morning');
+  await expect(fig.locator('.viz-tag')).toBeVisible();
+  await expect(fig.locator('[data-l="evening"]')).toHaveAttribute('aria-hidden', 'true');
+  await page.locator('[data-light="evening"]').click();
+  await expect(fig).toHaveAttribute('data-on', 'evening');
+  await expect(page.locator('[data-light="evening"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-light="morning"]')).toHaveAttribute('aria-pressed', 'false');
+  await expect(fig.locator('[data-l="morning"]')).toHaveAttribute('aria-hidden', 'true');
+  await expect(fig.locator('[data-l="evening"]')).toHaveAttribute('aria-hidden', 'false');
+  await expect(fig.locator('[data-l="evening"]')).toHaveCSS('opacity', '1');
+  // без пари кадрів блоку немає
+  const other = PRODUCTS.find(x => !(x.images || []).some(i => i.view === 'light'));
+  await page.goto(`/p/${other.slug}/`);
+  await expect(page.locator('[data-light-fig]')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('"other size" link prefills the comment in the form', async ({ page }) => {
   await mockApi(page);
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
