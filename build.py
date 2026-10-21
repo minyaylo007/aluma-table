@@ -515,12 +515,20 @@ def light(p: dict, loc: str) -> str:
     hide = ' aria-hidden="true"'
     layers = "".join(f'<div class="light-l" data-l="{k}"{hide if k == "evening" else ""}>'
                      f'{picture(pair[k], loc, sizes="(min-width: 960px) 66vw, 100vw")}</div>' for k in ("morning", "evening"))
-    return (f'<section class="sec sec--paper light" aria-labelledby="light-h"><div class="wrap">'
+    return (f'<section class="sec sec--paper light" id="light" aria-labelledby="light-h"><div class="wrap">'
             f'<div class="sec-head"><h2 class="h2" id="light-h">{{{{t.light_h2}}}}</h2><p class="sec-lede">{{{{t.light_lede}}}}</p></div>'
             f'<div class="light-switch" role="group" aria-label="{{{{t.light_h2}}}}">{btns}</div>'
             f'<figure class="media media--img light-media" data-light-fig data-on="morning">{layers}'
             f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure></div></section>')
 
+
+
+def chapters(p_how: str, p_light: str) -> str:
+    """Навігація по главах картки: лише ті глави, що є на сторінці; активну позначає aluma.js (aria-current)."""
+    items = [("spec", "spec_h2"), ("unfold", "ch_unfold") if p_how else None, ("light", "ch_light") if p_light else None,
+             ("how", "how_eyebrow"), ("register", "ch_register")]
+    links = "".join(f'<li><a href="#{i}">{{{{t.{k}}}}}</a></li>' for i, k in filter(None, items))
+    return f'<nav class="chapters" aria-label="{{{{t.ch_label}}}}" data-chapters><ol role="list">{links}</ol></nav>'
 
 def how(p: dict, loc: str) -> str:
     """Блок «איך נפתח השולחן»: кадри механізму (якщо є) + план. Без кадрів і без плану — порожньо."""
@@ -539,14 +547,21 @@ def how(p: dict, loc: str) -> str:
     if not steps and not pl:
         return ""
     lede = '<p class="sec-lede">{{t.unfold_lede}}</p>' if steps else ""
-    return (f'<section class="sec unfold" aria-labelledby="unfold-h"><div class="wrap">'
+    return (f'<section class="sec unfold" id="unfold" aria-labelledby="unfold-h"><div class="wrap">'
             f'<div class="sec-head"><h2 class="h2" id="unfold-h">{{{{t.unfold_h2}}}}</h2>{lede}</div>{steps}'
             + (f'<h3 class="h3 plan-h">{{{{t.unfold_plan_h3}}}}</h3>{pl}' if pl else "") + "</div></section>")
+
+
+# у консолі й тумби під ТВ головне — фасад і шпон, тож галерея картки відкривається крупним планом фактури
+# (хвиля 3, приклад Poliform); плитки каталогу, og:image і JSON-LD лишаються на героєві
+TEXTURE_FIRST = ("console", "media_unit")
 
 
 def gallery(p: dict, loc: str) -> str:
     # mechanism і light — окремі блоки вітрини (catalog/README.md), у галерею картки не йдуть
     imgs = [i for i in p.get("images") or [] if i.get("src") and i.get("view") not in ("mechanism", "light")]
+    if p.get("category") in TEXTURE_FIRST:
+        imgs.sort(key=lambda i: i.get("view") != "texture")
     if not imgs:
         return f'<div class="gallery gallery--tile"><div class="media media--tile media--hero">{silhouette(p)}</div>' \
                f'<p class="gallery-note">{{{{t.viz_soon}}}}</p></div>'
@@ -737,6 +752,7 @@ def main() -> None:
         for p in products:
             path = f"/p/{p['slug']}/"
             lt = p.get("lead_time_weeks") or [10, 12]
+            p_how, p_light = how(p, loc), light(p, loc)
             tokens = {
                 "TITLE": esc(L(p.get("name"), loc)) + " — {{t.brand_name}}",
                 "DESC": esc(L(p.get("tagline"), loc) or L(p.get("description"), loc) or s.get("catalog_desc", "")),
@@ -750,7 +766,7 @@ def main() -> None:
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
-                "P_SPECS": specs(p, loc), "P_HOW": how(p, loc), "P_LIGHT": light(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_SPECS": specs(p, loc), "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }

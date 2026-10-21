@@ -567,6 +567,18 @@ bdi { unicode-bidi: isolate; }
 [data-on="evening"] .light-l[data-l="evening"] { opacity: 1; }
 
 /* ---------------------------------------------------------------- липка кнопка (мобільна) */
+/* глави картки: липка смуга під шапкою (з'являється після першого екрана — стоїть після <article>);
+   на телефоні гортається вбік; поточна глава — aria-current, не лише колір: ще й заливка */
+.chapters { position: sticky; top: 64px; z-index: 30; background: color-mix(in srgb, var(--paper) 94%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-block-end: 1px solid var(--line); }
+.chapters ol { display: flex; gap: 4px; max-width: var(--wrap); margin: 0 auto; padding: 6px var(--gut); list-style: none;
+  overflow-x: auto; scrollbar-width: none; }
+.chapters ol::-webkit-scrollbar { display: none; }
+.chapters a { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 16px; border-radius: 999px;
+  white-space: nowrap; text-decoration: none; color: var(--muted); font-size: .9rem; }
+.chapters a:hover { color: var(--ink); }
+.chapters a[aria-current] { background: var(--ink); color: var(--paper); }
+html:has(.chapters) { scroll-padding-top: 160px; } /* без JS; з JS — точна висота з aluma.js */
 .sticky-cta { position: fixed; inset-inline: 0; bottom: 0; z-index: 30; display: flex; gap: 12px; align-items: center;
   padding: 10px var(--gut) calc(10px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--paper) 94%, transparent);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-block-start: 1px solid var(--line);

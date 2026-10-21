@@ -556,3 +556,47 @@ test('cookie notice on 390: two lines of Hebrew text with the policy link, and b
   expect(r.lines).toBeLessThanOrEqual(2);
   expect(r.ok).toBe(r.no);                                     // без темних патернів: «אישור» не виділено проти «רק הכרחיות»
 });
+
+for (const [w, h] of [[390, 844], [1440, 900]]) {
+  test(`chapters ${w}px: the card's chapter bar sticks under the header, every link has a target, aria-current follows the scroll`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: h });
+    await mockApi(page);
+    const errors = watchErrors(page);
+    await page.goto(`/p/${PRODUCTS[0].slug}/`);
+    const nav = page.locator('nav.chapters');
+    await expect(nav).toHaveAttribute('aria-label', /\S/);
+    const ids = await nav.locator('a').evaluateAll(as => as.map(a => a.hash.slice(1)));
+    expect(ids.length).toBeGreaterThanOrEqual(3);
+    for (const id of ids) await expect(page.locator(`#${id}`)).toHaveCount(1);
+    for (const id of [ids[ids.length - 1], ids[1], ids[0]]) {
+      await page.evaluate(i => document.getElementById(i).scrollIntoView({ behavior: 'instant' }), id);
+      await expect(nav.locator('[aria-current="location"]')).toHaveAttribute('href', `#${id}`);
+      await expect(nav.locator('[aria-current]')).toHaveCount(1);
+      const r = await page.evaluate(i => ({ nav: document.querySelector('nav.chapters').getBoundingClientRect(), top: document.querySelector('.top').getBoundingClientRect(),
+        sec: document.getElementById(i).getBoundingClientRect().top, pill: document.querySelector('nav.chapters [aria-current]').getBoundingClientRect() }), id);
+      expect(Math.abs(r.nav.top - r.top.bottom)).toBeLessThan(1);          // рівно під шапкою, без щілини й без накладки
+      expect(r.sec).toBeGreaterThanOrEqual(r.nav.bottom - 1);              // якір не ховається під смугою
+      // активна пігулка доїжджає в поле зору плавно — чекаємо, а не міряємо миттєво
+      await expect.poll(() => page.evaluate(() => { const b = document.querySelector('nav.chapters [aria-current]').getBoundingClientRect(); return b.left >= 0 && b.right <= innerWidth; })).toBe(true);
+      expect(r.pill.height).toBeGreaterThanOrEqual(44);                   // ціль дотику
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(nav.locator('[aria-current]')).toHaveCount(0);           // над першою главою — жодна не поточна
+    expect(await noOverflow(page)).toBe(0);
+    expect(errors).toEqual([]);
+  });
+}
+
+test('texture first: the console and the TV unit open their gallery on the oak close-up; other pieces and the catalog tiles (main frame) keep the hero', async ({ page }) => {
+  await mockApi(page);
+  for (const p of PRODUCTS) {
+    await page.goto(`/p/${p.slug}/`);
+    const first = await page.locator('.gallery .g-slide img').first().getAttribute('src');
+    const texture = ['console', 'media_unit'].includes(p.category) && p.images.some(i => i.view === 'texture');
+    expect(first, p.slug).toContain(`/products/${p.slug}/${texture ? 'texture' : 'hero'}-`);
+    await expect(page.locator('.gallery .g-slide').first().locator('.viz-tag')).toBeVisible();   // «הדמיה» і на крупному плані
+  }
+  expect(PRODUCTS.some(p => ['console', 'media_unit'].includes(p.category))).toBe(true);
+  await page.goto('/catalog/');
+  for (const src of await page.locator('.card-media img').evaluateAll(is => is.filter(i => !i.closest('.card-alt')).map(i => i.getAttribute('src')))) expect(src).not.toContain('texture-');
+});

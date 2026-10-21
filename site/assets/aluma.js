@@ -461,4 +461,33 @@
     W.addEventListener("resize", schedule, { passive: true });
     apply();
   }
+
+  // ---------------------------------------------------------------- глави картки: aria-current на главі під шапкою
+  // IntersectionObserver лише будить перерахунок; поточна — остання глава, чий верх уже вище лінії 40 % екрана
+  var chap = qs("[data-chapters]");
+  if (chap && "IntersectionObserver" in W) {
+    var ol = qs("ol", chap), cur = null, links = qsa("a", chap), secs = links.map(function (a) { return D.getElementById(a.hash.slice(1)); });
+    var mark = function () {
+      var line = W.innerHeight * .4, a = null;
+      secs.forEach(function (s, i) { if (s && s.getBoundingClientRect().top < line) a = links[i]; });
+      if (a === cur) return;
+      if (cur) cur.removeAttribute("aria-current");
+      cur = a;
+      if (!a) return;
+      a.setAttribute("aria-current", "location");
+      // активна пігулка — у полі зору смуги (на телефоні смуга гортається вбік)
+      var r = a.getBoundingClientRect(), o = ol.getBoundingClientRect();
+      if (r.left < o.left || r.right > o.right) ol.scrollBy({ left: r.left - o.left - (o.width - r.width) / 2, behavior: reduced ? "auto" : "smooth" });
+    };
+    // шапка з рядком «סדרת השקה» вища за 64 px і різна на he/en: смуга глав стає рівно під неї, якорі — під обидві
+    var top = qs(".top"), fit = function () {
+      var h = top ? top.getBoundingClientRect().height : 64;
+      chap.style.top = h + "px";
+      D.documentElement.style.scrollPaddingTop = h + chap.getBoundingClientRect().height + "px";
+    };
+    fit(); W.addEventListener("resize", fit, { passive: true });
+    var io = new IntersectionObserver(mark, { rootMargin: "-40% 0px -59% 0px" });
+    secs.forEach(function (s) { if (s) io.observe(s); });
+    mark();
+  }
 })();
