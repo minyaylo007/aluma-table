@@ -83,7 +83,8 @@ function single(cfg, v, p) {
   const card = `<div class="card"><div class="brand" ${at(-1)}>${esc(cfg.brand)}</div>` +
     `<h1 class="headline" ${at(-1)}>${headlineOf(v, [p])}</h1><p class="sub" ${at(0.6)}>${sub}</p>${size}` +
     `<div class="foot"><div class="price"><b ${at(3.4)}>${fill(v.price, priceVars([p], cfg))}</b>` +
-    `<small ${at(3.4)}>${esc(cfg.price_note)} · ${esc(cfg.includes)}</small></div><div class="cta" ${at(4.6)}>${esc(cfg.cta)}</div></div></div>`;
+    `<small ${at(3.4)}>${esc(cfg.price_note)} · ${esc(cfg.includes)}</small></div><div class="act"><div class="cta" ${at(4.6)}>${esc(cfg.cta)}</div>` +
+    `<small class="cta-note" ${at(4.6)}>${esc(cfg.cta_note)}</small></div></div></div>`;
   const timeline = { duration, fade: FADE, shots, items: [],
     size: { ratio: s.extended_cm ? s.length_cm / s.extended_cm : 1, ...grow } };
   return { duration, imgs, card, timeline, products: [p.id] };
@@ -105,7 +106,8 @@ function collection(cfg, v, products) {
   const last = `<div class="item"><div class="brand" data-text>${esc(cfg.brand)}</div>` +
     `<h1 class="headline" data-text>${esc(v.headline)}</h1><p class="sub" data-text>${esc(v.sub)}</p>` +
     `<div class="foot"><div class="price"><b data-text>${fill(v.price, priceVars(products, cfg))}</b>` +
-    `<small data-text>${esc(cfg.price_note_many)}</small></div><div class="cta" data-text>${esc(cfg.cta)}</div></div></div>`;
+    `<small data-text>${esc(cfg.price_note_many)}</small></div><div class="act"><div class="cta" data-text>${esc(cfg.cta)}</div>` +
+    `<small class="cta-note" data-text>${esc(cfg.cta_note)}</small></div></div></div>`;
   const card = `<div class="card collection">${rows}${last}</div>`;
   return { duration, imgs, card, timeline: { duration, fade: FADE, shots, items, size: null }, products: products.map((p) => p.id) };
 }

@@ -40,6 +40,9 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 .price { display: flex; flex-direction: column; gap: 4px; }
 .price b { font: 700 var(--fs-price)/1.1 var(--sans); color: var(--ink); }
 .price small { font: 400 22px/1.25 var(--sans); color: var(--muted); }
+/* «ללא תשלום וללא התחייבות» під кнопкою — фраза launch-bar сайту (розвідка Ad Library 21.10, висновок 5). */
+.act { flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cta-note { font: 400 20px/1.2 var(--sans); color: var(--muted); }
 .cta { flex: none; background: var(--dark); color: var(--cream); font: 600 var(--fs-cta)/1 var(--sans);
   padding: 22px 34px; border-radius: 4px; }
 
@@ -61,7 +64,7 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
     <p class="sub" data-text>{{SUB}}</p>
     <div class="foot">
       <div class="price"><b data-text>{{PRICE}}</b><small data-text>{{PRICE_NOTE}} · {{INCLUDES}}</small></div>
-      <div class="cta" data-text>{{CTA}}</div>
+      <div class="act"><div class="cta" data-text>{{CTA}}</div><small class="cta-note" data-text>{{CTA_NOTE}}</small></div>
     </div>
   </div>
 </div>
