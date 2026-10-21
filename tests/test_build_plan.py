@@ -70,5 +70,29 @@ class PlanTests(unittest.TestCase):
                 self.assertEqual(html, "", p["slug"])
 
 
+class RussianPluralTests(unittest.TestCase):
+    """ru після числа: 1/5–20 — сам ключ («6 размеров», «8 человек»), 2–4 крім 12–14 — «_few» («3 размера», «4 человека»)."""
+
+    def test_few(self):
+        for n in (2, 3, 4, 22, 34, 102):
+            self.assertEqual(build.few("unfold_seats", n, "ru"), "unfold_seats_few", n)
+        for n in (5, 6, 8, 10, 11, 12, 13, 14, 20, 112):
+            self.assertEqual(build.few("unfold_seats", n, "ru"), "unfold_seats", n)
+        for loc in ("he", "en"):
+            self.assertEqual(build.few("inc_sizes", 3, loc), "inc_sizes", loc)
+
+    def test_keys_exist_in_every_locale(self):
+        for loc in ("he", "en", "ru"):
+            t = json.loads((ROOT / "i18n" / f"{loc}.json").read_text(encoding="utf-8"))
+            for key in ("inc_sizes", "unfold_seats"):
+                self.assertIn(key + "_few", t, loc)
+
+    def test_ru_card_uses_the_right_form(self):
+        for p in products():
+            html = build.plan(p, "ru")
+            for n, key in re.findall(r"· (\d+) \{\{t\.(unfold_seats(?:_few)?)\}\}", html):
+                self.assertEqual(key, build.few("unfold_seats", int(n), "ru"), (p["slug"], n))
+
+
 if __name__ == "__main__":
     unittest.main()

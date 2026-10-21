@@ -490,6 +490,11 @@ INC_ICONS = {  # 20×20, штрих currentColor, декоративні
 }
 
 
+def few(key: str, n: int, loc: str) -> str:
+    """Ключ слова після числа: у ru 2–4 (крім 12–14) — форма «_few» («3 размера», «4 человека»), інакше — сам ключ."""
+    return f"{key}_few" if loc == "ru" and n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else key
+
+
 def seat_span(lo_hi: list) -> str:
     lo, hi = int(lo_hi[0]), int(lo_hi[-1])
     return str(lo) if lo == hi else f"{lo}–{hi}"
@@ -500,10 +505,12 @@ def included(p: dict, loc: str) -> str:
     # кромка чи фасади — як написано в матеріалі каталогу (OFEK: фасади з масиву)
     rows.append(("edge", "{{t.inc_fronts}}" if "fronts" in L(p.get("material"), "en") else "{{t.inc_edges}}"))
     n = len(p.get("sizes") or [])
-    rows.append(("size", f'<bdi dir="ltr">{n}</bdi> {{{{t.inc_sizes}}}}' if n > 1 else "{{t.inc_size_other}}"))
+    rows.append(("size", f'<bdi dir="ltr">{n}</bdi> {{{{t.{few("inc_sizes", n, loc)}}}}}' if n > 1
+                 else "{{t.inc_size_other}}"))
     seats = p.get("seats") or {}
     if seats.get("closed") and seats.get("extended"):
-        rows.append(("seats", f'<bdi dir="ltr">{seat_span(seats["closed"])}</bdi> {{{{t.unfold_seats}}}} · '
+        word = few("unfold_seats", seats["closed"][-1], loc)
+        rows.append(("seats", f'<bdi dir="ltr">{seat_span(seats["closed"])}</bdi> {{{{t.{word}}}}} · '
                               f'{{{{t.inc_seats_open}}}} <bdi dir="ltr">{seat_span(seats["extended"])}</bdi>'))
     rows += [("incl", "{{t.inc_vat}}"), ("own", "{{t.inc_own}}")]
     lis = "".join(f'<li><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">{INC_ICONS[k]}</svg>'
@@ -587,7 +594,7 @@ def plan(p: dict, loc: str) -> str:
             dims = f"Ø{ln:.0f}" if round_ and state == "closed" else f"{ln:.0f}×{width:.0f}"
             figs.append(f'<figure class="plan-fig">{plan_svg(ln, width, span, n, round_, state)}'
                         f'<figcaption><b>{{{{t.unfold_{state}}}}}</b> · <bdi dir="ltr">{dims}</bdi>&nbsp;{{{{t.cm}}}}'
-                        f' · {n} {{{{t.unfold_seats}}}}</figcaption></figure>')
+                        f' · {n} {{{{t.{few("unfold_seats", n, loc)}}}}}</figcaption></figure>')
         out.append(f'<div class="plan-size" data-plan-size="{esc(lab)}"{"" if i == 0 else " hidden"}>{"".join(figs)}</div>')
     return '<div class="plan" data-plan>' + "".join(out) + '<p class="muted small">{{t.unfold_plan_note}}</p></div>'
 

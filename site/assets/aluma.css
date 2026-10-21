@@ -198,12 +198,30 @@ bdi { unicode-bidi: isolate; }
 }
 /* ru: «Корзина» удвічі довша за «סל»/«Cart» — на вузькому телефоні «אלומה» в шапці лягала під кнопку (−50 px на 320);
    у шапці лишається ALUMA, «אלומה» — у підвалі */
+/* з товаром у кошику «Корзина» + значок не влазили: логотип ламався «ALUM / A», кнопка — «Кор-зина» у два рядки.
+   Логотип і кнопка — в один рядок і не стискаються; місце беремо з проміжків, полів кнопки й (на 320) розрядки логотипа */
+@media (max-width: 900px) {
+  html[lang="ru"] .top-row { gap: 12px; }
+  html[lang="ru"] .top .logo { flex-shrink: 0; }
+  html[lang="ru"] .top .logo-lat, html[lang="ru"] .top .logo-he, html[lang="ru"] .top-cart {
+    white-space: nowrap; hyphens: manual; overflow-wrap: normal; }
+  /* проміжок 12 замість 24 → поле під נגישות 32 + 12, щоб між кнопками лишалось ті самі 8 px */
+  html[lang="ru"] .top-cart { flex-shrink: 0; padding-inline: 10px; font-size: .88rem; margin-inline-end: 44px; }
+  html[lang="ru"] .top-cart .cart-n { margin-inline-start: 6px; }
+}
 @media (max-width: 420px) {
   html[lang="ru"] .top .logo-he { display: none; }
+  html[lang="ru"] .top .logo-lat { letter-spacing: .2em; }
+}
+@media (max-width: 350px) {
+  html[lang="ru"] .top .logo-lat { letter-spacing: .08em; font-size: 5.6vw; }
+  html[lang="ru"] .top-cart { padding-inline: 8px; font-size: .82rem; }
 }
 /* ru: слова довгі («конфиденциальности», «несовершеннолетние») — при шрифті 200 % (WCAG 1.4.4) і на 360 px не влазять
    у рядок. Переносимо за словником (lang="ru"), а де його нема — будь-де */
 html[lang="ru"] body { hyphens: auto; overflow-wrap: anywhere; }
+/* короткі мітки сводки (размер · тон · основание) переносимо лише між словами: «На-туральный» читається гірше */
+html[lang="ru"] .cart-meta { hyphens: manual; overflow-wrap: break-word; }
 
 /* ---------------------------------------------------------------- секції */
 .sec { padding-block: var(--sec); }
