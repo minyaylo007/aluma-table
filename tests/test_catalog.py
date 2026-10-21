@@ -196,6 +196,23 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertEqual(sorted(i["light"] for i in light), ["evening", "morning"])
                     self.assertEqual(len({(i["width"], i["height"]) for i in light}), 1)
 
+    def test_wide_frame_outside_gallery(self):
+        # Широкий кадр 16:9 (шапка, Meta) — окреме поле wide, не в images; той самий контракт: «הדמיה», файли є, 16:9.
+        for p in self.products:
+            if "wide" not in p:
+                continue
+            w = p["wide"]
+            with self.subTest(product=p["id"]):
+                self.assertNotIn("wide", [i["view"] for i in p["images"]])
+                self.assertEqual((w["view"], w["kind"]), ("wide", "visualization"))
+                self.assertTrue(w["alt"]["he"].startswith("הדמיה"))
+                self.assertIn("visualization", w["alt"]["en"].lower())
+                self.assertAlmostEqual(w["width"] / w["height"], 16 / 9, delta=0.05)
+                for key in ("srcset", "srcset_avif"):
+                    for entry in w[key].split(", "):
+                        self.assertTrue((ASSETS / entry.split(" ")[0].lstrip("/")).is_file(), entry)
+                self.assertTrue((ASSETS / w["jpg"].lstrip("/")).is_file())
+
     def test_hebrew_dimensions_isolated(self):
         # «100×60» у RTL-тексті браузер переставляє в «60×100»: розмір лише всередині ізолятора U+2066…U+2069
         # (рівнозначно <bdi dir="ltr">; тег у JSON не можна — build.py екранує тексти через esc()).

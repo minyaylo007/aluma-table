@@ -315,7 +315,26 @@
         }
       }
     ],
-    "model3d": "assets/products/aluma3d.js"
+    "model3d": "assets/products/aluma3d.js",
+    "wide": {
+      "src": "/assets/products/tavor/wide-1376.webp",
+      "srcset": "/assets/products/tavor/wide-800.webp 800w, /assets/products/tavor/wide-1376.webp 1376w",
+      "srcset_avif": "/assets/products/tavor/wide-800.avif 800w, /assets/products/tavor/wide-1376.avif 1376w",
+      "jpg": "/assets/products/tavor/wide-1376.jpg",
+      "width": 1376,
+      "height": 768,
+      "view": "wide",
+      "finish": "natural",
+      "base": "oak",
+      "state": "closed",
+      "size": "180×90",
+      "alt": {
+        "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, בחלל מגורים מואר, מבט רחב",
+        "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a bright room, wide view"
+      },
+      "kind": "visualization",
+      "source": "ai"
+    }
   },
   {
     "id": "sahar",
@@ -515,7 +534,26 @@
         }
       }
     ],
-    "model3d": "assets/products/aluma3d.js"
+    "model3d": "assets/products/aluma3d.js",
+    "wide": {
+      "src": "/assets/products/sahar/wide-1376.webp",
+      "srcset": "/assets/products/sahar/wide-800.webp 800w, /assets/products/sahar/wide-1376.webp 1376w",
+      "srcset_avif": "/assets/products/sahar/wide-800.avif 800w, /assets/products/sahar/wide-1376.avif 1376w",
+      "jpg": "/assets/products/sahar/wide-1376.jpg",
+      "width": 1376,
+      "height": 768,
+      "view": "wide",
+      "finish": "natural",
+      "base": "oak",
+      "state": "closed",
+      "size": "Ø115",
+      "alt": {
+        "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, בחלל מגורים מואר, מבט רחב",
+        "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a bright room, wide view"
+      },
+      "kind": "visualization",
+      "source": "ai"
+    }
   },
   {
     "id": "ofek",
