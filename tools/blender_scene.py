@@ -232,7 +232,8 @@ def cube(name, size, loc, mat, bevel=0.0, seg=3, rot=(0, 0, 0)):
     return ob
 
 
-WALL_Y = CAM.get("wall_y", HI.y + 1.15)
+# підвісне (ofek) висить на стіні: стіна впритул до задньої стінки, як у 3D на сторінці (info.wallZ моделі)
+WALL_Y = CAM.get("wall_y", -INFO["wallZ"] if INFO.get("floating") else HI.y + 1.15)
 FLOOR = tex_material("microcement", "smooth_concrete_floor", 2.2, tint=(0.93, 0.9, 0.86), sat=0.12, bright=0.12,
                      contrast=-0.25, rough=(0.42, 0.7), nstr=0.25)
 WALL = tex_material("plaster", "plastered_wall_04", 1.6, tint=(0.97, 0.94, 0.9), sat=0.3, bright=0.05,

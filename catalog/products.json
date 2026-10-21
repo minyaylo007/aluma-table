@@ -668,12 +668,12 @@
         "source": "render"
       },
       {
-        "src": "/assets/products/ofek/detail-1200.webp",
-        "srcset": "/assets/products/ofek/detail-800.webp 800w, /assets/products/ofek/detail-1200.webp 1200w",
-        "srcset_avif": "/assets/products/ofek/detail-800.avif 800w, /assets/products/ofek/detail-1200.avif 1200w",
-        "jpg": "/assets/products/ofek/detail-1200.jpg",
-        "width": 1200,
-        "height": 896,
+        "src": "/assets/products/ofek/detail-1600.webp",
+        "srcset": "/assets/products/ofek/detail-800.webp 800w, /assets/products/ofek/detail-1600.webp 1600w",
+        "srcset_avif": "/assets/products/ofek/detail-800.avif 800w, /assets/products/ofek/detail-1600.avif 1600w",
+        "jpg": "/assets/products/ofek/detail-1600.jpg",
+        "width": 1600,
+        "height": 1200,
         "view": "detail",
         "finish": "natural",
         "base": "none",
@@ -684,7 +684,7 @@
           "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the fluted fronts with no handles"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       }
     ],
     "badges": [

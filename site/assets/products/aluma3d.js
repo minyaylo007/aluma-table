@@ -368,12 +368,18 @@
     box(P.oak, 0, y0 + t / 2, 0, L, t, D, 'x');                                      // дно
     [-1, 1].forEach(function (s) { box(P.oak, s * (L / 2 - t / 2), y0 + H / 2, 0, t, H - 2 * t + 2 * SINK, D, 'y'); });
     box(P.oak, 0, y0 + H / 2, zb + 0.004, L - 2 * t, H - 2 * t, 0.008, 'x');          // задня стінка
-    // фасади: 2 двері для 160, 3 для 180/200 (як на погодженому кадрі), між боковинами, зазор 3 мм, канелюри крок 24 мм, глибина 4 мм
-    var n = L <= 1.65 ? 2 : 3, gap = 0.003, inner = L - 2 * t, dw = (inner - (n + 1) * gap) / n;
+    // фасади: 2 двері для 160, 3 для 180/200, між боковинами, зазор 4 мм, канелюри крок 24 мм, глибина 4 мм;
+    // по краях двері гладка смуга 8 мм — шов між дверима читається (конструктивне допущення, docs/ASSETS.md)
+    var n = L <= 1.65 ? 2 : 3, gap = 0.004, land = 0.008, inner = L - 2 * t, dw = (inner - (n + 1) * gap) / n;
     var fh = H - 2 * t - 2 * gap, fy0 = y0 + t + gap, ft = 0.02, pitch = 0.024, depth = 0.004;
     for (var i = 0; i < n; i++) {
-      var x0 = -inner / 2 + gap + i * (dw + gap), x1 = x0 + dw, zf0 = zf - 0.002;
-      var flutes = Math.max(4, Math.round(dw / pitch)), step = dw / flutes, sub = 8;
+      var d0 = -inner / 2 + gap + i * (dw + gap), d1 = d0 + dw, zf0 = zf - 0.002;
+      var x0 = d0 + land, x1 = d1 - land;
+      [[d0, x0], [x1, d1]].forEach(function (e) {   // гладкі смуги по краях
+        P.oak.quad([e[0], fy0, zf0], [e[1], fy0, zf0], [e[1], fy0 + fh, zf0], [e[0], fy0 + fh, zf0],
+                   function (q) { return [q[0] / TILE * 2.5, q[1] / TILE]; }, [0, 0, 1]);
+      });
+      var flutes = Math.max(4, Math.round((x1 - x0) / pitch)), step = (x1 - x0) / flutes, sub = 8;
       // лице фасаду: профіль z(x) = zf0 - depth * sin²(π·u), гладкі нормалі
       for (var f = 0; f < flutes; f++) {
         for (var k = 0; k < sub; k++) {
@@ -387,9 +393,9 @@
         }
       }
       // торці фасаду і тіло дверей
-      box(P.oak, (x0 + x1) / 2, fy0 + fh / 2, zf0 - depth - (ft - depth) / 2 - 0.0005, dw, fh, ft - depth, 'y');
-      box(P.oak, (x0 + x1) / 2, fy0 + fh - 0.0005, zf0 - ft / 2, dw, 0.001, ft, 'x');
-      box(P.oak, (x0 + x1) / 2, fy0 + 0.0005, zf0 - ft / 2, dw, 0.001, ft, 'x');
+      box(P.oak, (d0 + d1) / 2, fy0 + fh / 2, zf0 - depth - (ft - depth) / 2 - 0.0005, dw, fh, ft - depth, 'y');
+      box(P.oak, (d0 + d1) / 2, fy0 + fh - 0.0005, zf0 - ft / 2, dw, 0.001, ft, 'x');
+      box(P.oak, (d0 + d1) / 2, fy0 + 0.0005, zf0 - ft / 2, dw, 0.001, ft, 'x');
     }
     // темна порожнина за зазорами
     box(P.dark, 0, y0 + H / 2, zf - ft - 0.01, inner, H - 2 * t, 0.004, 'x');
