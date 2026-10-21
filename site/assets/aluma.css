@@ -356,7 +356,7 @@ bdi { unicode-bidi: isolate; }
 .mat-tones li { display: flex; align-items: center; gap: 8px; }
 .mat-tones .swatch-dot { width: 28px; height: 28px; border-radius: 4px; }
 .swatch-viz { font-size: .74rem; color: var(--muted); letter-spacing: .02em; }
-.opt .swatch-viz { display: block; margin-block-start: 6px; }
+.opt .swatch-viz, .mat-viz { display: block; margin-block-start: 6px; }
 .grain-panel { display: grid; gap: 22px; padding: clamp(24px, 4vw, 48px); background: var(--paper); border-radius: var(--r-lg); border: 1px solid var(--line); }
 .gp-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 14px; font-size: .9rem; }
 /* цифри розкладки — табличні, однакової ширини, як на кресленні */

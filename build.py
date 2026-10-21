@@ -739,9 +739,10 @@ def main() -> None:
         tones = []
         for f in (hero_p.get("finishes") or []):
             tones.append(f'<li><span class="swatch-dot" style="{esc(finish_chip(f)[0])}" aria-hidden="true"></span>{esc(L(f.get("name"), loc))}</li>')
-        if tones and finishes_viz(hero_p.get("finishes") or []):
-            tones.append('<li class="swatch-viz">{{t.viz_tag}}</li>')
-        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>' if tones else ""
+        # «הדמיה» — під списком, а не пунктом: у списку лише тони (redesign.spec.js рахує li = тони каталогу)
+        viz = ('<span class="swatch-viz mat-viz">{{t.viz_tag}}</span>'
+               if tones and finishes_viz(hero_p.get("finishes") or []) else "")
+        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>{viz}' if tones else ""
 
         def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str, alt_path: str):
             toks = {**base_tokens, **tokens}
