@@ -84,6 +84,28 @@ test('material block: three facts, a tagged close-up, every catalog finish, link
   expect(errors).toEqual([]);
 });
 
+// кнопка נגישות на телефоні прибита до шапки — «סל» не може лягти під неї (так було на виході магазину)
+test('header: cart button, accessibility button and menu do not overlap on phone and tablet widths', async ({ page }) => {
+  await mockApi(page);
+  for (const pre of ['', '/en']) {
+    for (const w of [320, 360, 390, 768, 900]) {
+      await page.setViewportSize({ width: w, height: 800 });
+      await page.goto(pre + '/');
+      const boxes = await page.evaluate(() => ['.top-cart', '.a11y-btn', '.menu-btn', '.logo'].map(s => {
+        const r = document.querySelector(s).getBoundingClientRect();
+        return { s, l: r.left, r: r.right, t: r.top, b: r.bottom };
+      }));
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i], b = boxes[j];
+          const cross = a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+          expect(cross, `${pre || '/he'} ${w}px: ${a.s} × ${b.s}`).toBe(false);
+        }
+      }
+    }
+  }
+});
+
 test('catalog lists every product with a link to its card', async ({ page }) => {
   await mockApi(page);
   await page.goto('/catalog/');

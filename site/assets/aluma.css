@@ -163,7 +163,8 @@ bdi { unicode-bidi: isolate; }
 @media (max-width: 900px) {
   .menu-btn { display: block; flex: none; }
   .top-cta:not(.top-cart) { display: none; }
-  .top-cart { padding-inline: 14px; }
+  /* місце під кнопку נגישות: вона прибита до шапки на end + gut + 52px (40 px) — 24 gap + 32 = 8 px з кожного боку */
+  .top-cart { padding-inline: 14px; margin-inline-end: 32px; }
   /* логотип росте з текстом (200 %), але не ширший за екран — інакше «תפריט» виїжджає за край */
   .logo { min-width: 0; }
   .logo-lat { font-size: min(1.45rem, 6.5vw); }
