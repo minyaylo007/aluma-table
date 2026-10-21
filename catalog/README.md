@@ -53,6 +53,8 @@ description})` після кліку «צפייה בתלת־ממד» (three.js �
 | `light` | пара для плавної зміни, `light`: `morning` \| `evening`; одна камера, той самий кадр | tavor |
 
 Галерея картки пропускає `mechanism` і `light` — це окремі блоки вітрини.
+`wide` (поки лише sahar) — **окреме поле товару, не в `images`**: широкий атмосферний кадр 16:9 Figma AI (1376×768,
+`srcset` 800/1376) для шапки сторінки й обкладинок Meta; формат запису той самий, `view: "wide"`.
 Поза `images`: `tavor/finish-<тонування>-{800,1600}.{avif,webp}` і `-1600.jpg` — герой у кожному тонуванні
 (карусель Meta, `docs/ASSETS.md`). Тонування — лише свотчі
 `assets/products/finishes/<finish>.{avif,webp,jpg}`.

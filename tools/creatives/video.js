@@ -152,7 +152,11 @@ function inspect(safe) {
   const mark = document.querySelector('.mark'); const m = mark.getBoundingClientRect();
   const card = document.querySelector('.card');
   const over = [card, ...card.querySelectorAll('.item')].some((e) => e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1);
-  return { texts: out, mark: mark.textContent.trim(), markAlpha: alpha(mark), markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
+  // Товар не під карткою: де кадр — смуга (9:16, 4:5), картка починається нижче за неї; у 9:16 картка ще й вище нижніх 20 %.
+  const sh = document.querySelector('.shot').getBoundingClientRect(), cr = card.getBoundingClientRect();
+  const covered = sh.height < H - 0.5 && cr.top < sh.bottom - 0.5;
+  const low = safe > 0 && cr.bottom > 0.8 * H + 0.5;
+  return { texts: out, covered, low, mark: mark.textContent.trim(), markAlpha: alpha(mark), markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
     over, imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
     fontsOk: document.fonts.check('600 30px "IBM Plex Sans Hebrew"', 'הדמיה') };
 }
@@ -248,6 +252,8 @@ async function main() {
             const c = await page.evaluate(inspect, safe);
             if (c.mark !== cfg.mark || c.markAlpha < 0.999 || !c.markInside) problems.add(`${t.toFixed(1)} с: нема «הדמיה»`);
             if (c.over) problems.add(`${t.toFixed(1)} с: картка переповнена`);
+            if (c.covered) problems.add(`${t.toFixed(1)} с: картка закриває кадр товару`);
+            if (c.low) problems.add(`${t.toFixed(1)} с: картка в нижніх 20 % (інтерфейс Reels)`);
             if (!c.imagesOk) problems.add('кадр не завантажився');
             if (!c.fontsOk) problems.add('шрифт сайту не завантажився');
             for (const x of c.texts) {

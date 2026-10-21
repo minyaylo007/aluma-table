@@ -298,7 +298,7 @@ async function main() {
   console.log(`готово: ${report.creatives.length} креативів → ${path.relative(ROOT, outDir) || outDir}`);
 }
 
-module.exports = { ROOT, TYPES, esc, money, fontFaces, fill, priceVars, headlineOf };
+module.exports = { ROOT, ORIGIN, TYPES, MAX_BYTES, MAX_TEXT_SHARE, MIN_CONTRAST, MIN_TILE_SHARE, esc, money, fontFaces, fill, priceVars, headlineOf, measure, shoot };
 
 // Модулем його бере tools/creatives/video.js — тоді знімки не робимо.
 if (require.main === module) main().catch((e) => { console.error(e.message || e); process.exit(1); });

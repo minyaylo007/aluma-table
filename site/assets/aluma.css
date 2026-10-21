@@ -238,9 +238,33 @@ bdi { unicode-bidi: isolate; }
     @keyframes band-arch { from { clip-path: inset(0 16% round 50vw 50vw 0 0); } to { clip-path: inset(0 0 round 0 0 0 0); } }
     .band-cap { animation: band-cap linear both; animation-timeline: --band; animation-range: entry 50% cover 45%; }
     @keyframes band-cap { from { opacity: 0; } to { opacity: 1; } }
+    /* «світлий дуб → темний дуб»: тло майстерні темнішає на вході; текст з'являється, лише коли тло вже
+       темне (від 85 % входу — між oak-deep і dark), тож проміжний стан ніколи не дає тексту нижче AA */
+    .workshop { animation: oak-dusk linear both; animation-timeline: view(); animation-range: entry 0% entry 85%; }
+    @keyframes oak-dusk { 0% { background-color: var(--linen); } 35% { background-color: var(--oak-light); }
+      65% { background-color: var(--oak-deep); } 100% { background-color: var(--dark); } }
+    .workshop-grid { animation: band-cap linear both; animation-timeline: view(); animation-range: entry 90% cover 50%; }
     .card { animation: card-in linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; }
     /* лише зсув, без прозорості: картка ніколи не лишається невидимою (повний знімок, старий рушій) */
     @keyframes card-in { from { transform: translateY(36px); } to { transform: none; } }
+  }
+}
+
+/* годичні кільця дуба — лінійна графіка; без scroll-timeline чи з reduce-motion просто намальовані */
+.rings { display: block; inline-size: clamp(96px, 12vw, 148px); block-size: auto; margin-block-end: 20px;
+  fill: none; stroke: var(--oak); stroke-width: 1.2; stroke-linecap: round; }
+.rings path { vector-effect: non-scaling-stroke; }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* stroke-dashoffset за прокруткою секції (шкала самого знака — лише ~100 px, прорисовка проскакувала):
+       від серцевини назовні, кожна пара кілець трохи пізніше */
+    .material { view-timeline: --rings; }
+    .rings path { stroke-dasharray: 1 1; animation: ring-draw linear both; animation-timeline: --rings;
+      animation-range: cover 12% cover 32%; }
+    .rings path:nth-child(n+3) { animation-range: cover 16% cover 38%; }
+    .rings path:nth-child(n+5) { animation-range: cover 20% cover 44%; }
+    .rings path:nth-child(n+7) { animation-range: cover 24% cover 50%; }
+    @keyframes ring-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
   }
 }
 

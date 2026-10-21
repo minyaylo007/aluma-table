@@ -11,6 +11,7 @@
 //                     кожен звірено з моделлю (ніжки, опори, форма, пропорції) — docs/ASSETS.md;
 //   source "render" — Blender Cycles (tools/blender_scene.py) над геометрією aluma3d.js: низький ракурс, розкладений;
 //   свотчі тонувань — three.js-сцена tools/render_products.html (file://, без власного порту).
+// Широкий кадр 16:9 (<товар>-wide-v1.png, якщо є) — поле товару wide, не в images.
 // Вихід: site/assets/products/<id>/<кадр>-{<ширина>,800[,400 — hero, angle]}.{avif,webp} + <кадр>-<ширина>.jpg — у рідній ширині
 // майстра, без збільшення; site/assets/products/finishes/<тонування>.{avif,webp,jpg}.
 // Герой AVIF ≤ 180 КБ: якість знижується, поки файл не влізе.
@@ -53,7 +54,8 @@ const VIEW_ALT = {
   'mechanism-closed': ['מנגנון הפתיחה: סגור, קו החיבור באמצע המשטח', 'opening mechanism: closed, the seam in the middle of the top'],
   'light-morning':    ['באור בוקר קריר מהחלון', 'in cool morning light from the window'],
   'light-evening':    ['באור ערב חם של מנורה מעל השולחן', 'in warm evening light from a lamp above the table'],
-  texture:            ['תקריב של פורניר האלון ושל קנט האלון המלא', 'close-up of the oak veneer and the solid-oak edge']
+  texture:            ['תקריב של פורניר האלון ושל קנט האלון המלא', 'close-up of the oak veneer and the solid-oak edge'],
+  wide:               ['בחלל מגורים מואר, מבט רחב', 'in a bright room, wide view']
 };
 // крупний план — своя деталь у кожного товару
 const DETAIL_ALT = {
@@ -313,6 +315,17 @@ async function openPage() {
     }
     if (opt.preview) continue;
     p.images = images;
+    // широкий кадр 16:9 (Figma AI) — для шапки й обкладинок Meta; окреме поле, не в images: у галерею картки не йде
+    const wide = path.join(FIGMA, `${p.id}-wide-v1.png`);
+    if (fs.existsSync(wide)) {
+      const { w, h } = dims(wide), W = Math.min(1600, w), H = Math.round(h * W / w), widths = widthsFor('wide', W);
+      encode(wide, path.join(dir, 'wide'), W, false, widths);
+      const rel = `/assets/products/${p.id}/wide`, set = ext => widths.map(x => `${rel}-${x}.${ext} ${x}w`).join(', ');
+      p.wide = { src: `${rel}-${W}.webp`, srcset: set('webp'), srcset_avif: set('avif'), jpg: `${rel}-${W}.jpg`, width: W, height: H,
+        view: 'wide', finish: 'natural', base: p.bases.length ? 'oak' : 'none', state: 'closed', size: sizeFor(p).label,
+        alt: altFor(p, 'wide', p.finishes.find(x => x.id === 'natural').name, 'oak'), kind: 'visualization', source: 'ai' };
+      console.log(`${p.id}/wide ${W}×${H}`);
+    } else delete p.wide;
     p.model3d = 'assets/products/aluma3d.js';
   }
   if (!opt.preview) fs.writeFileSync(CATALOG, JSON.stringify(catalog, null, 2) + '\n');
