@@ -66,7 +66,8 @@ const DETAIL_ALT = {
   tal:   ['תקריב של הפינה המעוגלת ושל הרגל העגולה העבה', 'close-up of the rounded corner and the chunky round leg']
 };
 function altFor(p, view, fin, base, key) {
-  const [kh, ke] = KIND[p.id], [vh, ve] = view === 'detail' ? DETAIL_ALT[p.id] : VIEW_ALT[key || view];
+  const [kh, ke] = KIND[p.id], [vh, ve] = view === 'detail' ? DETAIL_ALT[p.id]
+    : view === 'angle' && ANGLE_ALT[p.id] ? ANGLE_ALT[p.id] : VIEW_ALT[key || view];
   const bh = base === 'steel' && view !== 'steel' ? ', בסיס פלדה' : '', be = base === 'steel' && view !== 'steel' ? ', steel base' : '';
   return {
     he: `הדמיה: ${kh} ${p.name.he}, גוון ${fin.he}, ${vh}${bh}`,
@@ -76,13 +77,16 @@ function altFor(p, view, fin, base, key) {
 
 // Кадри товару: перший — герой (головна картинка картки), далі низький ракурс (Blender), крупний план,
 // розкладений (розсувні, Blender). cam — параметри камери tools/blender_scene.py (--cam).
+// Галерея (запит дирижера 21.10): angle — не той самий кадр, що герой, а низько і з другого боку; у sahar — крупно
+// ніжка з царгою (fit — частка габариту, як у DETAIL_RENDER).
 const ANGLE = {
-  tavor: { az: 38, eye: 1.0, margin: 0.06 },
-  sahar: { az: 34, eye: 1.0, margin: 0.06 },
-  ofek:  { az: 30, eye: 1.05, margin: 0.08, end_chair: false },
-  saf:   { az: 32, eye: 1.05, margin: 0.08, end_chair: false },
+  tavor: { az: -38, eye: 0.6, margin: 0.04, sun: 7.0, window: 180 },
+  sahar: { az: 20, eye: 0.45, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.62, 0, 0.25], [1, 0.4, 1]], sun: 7.0, window: 180 },
+  ofek:  { az: -34, eye: 0.7, margin: 0.05, sun: 7.0, window: 180, end_chair: false },
+  saf:   { az: -34, eye: 0.6, margin: 0.05, sun: 7.0, window: 180, end_chair: false },
   tal:   { az: 36, eye: 0.85, margin: 0.08, end_chair: false }
 };
+const ANGLE_ALT = { sahar: ['תקריב של הרגל ושל המסגרת מתחת למשטח', 'close-up of a leg and the apron under the top'] };
 // Крупний план дуба: кут стільниці — торець, кромка і шпон; fit — частка габариту (x, y, z), об'єктив 85 мм.
 const TEXTURE = {
   ofek: { az: 40, eye: 1.25, lens: 85, fstop: 2.8, margin: 0.02, fit: [[0.78, 0, 0.7], [1, 0.6, 1]], end_chair: false },
@@ -134,13 +138,14 @@ function framesFor(p) {
     HERO_RENDER[p.id]
       ? { name: 'hero', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HERO_RENDER[p.id] }
       : { name: 'hero', view: 'hero', source: 'ai', file: `${p.id}-hero-v1.png`, finish: 'natural', base },
-    { name: 'angle', view: 'angle', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor, cam: ANGLE[p.id] },
+    { name: 'angle', view: 'angle', source: 'render', finish: 'natural', base, w: 1600, h: 1200,
+      decor: ANGLE_ALT[p.id] ? 'none' : decor, cam: ANGLE[p.id] },
     DETAIL_RENDER[p.id]
       ? { name: 'detail', view: 'detail', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor: 'none', cam: DETAIL_RENDER[p.id] }
       : { name: 'detail', view: 'detail', source: 'ai', file: `${p.id}-detail-v1.png`, finish: 'natural', base }
   ];
   if (ext) L.push({ name: 'open', view: 'open', source: 'render', finish: 'natural', base, state: 'open', w: 1600, h: 1000, decor,
-    cam: { az: 30, eye: 1.42, margin: 0.1 } });
+    cam: { az: 30, eye: 2.1, margin: 0.1 } });   // згори: видно всю розкладену стільницю
   // крупний план дуба (торець і шпон) без інтер'єру — одразу після героя: картка тумби й консолі
   if (TEXTURE[p.id]) L.splice(1, 0, { name: 'texture', view: 'texture', source: 'render', finish: 'natural', base, w: 1600, h: 1200,
     decor: 'none', cam: TEXTURE[p.id] });
@@ -154,7 +159,7 @@ function framesFor(p) {
           fit: [[0.5 - fx, 0, 0.8], [0.5 + fx, 1, 1]] } });
     }
     // «ранок / вечір»: один ракурс і одна сцена, міняється лише світло — на сайті кадри змінюються плавно
-    const cam = Object.assign({}, ANGLE.tavor, { pendant: 'off', pendant_dx: 0.32, margin: 0.1, shift_y: 0.21 });   // запас угорі — у кадрі лампа
+    const cam = Object.assign({ az: 38, eye: 1.0 }, { pendant: 'off', pendant_dx: 0.32, margin: 0.1, shift_y: 0.21 });   // запас угорі — у кадрі лампа
     L.push({ name: 'light-morning', view: 'light', light: 'morning', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor,
       cam: Object.assign({}, cam, LIGHT.morning) });
     L.push({ name: 'light-evening', view: 'light', light: 'evening', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor,
