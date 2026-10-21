@@ -79,13 +79,15 @@ function single(cfg, v, p) {
       { from: 2.4, to: 5.2, z: [1.02, 1.1], x: [1, 0] },
       { from: 5.2, to: duration, z: [1.04, 1.1], x: [0, -1] }];
   } else {
-    const half = imgs.length > 1 ? 4.2 : duration;
+    // Розкладений кадр — з 3 с, наїзд слабкий, щоб овал (155) читався до кінця ролика (дирижер, 21.10).
+    const half = imgs.length > 1 ? (opened ? 3.0 : 4.2) : duration;
     shots = [{ from: 0, to: half, z: [1.0, 1.08], x: [0, -1.5] }];
-    if (imgs.length > 1) shots.push({ from: half, to: duration, z: [1.04, 1.12], x: [1, 0] });
+    if (imgs.length > 1) shots.push(opened ? { from: half, to: duration, z: [1.0, 1.04], x: [0, 0] } : { from: half, to: duration, z: [1.04, 1.12], x: [1, 0] });
   }
   // У «story» плашка «складено → розкладено» видна з першого кадру й доростає до розкладеного за першу секунду.
   const sizeAt = story ? -1 : 1.2;
-  const grow = story ? { from: 0.2, to: 1.4 } : { from: 1.6, to: 3.0 };
+  // Без story, але з розкладеним кадром — плашка доростає разом зі зміною кадру «складено → розкладено».
+  const grow = story ? { from: 0.2, to: 1.4 } : opened ? { from: 2.6, to: 3.6 } : { from: 1.6, to: 3.0 };
   const sub = fill(v.sub, { length: esc(s.length_cm), extended: esc(s.extended_cm ?? '') });
   const size = s.extended_cm ? `<div class="size" ${at(sizeAt)}><div class="nums"><span>${esc(s.length_cm)}</span>` +
     `<span>${esc(s.extended_cm)}</span></div><div class="track"><div class="bar"></div></div></div>` : '';
