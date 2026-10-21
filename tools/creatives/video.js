@@ -44,6 +44,12 @@ function args(argv) {
 const fileOf = (i) => path.join(ROOT, 'site', i.src.replace(/^\//, ''));
 const visuals = (p) => (p.images || []).filter((i) => i.kind === 'visualization' && fs.existsSync(fileOf(i)));
 const imagesOf = (p) => visuals(p).map(fileOf);
+// 9:16: вертикальний рендер того самого ракурсу (<ракурс>-9x16.jpg поруч із кадром, сесія 2) — стіл цілком у смузі
+// 300–1000 px, під карткою підлога; тоді кадр на все полотно. Нема такого — смуга 3:2 над карткою (video.html).
+const tallOf = (file) => file.replace(/-\d+\.\w+$/, '-9x16.jpg');
+const frameFor = (file, f) => (f.id === '9x16' && fs.existsSync(tallOf(file)) ? tallOf(file) : file);
+// Крупний план (механізм, деталь) у 9:16 — теж на все полотно: ніжки там не потрібні, смуга лишила б порожнечу.
+const fullIn = (file, f) => f.id === '9x16' && (frameFor(file, f) !== file || /^(mechanism|detail)-/.test(path.basename(file)));
 
 // Розкладання результатом у перші 3 с (docs/META-TEST.md, розвідка Ad Library 21.10): якщо в каталозі є кадри
 // «розкладений» і «механізм наполовину» — ролик іде розкладений → механізм → звичайний вигляд. Інакше — два перші кадри.
@@ -113,7 +119,7 @@ function collection(cfg, v, products) {
 }
 
 function html(template, cfg, f, plan, fonts, id) {
-  const shots = plan.imgs.map((_, i) => `<div class="shot"><img src="${ORIGIN}/img/${id}/${i}" alt=""></div>`).join('');
+  const shots = plan.imgs.map((file, i) => `<div class="shot${fullIn(file, f) ? ' full' : ''}${frameFor(file, f) !== file ? ' tall' : ''}"><img src="${ORIGIN}/img/${id}/${i}" alt=""></div>`).join('');
   const map = { FONTS: fonts.css, SERIF: fonts.serif, W: f.width, H: f.height, FORMAT: f.id, SHOTS: shots,
     CARD: plan.card, MARK: esc(cfg.mark), TIMELINE: JSON.stringify(plan.timeline) };
   return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
@@ -153,10 +159,14 @@ function inspect(safe) {
   const card = document.querySelector('.card');
   const over = [card, ...card.querySelectorAll('.item')].some((e) => e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1);
   // Товар не під карткою: де кадр — смуга (9:16, 4:5), картка починається нижче за неї; у 9:16 картка ще й вище нижніх 20 %.
-  const sh = document.querySelector('.shot').getBoundingClientRect(), cr = card.getBoundingClientRect();
-  const covered = sh.height < H - 0.5 && cr.top < sh.bottom - 0.5;
+  // Вертикальний рендер (.tall) картка перекриває лише підлогою — стіл у смузі 300–1000 px; крупний план (.full) — без умов.
+  const cr = card.getBoundingClientRect();
+  const covered = [...document.querySelectorAll('.shot:not(.full)')].map((e) => e.getBoundingClientRect())
+    .some((sh) => sh.height < H - 0.5 && cr.top < sh.bottom - 0.5);
+  const fullTooHigh = !!document.querySelector('.shot.tall') && cr.top < 1000;
+  const fullNot916 = [...document.querySelectorAll('.shot.tall img')].some((i) => i.naturalWidth * 16 !== i.naturalHeight * 9);
   const low = safe > 0 && cr.bottom > 0.8 * H + 0.5;
-  return { texts: out, covered, low, mark: mark.textContent.trim(), markAlpha: alpha(mark), markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
+  return { texts: out, covered, low, fullTooHigh, fullNot916, mark: mark.textContent.trim(), markAlpha: alpha(mark), markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
     over, imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
     fontsOk: document.fonts.check('600 30px "IBM Plex Sans Hebrew"', 'הדמיה') };
 }
@@ -232,7 +242,7 @@ async function main() {
           if (url.origin !== ORIGIN) return route.abort();
           let file = null;
           const m = url.pathname.match(/^\/img\/([\w-]+)\/(\d+)$/);
-          if (m && m[1] === v.id) file = plan.imgs[Number(m[2])];
+          if (m && m[1] === v.id) file = frameFor(plan.imgs[Number(m[2])], f);
           else if (url.pathname.startsWith('/fonts/')) file = path.join(ROOT, 'site', 'assets', 'fonts', path.basename(url.pathname));
           if (!file || !fs.existsSync(file)) return route.fulfill({ status: 404, body: '' });
           return route.fulfill({ status: 200, contentType: TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream', body: fs.readFileSync(file) });
@@ -253,6 +263,8 @@ async function main() {
             if (c.mark !== cfg.mark || c.markAlpha < 0.999 || !c.markInside) problems.add(`${t.toFixed(1)} с: нема «הדמיה»`);
             if (c.over) problems.add(`${t.toFixed(1)} с: картка переповнена`);
             if (c.covered) problems.add(`${t.toFixed(1)} с: картка закриває кадр товару`);
+            if (c.fullNot916) problems.add('вертикальний рендер не 9:16');
+            if (c.fullTooHigh) problems.add(`${t.toFixed(1)} с: картка вище 1000 px — закриє стіл вертикального рендера`);
             if (c.low) problems.add(`${t.toFixed(1)} с: картка в нижніх 20 % (інтерфейс Reels)`);
             if (!c.imagesOk) problems.add('кадр не завантажився');
             if (!c.fontsOk) problems.add('шрифт сайту не завантажився');
@@ -273,7 +285,7 @@ async function main() {
         if (problems.size) failures.push(`${name}: ${[...problems].join('; ')}`);
         report.videos.push({ file: name, width: f.width, height: f.height, duration: plan.duration, fps: FPS, bytes: enc.bytes,
           crf: enc.crf, min_contrast: Number(minContrast.toFixed(2)), products: plan.products,
-          images: plan.imgs.map((p) => path.relative(ROOT, p).split(path.sep).join('/')) });
+          images: plan.imgs.map((p) => path.relative(ROOT, frameFor(p, f)).split(path.sep).join('/')) });
         console.log(`${problems.size ? '✗' : '✓'} ${name}  ${(enc.bytes / 1048576).toFixed(2)} МБ crf ${enc.crf}  контраст ≥ ${minContrast.toFixed(1)}`);
       }
     }
