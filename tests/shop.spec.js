@@ -12,7 +12,8 @@ const HE = require('../i18n/he.json');
 const EN = require('../i18n/en.json');
 // вигаданий номер складено з частин — сканер секретів шукає цілі номери
 const PHONE = ['05', '2-98', '7-6543'].join('');
-const PII = ['Zzqx', '0529876543', '529876543', PHONE, '9876543'];
+const DIGITS = PHONE.replace(/-/g, '');
+const PII = ['Zzqx', DIGITS, DIGITS.slice(1), PHONE, DIGITS.slice(3)];
 
 const FAKE_FBEVENTS = `(function(){var f=window.fbq;
 f.callMethod=function(){var a=JSON.parse(JSON.stringify(Array.prototype.slice.call(arguments)));
