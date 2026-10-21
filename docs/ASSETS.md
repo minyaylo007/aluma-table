@@ -11,13 +11,42 @@
 | Герой і крупний план товару, де кадр AI збігся з моделлю (`source: "ai"`) | Figma AI, модель `gemini-3.1-flash-image`, файл Figma «ALUMA — фото товаров» (`RLTzPbAof8ObuvaBw6sQUL`), 20.10.2026, дозвіл власника | згенеровано для нас |
 | Геометрія всіх п'яти товарів | `site/assets/products/aluma3d.js` — параметрична модель із розмірів сітки каталогу | наш код |
 | Герой tavor, sahar, ofek, saf, крупний план усіх п'яти, широкий кадр sahar (з 21.10), ракурси, розкладений стіл, механізм tavor, пара «ранок / вечір», текстура дуба (`source: "render"`) | Blender 4.5 Cycles: `tools/blender_scene.py` над геометрією з `aluma3d.js`; лампа над столом — наша процедурна модель | наш код |
-| Дуб у рендерах і свотчах | Poly Haven «Oak Veneer 01», https://polyhaven.com/a/oak_veneer_01 | CC0 |
-| Тонування (світлий, мед, копчений, чорний) | фарбування того самого альбедо на canvas (`gradePixel` в `aluma3d.js`) | наш код |
+| Дуб у рендерах, 3D і зразках: натуральний і мед | Poly Haven «Oak Veneer 01», https://polyhaven.com/a/oak_veneer_01 | CC0 |
+| Світлий тон | Poly Haven «Washed Grey Oak Veneer», https://polyhaven.com/a/washed_grey_oak_veneer | CC0 |
+| Копчений і чорний тон | Poly Haven «Black Oak Veneer», https://polyhaven.com/a/black_oak_veneer | CC0 |
+| Олійний шар поверх скану (тон) | `tools/oak_tones.py`, розділ «Тони дуба» нижче | наш код |
 | Інтер'єр Blender: стіна, підлога, льон | Poly Haven: https://polyhaven.com/a/plastered_wall_04 · https://polyhaven.com/a/smooth_concrete_floor · https://polyhaven.com/a/rough_linen | CC0 |
 | Денне світло Blender (HDRI) | Poly Haven: https://polyhaven.com/a/photo_studio_loft_hall · https://polyhaven.com/a/lebombo | CC0 |
 | Декор Blender | Poly Haven: https://polyhaven.com/a/ceramic_vase_01 · https://polyhaven.com/a/ceramic_vase_02 · https://polyhaven.com/a/dry_branches_medium_01 · https://polyhaven.com/a/wooden_cutting_board · https://polyhaven.com/a/food_pears_asian_01 · https://polyhaven.com/a/wooden_bowl_02; стільці — наша процедурна модель | CC0 / наш код |
 
 Шрифтів, логотипів, людей і чужих брендів у кадрах немає.
+
+## Тони дуба (21.10.2026)
+Слова власника 21.10: «кольори нереалістичні, просто пастельні — потрібні фото самого матеріалу». Тому тон —
+більше не перефарбування одного дуба на canvas, а **окремий справжній фотоскан шпону** (CC0, Poly Haven, автор
+сканів — Jenelle van Heerden) з моделлю олійного шару поверх. Генератор — `tools/oak_tones.py`; одна таблиця тонів
+у трьох місцях (`oak_tones.py` TONES, `aluma3d.js` FINISHES, `blender_scene.py` TONE_TEX) — звіряє
+`tests/test_oak_tones.py`.
+
+| Тон | Скан | На що орієнтувались | Середній колір зразка |
+|---|---|---|---|
+| natural | Oak Veneer 01 (1,83 м) | прозора олія: дуб без пігменту (безбарвні олії Osmo 3032 / 3062) | `#9C7F5F` |
+| light | Washed Grey Oak Veneer (1 м) | біла пігментна олія на дубі: Osmo 3040 «White», Rubio Monocoat «White 5 %» — світлий беж із зерном, не біла фарба | `#C2AE9B` |
+| honey | Oak Veneer 01 | бурштинова олія: Osmo 3072 «Amber» — золотисто-медовий, не помаранчевий | `#956D3E` |
+| smoked | Black Oak Veneer (1 м) | фумований (копчений аміаком) дуб: глибокий теплий коричневий, не сірий | `#6A5744` |
+| black | Black Oak Veneer | чорна / графітова олія: Osmo 3075 «Black», 3074 «Graphite», Rubio «Charcoal» — зерно лишається читким | `#2D2722` |
+
+Чесно: цільові кольори — **оцінка з публічних викрасок виробників олій, не замір** (спектрофотометра й зразків на
+руках немає). Колір однієї олії на дубі сильно залежить від партії, шліфування й кількості шарів — тому біля тонів на
+сайті стоїть «הדמיה» і застереження «הגוון במסך הוא קירוב». Hex у `catalog/products.json` — середній колір зразка (ним
+фарбується підкладка, поки вантажиться картинка).
+
+- **Зразок** — `site/assets/products/finishes/<тон>.{webp,jpg}`, 240 px: шматок ~12 см (`SWATCH_CM`) з того самого
+  альбедо, що йде в 3D і Blender. На сайті — квадратик дерева, не кружок (конфігуратор, картка, список тонів).
+- **Скани 1 × 1 м** мають зерно поперек — повертаємо на 90° (з перекладанням нормалі) і повторюємо в 1,83 раза
+  щільніше, щоб масштаб зерна на моделі був справжнім.
+- **Фото з фабрики** — `python3 tools/oak_tones.py --factory фото.jpg <тон>` → `site/assets/products/finishes/photo/<тон>.jpg`;
+  `build.py` (`finish_chip`, `FINISH_PHOTOS`) бере фото замість скану й знімає «הדמיה», коли фото є для всіх тонів товару.
 
 ## Правило Figma AI (дирижер, 21.10.2026)
 Figma AI — **лише фон чи атмосфера без нашого виробу**, або кадр з виробом **після звірки з моделлю**
@@ -63,7 +92,7 @@ Figma AI — **лише фон чи атмосфера без нашого ви�
 - **light** (tavor): одна камера й одна сцена; підвісна лампа в кадрі в обох, ранок — холодне бічне сонце з вікна,
   вечір — сутінки за вікном і тепла лампа (2700 K). Кадри збігаються по композиції — вітрина змінює їх плавно.
 - **finish-<тонування>** (tavor, карусель Meta): кадр героя, та сама камера й світло, п'ять тонувань каталогу. Міняється
-  лише матеріал стола: альбедо шпону `natural-albedo-2048` пофарбоване `gradePixel` з `aluma3d.js` (як свотч і 3D),
+  лише матеріал стола: скан і альбедо тону з `tools/oak_tones.py` (ті самі, що в зразку й 3D),
   а не готовий кадр; стільці й інтер'єр — без змін. `finish-natural` — сам герой. У `images` не йдуть.
 - **ofek, підвісна**: стіна сцени стоїть упритул до задньої стінки моделі (`wallZ`), тінь падає на стіну — як «תלוי על
   הקיר» в описі. Шов між дверима 4 мм і гладка смуга 8 мм по краях дверей — **конструктивне допущення для
@@ -80,15 +109,16 @@ Figma AI — **лише фон чи атмосфера без нашого ви�
 ## Як перезібрати
 ```bash
 # майстри Figma AI: /opt/ihor/aluma-table/tmp/figma-ai/<товар>-{hero,detail}-v1.png (не в git; інша тека — $ALUMA_FIGMA)
-python3 tools/fetch_assets.py && python3 tools/bake_textures.py   # раз: текстури свотчів у renders-master/textures
+python3 tools/fetch_assets.py && python3 tools/bake_textures.py   # раз: скани й текстури в renders-master/textures
+python3 tools/oak_tones.py              # тони дуба: альбедо, карти сканів, зразки (потрібні numpy, Pillow, convert)
 export PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright
-node tools/render_products.js            # усі кадри + свотчі; catalog/products.json — поле images
+node tools/render_products.js            # усі кадри; catalog/products.json — поле images
 node tools/render_products.js tavor --preview --frames=light-morning,light-evening   # звірка ракурсу: ½ сторони, 12 семплів
 python3 -I tools/fetch_cc0.py            # раз: CC0 для Blender у /opt/ihor/aluma-table/tmp/cc0 (не в git)
 ```
-Без власного порту: свотчі — сторінка `tools/render_products.html` з `file://`, three.js r160 з cdnjs. Запуск — у рамці
+Без власного порту: кадри three.js — сторінка `tools/render_products.html` з `file://`, three.js r160 з cdnjs. Запуск — у рамці
 CLAUDE.md §8. У дерево їдуть `<кадр>-{<ширина>,800}.{avif,webp}` (для hero і angle ще `-400`) і `<кадр>-<ширина>.jpg` у рідній ширині майстра
-(без збільшення); герой AVIF ≤ 180 КБ. Свотчі тонувань — `site/assets/products/finishes/<id>.{avif,webp,jpg}`, 240 px.
+(без збільшення); герой AVIF ≤ 180 КБ. Зразки тонів — `site/assets/products/finishes/<id>.{webp,jpg}`, 240 px (`tools/oak_tones.py`).
 
 Blender (портативний, `/opt/ihor/aluma-table/tmp/blender`, не в git) — лише в рамці дирижера, один процес за раз:
 `TMPDIR=/tmp timeout 120m nice -n 19 systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=4G -p CPUQuota=200% blender -b --factory-startup -P tools/blender_scene.py -- --geo <json> --out <png> --threads 2`

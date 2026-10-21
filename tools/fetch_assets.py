@@ -20,6 +20,9 @@ ASSETS = {
     "wood_table_001": ("textures", "2k", ("Diffuse", "nor_gl", "Rough", "AO")),
     "white_oak_veneer": ("textures", "2k", ("Diffuse", "nor_gl", "Rough", "AO")),
     "mocha_oak_veneer": ("textures", "2k", ("Diffuse", "nor_gl", "Rough", "AO")),
+    # справжні скани під тони (tools/oak_tones.py): світлий — блідий дуб, копчений і чорний — темний шпон
+    "washed_grey_oak_veneer": ("textures", "2k", ("Diffuse", "nor_gl", "Rough", "AO")),
+    "black_oak_veneer": ("textures", "2k", ("Diffuse", "nor_gl", "Rough", "AO")),
     "brown_photostudio_02": ("hdris", "1k", ()),
 }
 

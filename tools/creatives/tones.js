@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Карусель Meta «один стіл у п'яти тонах» (розвідка Ad Library 21.10, висновок 4): картка на кожен тон каталогу,
 // 1080×1080 і 1080×1350 → docs/creatives/tones/. Кадр — рендер тієї самої моделі з тією самою камерою, змінюється
-// лише матеріал (site/assets/products/<товар>/finish-<тон>-1600.jpg, сесія 2, tools/render_products.js — тон тією ж
-// формулою gradePixel, що свотчі й 3D на сайті);
+// лише матеріал (site/assets/products/<товар>/finish-<тон>-1600.jpg, сесія 2, tools/render_products.js — тон тим самим
+// фотосканом шпону з tools/oak_tones.py, що зразки й 3D на сайті);
 // фото фільтром не перефарбовуємо. Назва тону — з catalog finishes, застереження «הגוון במסך הוא קירוב» — з i18n.
 //
 //   node tools/creatives/tones.js                                          # → docs/creatives/tones/

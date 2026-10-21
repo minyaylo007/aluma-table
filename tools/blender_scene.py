@@ -23,7 +23,7 @@ ap.add_argument("--geo", required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--shot", default="hero")            # hero | angle | open
 ap.add_argument("--finish", default="natural")
-ap.add_argument("--albedo", default="")             # альбедо тонування каталогу (gradePixel), інакше <finish>-albedo
+ap.add_argument("--albedo", default="")             # своє альбедо замість файлу тону (TONE_TEX)
 ap.add_argument("--w", type=int, default=1600)
 ap.add_argument("--h", type=int, default=1000)
 ap.add_argument("--samples", type=int, default=160)
@@ -78,22 +78,38 @@ def pbr(name, base=None, rough=0.6, metal=0.0, coat=0.0, coat_rough=0.3, color=(
 
 
 # ---- дуб виробу -----------------------------------------------------------------------------------------
+# тон -> (альбедо, скан нормалей і шорсткості, щільність повтору) — те саме, що FINISHES в aluma3d.js
+# (tests/test_oak_tones.py звіряє); файли пише tools/oak_tones.py у renders-master/textures
+TONE_TEX = {
+    "natural": ("natural-albedo", "oak", 1.0),
+    "light": ("tone-light-albedo", "washed-oak", 1.83),
+    "honey": ("tone-honey-albedo", "oak", 1.0),
+    "smoked": ("tone-smoked-albedo", "black-oak", 1.83),
+    "black": ("tone-black-albedo", "black-oak", 1.83),
+}
+
+
 def oak_material(finish, albedo=""):
-    """Дуб під сатиновим лаком: запечене альбедо тонування, нормалі й шорсткість шпону oak_veneer_01."""
-    alb = albedo or os.path.join(TEX, f"{finish}-albedo-2048.jpg")
+    """Дуб під сатиновим лаком: альбедо тону, нормалі й шорсткість його справжнього скану шпону."""
+    stem, maps, scale = TONE_TEX.get(finish, TONE_TEX["natural"])
+    alb = albedo or os.path.join(TEX, f"{stem}-2048.jpg")
     if not os.path.exists(alb):
-        alb = os.path.join(TEX, "natural-albedo-2048.jpg")
+        raise SystemExit(f"немає {alb} — python3 tools/oak_tones.py")
     m, nt, b = pbr(f"oak-{finish}", coat=0.22, coat_rough=0.28)
     uv = nt.nodes.new("ShaderNodeUVMap")
-    ta = node_tex(nt, alb, vector=uv.outputs["UV"])
+    mp = nt.nodes.new("ShaderNodeMapping")           # скани 1 м повторюються щільніше за 1,83-метровий oak_veneer_01
+    mp.inputs["Scale"].default_value = (scale, scale, 1)
+    nt.links.new(uv.outputs["UV"], mp.inputs["Vector"])
+    vec = mp.outputs["Vector"]
+    ta = node_tex(nt, alb, vector=vec)
     nt.links.new(ta.outputs["Color"], b.inputs["Base Color"])
-    tr = node_tex(nt, os.path.join(TEX, "oak-rough-2048.jpg"), True, uv.outputs["UV"])
+    tr = node_tex(nt, os.path.join(TEX, f"{maps}-rough-2048.jpg"), True, vec)
     mr = nt.nodes.new("ShaderNodeMapRange")          # сатин: 0.38..0.62, без дзеркальних плям
     mr.inputs["To Min"].default_value = 0.38 if finish != "black" else 0.45
     mr.inputs["To Max"].default_value = 0.62 if finish != "black" else 0.7
     nt.links.new(tr.outputs["Color"], mr.inputs["Value"])
     nt.links.new(mr.outputs["Result"], b.inputs["Roughness"])
-    tn = node_tex(nt, os.path.join(TEX, "oak-normal-2048.jpg"), True, uv.outputs["UV"])
+    tn = node_tex(nt, os.path.join(TEX, f"{maps}-normal-2048.jpg"), True, vec)
     nm = nt.nodes.new("ShaderNodeNormalMap")
     nm.inputs["Strength"].default_value = 0.35
     nt.links.new(tn.outputs["Color"], nm.inputs["Color"])
