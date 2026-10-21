@@ -86,8 +86,8 @@ function single(cfg, v, p) {
   }
   // У «story» плашка «складено → розкладено» видна з першого кадру й доростає до розкладеного за першу секунду.
   const sizeAt = story ? -1 : 1.2;
-  // Без story, але з розкладеним кадром — плашка доростає разом зі зміною кадру «складено → розкладено».
-  const grow = story ? { from: 0.2, to: 1.4 } : opened ? { from: 2.6, to: 3.6 } : { from: 1.6, to: 3.0 };
+  // Без story, але з розкладеним кадром — плашка доростає рівно за наплив «складено → розкладено» (3,0 с + FADE).
+  const grow = story ? { from: 0.2, to: 1.4 } : opened ? { from: 3.0, to: 3.0 + FADE } : { from: 1.6, to: 3.0 };
   const sub = fill(v.sub, { length: esc(s.length_cm), extended: esc(s.extended_cm ?? '') });
   const size = s.extended_cm ? `<div class="size" ${at(sizeAt)}><div class="nums"><span>${esc(s.length_cm)}</span>` +
     `<span>${esc(s.extended_cm)}</span></div><div class="track"><div class="bar"></div></div></div>` : '';
