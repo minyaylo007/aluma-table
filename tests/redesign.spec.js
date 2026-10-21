@@ -587,16 +587,13 @@ for (const [w, h] of [[390, 844], [1440, 900]]) {
   });
 }
 
-test('texture first: the console and the TV unit open their gallery on the oak close-up; other pieces and the catalog tiles (main frame) keep the hero', async ({ page }) => {
+test('hero first: every card opens its gallery on the whole piece; the oak close-up of the console and the TV unit comes second', async ({ page }) => {
+  // 21.10: крупний план першим кадром скасовано — з реклами на 390 видно лише кут дошки, не виріб
   await mockApi(page);
   for (const p of PRODUCTS) {
     await page.goto(`/p/${p.slug}/`);
-    const first = await page.locator('.gallery .g-slide img').first().getAttribute('src');
-    const texture = ['console', 'media_unit'].includes(p.category) && p.images.some(i => i.view === 'texture');
-    expect(first, p.slug).toContain(`/products/${p.slug}/${texture ? 'texture' : 'hero'}-`);
-    await expect(page.locator('.gallery .g-slide').first().locator('.viz-tag')).toBeVisible();   // «הדמיה» і на крупному плані
+    const srcs = await page.locator('.gallery .g-slide img').evaluateAll(is => is.map(i => i.getAttribute('src')));
+    expect(srcs[0], p.slug).toContain(`/products/${p.slug}/hero-`);
+    if (p.images.some(i => i.view === 'texture')) expect(srcs[1], p.slug).toContain(`/products/${p.slug}/texture-`);
   }
-  expect(PRODUCTS.some(p => ['console', 'media_unit'].includes(p.category))).toBe(true);
-  await page.goto('/catalog/');
-  for (const src of await page.locator('.card-media img').evaluateAll(is => is.filter(i => !i.closest('.card-alt')).map(i => i.getAttribute('src')))) expect(src).not.toContain('texture-');
 });
