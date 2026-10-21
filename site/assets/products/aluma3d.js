@@ -4,13 +4,14 @@
    window.Aluma3D.build(THREE, opts)  -> Promise<model { group, bounds(), setFinish(id), dispose() }>
      opts: { product: 'tavor'|'sahar'|'ofek'|'saf'|'tal', size: {length_cm, width_cm, height_cm, extended_cm?},
              finish: 'natural'|'light'|'honey'|'smoked'|'black', base: 'oak'|'steel', state: 'closed'|'open',
-             textures: { albedo, normal, rough } (URL; типово ../textures/*-1024.jpg поруч зі скриптом),
+             textures: { albedo, normal, rough } (URL; типово /assets/textures/*-1024.jpg),
              decor: true — ваза/книжки для інтер'єрного кадру }
    window.Aluma3D.studio(THREE, scene, renderer, o)    -> світло й підлога світлого фону; середовище з градієнтів
    window.Aluma3D.interior(THREE, scene, renderer, o)  -> стіна, підлога-плитка, сонце з вікна з тінню рами
    window.Aluma3D.frame(THREE, camera, box, view)      -> детермінований кадр: усі кути коробки в кадрі
    window.Aluma3D.swatch(THREE, opts)                  -> дощечка шпону для свотча тонування
-   window.Aluma3D.mount(el, opts)                      -> Promise<{ setFinish, setState, dispose }> (three.js з cdnjs)
+   window.Aluma3D.mount(el, opts)                      -> Promise<{ setFinish, setState, setSize, setBase, dispose }>
+                                                          (three.js 0.160.0 — свій файл /assets/vendor/three.min.js)
      opts: { product, size, finish, base, state, label, description, keysText, roleText } — малюється лише на дію,
      жодної анімації; полотно aria-hidden, контейнер — role=img у фокусі, опис — прихований абзац.
 
@@ -34,11 +35,6 @@
     smoked:  { rough: 1.00 },
     black:   { rough: 1.12 }
   };
-
-  var SCRIPT_BASE = (function () {
-    var s = root.document && document.currentScript && document.currentScript.src;
-    return s ? s.replace(/[^\/]*$/, '') : '/assets/products/';
-  })();
 
   // ---- тонування: альбедо натурального дуба -> тон, у sRGB 0..1 --------------------------------------
   function gradePixel(f, r, g, b) {
@@ -487,12 +483,13 @@
         t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
         t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.needsUpdate = true;
         return t;
-      });
+      }, function (e) { delete texCache[key]; throw e; });   // мережа впала — наступне відкриття спробує знову
     }
     return texCache[key];
   }
   function defaultTextures() {
-    return { albedo: SCRIPT_BASE + '../textures/natural-albedo-1024.jpg', normal: SCRIPT_BASE + '../textures/oak-normal-1024.jpg', rough: SCRIPT_BASE + '../textures/oak-rough-1024.jpg' };
+    // шляхи абсолютні й повні: build.py знаходить їх у цьому файлі, публікує й хешує
+    return { albedo: '/assets/textures/natural-albedo-1024.jpg', normal: '/assets/textures/oak-normal-1024.jpg', rough: '/assets/textures/oak-rough-1024.jpg' };
   }
 
   function build(THREE, opts) {
@@ -692,23 +689,39 @@
     return build(THREE, { product: 'tal', size: { length_cm: 60, width_cm: 60, height_cm: 4, label: 'swatch' }, finish: opts.finish, textures: opts.textures, base: 'none' });
   }
 
-  // ---- перегляд на сторінці: три.js з cdnjs, обертання перетягуванням --------------------------------
-  var THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js';
+  // ---- перегляд на сторінці: three.js — свій файл (без CDN і cookie), обертання пальцем і мишею --------
+  // Шлях абсолютний і повний: build.py знаходить його тут, публікує з хешем і переписує цей рядок.
+  var THREE_URL = '/assets/vendor/three.min.js';
+  var threeP = null;
   function loadThree() {
     if (root.THREE) return Promise.resolve(root.THREE);
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement('script'); s.src = THREE_URL; s.async = true; s.crossOrigin = 'anonymous';
-      s.onload = function () { resolve(root.THREE); }; s.onerror = function () { reject(new Error('three.js')); };
-      document.head.appendChild(s);
-    });
+    if (!threeP) {
+      threeP = new Promise(function (resolve, reject) {
+        var s = document.createElement('script'); s.src = THREE_URL; s.async = true;
+        s.onload = function () { if (root.THREE) resolve(root.THREE); else { threeP = null; reject(new Error('three')); } };
+        s.onerror = function () { threeP = null; s.remove(); reject(new Error('three')); };
+        document.head.appendChild(s);
+      });
+    }
+    return threeP;
   }
+  function hasWebGL() {
+    try {
+      var c = document.createElement('canvas');
+      return !!(root.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')));
+    } catch (e) { return false; }
+  }
+  // opts: { product, size, finish, base, state, label, description, keysText, roleText, textures, onReady }
+  // Помилка (немає WebGL — Error('webgl'), не завантажився three чи текстури) — відхилений Promise; текст показує сторінка.
   function mount(el, opts) {
+    if (!hasWebGL()) return Promise.reject(new Error('webgl'));
     return loadThree().then(function (THREE) {
-      var w = el.clientWidth || 800, h = el.clientHeight || 520;
+      var w = el.clientWidth || 800, h = el.clientHeight || 600;
       var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(2, root.devicePixelRatio || 1)); renderer.setSize(w, h);
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
       // доступність (ת"י 5568 / WCAG 2.1 AA): полотно — лише картинка, керування — сам контейнер у фокусі,
       // текстова альтернатива — opts.label (назва) і opts.description (розміри й матеріал), стрілки обертають
       renderer.domElement.setAttribute('aria-hidden', 'true');
@@ -722,28 +735,43 @@
       desc.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap';
       el.appendChild(desc); el.setAttribute('aria-describedby', desc.id);
       var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, w / h, 0.05, 60), model = null, view = { az: 32, el: 18 };
-      var state = opts.state || 'closed', finish = opts.finish || 'natural', alive = true;
+      var cur = { size: opts.size, base: opts.base, state: opts.state || 'closed', finish: opts.finish || 'natural' };
+      var alive = true, gen = 0, queued = false;
       function rebuild() {
-        return build(THREE, { product: opts.product, size: opts.size, finish: finish, base: opts.base, state: state, textures: opts.textures }).then(function (m) {
+        var my = ++gen;
+        return build(THREE, { product: opts.product, size: cur.size, finish: cur.finish, base: cur.base, state: cur.state, textures: opts.textures }).then(function (m) {
+          if (!alive || my !== gen) { m.dispose(); return; }   // поки вантажилось, вибір змінився або перегляд закрили
           if (model) { scene.remove(model.group); model.dispose(); }
+          if (scene.environment) scene.environment.dispose();
           while (scene.children.length) scene.remove(scene.children[0]);
           model = m; scene.add(m.group); studio(THREE, scene, renderer, m, {});
-          draw();
+          draw(); draw();   // VSM: другий прохід — тіні вже розмиті, як у рендерах
         });
       }
       function draw() {
+        queued = false;
         if (!model || !alive) return;
         frame(THREE, camera, model.bounds(), { az: view.az, el: view.el, fov: 30, margin: 0.08, aspect: w / h });
         renderer.render(scene, camera);
       }
+      function later() { if (!queued) { queued = true; root.requestAnimationFrame(draw); } }
+      // обертання: палець і миша — pointer events; колесо не слухаємо — сторінка гортається як завжди.
+      // touch-action: pan-y — вертикальний свайп гортає сторінку, горизонтальний обертає виріб
       var drag = null;
-      el.addEventListener('pointerdown', function (e) { drag = [e.clientX, e.clientY, view.az, view.el]; el.setPointerCapture(e.pointerId); });
+      el.addEventListener('pointerdown', function (e) {
+        if (e.button) return;
+        drag = [e.clientX, e.clientY, view.az, view.el];
+        try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      });
       el.addEventListener('pointermove', function (e) {
         if (!drag) return;
-        view.az = drag[2] - (e.clientX - drag[0]) * 0.4; view.el = Math.max(3, Math.min(60, drag[3] + (e.clientY - drag[1]) * 0.25));
-        root.requestAnimationFrame(draw);
+        view.az = drag[2] - (e.clientX - drag[0]) * 0.4;
+        view.el = Math.max(3, Math.min(60, drag[3] + (e.clientY - drag[1]) * 0.25));
+        later();
       });
-      el.addEventListener('pointerup', function () { drag = null; });
+      function up() { drag = null; }
+      el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+      el.style.touchAction = 'pan-y';
       // клавіатура: ←/→ — поворот на 15°, ↑/↓ — нахил; без анімацій і автоповороту (prefers-reduced-motion не порушується)
       el.addEventListener('keydown', function (e) {
         var k = e.key, rtl = getComputedStyle(el).direction === 'rtl' ? -1 : 1;
@@ -752,15 +780,32 @@
         else return;
         e.preventDefault(); draw();
       });
-      el.style.touchAction = 'pan-y';
+      // розмір полотна — за контейнером (поворот телефона, зміна вікна)
+      var ro = root.ResizeObserver ? new root.ResizeObserver(function () {
+        var nw = el.clientWidth, nh = el.clientHeight;
+        if (!alive || !nw || !nh || (nw === w && nh === h)) return;
+        w = nw; h = nh; renderer.setSize(w, h); later();
+      }) : null;
+      if (ro) ro.observe(el);
+      function dispose() {
+        if (!alive) return;
+        alive = false; gen++;
+        if (ro) ro.disconnect();
+        if (model) { scene.remove(model.group); model.dispose(); model = null; }
+        if (scene.environment) scene.environment.dispose();
+        renderer.dispose(); renderer.forceContextLoss();
+        el.innerHTML = '';
+      }
       return rebuild().then(function () {
         if (opts.onReady) opts.onReady();
         return {
-          setFinish: function (f) { finish = f; return model.setFinish(f).then(draw); },
-          setState: function (s) { state = s; return rebuild(); },
-          dispose: function () { alive = false; if (model) model.dispose(); renderer.dispose(); el.innerHTML = ''; }
+          setFinish: function (f) { cur.finish = f; return model ? model.setFinish(f).then(function () { draw(); draw(); }) : Promise.resolve(); },
+          setState: function (s) { cur.state = s; return rebuild(); },
+          setSize: function (sz) { cur.size = sz; return rebuild(); },
+          setBase: function (b) { cur.base = b; return rebuild(); },
+          dispose: dispose
         };
-      });
+      }, function (err) { dispose(); throw err; });
     });
   }
 

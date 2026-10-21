@@ -150,6 +150,11 @@
   "gallery_label": "Visualisation gallery",
   "gallery_item": "Visualisation",
   "view_3d": "3D view",
+  "v3d_state": "Table position",
+  "v3d_closed": "Closed",
+  "v3d_open": "Extended",
+  "v3d_hint": "Drag to rotate",
+  "v3d_close": "Close 3D view",
   "pick_size": "Size (cm)",
   "size_popular": "Most chosen",
   "pick_finish": "Finish:",
@@ -264,6 +269,11 @@
     }
   ],
   "js": {
+    "v3d_loading": "Loading the visualisation…",
+    "v3d_err_webgl": "This browser can't show 3D. The images and dimensions on this page describe the piece in full.",
+    "v3d_err": "The visualisation didn't load. Check your connection and try again.",
+    "v3d_keys": "Arrow keys rotate the model.",
+    "v3d_role": "3D visualisation",
     "sending": "Sending…",
     "e_name": "Please enter a name (at least 2 letters).",
     "e_phone": "Please enter a valid phone number.",
