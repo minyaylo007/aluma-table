@@ -420,3 +420,28 @@ for (const rm of ['no-preference', 'reduce']) {
     await expect(band.locator('.viz-tag')).toBeVisible();
   });
 }
+
+for (const rm of ['no-preference', 'reduce']) {
+  test(`oak rings (${rm}): line rings draw in on scroll from the pith outwards; drawn at once when motion is reduced`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.emulateMedia({ reducedMotion: rm });
+    await mockApi(page);
+    await page.goto('/');
+    const rings = page.locator('.material .rings');
+    // знак декоративний і легкий: прихований від читачів екрана, розмітка менша за 3 КБ
+    expect(await rings.getAttribute('aria-hidden')).toBe('true');
+    expect((await rings.evaluate(el => el.outerHTML)).length).toBeLessThan(3000);
+    const offsets = async f => {
+      await page.locator('.material').evaluate((el, f) => scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight * (1 - f)), f);
+      await page.waitForTimeout(150);
+      return rings.evaluate(el => [...el.querySelectorAll('path')].map(p => +parseFloat(getComputedStyle(p).strokeDashoffset).toFixed(2)));
+    };
+    const early = await offsets(0.35), done = await offsets(1.2);
+    expect(done.every(v => v === 0)).toBe(true);
+    if (rm === 'reduce') expect(early.every(v => v === 0)).toBe(true);
+    else {
+      expect(early[early.length - 1]).toBeGreaterThan(0);
+      expect(early[0]).toBeLessThan(early[early.length - 1]);
+    }
+  });
+}
