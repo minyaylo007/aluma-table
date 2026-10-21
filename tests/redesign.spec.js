@@ -533,6 +533,8 @@ test('first screen 390×844 of a card: price and the register button are on scre
   await expect(page.locator('#notice')).toBeVisible();
   const sticky = page.locator('[data-sticky]');
   await expect(sticky).toHaveClass(/is-on/);
+  // смуга виїжджає transform .3s: міряти після виїзду, а не посередині (CI 21.10: 863 > 844)
+  await sticky.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
   const r = await page.evaluate(() => {
     const n = document.querySelector('#notice').getBoundingClientRect(), s = document.querySelector('[data-sticky]');
     const box = el => el.getBoundingClientRect();
