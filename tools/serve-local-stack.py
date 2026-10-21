@@ -239,10 +239,12 @@ def main(argv=None) -> int:
               f"одноразова база в {db_dir})", flush=True)
         try:
             server.serve_forever()
-        except KeyboardInterrupt:
-            pass
         finally:
             server.server_close()
+    except KeyboardInterrupt:
+        # SIGTERM може прийти й до serve_forever (одразу після рядка з адресою — так робить тест):
+        # перехоплення лише навколо serve_forever випускало виняток, і процес виходив з кодом −2.
+        pass
     finally:
         shutil.rmtree(db_dir, ignore_errors=True)     # одноразова база не переживає процес
     return 0
