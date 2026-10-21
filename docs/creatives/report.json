@@ -11,7 +11,7 @@
       "file": "tavor-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 175556,
+      "bytes": 105244,
       "jpeg_quality": 88,
       "tiles": [
         0.6289
@@ -20,16 +20,16 @@
         "tavor"
       ],
       "images": [
-        "site/assets/products/tavor/hero-1264.webp"
+        "site/assets/products/tavor/hero-1600.webp"
       ],
-      "text_share": 0.0798,
+      "text_share": 0.0841,
       "min_contrast": 5.88
     },
     {
       "file": "tavor-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 197804,
+      "bytes": 123492,
       "jpeg_quality": 88,
       "tiles": [
         0.6631
@@ -38,16 +38,16 @@
         "tavor"
       ],
       "images": [
-        "site/assets/products/tavor/hero-1264.webp"
+        "site/assets/products/tavor/hero-1600.webp"
       ],
-      "text_share": 0.074,
+      "text_share": 0.0783,
       "min_contrast": 5.88
     },
     {
       "file": "tavor-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 215393,
+      "bytes": 139176,
       "jpeg_quality": 88,
       "tiles": [
         0.8324
@@ -56,9 +56,9 @@
         "tavor"
       ],
       "images": [
-        "site/assets/products/tavor/hero-1264.webp"
+        "site/assets/products/tavor/hero-1600.webp"
       ],
-      "text_share": 0.0577,
+      "text_share": 0.0613,
       "min_contrast": 5.88
     },
     {
@@ -119,7 +119,7 @@
       "file": "collection-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 187883,
+      "bytes": 167604,
       "jpeg_quality": 88,
       "tiles": [
         0.2511,
@@ -136,7 +136,7 @@
         "tal"
       ],
       "images": [
-        "site/assets/products/tavor/hero-1264.webp",
+        "site/assets/products/tavor/hero-1600.webp",
         "site/assets/products/sahar/hero-1264.webp",
         "site/assets/products/ofek/hero-1264.webp",
         "site/assets/products/saf/hero-1264.webp",
@@ -149,7 +149,7 @@
       "file": "collection-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 238297,
+      "bytes": 206082,
       "jpeg_quality": 88,
       "tiles": [
         0.2631,
@@ -166,7 +166,7 @@
         "tal"
       ],
       "images": [
-        "site/assets/products/tavor/hero-1264.webp",
+        "site/assets/products/tavor/hero-1600.webp",
         "site/assets/products/sahar/hero-1264.webp",
         "site/assets/products/ofek/hero-1264.webp",
         "site/assets/products/saf/hero-1264.webp",
@@ -179,7 +179,7 @@
       "file": "collection-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 372344,
+      "bytes": 296491,
       "jpeg_quality": 88,
       "tiles": [
         0.4037,
@@ -196,7 +196,7 @@
         "tal"
       ],
       "images": [
-        "site/assets/products/tavor/hero-1264.webp",
+        "site/assets/products/tavor/hero-1600.webp",
         "site/assets/products/sahar/hero-1264.webp",
         "site/assets/products/ofek/hero-1264.webp",
         "site/assets/products/saf/hero-1264.webp",

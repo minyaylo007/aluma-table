@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Відео-креативи для Reels / Stories / стрічки (docs/META-TEST.md): 3 ролики × 1080×1920 і 1080×1080 → docs/creatives/video/.
+// Відео-креативи для Reels / Stories / стрічки (docs/META-TEST.md): 3 ролики × 1080×1920, 1080×1350 і 1080×1080 → docs/creatives/video/.
 // Кадри й тексти — з catalog/products.json і tools/creatives/creatives.json (ті самі, що в статичних креативах);
 // шаблон — tools/creatives/video.html. Кожен кадр малює window.render(t) і знімає Playwright (без порту й мережі),
 // ролик збирає системний /usr/bin/ffmpeg (H.264, yuv420p, faststart, тиха AAC-доріжка).
@@ -15,7 +15,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { ROOT, TYPES, esc, fontFaces, fill, priceVars } = require('./build');
+const { ROOT, TYPES, esc, fontFaces, fill, priceVars, headlineOf } = require('./build');
 
 process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/ihor/aluma-table/ms-playwright';
 const { chromium } = require('@playwright/test');
@@ -27,7 +27,8 @@ const MAX_BYTES = 4 * 1024 * 1024;
 const MIN_CONTRAST = 4.5;
 const SAFE = 0.14;            // Reels/Stories: верх і низ по 14 % — під інтерфейсом
 const FADE = 0.6;
-const FORMATS = [{ id: '9x16', width: 1080, height: 1920 }, { id: '1x1', width: 1080, height: 1080 }];
+const FORMATS = [{ id: '9x16', width: 1080, height: 1920 }, { id: '4x5', width: 1080, height: 1350 },
+  { id: '1x1', width: 1080, height: 1080 }];
 const SHEET_AT = [0, 3, 6];   // секунди для листа кадрів
 
 function args(argv) {
@@ -80,7 +81,7 @@ function single(cfg, v, p) {
   const size = s.extended_cm ? `<div class="size" ${at(sizeAt)}><div class="nums"><span>${esc(s.length_cm)}</span>` +
     `<span>${esc(s.extended_cm)}</span></div><div class="track"><div class="bar"></div></div></div>` : '';
   const card = `<div class="card"><div class="brand" ${at(-1)}>${esc(cfg.brand)}</div>` +
-    `<h1 class="headline" ${at(-1)}>${esc(p.tagline.he)}</h1><p class="sub" ${at(0.6)}>${sub}</p>${size}` +
+    `<h1 class="headline" ${at(-1)}>${headlineOf(v, [p])}</h1><p class="sub" ${at(0.6)}>${sub}</p>${size}` +
     `<div class="foot"><div class="price"><b ${at(3.4)}>${fill(v.price, priceVars([p], cfg))}</b>` +
     `<small ${at(3.4)}>${esc(cfg.price_note)} · ${esc(cfg.includes)}</small></div><div class="cta" ${at(4.6)}>${esc(cfg.cta)}</div></div></div>`;
   const timeline = { duration, fade: FADE, shots, items: [],

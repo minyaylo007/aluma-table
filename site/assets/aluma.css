@@ -225,8 +225,16 @@ bdi { unicode-bidi: isolate; }
 .band-cap .wrap { display: block; max-width: 1320px; }
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .band img { animation: band-pan linear both; animation-timeline: view(); transform-origin: center; }
+    /* .band з overflow: hidden — сама скролер для view(), тож шкала названа на ній і читається нащадками */
+    .band { view-timeline: --band; }
+    .band img { animation: band-pan linear both; animation-timeline: --band; transform-origin: center; }
     @keyframes band-pan { from { transform: scale(1.12) translateY(-3%); } to { transform: scale(1.12) translateY(3%); } }
+    /* «арочне вікно»: кадр входить аркою і розкривається на всю ширину; підпис і плашка «הדמיה» поза кліпом */
+    .band { background: var(--paper); }
+    .band picture { animation: band-arch linear both; animation-timeline: --band; animation-range: entry 0% cover 45%; }
+    @keyframes band-arch { from { clip-path: inset(0 16% round 50vw 50vw 0 0); } to { clip-path: inset(0 0 round 0 0 0 0); } }
+    .band-cap { animation: band-cap linear both; animation-timeline: --band; animation-range: entry 50% cover 45%; }
+    @keyframes band-cap { from { opacity: 0; } to { opacity: 1; } }
     .card { animation: card-in linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; }
     /* лише зсув, без прозорості: картка ніколи не лишається невидимою (повний знімок, старий рушій) */
     @keyframes card-in { from { transform: translateY(36px); } to { transform: none; } }
@@ -297,6 +305,17 @@ bdi { unicode-bidi: isolate; }
 .split-copy p { margin-block-start: 16px; max-width: 52ch; }
 .split-copy .h2 { margin-block-end: 8px; }
 .split-copy .link-arrow { margin-block-start: 24px; }
+/* «עץ אמיתי, בלי סיפורים» — три чесні факти про матеріал */
+.mat-media { aspect-ratio: 4 / 3; }
+.mat-facts { display: grid; gap: 22px; margin-block-start: 24px; counter-reset: mat; }
+.mat-facts > li { counter-increment: mat; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; }
+.mat-facts > li::before { content: counter(mat); grid-row: span 3; display: inline-grid; place-items: center; width: 28px; height: 28px;
+  border: 1px solid var(--ink); border-radius: 50%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.mat-h { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; line-height: 1.3; }
+.mat-facts p { margin-block-start: 6px; }
+.mat-tones { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-block-start: 12px; font-size: .9rem; }
+.mat-tones li { display: flex; align-items: center; gap: 8px; }
+.mat-tones .swatch-dot { width: 22px; height: 22px; }
 .grain-panel { display: grid; gap: 22px; padding: clamp(24px, 4vw, 48px); background: var(--paper); border-radius: var(--r-lg); border: 1px solid var(--line); }
 .gp-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 14px; font-size: .9rem; }
 .gp-row b { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; }
@@ -485,6 +504,18 @@ bdi { unicode-bidi: isolate; }
 .plan-chair { fill: var(--paper); stroke: var(--esp-2); stroke-width: 1.5; }
 .plan-fig figcaption { margin-block-start: 8px; font-size: .95rem; font-variant-numeric: tabular-nums; }
 .plan > .small { margin-block-start: 16px; max-width: 64ch; }
+
+/* ---------------------------------------------------------------- «בוקר / ערב»: та сама камера, інше світло */
+.light .sec-head { margin-block-end: 20px; }
+.light-switch { display: inline-flex; gap: 4px; padding: 4px; margin-block-end: 16px; border: 1px solid var(--line); border-radius: 999px; }
+.light-btn { min-height: 44px; min-width: 96px; padding-inline: 18px; border: 0; border-radius: 999px; background: none;
+  font: inherit; color: var(--ink); cursor: pointer; }
+.light-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.light-btn:focus-visible { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
+.light-media { aspect-ratio: 4 / 3; max-width: 1040px; }
+.light-l { position: absolute; inset: 0; transition: opacity .7s var(--ease); }
+.light-l[data-l="evening"], [data-on="evening"] .light-l[data-l="morning"] { opacity: 0; }
+[data-on="evening"] .light-l[data-l="evening"] { opacity: 1; }
 
 /* ---------------------------------------------------------------- липка кнопка (мобільна) */
 .sticky-cta { position: fixed; inset-inline: 0; bottom: 0; z-index: 30; display: flex; gap: 12px; align-items: center;

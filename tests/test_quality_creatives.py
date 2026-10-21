@@ -70,6 +70,16 @@ class CreativeConfigTests(unittest.TestCase):
             self.assertNotIn("מ־", v["price"], v["id"])
             self.assertIn("{from}", v["price"])
 
+    def test_seats_in_headline_come_from_catalog(self):
+        """Місця в заголовку — лише {seats}/{seats_extended} з catalog seats, без цифр у конфігу (розвідка 21.10)."""
+        for v in self.cfg["variants"]:
+            self.assertNotRegex(v["headline"], r"\d", v["id"])
+            if "{seats" in v["headline"]:
+                for pid in v["products"]:
+                    self.assertIn("seats", self.catalog[pid], f"{v['id']}: у каталозі нема seats")
+        tavor = next(v for v in self.cfg["variants"] if v["id"] == "tavor")
+        self.assertIn("{seats}", tavor["headline"])
+
     def test_template_marks_every_text_for_the_checks(self):
         """Кожен текстовий плейсхолдер стоїть в елементі з data-text — інакше 20 % і контраст його не бачать."""
         html = TEMPLATE.read_text(encoding="utf-8")
@@ -105,14 +115,14 @@ VIDEO = OUT / "video"
 
 @unittest.skipUnless((VIDEO / "report.json").exists(), "docs/creatives/video/ ще не зібрано")
 class PublishedVideosTests(unittest.TestCase):
-    """Відео (tools/creatives/video.js): 3 ролики × 9:16 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
+    """Відео (tools/creatives/video.js): 3 ролики × 9:16, 4:5 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
 
     def test_report_matches_files_and_limits(self):
         report = json.loads((VIDEO / "report.json").read_text(encoding="utf-8"))
         cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
         items = report["videos"]
         self.assertEqual({(it["file"].rsplit("-", 1)[0], it["width"], it["height"]) for it in items},
-                         {(v["id"], w, h) for v in cfg["variants"] for w, h in ((1080, 1920), (1080, 1080))})
+                         {(v["id"], w, h) for v in cfg["variants"] for w, h in ((1080, 1920), (1080, 1350), (1080, 1080))})
         for it in items:
             f = VIDEO / it["file"]
             self.assertTrue(f.is_file(), it["file"])

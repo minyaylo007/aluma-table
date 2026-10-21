@@ -505,6 +505,23 @@ def plan(p: dict, loc: str) -> str:
     return '<div class="plan" data-plan>' + "".join(out) + '<p class="muted small">{{t.unfold_plan_note}}</p></div>'
 
 
+def light(p: dict, loc: str) -> str:
+    """«בוקר / ערב»: пара кадрів light з однієї камери; без пари — порожньо."""
+    pair = {i.get("light"): i for i in p.get("images") or [] if i.get("view") == "light" and i.get("src")}
+    if not (pair.get("morning") and pair.get("evening")):
+        return ""
+    btns = "".join(f'<button class="light-btn" type="button" data-light="{k}" aria-pressed="{"true" if k == "morning" else "false"}">'
+                   f'{{{{t.light_{k}}}}}</button>' for k in ("morning", "evening"))
+    hide = ' aria-hidden="true"'
+    layers = "".join(f'<div class="light-l" data-l="{k}"{hide if k == "evening" else ""}>'
+                     f'{picture(pair[k], loc, sizes="(min-width: 1100px) 1040px, 100vw")}</div>' for k in ("morning", "evening"))
+    return (f'<section class="sec sec--paper light" aria-labelledby="light-h"><div class="wrap">'
+            f'<div class="sec-head"><h2 class="h2" id="light-h">{{{{t.light_h2}}}}</h2><p class="sec-lede">{{{{t.light_lede}}}}</p></div>'
+            f'<div class="light-switch" role="group" aria-label="{{{{t.light_h2}}}}">{btns}</div>'
+            f'<figure class="media media--img light-media" data-light-fig data-on="morning">{layers}'
+            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure></div></section>')
+
+
 def how(p: dict, loc: str) -> str:
     """Блок «איך נפתח השולחן»: кадри механізму (якщо є) + план. Без кадрів і без плану — порожньо."""
     imgs = p.get("images") or []
@@ -677,6 +694,17 @@ def main() -> None:
             f'<figure class="band">{picture(band, loc, sizes="100vw")}<span class="viz-tag">{{{{t.viz_tag}}}}</span>'
             f'<figcaption class="band-cap"><span class="wrap">{{{{t.band_cap}}}}</span></figcaption></figure>' if band else "")
 
+        # «עץ אמיתי, בלי סיפורים»: крупний план фанери й крайки з каталогу (рендер — з «הדמיה»), тони — з каталогу
+        tex = next((i for q in [hero_p] + products for i in q.get("images") or [] if i.get("view") == "texture" and i.get("src")), None)
+        base_tokens["MAT_MEDIA"] = (
+            f'<figure class="media media--img mat-media">{picture(tex, loc, sizes="(min-width: 900px) 50vw, 100vw")}'
+            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure>' if tex else "")
+        tones = []
+        for f in (hero_p.get("finishes") or []):
+            hexv = f.get("hex") if re.fullmatch(r"#[0-9a-fA-F]{3,8}", str(f.get("hex") or "")) else "#c8a27a"
+            tones.append(f'<li><span class="swatch-dot" style="--c:{hexv}" aria-hidden="true"></span>{esc(L(f.get("name"), loc))}</li>')
+        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>' if tones else ""
+
         def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str, alt_path: str):
             toks = {**base_tokens, **tokens}
             toks.setdefault("TITLE", "{{t." + title_key + "}}")
@@ -722,7 +750,7 @@ def main() -> None:
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
-                "P_SPECS": specs(p, loc), "P_HOW": how(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_SPECS": specs(p, loc), "P_HOW": how(p, loc), "P_LIGHT": light(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }
