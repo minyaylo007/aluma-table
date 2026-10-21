@@ -3,6 +3,7 @@
 # швидкий (tests/QUICK.txt), повний — --full перед злиттям. По одному імені модуля в рядку; # — коментар.
 tests.test_handler            # заявка, подія, health, адмінка, notify
 tests.test_meta_settings      # налаштування, /api/fx/config, CAPI, CSV
+tests.test_shop_funnel        # воронка магазину: кроки, CAPI InitiateCheckout, заявка з кошика, /admin/funnel
 tests.test_legal_texts        # тексти доступності, приватності, תקנון, згод (he = en)
 tests.test_tracking_js        # tracking.js: піксель лише з конфігом і згодою, event_id
 tests.test_wsgi               # бойовий рантайм gunicorn

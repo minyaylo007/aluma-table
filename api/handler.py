@@ -31,7 +31,7 @@ import os
 import re
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 import boto3
@@ -43,8 +43,9 @@ except ImportError:  # pragma: no cover - notify() тоді просто мов�
     requests = None
 
 try:  # з кореня репозиторію (тести, gunicorn api.wsgi:application)
-    from api import meta, store
+    from api import funnel, meta, store
 except ImportError:  # у бандлі лямбди api/ САМЕ і є коренем
+    import funnel
     import meta
     import store
 
@@ -88,12 +89,17 @@ VALID_COLORS = ("natural", "smoked", "white")
 VALID_SIZES = ("160", "220")      # cm; the client sends the string as-is
 VALID_LANGS = ("he", "en")        # <html lang> of the page the lead came from
 # Поля вітрини (specs/002-meta-settings/contracts/lead.md). Невідоме значення → "", заявку не відхиляє.
-VALID_TIMEFRAMES = ("now", "1-3m", "later")
+VALID_TIMEFRAMES = ("now", "1-3m", "later", "browsing")   # browsing — «רק בודק/ת» на оформленні
 VALID_CONTACT_PREFS = ("whatsapp", "call")
 LEAD_SLUG = re.compile(r"[a-z0-9-]{1,40}")
 LEAD_SIZE_LABEL = re.compile(r"[\w ×x*.,/\-–]{1,40}")
 LEAD_EMAIL = re.compile(r"[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}")
 LEAD_EVENT_ID = re.compile(r"[A-Za-z0-9_.\-]{8,64}")
+# кошик заявки з оформлення: «slug:розмір:тон:основа:кількість;…» — кожна частина за шаблоном
+CART_ITEM = re.compile(r"[a-z0-9-]{1,40}:[\w ×x*.,/\-–]{1,40}:[a-z0-9-]{0,30}:[a-z0-9-]{0,30}:[1-9]")
+CART_MAX = 300
+ORDER_TOTAL_MAX = 200_000
+VALID_LEAD_SOURCES = ("checkout", "form", "quick")
 
 BOT_UA = re.compile(
     r"bot|crawler|spider|crawling|facebookexternalhit|slurp|bingpreview|"
@@ -367,6 +373,7 @@ def put_events(event):
     is_test = (event.get("headers") or {}).get("x-test") == "1"
 
     written = 0
+    checkout = None
     with events_t.batch_writer() as batch:
         for e in items:
             if not isinstance(e, dict):
@@ -376,6 +383,8 @@ def put_events(event):
                 continue
             props = e.get("props") or {}
             props_json = json.dumps(props, ensure_ascii=False)[:MAX_PROPS_BYTES]
+            if name == "InitiateCheckout" and checkout is None and isinstance(props, dict):
+                checkout = (props, clip(e.get("page") or ctx.get("page"), 300))
             batch.put_item(
                 Item={
                     "pk": day_key(today()),
@@ -407,6 +416,8 @@ def put_events(event):
 
     if session_id != "anon":
         touch_session(sessions_t, session_id, ctx, event, iph, is_test)
+    if checkout and not is_test:
+        send_capi_checkout(checkout[0], checkout[1], event, sessions_t, iph)
 
     return resp(200, {"ok": True, "written": written})
 
@@ -480,8 +491,10 @@ def put_lead(event):
     consent = bool(data.get("consent"))
     marketing = _flag(data.get("marketing_consent", data.get("consent_marketing")))
 
+    source = _pick(data.get("lead_source"), 10, allowed=VALID_LEAD_SOURCES)
     errors = {}
-    if len(name) < 2:
+    # на екрані оплати ім'я необов'язкове (specs/003): там просимо лише телефон, щоб зберегти ціну
+    if len(name) < 2 and not (source == "checkout" and not name):
         errors["name"] = "required"
     phone, plausible = normalize_phone(phone_raw)
     if not plausible:
@@ -586,10 +599,30 @@ def lead_extras(data: dict, event) -> dict:
             # без event_id від браузера — свій: Lead у CAPI все одно піде, лише без склейки з пікселем
             "event_id": _pick(data.get("event_id"), 64, LEAD_EVENT_ID) or "lead." + uuid.uuid4().hex[:16],
             "consent_ads": ads,
+            "lead_source": _pick(data.get("lead_source"), 10, allowed=VALID_LEAD_SOURCES),
+            "cart": _cart(data.get("cart")),
+            "order_total": _order_total(data.get("order_total")),
         },
         "fbp": fbp,
         "fbc": fbc if fbc.startswith("fb.") else "",
     }
+
+
+def _cart(value) -> str:
+    """Кошик з оформлення — лише рядок за шаблоном CART_ITEM; щось не те — увесь кошик "" (не причина відмови)."""
+    raw = clip(value, CART_MAX).strip()
+    if not raw:
+        return ""
+    parts = raw.split(";")
+    return raw if len(parts) <= 10 and all(CART_ITEM.fullmatch(p) for p in parts) else ""
+
+
+def _order_total(value) -> int:
+    try:
+        n = int(value) if not isinstance(value, bool) else 0
+    except (TypeError, ValueError):
+        return 0
+    return n if 0 < n <= ORDER_TOTAL_MAX else 0
 
 
 def notify(item):
@@ -614,6 +647,8 @@ def notify(item):
         f"Size:    {item.get('size_label', '')}\n"
         f"Finish:  {item.get('finish_id', '')}  Base: {item.get('base_id', '')}\n"
         f"When:    {item.get('timeframe', '')}  Via: {item.get('contact_pref', '')}\n"
+        f"Cart:    {item.get('cart', '')}\n"
+        f"Total:   {item.get('order_total') or ''}  From: {item.get('lead_source', '')}\n"
         f"Comment: {item['comment']}\n\n"
         f"consent_marketing={'yes' if item.get('consent_marketing') else 'no'}\n"
         f"utm_source={item['utm_source']} utm_campaign={item['utm_campaign']}\n"
@@ -751,6 +786,37 @@ def send_capi_lead(item: dict, extra: dict, event):
         print(json.dumps({"event": "capi_failed", "id": item.get("id"), "error": type(exc).__name__}))
 
 
+CAPI_CHECKOUTS_PER_IP_PER_MINUTE = 6   # окремо від лімітів подій: зовнішній виклик дорожчий за рядок
+
+
+def send_capi_checkout(props: dict, page: str, event, sessions_t, iph: str):
+    """InitiateCheckout у Conversions API — той самий event_id, що в пікселі (склейка).
+
+    Лише за згоди на рекламу (ads_consent від сторінки або cookie _fbp, як у Lead) і з event_id:
+    без нього Meta порахувала б подію двічі. Жодних особистих даних: IP, UA і cookies Meta.
+    """
+    try:
+        cookies = cookies_of(event)
+        fbp = clip(cookies.get("_fbp"), 200).strip()
+        fbp = fbp if fbp.startswith("fb.") else ""
+        fbc = clip(cookies.get("_fbc"), 300).strip()
+        event_id = _pick(props.get("event_id"), 64, LEAD_EVENT_ID)
+        if not event_id or not (_flag(props.get("ads_consent")) or fbp):
+            return
+        settings = load_settings()
+        if not (settings.get("capi_token") and settings.get("pixel_id")):
+            return
+        if not rate_ok(sessions_t, f"RLC#{iph}#{int(time.time() // 60)}", CAPI_CHECKOUTS_PER_IP_PER_MINUTE, 60):
+            return
+        user = meta.user_data(fbp=fbp, fbc=fbc if fbc.startswith("fb.") else "", ip=client_ip(event),
+                              ua=clip((event.get("headers") or {}).get("user-agent"), 400))
+        ok, status = capi_send(settings, [meta.checkout_event(props, event_id, page, user, SITE_DOMAIN)],
+                               ref=event_id, use_test_code=False)
+        _capi_status_put(ok, status, "checkout")
+    except Exception as exc:  # pragma: no cover - остання сітка: подія вже записана
+        print(json.dumps({"event": "capi_failed", "id": "checkout", "error": type(exc).__name__}))
+
+
 def public_config_response(event):
     try:
         cfg = meta.public_config(load_settings())
@@ -870,12 +936,10 @@ def admin_logout(event):
 
 
 def scan_events(days: int):
+    """Події за вікно funnel: календарні дні Asia/Jerusalem за серверним часом запису (specs/003)."""
     events_t, _, _ = _tables()
     out = []
-    start = datetime.now(timezone.utc).date()
-    span = days if days > 0 else 120
-    for i in range(span):
-        d = (start - timedelta(days=i)).strftime("%Y-%m-%d")
+    for d in reversed(funnel.utc_partitions(days)):
         last = None
         while True:
             kwargs = {"KeyConditionExpression": Key("pk").eq(day_key(d)), "Limit": 1000}
@@ -891,7 +955,7 @@ def scan_events(days: int):
                 break
         if len(out) > 60000:
             break
-    return out
+    return funnel.events_in_window(out, days)
 
 
 def load_leads():
@@ -1031,6 +1095,8 @@ def admin_page(event):
             f"<td>{esc(l.get('city'))}</td>"
             f"<td>{esc(l.get('product_id'))}<br><span class='muted'>{esc(l.get('size_label') or l.get('size'))}"
             f" · {esc(l.get('finish_id') or l.get('color'))}{' · ' + esc(l.get('base_id')) if l.get('base_id') else ''}"
+            f"{'<br>₪' + esc(l.get('order_total')) if l.get('order_total') else ''}"
+            f"{' · ' + esc(l.get('cart')) if l.get('cart') else ''}"
             "</span></td>"
             f"<td>{esc(TIMEFRAME_LABELS.get(l.get('timeframe'), ''))}<br>"
             f"<span class='muted'>{esc(l.get('contact_pref'))}</span></td>"
@@ -1091,6 +1157,7 @@ def admin_page(event):
     <a href="?range=7" class="{'on' if rng=='7' else ''}">7 ימים</a>
     <a href="?range=all" class="{'on' if rng=='all' else ''}">הכול</a>
     <a href="?range={esc(rng)}&amp;test={'0' if show_test else '1'}">{'הסתר בדיקות' if show_test else 'הצג בדיקות'}</a>
+    <a href="/admin/funnel?range={esc(rng)}">משפך קנייה · Воронка</a>
     <a href="/admin/settings">הגדרות · Настройки</a>
     <a href="/admin/logout">יציאה</a>
   </nav>
@@ -1117,19 +1184,112 @@ def admin_page(event):
     return resp(200, html, is_json=False)
 
 
-TIMEFRAME_LABELS = {"now": "עכשיו", "1-3m": "1–3 חודשים", "later": "מאוחר יותר"}
+def admin_funnel(event):
+    """Воронка магазину: сесії → картка → кошик → «לתשלום» → екран оплати → Lead. Лише рахунок, без ПД."""
+    if not check_auth(event):
+        return need_auth()
+    qs = event.get("queryStringParameters") or {}
+    rng = qs.get("range", "7")
+    days = {"1": 1, "7": 7, "14": 14, "30": 30, "all": 0}.get(rng, 7)
+    rng = rng if rng in ("1", "7", "14", "30", "all") else "7"
+    show_test = qs.get("test") == "1"
+    rep = funnel.report(scan_events(days), load_leads(), days, include_test=show_test)
+    names = {k: ru for k, _e, _he, ru in funnel.STEPS}
+
+    def bars(steps):
+        top = steps[0]["n"] or 1
+        return "".join(
+            f"<div class='step'><div class='bar' style='width:{100.0 * s['n'] / top:.0f}%'></div>"
+            f"<span class='lbl'>{esc(s['he'])} · {esc(s['ru'])}</span><span class='val'>{s['n']} "
+            f"<em>{'' if s['of_prev'] is None or s['key'] == 'sessions' else str(s['of_prev']) + '%'}</em></span></div>"
+            for s in steps)
+
+    head = "".join(f"<th>{esc(ru)}</th>" for _k, _e, _he, ru in funnel.STEPS)
+
+    def grid(rows, first_col):
+        if not rows:
+            return "<p class='muted'>אין נתונים · нет данных</p>"
+        body = "".join(
+            f"<tr><td class='mono'>{esc(r['key'])}</td>"
+            + "".join(f"<td class='n'>{s['n']}</td>" for s in r["steps"]) + "</tr>" for r in rows)
+        return f"<table><thead><tr><th>{esc(first_col)}</th>{head}</tr></thead><tbody>{body}</tbody></table>"
+
+    prices = "".join(
+        f"<tr><td class='mono'>{esc(p['product'])} {esc(p['size'])}</td><td class='n'>₪{p['price']}</td>"
+        f"<td class='n'>{p['cart']}</td><td class='n'>{p['checkout']}</td><td class='n'>{p['payment']}</td>"
+        f"<td class='n'>{p['lead']}</td></tr>" for p in rep["price_points"]
+    ) or "<tr><td colspan='6' class='muted'>אין נתונים · нет данных</td></tr>"
+    dropped = "".join(f"<tr><td>{esc(names[d['step']])}</td><td class='n'>{d['n']}</td></tr>"
+                      for d in rep["dropped_after"])
+    leave = "".join(
+        f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td>"
+        f"<td class='n'>{esc(rep['median_seconds'].get(k, '—'))}</td></tr>" for k, v in rep["leave_by_step"].items()
+    ) or "<tr><td colspan='3' class='muted'>אין נתונים · нет данных</td></tr>"
+    keep_test = "&amp;test=1" if show_test else ""
+    nav = " ".join(
+        f"<a href='?range={r}{keep_test}' class='{'on' if rng == r else ''}'>{label}</a>"
+        for r, label in (("1", "היום"), ("7", "7 ימים"), ("14", "14"), ("30", "30"), ("all", "הכול")))
+    since = rep["window"]["from"][:10]
+    html = f"""<!doctype html>
+<html lang="he" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>fx-table · משפך קנייה</title>
+<style>
+ :root{{--bg:#12100e;--card:#1c1916;--line:#2e2924;--ink:#f0ece6;--mut:#9a9088;--acc:#c98b34}}
+ *{{box-sizing:border-box}}
+ body{{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}}
+ header{{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}}
+ h1{{font-size:18px;margin:0}} h2{{font-size:15px;margin:0 0 10px;color:var(--mut);font-weight:600}}
+ a{{color:var(--acc)}} .muted{{color:var(--mut)}}
+ nav a{{margin-inline-start:12px;text-decoration:none}} nav a.on{{color:var(--ink);font-weight:700;text-decoration:underline}}
+ main{{padding:20px;display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}}
+ .card{{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;overflow-x:auto}}
+ .wide{{grid-column:1/-1}}
+ table{{width:100%;border-collapse:collapse;font-size:13px}}
+ th,td{{text-align:start;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}}
+ td.n{{text-align:end;font-variant-numeric:tabular-nums}}
+ .mono{{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}}
+ .step{{position:relative;padding:9px 12px;margin-bottom:6px;border-radius:8px;background:#232019;overflow:hidden}}
+ .bar{{position:absolute;inset-block:0;inset-inline-start:0;background:rgba(201,139,52,.28)}}
+ .step .lbl,.step .val{{position:relative}} .step .val{{float:left;font-variant-numeric:tabular-nums}}
+ .step .val em{{font-style:normal;color:var(--mut);margin-inline-start:6px}}
+</style></head><body>
+<header>
+  <h1>משפך קנייה · Воронка покупки</h1>
+  <nav>{nav}
+    <a href="?range={rng}{'' if show_test else '&amp;test=1'}">{'הסתר בדיקות' if show_test else 'הצג בדיקות'}</a>
+    <a href="/admin?range={rng if rng in ('1', '7', 'all') else '7'}">לוח בקרה</a>
+    <a href="/admin/logout">יציאה</a>
+  </nav>
+  <span class="muted mono">Asia/Jerusalem{' · מ־' + esc(since) if since else ''} · {rep['lead_rows']} leads</span>
+</header>
+<main>
+  <section class="card wide"><h2>כל המוצרים · всего (% от предыдущего шага)</h2>{bars(rep['steps'])}</section>
+  <section class="card wide"><h2>לפי מוצר · по товарам</h2>{grid(rep['by_product'], 'מוצר')}</section>
+  <section class="card wide"><h2>לפי מקור · по источнику (utm_source / utm_campaign)</h2>{grid(rep['by_source'], 'מקור')}</section>
+  <section class="card wide"><h2>לפי יום · по дням</h2>{grid(rep['by_day'], 'יום')}</section>
+  <section class="card"><h2>איפה עזבו · последний шаг сессии</h2><table>{dropped}</table></section>
+  <section class="card"><h2>יציאה מהדף · уход со страницы (шаг · медиана сек.)</h2><table>{leave}</table></section>
+  <section class="card wide"><h2>באיזה מחיר · цена в корзине → дошли</h2>
+    <table><thead><tr><th>מוצר</th><th>₪</th><th>корзина</th><th>«לתשלום»</th><th>оплата</th><th>Lead</th></tr></thead>
+    <tbody>{prices}</tbody></table></section>
+</main></body></html>"""
+    return resp(200, html, is_json=False)
+
+
+TIMEFRAME_LABELS = {"now": "עכשיו", "1-3m": "1–3 חודשים", "later": "מאוחר יותר", "browsing": "רק בודק/ת"}
 
 CSV_COLUMNS = (
     "ts", "id", "status", "name", "phone", "email", "city", "product_id", "size_label", "finish_id", "base_id",
-    "timeframe", "contact_pref", "color", "size", "lang", "comment", "consent_marketing", "consent_marketing_at", "consent_ads",
+    "timeframe", "contact_pref", "cart", "order_total", "lead_source", "color", "size", "lang", "comment", "consent_marketing", "consent_marketing_at", "consent_ads",
     "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "page", "device", "is_test",
 )
 
 
 def filter_leads(leads, days: int, product: str = ""):
-    if days > 0:
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-        leads = [l for l in leads if l.get("ts", "") >= cutoff]
+    if days > 0:   # те саме вікно, що в подій: календарні дні Asia/Jerusalem
+        leads = funnel.leads_in_window(leads, days)
     if product:
         leads = [l for l in leads if l.get("product_id") == product]
     return leads
@@ -1324,6 +1484,8 @@ def lambda_handler(event, context):
             return admin_logout(event)
         if path == "/admin" and method == "GET":
             return admin_page(event)
+        if path == "/admin/funnel" and method == "GET":
+            return admin_funnel(event)
         if path == "/admin/status" and method == "POST":
             return admin_status(event)
         if path == "/admin/settings" and method in ("GET", "POST"):

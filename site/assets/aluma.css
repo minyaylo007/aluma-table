@@ -482,7 +482,21 @@ bdi { unicode-bidi: isolate; }
 .g-thumb picture { display: block; height: 100%; }
 .g-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .g-thumb[aria-current="true"] { border-color: var(--ink); }
-.viewer3d { aspect-ratio: 4 / 3; border-radius: var(--r); background: var(--linen); }
+.g-3d { margin-block-start: 12px; }
+.viewer3d { position: relative; margin-block-start: 12px; border-radius: var(--r); background: var(--linen); overflow: hidden; }
+.viewer3d[hidden] { display: none; }
+.v3d-stage { position: relative; aspect-ratio: 4 / 3; cursor: grab; touch-action: pan-y; }
+.v3d-stage:active { cursor: grabbing; }
+.v3d-stage:focus-visible { outline-offset: -3px; }
+.v3d-msg { position: absolute; inset-inline: 0; inset-block-start: 0; aspect-ratio: 4 / 3; padding: 16px; display: grid; place-items: center; text-align: center; color: var(--muted); font-size: .95rem; pointer-events: none; }
+.v3d-msg:empty, .v3d-msg[hidden] { display: none; }
+.viewer3d .viz-tag { inset-block: 10px auto; }
+.v3d-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border-block-start: 1px solid var(--line); background: var(--paper); }
+.v3d-states { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.v3d-st, .v3d-close { min-height: 44px; padding: 0 16px; font: inherit; font-size: .9rem; color: var(--ink); background: transparent; border: 0; cursor: pointer; }
+.v3d-st[aria-pressed="true"] { background: var(--ink); color: var(--cream); }
+.v3d-hint { color: var(--muted); font-size: .85rem; }
+.v3d-close { margin-inline-start: auto; border: 1px solid var(--line); border-radius: 999px; }
 .pdp-h1 { font-size: clamp(2.4rem, 4.6vw, 3.4rem); line-height: 1.05; }
 .pdp-tag { margin-block-start: 10px; color: var(--muted); font-size: 1.1rem; }
 .badges { display: flex; gap: 6px; margin-block-end: 12px; }

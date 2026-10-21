@@ -261,6 +261,46 @@ def lead_event(item: dict, user: dict, domain: str, now: float | None = None) ->
     }
 
 
+_SLUG = re.compile(r"^[a-z0-9-]{1,40}$")
+_LABEL = re.compile(r"^[\w ×x*.,/\-–]{1,40}$")
+
+
+def checkout_event(props: dict, event_id: str, page: str, user: dict, domain: str,
+                   now: float | None = None) -> dict:
+    """InitiateCheckout для CAPI з параметрів події браузера — лише те, що пройшло шаблон."""
+    custom = {"currency": "ILS", "content_type": "product"}
+    ids = props.get("content_ids")
+    ids = [ids] if isinstance(ids, str) else ids if isinstance(ids, list) else []
+    ids = [i for i in ids[:10] if isinstance(i, str) and _SLUG.match(i)]
+    if ids:
+        custom["content_ids"] = ids
+    try:
+        value = float(props.get("value"))
+        if 0 <= value <= 200_000:
+            custom["value"] = round(value, 2)
+    except (TypeError, ValueError):
+        pass
+    try:
+        num = int(props.get("num_items"))
+        if 1 <= num <= 99:
+            custom["num_items"] = num
+    except (TypeError, ValueError):
+        pass
+    for key in ("size", "finish", "base"):
+        v = props.get(key)
+        if isinstance(v, str) and _LABEL.match(v):
+            custom[key] = v
+    return {
+        "event_name": "InitiateCheckout",
+        "event_time": int(now if now is not None else time.time()),
+        "event_id": event_id,
+        "action_source": "website",
+        "event_source_url": source_url(page, domain),
+        "user_data": user,
+        "custom_data": custom,
+    }
+
+
 def test_event(domain: str, now: float | None = None) -> dict:
     """Подія для кнопки «Проверить». Без жодних даних людей — лише країна і синтетичний UA."""
     ts = int(now if now is not None else time.time())

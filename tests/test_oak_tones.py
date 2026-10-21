@@ -14,10 +14,13 @@ SWATCH = ROOT / "site" / "assets" / "products" / "finishes"
 
 
 def js_finishes():
-    """FINISHES з aluma3d.js -> {тон: (альбедо, скан, щільність)}."""
+    """FINISHES з aluma3d.js -> {тон: (альбедо, скан, щільність)}; шляхи там повні — їх публікує build.py."""
     src = (ROOT / "site" / "assets" / "products" / "aluma3d.js").read_text(encoding="utf-8")
-    rows = re.findall(r"(\w+):\s*\{[^}]*albedo:\s*'([\w-]+)',\s*maps:\s*'([\w-]+)',\s*scale:\s*([\d.]+)\s*\}", src)
-    return {t: (a, m, float(s)) for t, a, m, s in rows}
+    rows = re.findall(r"(\w+):\s*\{[^}]*scale:\s*([\d.]+),\s*albedo:\s*'/assets/textures/([\w-]+)-1024\.jpg',\s*"
+                      r"nmap:\s*'/assets/textures/([\w-]+)-normal-1024\.jpg',\s*rmap:\s*'/assets/textures/([\w-]+)-rough-1024\.jpg'\s*\}", src)
+    for t, _s, _a, n, r in rows:
+        assert n == r, f"{t}: нормалі й шорсткість — з одного скану"
+    return {t: (a, n, float(s)) for t, s, a, n, _r in rows}
 
 
 def blender_tones():

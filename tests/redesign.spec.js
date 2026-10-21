@@ -599,3 +599,45 @@ test('hero first: every card opens its gallery on the whole piece; the oak close
     if (p.images.some(i => i.view === 'texture')) expect(srcs[1], p.slug).toContain(`/products/${p.slug}/texture-`);
   }
 });
+
+// ---------------------------------------------------------------- 3D: клік → живе полотно (21.10: кнопка мовчала)
+// Ловить саме ту поломку: відносний шлях (404), неопублікований файл, модуль не того вигляду — у кожному
+// випадку полотна немає, а в мережі 404 або в консолі помилка. Сторонніх запитів (CDN) теж немає.
+for (const [prefix, lang] of [['', 'he'], ['/en', 'en']]) {
+  test(`3D view on ${prefix}/p/tavor/ (${lang}): a canvas with a size, no 404, no console errors, nothing third-party`, async ({ page }) => {
+    const sent = await mockApi(page);
+    const errors = watchErrors(page);
+    await page.goto(`${prefix}/p/tavor/`);
+    const btn = page.locator('.js-3d');
+    await expect(btn).toHaveCount(1);
+    await btn.click();
+    const box = page.locator('.viewer3d');
+    await expect(box).toBeVisible();
+    const canvas = box.locator('canvas');
+    await expect(canvas).toHaveCount(1, { timeout: 15000 });
+    const r = await canvas.evaluate(c => ({ w: c.width, h: c.height, cw: c.clientWidth, ch: c.clientHeight }));
+    expect(r.w * r.h * r.cw * r.ch).toBeGreaterThan(0);
+    await expect(box.locator('.v3d-msg')).toBeHidden();
+    await expect(box.locator('.viz-tag')).toHaveText(lang === 'he' ? 'הדמיה' : 'Visualisation');
+    // розкласти стіл і закрити: полотно прибрано, кнопка повернулась
+    await box.locator('.v3d-st[data-state="open"]').click();
+    await expect(box.locator('.v3d-st[data-state="open"]')).toHaveAttribute('aria-pressed', 'true');
+    await box.locator('.v3d-close').click();
+    await expect(box).toBeHidden();
+    await expect(canvas).toHaveCount(0);
+    await expect(btn).toBeVisible();
+    expect(errors).toEqual([]);
+    expect(sent.thirdParty).toBeUndefined();
+  });
+}
+
+test('3D view without WebGL: a short text inside the viewer, not a silent button', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => { HTMLCanvasElement.prototype.getContext = () => null; });
+  await page.goto('/p/tal/');
+  await page.locator('.js-3d').click();
+  const msg = page.locator('.viewer3d .v3d-msg');
+  await expect(msg).toBeVisible();
+  await expect(msg).toContainText('תלת־ממד');
+  await expect(page.locator('.viewer3d canvas')).toHaveCount(0);
+});
