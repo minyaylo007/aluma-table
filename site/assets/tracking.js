@@ -9,7 +9,7 @@
   if (window.alumaTrack) return;                       // підключено двічі — працює перший
 
   var doc = document, root = doc.documentElement;
-  var LANG = /^en/i.test(root.getAttribute("lang") || "") ? "en" : "he";
+  var LANG = (root.getAttribute("lang") || "he").slice(0, 2).toLowerCase();   // he | en | ru — як <html lang>
   var NOTICE_KEY = "fx_notice_v1";
   var STANDARD = ["PageView", "ViewContent", "Lead", "Contact", "CustomizeProduct", "Search", "AddToCart",
     "InitiateCheckout", "Schedule", "SubmitApplication", "CompleteRegistration", "FindLocation"];
@@ -138,13 +138,13 @@
   function hideNotice() { var b = doc.getElementById("aluma-notice"); if (b && b.parentNode) b.parentNode.removeChild(b); }
   function showNotice() {                              // власний блок — лише коли на сторінці немає #notice
     if (doc.getElementById("notice") || doc.getElementById("aluma-notice")) return;
-    var t = TEXT[LANG];
+    var t = TEXT[LANG] || TEXT.en;
     var box = doc.createElement("div");
     box.id = "aluma-notice";
     box.setAttribute("role", "region");
     box.setAttribute("aria-label", attr("data-notice-label") || t.label);
-    box.dir = LANG === "en" ? "ltr" : "rtl";
-    box.lang = LANG;
+    box.dir = LANG === "he" ? "rtl" : "ltr";
+    box.lang = TEXT[LANG] ? LANG : "en";
     box.style.cssText = "position:fixed;inset-inline:12px;bottom:12px;z-index:2147483000;display:flex;flex-wrap:wrap;gap:8px 12px;" +
       "align-items:center;padding:12px 16px;background:#1f1d1a;color:#f4efe6;" +
       "font:14px/1.4 system-ui,sans-serif;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:720px;margin-inline:auto";
@@ -164,7 +164,7 @@
     box.appendChild(button(attr("data-notice-ok") || t.accept, true, true));
     box.appendChild(button(attr("data-notice-decline") || t.decline, false, false));
     var a = doc.createElement("a");
-    a.href = attr("data-privacy-href") || (LANG === "en" ? "/en/privacy" : "/privacy");
+    a.href = attr("data-privacy-href") || (LANG === "he" ? "/privacy" : "/" + LANG + "/privacy");
     a.textContent = attr("data-notice-more") || t.more;
     a.style.cssText = "color:#f4efe6;text-decoration:underline";
     box.appendChild(a);

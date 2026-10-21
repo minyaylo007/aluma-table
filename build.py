@@ -44,7 +44,7 @@ FINISH_PHOTO_MAX = 60 * 1024
 
 PRODUCTION = "--production" in sys.argv
 CONTENT = json.loads((ROOT / "content.json").read_text(encoding="utf-8"))
-LOCALES = {"he": "", "en": "/en"}          # мова -> префікс шляху
+LOCALES = {"he": "", "en": "/en"}          # мова -> префікс шляху; перша — x-default і корінь сайту
 TEXT_EXT = (".html", ".css", ".js", ".webmanifest", ".xml", ".txt", ".svg", ".json")
 
 # сторінки: (шаблон, шлях без префікса мови, ключ заголовка, ключ опису)
@@ -220,9 +220,10 @@ def catalog_facts(products: list, loc: str) -> dict:
 
 
 def L(obj, loc: str) -> str:
-    """Поле {he, en} -> рядок мови; без перекладу — іврит; рядок — як є."""
+    """Поле {he, en, …} -> рядок мови; без перекладу — англійська (для he — іврит), далі будь-що; рядок — як є."""
     if isinstance(obj, dict):
-        return str(obj.get(loc) or obj.get("he") or obj.get("en") or "")
+        order = (loc, "he", "en") if loc == "he" else (loc, "en", "he")
+        return str(next((obj[k] for k in order if obj.get(k)), ""))
     return str(obj or "")
 
 
@@ -695,6 +696,30 @@ class Renderer:
         return text
 
 
+def locale_dirs() -> list:
+    return [DIST / prefix.lstrip("/") if prefix else DIST for prefix in LOCALES.values()]
+
+
+def hreflang(path: str) -> str:
+    """<link rel="alternate"> на кожну мову сторінки + x-default (перша мова LOCALES — корінь сайту)."""
+    site = CONTENT["SITE_URL"]
+    links = [(loc, site + prefix + path) for loc, prefix in LOCALES.items()]
+    links.append(("x-default", links[0][1]))
+    return "".join(f'<link rel="alternate" hreflang="{loc}" href="{href}">\n' for loc, href in links)
+
+
+def lang_nav(loc: str, path: str, locales: dict) -> str:
+    """Перемикач мов: кожна мова своєю назвою (i18n lang_name), поточна — текст, не посилання."""
+    out = []
+    for other, prefix in LOCALES.items():
+        name = esc(locales[other]["lang_name"])
+        if other == loc:
+            out.append(f'<span class="lang-cur" lang="{other}" aria-current="true">{name}</span>')
+        else:
+            out.append(f'<a href="{(prefix + path) or "/"}" hreflang="{other}" lang="{other}">{name}</a>')
+    return "".join(out)
+
+
 def faq_html(items: list) -> str:
     out = []
     for it in items:
@@ -720,9 +745,8 @@ def main() -> None:
     for loc, prefix in LOCALES.items():
         s = locales[loc]
         render = Renderer(s, loc)
-        other = "en" if loc == "he" else "he"
         base_tokens = {
-            "LANG": loc, "DIR": s["dir"], "PREFIX": prefix, "OTHER_LANG": other,
+            "LANG": loc, "DIR": s["dir"], "PREFIX": prefix,
             # піксель і Clarity не потрібні для першого кадру — вантажимо після load, коли потік вільний
             "TRACKING": ('<script>addEventListener("load",function(){(window.requestIdleCallback||setTimeout)(function(){'
                          'var s=document.createElement("script");s.src="/assets/tracking.js";document.head.appendChild(s)})})</script>'
@@ -764,7 +788,7 @@ def main() -> None:
                if tones and finishes_viz(hero_p.get("finishes") or []) else "")
         base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>{viz}' if tones else ""
 
-        def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str, alt_path: str):
+        def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str):
             toks = {**base_tokens, **tokens}
             toks.setdefault("TITLE", "{{t." + title_key + "}}")
             toks.setdefault("DESC", "{{t." + desc_key + "}}")
@@ -775,9 +799,8 @@ def main() -> None:
             toks.setdefault("BODY_CLASS", "")
             toks.setdefault("ROBOTS", "")
             toks["CANONICAL"] = CONTENT["SITE_URL"] + prefix + path
-            toks["ALT_HREF"] = (LOCALES[other] + alt_path) or "/"
-            toks["HREF_HE"] = CONTENT["SITE_URL"] + alt_path if loc == "en" else toks["CANONICAL"]
-            toks["HREF_EN"] = CONTENT["SITE_URL"] + "/en" + path if loc == "he" else toks["CANONICAL"]
+            toks["HREFLANG"] = hreflang(path)
+            toks["LANG_NAV"] = lang_nav(loc, path, locales)
             toks["MAIN"] = body
             text = render(layout, toks)
             write_text_lf(DIST / rel, text)
@@ -792,7 +815,7 @@ def main() -> None:
                 toks["JSONLD"] = organization_jsonld(loc, CONTENT["SITE_URL"] + prefix + "/")
             elif name == "faq" and s.get("faq"):
                 toks["JSONLD"] = faq_jsonld(s["faq"])
-            emit(rel, templates[name], toks, tk, dk, path, path)
+            emit(rel, templates[name], toks, tk, dk, path)
             if path != "/404" and name not in NOINDEX:
                 pages_out.append(prefix + path)
 
@@ -814,7 +837,7 @@ def main() -> None:
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{p['slug']}/index.html",
-                 templates["product"], tokens, "", "", path, path)
+                 templates["product"], tokens, "", "", path)
             pages_out.append(prefix + path)
         missing |= render.missing
 
@@ -826,7 +849,7 @@ def main() -> None:
     write_text_lf(DIST / "sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n'
                   f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n')
     write_text_lf(DIST / "robots.txt", read_text(SITE / "robots.txt").replace("{{SITE_URL}}", CONTENT["SITE_URL"]))
-    for d in (DIST, DIST / "en"):
+    for d in locale_dirs():
         for name in ("privacy", "terms", "accessibility", "404"):
             src = d / f"{name}.html"
             if src.exists():
@@ -896,7 +919,7 @@ def main() -> None:
             body = read_text(t)
             if link in body:
                 write_text_lf(t, body.replace(link, style))
-        for d in (DIST, DIST / "en"):          # копії без розширення (privacy, 404…) — з уже вбудованих
+        for d in locale_dirs():                # копії без розширення (privacy, 404…) — з уже вбудованих
             for name in ("privacy", "terms", "accessibility", "404"):
                 if (d / f"{name}.html").exists():
                     shutil.copyfile(d / f"{name}.html", d / name)

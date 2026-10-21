@@ -1,7 +1,7 @@
-"""Як сайт бачать Facebook, Google і телефон: кожна сторінка he і en у зібраному dist/.
+"""Як сайт бачать Facebook, Google і телефон: кожна сторінка кожної мови (build.LOCALES) у зібраному dist/.
 
 Одна збірка в тимчасовій копії дерева (як test_build_site), dist/ проєкту не чіпаємо. На кожній сторінці:
-title і description, canonical, hreflang he/en/x-default, og:* (картинка в dist, не менша за 1200×630),
+title і description, canonical, hreflang усіх мов + x-default, og:* (картинка в dist, не менша за 1200×630),
 twitter:card, JSON-LD парситься (Product з ціною в ILS, Organization на головних, FAQPage на FAQ),
 lang і dir на <html>, жодного битого внутрішнього href/src, alt у кожного img, sitemap.xml з усіма
 сторінками й robots.txt, жодного «להשלמה» чи незаповненого маркера.
@@ -22,11 +22,13 @@ import tempfile
 import unittest
 from html.parser import HTMLParser
 
+from tests.locales import DIRS, DIST_PREFIX, LOCALES, lang_of
 from tests.test_build_eol import make_tree, run_build
 
 PROJECT = pathlib.Path(__file__).resolve().parent.parent
 SITE = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["SITE_URL"].rstrip("/")
 OG_MIN = (1200, 630)
+OG_LOCALE = {loc: json.loads((PROJECT / "i18n" / f"{loc}.json").read_text(encoding="utf-8"))["locale"] for loc in LOCALES}
 
 KNOWN: dict[str, str] = {}
 
@@ -134,21 +136,19 @@ class PagesQualityTests(unittest.TestCase):
         self.fail(f"{len(problems)} проблем:\n  " + "\n  ".join(problems[:40]))
 
     def content_pages(self):
-        return {rel: p for rel, p in self.parsed.items() if rel not in ("404.html", "en/404.html")}
+        return {rel: p for rel, p in self.parsed.items() if rel.rsplit("/", 1)[-1] != "404.html"}
 
     # --- перевірки ---------------------------------------------------------------------------------
 
-    def test_build_has_both_languages(self):
-        he = [r for r in self.pages if not r.startswith("en/")]
-        en = [r for r in self.pages if r.startswith("en/")]
-        self.assertGreater(len(he), 10)
-        self.assertGreater(len(en), 10)
+    def test_build_has_every_language(self):
+        for loc in LOCALES:
+            self.assertGreater(len([r for r in self.pages if lang_of(r) == loc]), 10, loc)
 
     def test_html_lang_and_dir(self):
         bad = []
         for rel, p in self.parsed.items():
             a = next(a for tag, a in p.tags if tag == "html")
-            want = ("en", "ltr") if rel.startswith("en/") else ("he", "rtl")
+            want = (lang_of(rel), DIRS[lang_of(rel)])
             if (a.get("lang"), a.get("dir")) != want:
                 bad.append(f"{rel}: lang={a.get('lang')} dir={a.get('dir')}, треба {want}")
         self.known("lang", bad)
@@ -171,7 +171,7 @@ class PagesQualityTests(unittest.TestCase):
             elif not self.exists(canon[0][len(SITE):]):
                 bad.append(f"{rel}: canonical веде на неіснуючу {canon[0]}")
             alts = {a.get("hreflang"): a.get("href", "") for a in p.links("alternate") if a.get("hreflang")}
-            for lang in ("he", "en", "x-default"):
+            for lang in [*LOCALES, "x-default"]:
                 if lang not in alts:
                     bad.append(f"{rel}: немає hreflang={lang}")
                 elif not self.exists(alts[lang][len(SITE):]):
@@ -184,7 +184,7 @@ class PagesQualityTests(unittest.TestCase):
             for key in ("og:title", "og:description", "og:image", "og:locale", "og:url", "og:type"):
                 if not p.meta(key).strip():
                     bad.append(f"{rel}: немає {key}")
-            want = "en_US" if rel.startswith("en/") else "he_IL"
+            want = OG_LOCALE[lang_of(rel)]
             if p.meta("og:locale") and p.meta("og:locale") != want:
                 bad.append(f"{rel}: og:locale={p.meta('og:locale')}, треба {want}")
             img = p.meta("og:image")
@@ -238,11 +238,11 @@ class PagesQualityTests(unittest.TestCase):
                                if "Product" not in {i.get("@type") for i in self.parsed[rel].ld_items()}])
 
     def test_home_pages_have_organization_ld(self):
-        self.known("organization", [rel for rel in ("index.html", "en/index.html")
+        self.known("organization", [rel for rel in [pre + "index.html" for pre in DIST_PREFIX.values()]
                                     if "Organization" not in {i.get("@type") for i in self.parsed[rel].ld_items()}])
 
     def test_faq_pages_have_faqpage_ld(self):
-        faq = [rel for rel in self.parsed if re.match(r"(en/)?faq/index\.html$", rel)]
+        faq = [rel for rel in self.parsed if rel == DIST_PREFIX[lang_of(rel)] + "faq/index.html"]
         self.known("faqpage", [rel for rel in faq
                                if "FAQPage" not in {i.get("@type") for i in self.parsed[rel].ld_items()}])
 
