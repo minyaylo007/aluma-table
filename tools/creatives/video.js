@@ -66,7 +66,10 @@ const at = (t) => `data-text data-at="${t}"`;
 // далі по черзі розмір, смуга «складено → розкладено» (числа каталогу), ціна, заклик.
 function single(cfg, v, p) {
   const story = p.sizes[0].extended_cm ? storyOf(p) : null;
-  const imgs = story || imagesOf(p).slice(0, 2);
+  // Розкладний без кадру механізму (SAHAR): другий кадр — розкладений, а не angle (у SAHAR це крупний план ніжки
+  // без вертикального рендера, сесія 2, 21.10): ролик показує результат розкладання, у 9:16 обидва кадри вертикальні.
+  const opened = p.sizes[0].extended_cm ? visuals(p).find((i) => i.state === 'open') : null;
+  const imgs = story || (opened ? [imagesOf(p)[0], fileOf(opened)] : imagesOf(p).slice(0, 2));
   if (!imgs.length) throw new Error(`${v.id}: нема візуалізацій у каталозі`);
   const s = p.sizes[0];
   const duration = 8;
@@ -76,13 +79,15 @@ function single(cfg, v, p) {
       { from: 2.4, to: 5.2, z: [1.02, 1.1], x: [1, 0] },
       { from: 5.2, to: duration, z: [1.04, 1.1], x: [0, -1] }];
   } else {
-    const half = imgs.length > 1 ? 4.2 : duration;
+    // Розкладений кадр — з 3 с, наїзд слабкий, щоб овал (155) читався до кінця ролика (дирижер, 21.10).
+    const half = imgs.length > 1 ? (opened ? 3.0 : 4.2) : duration;
     shots = [{ from: 0, to: half, z: [1.0, 1.08], x: [0, -1.5] }];
-    if (imgs.length > 1) shots.push({ from: half, to: duration, z: [1.04, 1.12], x: [1, 0] });
+    if (imgs.length > 1) shots.push(opened ? { from: half, to: duration, z: [1.0, 1.04], x: [0, 0] } : { from: half, to: duration, z: [1.04, 1.12], x: [1, 0] });
   }
   // У «story» плашка «складено → розкладено» видна з першого кадру й доростає до розкладеного за першу секунду.
   const sizeAt = story ? -1 : 1.2;
-  const grow = story ? { from: 0.2, to: 1.4 } : { from: 1.6, to: 3.0 };
+  // Без story, але з розкладеним кадром — плашка доростає рівно за наплив «складено → розкладено» (3,0 с + FADE).
+  const grow = story ? { from: 0.2, to: 1.4 } : opened ? { from: 3.0, to: 3.0 + FADE } : { from: 1.6, to: 3.0 };
   const sub = fill(v.sub, { length: esc(s.length_cm), extended: esc(s.extended_cm ?? '') });
   const size = s.extended_cm ? `<div class="size" ${at(sizeAt)}><div class="nums"><span>${esc(s.length_cm)}</span>` +
     `<span>${esc(s.extended_cm)}</span></div><div class="track"><div class="bar"></div></div></div>` : '';

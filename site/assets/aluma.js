@@ -53,14 +53,21 @@
     D.documentElement.style.setProperty("--dock", Math.max(0, Math.round(W.innerHeight - top)) + "px");
   };
   W.addEventListener("resize", function () { dock(); }, { passive: true });
-  var showNotice = function () { if (notice) { notice.hidden = false; dock(); var b = qs("[data-notice-ok]", notice); if (b) b.focus({ preventScroll: true }); } };
+  var shown = false;   // банер уже показано або вибір зроблено — відкладений показ не спрацьовує
+  var showNotice = function () { if (notice) { shown = true; notice.hidden = false; dock(); var b = qs("[data-notice-ok]", notice); if (b) b.focus({ preventScroll: true }); } };
   if (notice) {
-    if (choice !== "1" && choice !== "0") notice.hidden = false;
+    // показ — коли шрифти вже на місці (не довше 1,5 с): банер прибитий до низу, і підміна шрифту
+    // переносила рядки тексту — зсув рахувався в CLS (0,046 на проді). Поява нового елемента — не зсув.
+    if (choice !== "1" && choice !== "0") {
+      var reveal = function () { if (!shown) { shown = true; notice.hidden = false; dock(); } };
+      if (D.fonts && D.fonts.ready) { D.fonts.ready.then(reveal, reveal); setTimeout(reveal, 1500); } else reveal();
+    }
     dock();
     // вибір пише tracking.js (alumaConsent); без нього — сам ключ, щоб банер не питав знову
     var choose = function (yes) {
       var was = null;
       try { was = localStorage.getItem(NOTICE_KEY); } catch (e) {}
+      shown = true;
       notice.hidden = true;
       dock();
       if (W.alumaConsent) { try { W.alumaConsent(yes); } catch (e) {} }
