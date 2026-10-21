@@ -514,7 +514,7 @@ def light(p: dict, loc: str) -> str:
                    f'{{{{t.light_{k}}}}}</button>' for k in ("morning", "evening"))
     hide = ' aria-hidden="true"'
     layers = "".join(f'<div class="light-l" data-l="{k}"{hide if k == "evening" else ""}>'
-                     f'{picture(pair[k], loc, sizes="(min-width: 1100px) 1040px, 100vw")}</div>' for k in ("morning", "evening"))
+                     f'{picture(pair[k], loc, sizes="(min-width: 960px) 66vw, 100vw")}</div>' for k in ("morning", "evening"))
     return (f'<section class="sec sec--paper light" aria-labelledby="light-h"><div class="wrap">'
             f'<div class="sec-head"><h2 class="h2" id="light-h">{{{{t.light_h2}}}}</h2><p class="sec-lede">{{{{t.light_lede}}}}</p></div>'
             f'<div class="light-switch" role="group" aria-label="{{{{t.light_h2}}}}">{btns}</div>'
@@ -558,7 +558,7 @@ def gallery(p: dict, loc: str) -> str:
     if len(imgs) > 1:
         dots = '<div class="g-thumbs" role="group" aria-label="{{t.gallery_nav}}">' + "".join(
             f'<a class="g-thumb" href="#g-{p["slug"]}-{i}" aria-label="{{{{t.gallery_item}}}} {i + 1}">'
-            f'{picture(im, loc, sizes="80px")}</a>' for i, im in enumerate(imgs)) + "</div>"
+            f'{picture(im, loc, sizes="88px")}</a>' for i, im in enumerate(imgs)) + "</div>"
     viewer = ""
     if p.get("model3d"):
         viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="{esc(p["model3d"])}">'
