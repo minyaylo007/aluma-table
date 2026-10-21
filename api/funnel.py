@@ -35,6 +35,12 @@ STEPS = (
 STEP_KEYS = tuple(s[0] for s in STEPS)
 STEP_OF_EVENT = {s[1]: s[0] for s in STEPS if s[1]}
 STEP_OF_EVENT["view_cart"] = "cart"   # корзина з минулого візиту — теж крок «корзина»
+LANGS = ("he", "en", "ru")             # мова сторінки (<html lang>); решта — «?»
+
+
+def lang_of(row: dict) -> str:
+    lang = str(row.get("lang") or "")[:2].lower()
+    return lang if lang in LANGS else "?"
 
 
 # --------------------------------------------------------------------------- вікно
@@ -145,7 +151,8 @@ def compute(events, leads) -> dict:
     by_product = defaultdict(lambda: defaultdict(set))
     by_source = defaultdict(lambda: defaultdict(set))
     by_day = defaultdict(lambda: defaultdict(set))
-    source_of, last_step = {}, {}
+    by_lang = defaultdict(lambda: defaultdict(set))   # мова — за першою подією сесії, як і джерело
+    source_of, lang_by_sid, last_step = {}, {}, {}
     price_points = defaultdict(lambda: defaultdict(set))   # (slug, size, ₪) → крок → сесії
     cart_price = {}                                          # сесія → (slug, size, ₪) останнього AddToCart
     leaves = Counter()
@@ -158,11 +165,12 @@ def compute(events, leads) -> dict:
         if sid not in source_of:
             source_of[sid] = f"{e.get('utm_source') or 'direct'} / {e.get('utm_campaign') or '—'}"
         src = source_of[sid]
+        lang = lang_by_sid.setdefault(sid, lang_of(e))
         dt = server_time(e)
         day = local_day(dt) if dt else "?"
         name = e.get("event_name") or ""
         p = props(e)
-        for bucket in (total, by_source[src], by_day[day]):
+        for bucket in (total, by_source[src], by_day[day], by_lang[lang]):
             bucket["sessions"].add(sid)
         step = STEP_OF_EVENT.get(name)
         if name == "leave":
@@ -172,7 +180,7 @@ def compute(events, leads) -> dict:
                 seconds[str(p.get("step") or "other")[:20]].append(s)
         if not step:
             continue
-        for bucket in (total, by_source[src], by_day[day]):
+        for bucket in (total, by_source[src], by_day[day], by_lang[lang]):
             bucket[step].add(sid)
         for pid in _ids(p):
             by_product[pid][step].add(sid)
@@ -193,8 +201,10 @@ def compute(events, leads) -> dict:
         sid = l.get("session_id") or ""
         if not sid:
             continue
-        total["lead"].add(sid)
-        total["sessions"].add(sid)
+        lang = lang_by_sid.get(sid) or lang_of(l)
+        for bucket in (total, by_lang[lang]):
+            bucket["lead"].add(sid)
+            bucket["sessions"].add(sid)
         last_step[sid] = "lead"
         if l.get("product_id"):
             by_product[str(l["product_id"])[:40]]["lead"].add(sid)
@@ -216,6 +226,7 @@ def compute(events, leads) -> dict:
         "by_product": table(by_product),
         "by_source": table(by_source),
         "by_day": table(by_day, order=sorted(by_day)),
+        "by_lang": table(by_lang, order=[k for k in (*LANGS, "?") if k in by_lang]),
         "dropped_after": [{"step": k, "n": dropped.get(k, 0)} for k in STEP_KEYS[1:-1]],
         "leave_by_step": dict(leaves.most_common()),
         "median_seconds": {k: sorted(v)[len(v) // 2] for k, v in seconds.items() if v},
@@ -252,9 +263,10 @@ def text(rep: dict) -> str:
 
     lines.append("Всего:  " + steps_line(rep["steps"]))
     lines.append(f"Заявок в таблице: {rep['lead_rows']}")
-    for title, key in (("По товарам", "by_product"), ("По источнику", "by_source"), ("По дням", "by_day")):
+    for title, key in (("По товарам", "by_product"), ("По источнику", "by_source"), ("По языку", "by_lang"),
+                       ("По дням", "by_day")):
         lines += ["", title + ":"]
-        rows = rep[key] or []
+        rows = rep.get(key) or []
         lines += [f"  {r['key']}: " + steps_line(r["steps"]) for r in rows] or ["  нет данных"]
     lines += ["", "Где ушли (последний шаг сессии):"]
     lines += [f"  после «{dict((k, ru) for k, _e, _h, ru in STEPS)[d['step']]}»: {d['n']}" for d in rep["dropped_after"]]

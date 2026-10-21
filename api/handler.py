@@ -1270,6 +1270,7 @@ def admin_funnel(event):
   <section class="card wide"><h2>כל המוצרים · всего (% от предыдущего шага)</h2>{bars(rep['steps'])}</section>
   <section class="card wide"><h2>לפי מוצר · по товарам</h2>{grid(rep['by_product'], 'מוצר')}</section>
   <section class="card wide"><h2>לפי מקור · по источнику (utm_source / utm_campaign)</h2>{grid(rep['by_source'], 'מקור')}</section>
+  <section class="card wide"><h2>לפי שפה · по языку (he / en / ru)</h2>{grid(rep['by_lang'], 'שפה')}</section>
   <section class="card wide"><h2>לפי יום · по дням</h2>{grid(rep['by_day'], 'יום')}</section>
   <section class="card"><h2>איפה עזבו · последний шаг сессии</h2><table>{dropped}</table></section>
   <section class="card"><h2>יציאה מהדף · уход со страницы (шаг · медиана сек.)</h2><table>{leave}</table></section>

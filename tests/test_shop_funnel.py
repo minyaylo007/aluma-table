@@ -327,6 +327,20 @@ class ComputeTests(unittest.TestCase):
         days = [r["key"] for r in self.rep["by_day"]]
         self.assertEqual(days, ["2026-10-20", "2026-10-21"])
 
+    def test_by_lang_first_event_and_lead_fallback(self):
+        # мова сесії — з першої її події; заявка без подій — з власного поля lang; невідоме — «?»
+        events = [dict(e, lang="ru" if e["session_id"] == "s1" else "he") for e in EVENTS]
+        events[1] = dict(events[1], lang="en")           # друга подія s1 іншою мовою — сесія лишається ru
+        events.append(row("PageView", "s5", T))          # без lang
+        leads = [{"session_id": "s9", "lang": "ru", "ts": T}, {"session_id": "s4", "lang": "en", "ts": T}]
+        rep = funnel.compute(events, leads)
+        langs = {r["key"]: {s["key"]: s["n"] for s in r["steps"]} for r in rep["by_lang"]}
+        self.assertEqual([r["key"] for r in rep["by_lang"]], ["he", "ru", "?"])
+        self.assertEqual((langs["ru"]["sessions"], langs["ru"]["lead"]), (2, 2))
+        self.assertEqual((langs["he"]["sessions"], langs["he"]["product"], langs["he"]["lead"]), (3, 2, 1))
+        self.assertEqual(langs["?"]["sessions"], 1)
+        self.assertIn("По языку:", funnel.text(funnel.report(events, leads, 0)))
+
     def test_where_they_left_and_at_what_price(self):
         dropped = {d["step"]: d["n"] for d in self.rep["dropped_after"]}
         self.assertEqual(dropped, {"product": 0, "cart": 1, "checkout": 0, "payment": 0})
