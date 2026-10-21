@@ -66,7 +66,10 @@ const at = (t) => `data-text data-at="${t}"`;
 // далі по черзі розмір, смуга «складено → розкладено» (числа каталогу), ціна, заклик.
 function single(cfg, v, p) {
   const story = p.sizes[0].extended_cm ? storyOf(p) : null;
-  const imgs = story || imagesOf(p).slice(0, 2);
+  // Розкладний без кадру механізму (SAHAR): другий кадр — розкладений, а не angle (у SAHAR це крупний план ніжки
+  // без вертикального рендера, сесія 2, 21.10): ролик показує результат розкладання, у 9:16 обидва кадри вертикальні.
+  const opened = p.sizes[0].extended_cm ? visuals(p).find((i) => i.state === 'open') : null;
+  const imgs = story || (opened ? [imagesOf(p)[0], fileOf(opened)] : imagesOf(p).slice(0, 2));
   if (!imgs.length) throw new Error(`${v.id}: нема візуалізацій у каталозі`);
   const s = p.sizes[0];
   const duration = 8;
