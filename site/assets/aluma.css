@@ -195,6 +195,15 @@ bdi { unicode-bidi: isolate; }
 .hero .lede { margin-block-start: 20px; }
 .hero-note { margin-block-start: 18px; font-size: .9rem; color: var(--muted); }
 .hero-media .viz-tag { inset-block: 14px auto; }
+/* телефон: кнопки — у першому екрані 390×844 навіть із банером cookies; абзац іде під ними.
+   Лише візуальний порядок: у DOM і для читача екрана абзац, як і був, перед кнопками, а фокусованих у ньому немає */
+@media (max-width: 719px) {
+  .hero-copy { display: flex; flex-direction: column; }
+  .hero .actions { order: 1; margin-block-start: 22px; }
+  .hero .lede { order: 2; }
+  .hero-note { order: 3; }
+  .hero-inner { padding-block-start: 22px; }
+}
 @media (min-width: 720px) {
   .hero { min-height: min(100svh - 100px, 880px); display: grid; align-items: end; color: var(--cream); }
   .hero-media { position: absolute; inset: 0; aspect-ratio: auto; }
@@ -609,6 +618,7 @@ bdi { unicode-bidi: isolate; }
 .notice-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5em), 1fr)); gap: 8px; }
 /* відмова така ж доступна, як згода: обидві кнопки завжди в межах екрана, довгий текст переноситься */
 .notice-btns .btn { min-height: 44px; min-width: 0; padding-inline: 12px; white-space: normal; text-align: center; }
+@media (max-width: 599px) { .notice { gap: 8px; padding-block-start: 10px; } }
 /* телефон: поки фокус у формі, банер не накриває поля; повертається, щойно фокус вийде з форми */
 .notice.is-away { display: none; }
 .notice .btn--ghost { background: transparent; color: var(--cream); border-color: rgba(246, 241, 233, .55); }

@@ -434,12 +434,14 @@
   // швидкий свайп перестрибує його за один кадр, і кнопка не з'являлася.
   var sticky = qs("[data-sticky]");
   if (sticky) {
-    // у картці товару — після блоку ціни; ховається, поки на екрані коротка форма біля фото
-    var anchor = qs(".hero .actions") || qs(".pdp-price"), reg = qs("#register"), foot = qs(".foot"), queued = false;
+    // у картці товару — щойно блок ціни поза екраном, і ДО нього теж: на телефоні фото займає перший екран,
+    // і без смуги ціна й кнопка заявки там не видні; ховається, поки на екрані коротка форма біля фото
+    var hero = qs(".hero .actions"), anchor = hero || qs(".pdp-price"), reg = qs("#register"), foot = qs(".foot"), queued = false;
     var visible = function (el) { if (!el) return false; var r = el.getBoundingClientRect(); return r.top < W.innerHeight && r.bottom > 0; };
+    var whole = function (el) { var r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= W.innerHeight; };
     var apply = function () {
       queued = false;
-      var past = anchor ? anchor.getBoundingClientRect().bottom < 0 : W.scrollY > W.innerHeight;
+      var past = !anchor ? W.scrollY > W.innerHeight : hero ? anchor.getBoundingClientRect().bottom < 0 : !whole(anchor);
       var on = past && !visible(reg) && !visible(quick) && !visible(foot) && !D.body.classList.contains("is-registered");
       sticky.hidden = false;
       sticky.classList.toggle("is-on", on);
