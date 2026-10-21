@@ -33,7 +33,7 @@
   //   тут, публікує й хешує; scale — щільність повтору (скани 1 м проти 1,83 м),
   //   rough — множник шорсткості (олія з пігментом матовіша), normal — сила рельєфу. Ті самі файли бере Blender.
   var FINISHES = {
-    natural: { rough: 1.00, normal: 0.7,  scale: 1,    albedo: '/assets/textures/natural-albedo-1024.jpg',
+    natural: { rough: 1.00, normal: 0.7,  scale: 1,    albedo: '/assets/textures/tone-natural-albedo-1024.jpg',
                nmap: '/assets/textures/oak-normal-1024.jpg',        rmap: '/assets/textures/oak-rough-1024.jpg' },
     light:   { rough: 1.08, normal: 0.7,  scale: 1.83, albedo: '/assets/textures/tone-light-albedo-1024.jpg',
                nmap: '/assets/textures/washed-oak-normal-1024.jpg', rmap: '/assets/textures/washed-oak-rough-1024.jpg' },

@@ -81,7 +81,7 @@ def pbr(name, base=None, rough=0.6, metal=0.0, coat=0.0, coat_rough=0.3, color=(
 # тон -> (альбедо, скан нормалей і шорсткості, щільність повтору) — те саме, що FINISHES в aluma3d.js
 # (tests/test_oak_tones.py звіряє); файли пише tools/oak_tones.py у renders-master/textures
 TONE_TEX = {
-    "natural": ("natural-albedo", "oak", 1.0),
+    "natural": ("tone-natural-albedo", "oak", 1.0),
     "light": ("tone-light-albedo", "washed-oak", 1.83),
     "honey": ("tone-honey-albedo", "oak", 1.0),
     "smoked": ("tone-smoked-albedo", "black-oak", 1.83),
