@@ -128,9 +128,8 @@ class DailyReportSqliteTests(unittest.TestCase):
 
     def test_pages_through_more_than_one_query_page(self):
         # 1000 подій і 500 заявок на сторінку — беремо більше, щоб пройти по LastEvaluatedKey.
-        base = self.now - timedelta(hours=1)
-        if base.date() != self.now.date():
-            base = self.now.replace(hour=0, minute=0, second=1)
+        # База — після півночі Asia/Jerusalem сьогодні: load(1) — це календарний день Єрусалима.
+        base = max(self.now - timedelta(hours=1), report.shop.window_start(1, self.now) + timedelta(seconds=1))
         for i in range(1003):
             self.box.event("page_view", base + timedelta(microseconds=i), session=f"s{i}")
         for i in range(503):
@@ -211,7 +210,8 @@ class DailyReportSqliteTests(unittest.TestCase):
         files = list(reports.glob("REPORT-*.md"))
         self.assertEqual(len(files), 1)
         text = files[0].read_text(encoding="utf-8")
-        self.assertIn("Window: last 7 days · 6 events · 1 leads", text)
+        self.assertIn("Window: last 7 days (calendar, Asia/Jerusalem) · 6 events · 1 leads", text)
+        self.assertIn("## Shop funnel (Asia/Jerusalem days)", text)
         self.assertIn("| visits | 2 | 100% |", text)
         self.assertIn("| saw the price | 1 | 50% |", text)
         self.assertIn("| left a lead | 1 | 50% |", text)

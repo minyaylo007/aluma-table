@@ -32,12 +32,12 @@ import pathlib
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from api import store  # noqa: E402
+from api import funnel as shop, store  # noqa: E402
 
 REPORTS = ROOT.parent / "night" / "reports"
 PROMPT_FILE = ROOT / "prompts" / "daily-analysis.md"
@@ -68,12 +68,15 @@ def open_tables(db_path: str):
 
 
 def load(days: int, include_test: bool, tables=None):
+    """Події й заявки за одне вікно — календарні дні Asia/Jerusalem (api/funnel.py, як /admin/funnel).
+
+    Раніше події бралися UTC-днями, а заявки — ковзними 24 год × N: одна ніч давала різні вікна.
+    """
     events_t, leads_t = tables or open_tables(FX_DB_PATH)
+    now = datetime.now(timezone.utc)
 
     events = []
-    today = datetime.now(timezone.utc).date()
-    for i in range(days):
-        day = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+    for day in shop.utc_partitions(days, now):
         last = None
         while True:
             kw = {"KeyConditionExpression": key_eq("pk", f"D#{day}"), "Limit": 1000}
@@ -100,9 +103,7 @@ def load(days: int, include_test: bool, tables=None):
         events = [e for e in events if not e.get("is_test")]
         leads = [l for l in leads if not l.get("is_test")]
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    leads = [l for l in leads if l.get("ts", "") >= cutoff]
-    return events, leads
+    return shop.events_in_window(events, days, now), shop.leads_in_window(leads, days, now)
 
 
 def props(e):
@@ -181,6 +182,8 @@ def analyse(events, leads, days):
             for l in leads
         ],
         "lead_status_counts": dict(collections.Counter(l.get("status", "new") for l in leads)),
+        # воронка магазину (specs/003): ті самі кроки й рахунок, що на /admin/funnel
+        "shop_funnel": shop.compute(events, leads),
     }
 
 
@@ -247,7 +250,7 @@ def main(argv=None) -> int:
     lines = [
         f"# Report — {stamp}",
         "",
-        f"Window: last {args.days} days · {len(events)} events · {len(leads)} leads"
+        f"Window: last {args.days} days (calendar, Asia/Jerusalem) · {len(events)} events · {len(leads)} leads"
         + ("  · **test rows included**" if args.include_test else ""),
         "",
         "## Funnel",
@@ -264,6 +267,11 @@ def main(argv=None) -> int:
                        ("left a lead", "lead"), ("tapped WhatsApp", "whatsapp")]:
         v = f[key]
         lines.append(f"| {label} | {v} | {100 * v / base:.0f}% |")
+
+    lines += ["", "## Shop funnel (Asia/Jerusalem days)", "", "| step | sessions | of previous |", "|---|---:|---:|"]
+    for st in data["shop_funnel"]["steps"]:
+        prev = "" if st["of_prev"] is None or st["key"] == "sessions" else f"{st['of_prev']}%"
+        lines.append(f"| {st['key']} | {st['n']} | {prev} |")
 
     lines += ["", "## Raw", "", "```json",
               json.dumps(data, ensure_ascii=False, indent=2)[:12000], "```", ""]
