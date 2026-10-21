@@ -714,7 +714,7 @@ html.a11y-still::view-transition-new(*) { animation: none !important; }
 .shop-wrap { max-width: 980px; }
 .shop-h1 { margin-block: 12px 24px; }
 .shop-h1:focus { outline: none; }
-.co-steps { display: flex; gap: 8px; list-style: none; padding: 0; margin: 0; font-size: .88rem; color: var(--muted); counter-reset: co; }
+.co-steps { display: flex; flex-wrap: wrap; gap: 8px 14px; list-style: none; padding: 0; margin: 0; font-size: .88rem; color: var(--muted); counter-reset: co; }
 .co-steps li { counter-increment: co; display: flex; align-items: center; gap: 8px; }
 .co-steps li::before { content: counter(co); display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
   border: 1px solid var(--line); font-size: .78rem; }

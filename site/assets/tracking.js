@@ -71,7 +71,10 @@
       fetch("/api/fx/event", { method: "POST", headers: { "content-type": "application/json" }, body: payload, keepalive: true }).catch(function () {});
     } catch (e) {}
   }
-  window.addEventListener("pagehide", function () { send(true); });
+  // leaving: подія після pagehide (leave зі shop.js) іде маяком одразу — таймер черги вже не спрацює
+  var leaving = false;
+  window.addEventListener("pagehide", function () { leaving = true; send(true); });
+  window.addEventListener("pageshow", function () { leaving = false; });
 
   // ------------------------------------------------------------ конфіг
   var config = null, configPromise = null;
@@ -208,7 +211,8 @@
     var props = {}; for (k in p) props[k] = p[k];
     props.event_id = id;
     queue.push({ name: name, props: props, ts: new Date().toISOString(), page: ctx.page });
-    if (queue.length >= 12) send(false);
+    if (leaving) send(true);
+    else if (queue.length >= 12) send(false);
     else { clearTimeout(flushTimer); flushTimer = setTimeout(function () { send(false); }, 2500); }
     var ev = { name: name, params: p, id: id };
     if (opts && opts.pixel === false) return id;
