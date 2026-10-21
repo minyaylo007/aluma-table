@@ -505,6 +505,23 @@ def plan(p: dict, loc: str) -> str:
     return '<div class="plan" data-plan>' + "".join(out) + '<p class="muted small">{{t.unfold_plan_note}}</p></div>'
 
 
+def light(p: dict, loc: str) -> str:
+    """«בוקר / ערב»: пара кадрів light з однієї камери; без пари — порожньо."""
+    pair = {i.get("light"): i for i in p.get("images") or [] if i.get("view") == "light" and i.get("src")}
+    if not (pair.get("morning") and pair.get("evening")):
+        return ""
+    btns = "".join(f'<button class="light-btn" type="button" data-light="{k}" aria-pressed="{"true" if k == "morning" else "false"}">'
+                   f'{{{{t.light_{k}}}}}</button>' for k in ("morning", "evening"))
+    hide = ' aria-hidden="true"'
+    layers = "".join(f'<div class="light-l" data-l="{k}"{hide if k == "evening" else ""}>'
+                     f'{picture(pair[k], loc, sizes="(min-width: 960px) 66vw, 100vw")}</div>' for k in ("morning", "evening"))
+    return (f'<section class="sec sec--paper light" aria-labelledby="light-h"><div class="wrap">'
+            f'<div class="sec-head"><h2 class="h2" id="light-h">{{{{t.light_h2}}}}</h2><p class="sec-lede">{{{{t.light_lede}}}}</p></div>'
+            f'<div class="light-switch" role="group" aria-label="{{{{t.light_h2}}}}">{btns}</div>'
+            f'<figure class="media media--img light-media" data-light-fig data-on="morning">{layers}'
+            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure></div></section>')
+
+
 def how(p: dict, loc: str) -> str:
     """Блок «איך נפתח השולחן»: кадри механізму (якщо є) + план. Без кадрів і без плану — порожньо."""
     imgs = p.get("images") or []
@@ -541,7 +558,7 @@ def gallery(p: dict, loc: str) -> str:
     if len(imgs) > 1:
         dots = '<div class="g-thumbs" role="group" aria-label="{{t.gallery_nav}}">' + "".join(
             f'<a class="g-thumb" href="#g-{p["slug"]}-{i}" aria-label="{{{{t.gallery_item}}}} {i + 1}">'
-            f'{picture(im, loc, sizes="80px")}</a>' for i, im in enumerate(imgs)) + "</div>"
+            f'{picture(im, loc, sizes="88px")}</a>' for i, im in enumerate(imgs)) + "</div>"
     viewer = ""
     if p.get("model3d"):
         viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="{esc(p["model3d"])}">'
@@ -733,7 +750,7 @@ def main() -> None:
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_LEAD": f"{lt[0]}–{lt[-1]}", "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
-                "P_SPECS": specs(p, loc), "P_HOW": how(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_SPECS": specs(p, loc), "P_HOW": how(p, loc), "P_LIGHT": light(p, loc), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }

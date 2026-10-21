@@ -29,7 +29,7 @@ FORBIDDEN = [
 
 
 def texts(cfg: dict) -> list[str]:
-    out = [cfg["mark"], cfg["cta"], cfg["price_note"], cfg["price_note_many"], cfg["includes"], cfg["brand"]]
+    out = [cfg["mark"], cfg["cta"], cfg["cta_note"], cfg["price_note"], cfg["price_note_many"], cfg["includes"], cfg["brand"]]
     for v in cfg["variants"]:
         out += [v["headline"], v["sub"], v["price"]]
     return out
@@ -57,6 +57,8 @@ class CreativeConfigTests(unittest.TestCase):
         self.assertIn("משוער", self.cfg["price_note"])
         self.assertIn("טרם אושר", self.cfg["price_note"])
         self.assertIn("טרם אושרו", self.cfg["price_note_many"])
+        # снімає страх, як launch-bar сайту (розвідка 21.10, висновок 5) — і нічого не обіцяє понад сайт
+        self.assertEqual(self.cfg["cta_note"], "ללא תשלום וללא התחייבות")
         for t in texts(self.cfg) + [self.catalog[p]["tagline"]["he"] for v in self.cfg["variants"] for p in v["products"]]:
             for pat in FORBIDDEN:
                 self.assertIsNone(re.search(pat, t), f"«{pat}» у «{t}»")
@@ -70,10 +72,20 @@ class CreativeConfigTests(unittest.TestCase):
             self.assertNotIn("מ־", v["price"], v["id"])
             self.assertIn("{from}", v["price"])
 
+    def test_seats_in_headline_come_from_catalog(self):
+        """Місця в заголовку — лише {seats}/{seats_extended} з catalog seats, без цифр у конфігу (розвідка 21.10)."""
+        for v in self.cfg["variants"]:
+            self.assertNotRegex(v["headline"], r"\d", v["id"])
+            if "{seats" in v["headline"]:
+                for pid in v["products"]:
+                    self.assertIn("seats", self.catalog[pid], f"{v['id']}: у каталозі нема seats")
+        tavor = next(v for v in self.cfg["variants"] if v["id"] == "tavor")
+        self.assertIn("{seats}", tavor["headline"])
+
     def test_template_marks_every_text_for_the_checks(self):
         """Кожен текстовий плейсхолдер стоїть в елементі з data-text — інакше 20 % і контраст його не бачать."""
         html = TEMPLATE.read_text(encoding="utf-8")
-        for key in ("MARK", "BRAND", "HEADLINE", "SUB", "PRICE", "PRICE_NOTE", "CTA"):
+        for key in ("MARK", "BRAND", "HEADLINE", "SUB", "PRICE", "PRICE_NOTE", "CTA", "CTA_NOTE"):
             self.assertRegex(html, r"data-text>[^<]*\{\{" + key + r"\}\}", key)
 
 
@@ -105,14 +117,14 @@ VIDEO = OUT / "video"
 
 @unittest.skipUnless((VIDEO / "report.json").exists(), "docs/creatives/video/ ще не зібрано")
 class PublishedVideosTests(unittest.TestCase):
-    """Відео (tools/creatives/video.js): 3 ролики × 9:16 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
+    """Відео (tools/creatives/video.js): 3 ролики × 9:16, 4:5 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
 
     def test_report_matches_files_and_limits(self):
         report = json.loads((VIDEO / "report.json").read_text(encoding="utf-8"))
         cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
         items = report["videos"]
         self.assertEqual({(it["file"].rsplit("-", 1)[0], it["width"], it["height"]) for it in items},
-                         {(v["id"], w, h) for v in cfg["variants"] for w, h in ((1080, 1920), (1080, 1080))})
+                         {(v["id"], w, h) for v in cfg["variants"] for w, h in ((1080, 1920), (1080, 1350), (1080, 1080))})
         for it in items:
             f = VIDEO / it["file"]
             self.assertTrue(f.is_file(), it["file"])
@@ -164,6 +176,16 @@ class MetaTestPlanTests(unittest.TestCase):
             for pat in FORBIDDEN:
                 self.assertIsNone(re.search(pat, t), f"{pat}: {t}")
             self.assertNotIn("מקבלים מחיר השקה", t, "знижку раннім ніхто не підтвердив")
+
+    def test_every_ad_says_no_payment_no_commitment(self):
+        """Висновок 5 розвідки 21.10: у описі кожного з трьох оголошень — фраза launch-bar сайту, дослівно."""
+        section = self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0]
+        descs = re.findall(r"^- \*\*Описание:\*\* (.+)$", section, re.M)
+        self.assertEqual(len(descs), 3, descs)
+        for d in descs:
+            self.assertIn("ללא תשלום וללא התחייבות", d)
+        site = json.loads((ROOT / "i18n" / "he.json").read_text(encoding="utf-8"))
+        self.assertIn("ללא תשלום וללא התחייבות", site["launch_bar"])
 
 
 if __name__ == "__main__":

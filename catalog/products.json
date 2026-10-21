@@ -145,12 +145,12 @@
     ],
     "images": [
       {
-        "src": "/assets/products/tavor/hero-1264.webp",
-        "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1264.webp 1264w",
-        "srcset_avif": "/assets/products/tavor/hero-400.avif 400w, /assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1264.avif 1264w",
-        "jpg": "/assets/products/tavor/hero-1264.jpg",
-        "width": 1264,
-        "height": 848,
+        "src": "/assets/products/tavor/hero-1600.webp",
+        "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/hero-400.avif 400w, /assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/hero-1600.jpg",
+        "width": 1600,
+        "height": 1068,
         "view": "hero",
         "finish": "natural",
         "base": "oak",
@@ -161,7 +161,7 @@
           "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       },
       {
         "src": "/assets/products/tavor/angle-1600.webp",
@@ -183,12 +183,12 @@
         "source": "render"
       },
       {
-        "src": "/assets/products/tavor/detail-1200.webp",
-        "srcset": "/assets/products/tavor/detail-800.webp 800w, /assets/products/tavor/detail-1200.webp 1200w",
-        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1200.avif 1200w",
-        "jpg": "/assets/products/tavor/detail-1200.jpg",
-        "width": 1200,
-        "height": 896,
+        "src": "/assets/products/tavor/detail-1600.webp",
+        "srcset": "/assets/products/tavor/detail-800.webp 800w, /assets/products/tavor/detail-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/detail-1600.jpg",
+        "width": 1600,
+        "height": 1200,
         "view": "detail",
         "finish": "natural",
         "base": "oak",
@@ -199,7 +199,7 @@
           "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the edge bevelled underneath and the tapered leg"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       },
       {
         "src": "/assets/products/tavor/open-1600.webp",
@@ -461,12 +461,12 @@
         "source": "render"
       },
       {
-        "src": "/assets/products/sahar/detail-1200.webp",
-        "srcset": "/assets/products/sahar/detail-800.webp 800w, /assets/products/sahar/detail-1200.webp 1200w",
-        "srcset_avif": "/assets/products/sahar/detail-800.avif 800w, /assets/products/sahar/detail-1200.avif 1200w",
-        "jpg": "/assets/products/sahar/detail-1200.jpg",
-        "width": 1200,
-        "height": 896,
+        "src": "/assets/products/sahar/detail-1600.webp",
+        "srcset": "/assets/products/sahar/detail-800.webp 800w, /assets/products/sahar/detail-1600.webp 1600w",
+        "srcset_avif": "/assets/products/sahar/detail-800.avif 800w, /assets/products/sahar/detail-1600.avif 1600w",
+        "jpg": "/assets/products/sahar/detail-1600.jpg",
+        "width": 1600,
+        "height": 1200,
         "view": "detail",
         "finish": "natural",
         "base": "oak",
@@ -477,7 +477,7 @@
           "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of the round top and the seam where it opens"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       },
       {
         "src": "/assets/products/sahar/open-1600.webp",
@@ -630,12 +630,12 @@
     ],
     "images": [
       {
-        "src": "/assets/products/ofek/hero-1264.webp",
-        "srcset": "/assets/products/ofek/hero-400.webp 400w, /assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1264.webp 1264w",
-        "srcset_avif": "/assets/products/ofek/hero-400.avif 400w, /assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1264.avif 1264w",
-        "jpg": "/assets/products/ofek/hero-1264.jpg",
-        "width": 1264,
-        "height": 848,
+        "src": "/assets/products/ofek/hero-1600.webp",
+        "srcset": "/assets/products/ofek/hero-400.webp 400w, /assets/products/ofek/hero-800.webp 800w, /assets/products/ofek/hero-1600.webp 1600w",
+        "srcset_avif": "/assets/products/ofek/hero-400.avif 400w, /assets/products/ofek/hero-800.avif 800w, /assets/products/ofek/hero-1600.avif 1600w",
+        "jpg": "/assets/products/ofek/hero-1600.jpg",
+        "width": 1600,
+        "height": 1068,
         "view": "hero",
         "finish": "natural",
         "base": "none",
@@ -646,7 +646,7 @@
           "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       },
       {
         "src": "/assets/products/ofek/texture-1600.webp",
@@ -833,12 +833,12 @@
     ],
     "images": [
       {
-        "src": "/assets/products/saf/hero-1264.webp",
-        "srcset": "/assets/products/saf/hero-400.webp 400w, /assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1264.webp 1264w",
-        "srcset_avif": "/assets/products/saf/hero-400.avif 400w, /assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1264.avif 1264w",
-        "jpg": "/assets/products/saf/hero-1264.jpg",
-        "width": 1264,
-        "height": 848,
+        "src": "/assets/products/saf/hero-1600.webp",
+        "srcset": "/assets/products/saf/hero-400.webp 400w, /assets/products/saf/hero-800.webp 800w, /assets/products/saf/hero-1600.webp 1600w",
+        "srcset_avif": "/assets/products/saf/hero-400.avif 400w, /assets/products/saf/hero-800.avif 800w, /assets/products/saf/hero-1600.avif 1600w",
+        "jpg": "/assets/products/saf/hero-1600.jpg",
+        "width": 1600,
+        "height": 1068,
         "view": "hero",
         "finish": "natural",
         "base": "oak",
@@ -849,7 +849,7 @@
           "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       },
       {
         "src": "/assets/products/saf/texture-1600.webp",
@@ -890,12 +890,12 @@
         "source": "render"
       },
       {
-        "src": "/assets/products/saf/detail-1200.webp",
-        "srcset": "/assets/products/saf/detail-800.webp 800w, /assets/products/saf/detail-1200.webp 1200w",
-        "srcset_avif": "/assets/products/saf/detail-800.avif 800w, /assets/products/saf/detail-1200.avif 1200w",
-        "jpg": "/assets/products/saf/detail-1200.jpg",
-        "width": 1200,
-        "height": 896,
+        "src": "/assets/products/saf/detail-1600.webp",
+        "srcset": "/assets/products/saf/detail-800.webp 800w, /assets/products/saf/detail-1600.webp 1600w",
+        "srcset_avif": "/assets/products/saf/detail-800.avif 800w, /assets/products/saf/detail-1600.avif 1600w",
+        "jpg": "/assets/products/saf/detail-1600.jpg",
+        "width": 1600,
+        "height": 1200,
         "view": "detail",
         "finish": "natural",
         "base": "oak",
@@ -906,7 +906,7 @@
           "en": "Visualization: SAF console table, natural oak finish, close-up of the drawer with a finger groove instead of a handle"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       }
     ],
     "badges": [

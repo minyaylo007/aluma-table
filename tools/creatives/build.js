@@ -85,11 +85,22 @@ function priceVars(products, cfg) {
   return { price: money(Math.min(...prices)), from: prices.size > 1 ? esc(cfg.from) : '' };
 }
 
+// Заголовок: «@tagline» — слоган товару з каталогу; інакше текст із {seats}/{seats_extended} — місця найменшого розміру
+// з catalog seats (розвідка Ad Library 21.10: ринок продає столи кількістю місць). Цифр у creatives.json немає.
+function headlineOf(variant, products) {
+  const p = products[0];
+  if (variant.headline === '@tagline') return esc(p.tagline.he);
+  const vars = p.seats ? { seats: esc(p.seats.closed[0]), seats_extended: esc(p.seats.extended[0]) } : {};
+  const out = fill(esc(variant.headline), vars);
+  if (/\{\w+\}/.test(out)) throw new Error(`${variant.id}: у заголовку лишився плейсхолдер — нема seats у каталозі?`);
+  return out;
+}
+
 function variantHtml(template, cfg, variant, format, products, fonts, imagePaths) {
   const first = products[0];
   const size = first.sizes[0];
   const vars = { length: esc(size.length_cm), extended: esc(size.extended_cm ?? ''), ...priceVars(products, cfg) };
-  const headline = variant.headline === '@tagline' ? esc(first.tagline.he) : esc(variant.headline);
+  const headline = headlineOf(variant, products);
   const tiles = imagePaths.map((_, i) =>
     `<img src="${ORIGIN}/img/${variant.id}/${i}" alt="">`).join('');
   const map = {
@@ -97,7 +108,7 @@ function variantHtml(template, cfg, variant, format, products, fonts, imagePaths
     COUNT: imagePaths.length, TILES: tiles, MARK: esc(cfg.mark), BRAND: esc(cfg.brand), HEADLINE: headline,
     SUB: fill(variant.sub, vars), PRICE: fill(variant.price, vars),
     PRICE_NOTE: esc(products.length > 1 ? cfg.price_note_many : cfg.price_note), INCLUDES: esc(cfg.includes),
-    CTA: esc(cfg.cta),
+    CTA: esc(cfg.cta), CTA_NOTE: esc(cfg.cta_note),
   };
   return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in map)) throw new Error(`шаблон: невідомий ${m}`);
@@ -287,7 +298,7 @@ async function main() {
   console.log(`готово: ${report.creatives.length} креативів → ${path.relative(ROOT, outDir) || outDir}`);
 }
 
-module.exports = { ROOT, TYPES, esc, money, fontFaces, fill, priceVars };
+module.exports = { ROOT, TYPES, esc, money, fontFaces, fill, priceVars, headlineOf };
 
 // Модулем його бере tools/creatives/video.js — тоді знімки не робимо.
 if (require.main === module) main().catch((e) => { console.error(e.message || e); process.exit(1); });

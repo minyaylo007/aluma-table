@@ -148,6 +148,31 @@ test('plan "closed / open" follows the chosen size and the mechanism frames carr
   expect(errors).toEqual([]);
 });
 
+test('morning / evening switch swaps the light layer, keeps the tag and hides the inactive picture from screen readers', async ({ page }) => {
+  const p = PRODUCTS.find(x => (x.images || []).filter(i => i.view === 'light').length >= 2);
+  const errors = watchErrors(page);
+  await mockApi(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`/p/${p.slug}/`);
+  await page.locator('[data-notice-no]').click();
+  const fig = page.locator('[data-light-fig]');
+  await expect(fig).toHaveAttribute('data-on', 'morning');
+  await expect(fig.locator('.viz-tag')).toBeVisible();
+  await expect(fig.locator('[data-l="evening"]')).toHaveAttribute('aria-hidden', 'true');
+  await page.locator('[data-light="evening"]').click();
+  await expect(fig).toHaveAttribute('data-on', 'evening');
+  await expect(page.locator('[data-light="evening"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-light="morning"]')).toHaveAttribute('aria-pressed', 'false');
+  await expect(fig.locator('[data-l="morning"]')).toHaveAttribute('aria-hidden', 'true');
+  await expect(fig.locator('[data-l="evening"]')).toHaveAttribute('aria-hidden', 'false');
+  await expect(fig.locator('[data-l="evening"]')).toHaveCSS('opacity', '1');
+  // без пари кадрів блоку немає
+  const other = PRODUCTS.find(x => !(x.images || []).some(i => i.view === 'light'));
+  await page.goto(`/p/${other.slug}/`);
+  await expect(page.locator('[data-light-fig]')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('"other size" link prefills the comment in the form', async ({ page }) => {
   await mockApi(page);
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
@@ -358,3 +383,73 @@ test('reduced motion: the page renders fully without scroll animations', async (
   await page.goto('/');
   for (const card of await page.locator('.card').all()) expect(await card.evaluate(el => getComputedStyle(el).opacity)).toBe('1');
 });
+
+// pagereveal-слухач із init-скрипта реєструється раніше за наш, тому знімок — у наступному кадрі
+async function watchReveal(page) {
+  await page.addInitScript(() => addEventListener('pagereveal', e => requestAnimationFrame(() => {
+    const g = document.querySelector('.gallery .media');
+    sessionStorage.setItem('rev', JSON.stringify({ vt: !!e.viewTransition, gal: g ? g.style.viewTransitionName : null,
+      card: !!document.querySelector('.card-media[style*="p-img"]') }));
+  })));
+}
+
+for (const rm of ['no-preference', 'reduce']) {
+  test(`view transitions (${rm}): card photo flies into the gallery and back only when motion is allowed`, async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.emulateMedia({ reducedMotion: rm });
+    await mockApi(page);
+    await watchReveal(page);
+    await page.goto('/catalog/');
+    await page.locator('.card-link').first().click();
+    await page.waitForURL(/\/p\/[^/]+\/$/);
+    // запис зі сторінки товару (там галерея є завжди) — до того в сховищі ще запис каталогу з gal: null
+    const rev = async () => JSON.parse(await page.evaluate(() => sessionStorage.getItem('rev')));
+    await expect.poll(async () => (await rev()).gal).not.toBe(null);
+    const there = await rev();
+    await page.goBack();
+    await page.waitForURL(/\/catalog\/$/);
+    await expect.poll(async () => (await rev()).gal).toBe(null);
+    const back = await rev();
+    const on = rm === 'no-preference';
+    expect(there).toEqual({ vt: on, gal: on ? 'p-img' : '', card: false });
+    expect(back).toEqual({ vt: on, gal: null, card: on });
+    expect(errors).toEqual([]);
+  });
+}
+
+test('gallery thumbs are filled edge to edge and morning/evening has no empty column on desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mockApi(page);
+  await page.goto('/p/tavor/');
+  for (const t of await page.locator('.g-thumb').all()) {
+    const [box, img] = await t.evaluate(el => [el.clientHeight, el.querySelector('img').getBoundingClientRect().height]);
+    expect(Math.abs(box - img)).toBeLessThanOrEqual(1);
+  }
+  const [wrap, fig] = await page.locator('section.light').evaluate(s => [s.querySelector('.wrap'), s.querySelector('.light-media')]
+    .map(el => { const r = el.getBoundingClientRect(), c = getComputedStyle(el); return [r.left + parseFloat(c.paddingLeft), r.right - parseFloat(c.paddingRight)]; }));
+  // RTL: кадр притиснутий до лівого краю контейнера, текст — праворуч
+  expect(Math.abs(fig[0] - wrap[0])).toBeLessThanOrEqual(2);
+});
+
+for (const rm of ['no-preference', 'reduce']) {
+  test(`arch window (${rm}): the close-up enters as an arch and opens to full width; static when motion is reduced`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.emulateMedia({ reducedMotion: rm });
+    await mockApi(page);
+    await page.goto('/');
+    const band = page.locator('.band');
+    const clipAt = async f => {
+      await band.evaluate((el, f) => scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight * f), f);
+      await page.waitForTimeout(200);
+      return band.locator('picture').evaluate(el => getComputedStyle(el).clipPath);
+    };
+    const entering = await clipAt(0.4), settled = await clipAt(0);
+    if (rm === 'reduce') {
+      expect([entering, settled]).toEqual(['none', 'none']);
+    } else {
+      expect(entering).toMatch(/round [1-9]/);
+      expect(settled).not.toMatch(/round [1-9]/);
+    }
+    await expect(band.locator('.viz-tag')).toBeVisible();
+  });
+}

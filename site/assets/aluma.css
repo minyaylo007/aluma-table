@@ -100,7 +100,10 @@ bdi { unicode-bidi: isolate; }
 .wrap { width: 100%; max-width: var(--wrap); margin-inline: auto; padding-inline: var(--gut); }
 .wrap--mid { max-width: 880px; }
 .display, .h1, .h2, .h3, .pdp-h1, .card-name, .logo-lat, .step-n, .price { font-family: var(--serif); font-weight: 400; }
-.display { font-size: clamp(2.5rem, 6.4vw, 5.2rem); line-height: 1.04; letter-spacing: -.015em; }
+/* перший екран: крупний гротеск, акцентна фраза — Frank Ruhl Libre; в івриті без курсиву і без розрядки */
+.display { font-family: var(--sans); font-weight: 600; font-size: clamp(2.4rem, 6.2vw, 5rem); line-height: 1.06; letter-spacing: -.02em; }
+.display .acc { font-family: var(--serif); font-weight: 400; letter-spacing: 0; }
+:lang(he) .display, :lang(he) .h1 { letter-spacing: normal; }
 .h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.08; letter-spacing: -.01em; }
 .h2 { font-size: clamp(1.8rem, 3.6vw, 2.75rem); line-height: 1.12; }
 .h3 { font-size: 1.4rem; line-height: 1.25; }
@@ -225,8 +228,16 @@ bdi { unicode-bidi: isolate; }
 .band-cap .wrap { display: block; max-width: 1320px; }
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .band img { animation: band-pan linear both; animation-timeline: view(); transform-origin: center; }
+    /* .band з overflow: hidden — сама скролер для view(), тож шкала названа на ній і читається нащадками */
+    .band { view-timeline: --band; }
+    .band img { animation: band-pan linear both; animation-timeline: --band; transform-origin: center; }
     @keyframes band-pan { from { transform: scale(1.12) translateY(-3%); } to { transform: scale(1.12) translateY(3%); } }
+    /* «арочне вікно»: кадр входить аркою і розкривається на всю ширину; підпис і плашка «הדמיה» поза кліпом */
+    .band { background: var(--paper); }
+    .band picture { animation: band-arch linear both; animation-timeline: --band; animation-range: entry 0% cover 45%; }
+    @keyframes band-arch { from { clip-path: inset(0 16% round 50vw 50vw 0 0); } to { clip-path: inset(0 0 round 0 0 0 0); } }
+    .band-cap { animation: band-cap linear both; animation-timeline: --band; animation-range: entry 50% cover 45%; }
+    @keyframes band-cap { from { opacity: 0; } to { opacity: 1; } }
     .card { animation: card-in linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; }
     /* лише зсув, без прозорості: картка ніколи не лишається невидимою (повний знімок, старий рушій) */
     @keyframes card-in { from { transform: translateY(36px); } to { transform: none; } }
@@ -310,7 +321,9 @@ bdi { unicode-bidi: isolate; }
 .mat-tones .swatch-dot { width: 22px; height: 22px; }
 .grain-panel { display: grid; gap: 22px; padding: clamp(24px, 4vw, 48px); background: var(--paper); border-radius: var(--r-lg); border: 1px solid var(--line); }
 .gp-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 14px; font-size: .9rem; }
-.gp-row b { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; }
+/* цифри розкладки — табличні, однакової ширини, як на кресленні */
+.gp-row b { font-family: var(--sans); font-weight: 600; font-size: 1.2rem; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.gp-row small, .plan-size figcaption bdi { font-variant-numeric: tabular-nums; }
 .gp-row small { color: var(--muted); }
 .gp-bar { position: relative; height: 16px; direction: ltr; }
 .gp-bar i { position: absolute; inset-block: 0; left: 0; border-radius: 2px; }
@@ -424,8 +437,10 @@ bdi { unicode-bidi: isolate; }
 .g-slide { scroll-snap-align: start; }
 .g-slide .media { aspect-ratio: 4 / 3; }
 .g-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: thin; padding-block-end: 4px; }
-.g-thumb { flex: none; width: 72px; aspect-ratio: 1; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
-.g-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.g-thumb { flex: none; width: 88px; aspect-ratio: 4 / 3; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
+/* picture — рядковий, без display: block висота 100% не спрацьовує і знизу лишається порожня смуга */
+.g-thumb picture { display: block; height: 100%; }
+.g-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .g-thumb[aria-current="true"] { border-color: var(--ink); }
 .viewer3d { aspect-ratio: 4 / 3; border-radius: var(--r); background: var(--linen); }
 .pdp-h1 { font-size: clamp(2.4rem, 4.6vw, 3.4rem); line-height: 1.05; }
@@ -496,6 +511,26 @@ bdi { unicode-bidi: isolate; }
 .plan-chair { fill: var(--paper); stroke: var(--esp-2); stroke-width: 1.5; }
 .plan-fig figcaption { margin-block-start: 8px; font-size: .95rem; font-variant-numeric: tabular-nums; }
 .plan > .small { margin-block-start: 16px; max-width: 64ch; }
+
+/* ---------------------------------------------------------------- «בוקר / ערב»: та сама камера, інше світло */
+.light .sec-head { margin-block-end: 20px; }
+.light-switch { display: inline-flex; gap: 4px; padding: 4px; margin-block-end: 16px; border: 1px solid var(--line); border-radius: 999px; }
+.light-btn { min-height: 44px; min-width: 96px; padding-inline: 18px; border: 0; border-radius: 999px; background: none;
+  font: inherit; color: var(--ink); cursor: pointer; }
+.light-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.light-btn:focus-visible { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
+.light-media { aspect-ratio: 4 / 3; }
+/* широкий екран: заголовок і перемикач збоку, кадр на дві третини — без порожньої колонки */
+@media (min-width: 960px) {
+  .light .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-rows: auto 1fr;
+    column-gap: clamp(32px, 4vw, 64px); align-items: start; }
+  .light .sec-head { grid-column: 1; grid-row: 1; }
+  .light-switch { grid-column: 1; grid-row: 2; justify-self: start; }
+  .light-media { grid-column: 2; grid-row: 1 / 3; margin: 0; }
+}
+.light-l { position: absolute; inset: 0; transition: opacity .7s var(--ease); }
+.light-l[data-l="evening"], [data-on="evening"] .light-l[data-l="morning"] { opacity: 0; }
+[data-on="evening"] .light-l[data-l="evening"] { opacity: 1; }
 
 /* ---------------------------------------------------------------- липка кнопка (мобільна) */
 .sticky-cta { position: fixed; inset-inline: 0; bottom: 0; z-index: 30; display: flex; gap: 12px; align-items: center;
@@ -597,6 +632,16 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after { animati
 .legal { padding-block: clamp(40px, 6vw, 88px); }
 .legal h1 { margin-block-end: 8px; }
 .legal h2 { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; margin-block: 36px 10px; }
+/* ---------------------------------------------------------------- перехід між сторінками (View Transitions, без JS-бібліотек) */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  .top { view-transition-name: top; }
+  ::view-transition-group(root) { animation-duration: .28s; }
+  ::view-transition-group(p-img) { animation-duration: .45s; animation-timing-function: var(--ease); }
+}
+html.a11y-still::view-transition-group(*), html.a11y-still::view-transition-old(*),
+html.a11y-still::view-transition-new(*) { animation: none !important; }
+
 .legal p, .legal ul { max-width: 68ch; margin-block-end: 12px; }
 .legal ul { padding-inline-start: 1.2em; }
 .nf { text-align: start; }

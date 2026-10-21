@@ -3,6 +3,7 @@
   "brand": "ALUMA",
   "mark": "הדמיה",
   "cta": "להרשמה מוקדמת",
+  "cta_note": "ללא תשלום וללא התחייבות",
   "from": "מ־",
   "price_note": "מחיר משוער, טרם אושר",
   "price_note_many": "מחירים משוערים, טרם אושרו",
@@ -11,7 +12,7 @@
     {
       "id": "tavor",
       "products": ["tavor"],
-      "headline": "@tagline",
+      "headline": "{seats} סועדים ביום רגיל, עד {seats_extended} בחג.",
       "sub": "שולחן אוכל נפתח, פורניר אלון · <bdi dir=\"ltr\">{length}→{extended}</bdi> ס״מ",
       "price": "{from}₪{price}"
     },
