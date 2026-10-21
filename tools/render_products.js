@@ -3,6 +3,7 @@
 //   node tools/render_products.js                   усі товари: AVIF/WebP/JPG + products.json
 //   node tools/render_products.js tavor sahar       лише ці товари
 //   --preview [--frames=a,b]  лише звірка ракурсів: ½ сторони, 12 семплів, renders-master/preview; каталог не чіпає
+//   --add=home,finish,home-9x16  лише ці кадри (finish — карусель тонів): решта файлів і images товару лишається
 //   --reuse        не рендерити Blender, якщо майстер PNG уже є    --samples=48   семпли Cycles (+ OIDN)
 //
 // Джерела кадрів (усі — візуалізації, підпис «הדמיה» / «visualization», kind: "visualization"):
@@ -46,6 +47,7 @@ const KIND = {
 };
 const VIEW_ALT = {
   hero:   ['בחלל מגורים באור יום', 'in a living room in daylight'],
+  home:   ['בבית, ליד חלון באור יום, על ריצוף טראצו', 'at home by a window in daylight, on a terrazzo floor'],
   angle:  ['במבט נמוך מהצד', 'low three-quarter view'],
   open:   ['פתוח עם התוספת', 'extended with the leaf'],
   round:  ['בגרסה העגולה Ø80', 'round version, Ø80'],
@@ -126,17 +128,29 @@ const WIDE_RENDER = {
 // Тонування рендером (карусель Meta, сесія 4): той самий кадр, камера й світло, міняється лише матеріал стола —
 // справжній скан шпону цього тону (tools/oak_tones.py — ті самі файли, що зразок і 3D на сторінці), а не готовий кадр.
 // Файли finish-<тонування>-{800,1600}.{avif,webp} і -1600.jpg; у images не йдуть.
-const FINISH_SET = { tavor: 'hero' };
+const FINISH_SET = { tavor: 'home' };   // 21.10: карусель — у жилому кадрі, як і герой
 // Вертикальні кадри 9:16 для Reels (сесія 4): та сама сцена, світло й камера, що в кадру; 1080×1920, лише JPG
 // <кадр>-9x16.jpg поруч з кадром, у images не йдуть. Стіл цілком — у смузі y 300–1000 px (shift_y піднімає його
 // вгору), нижче — підлога під плашку з текстом. Кадр без рендер-камери (герой tal — AI) бере VERTICAL_CAM.
-const VERTICAL = { tavor: ['open', 'hero'], sahar: ['open', 'hero'], ofek: ['hero'], saf: ['hero'], tal: ['hero'] };
+const VERTICAL = { tavor: ['home', 'open', 'hero'], sahar: ['home', 'open', 'hero'], ofek: ['home', 'hero'], saf: ['home', 'hero'], tal: ['home', 'hero'] };
 const VERTICAL_CAM = { az: 30, eye: 1.1, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false };
 const VERTICAL_SHIFT = { eye: 1.9, margin: 0.12, shift_y: -0.34 };
+// Жилий кадр (власник 21.10: «у живому інтер'єрі»): та сама модель і матеріал, а кімната — ізраїльська квартира
+// (blender_scene.py room: home) — плитка-терацо, вікно в кадрі з алюмінієвою рамою й жалюзі, фіранка, рослини, килим.
+// Перший у images: він і обкладинка картки, і герой головної (content.json HERO_PRODUCT).
+const HOME_LIGHT = { room: 'home', sun: 7.0, window: 150, hdri_strength: 0.16, exposure: 1.5, end_chair: false };
+const HOME = {
+  tavor: { az: 30, eye: 1.3, margin: 0.2, ...HOME_LIGHT, end_chair: true },
+  sahar: { az: 30, eye: 1.3, margin: 0.22, ...HOME_LIGHT, end_chair: true },
+  ofek:  { az: 24, eye: 1.2, margin: 0.42, ...HOME_LIGHT, plant: 'right' },
+  saf:   { az: 26, eye: 1.15, margin: 0.32, ...HOME_LIGHT, plant: 'right' },
+  tal:   { az: 28, eye: 1.1, margin: 0.4, ...HOME_LIGHT, rug: [1.9, 1.3, 0] }
+};
 function framesFor(p) {
   const base = p.bases.length ? 'oak' : 'none', ext = p.badges.some(b => b.id === 'extendable');
   const decor = p.category === 'dining_table' ? 'dining' : 'top';
   const L = [
+    { name: 'home', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HOME[p.id] },
     HERO_RENDER[p.id]
       ? { name: 'hero', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HERO_RENDER[p.id] }
       : { name: 'hero', view: 'hero', source: 'ai', file: `${p.id}-hero-v1.png`, finish: 'natural', base },
@@ -236,12 +250,14 @@ async function openPage() {
   for (const p of catalog) {
     if (only.length && !only.includes(p.id)) continue;
     const dir = path.join(OUT, p.id);
-    if (!opt.preview) {
+    const add = opt.add ? opt.add.split(',') : null;
+    if (!opt.preview && !add) {
       fs.rmSync(dir, { recursive: true, force: true });   // кадри товару — лише те, що в images
       fs.mkdirSync(dir, { recursive: true });
     }
     const images = [];
     for (const f of framesFor(p)) {
+      if (add && !add.includes(f.name)) continue;
       if (opt.preview) {
         if (opt.frames && !opt.frames.split(',').includes(f.name)) continue;
         // превью для звірки ракурсу: ¼ площі, 12 семплів, у renders-master/preview; images і каталог не чіпає
@@ -287,7 +303,7 @@ async function openPage() {
       if (f.light) images[images.length - 1].light = f.light;
       console.log(`${p.id}/${f.name} ${W}×${H}`);
     }
-    if (FINISH_SET[p.id]) {
+    if (FINISH_SET[p.id] && (!add || add.includes('finish'))) {
       const hero = framesFor(p).find(f => f.name === FINISH_SET[p.id]);
       for (const fin of p.finishes) {
         const f = Object.assign({}, hero, { name: 'finish-' + fin.id, finish: fin.id });
@@ -316,6 +332,7 @@ async function openPage() {
       const f = Object.assign({}, base, { name: name + '-9x16', w: 1080, h: 1920,
         cam: Object.assign({}, base.source === 'render' ? base.cam : VERTICAL_CAM, VERTICAL_SHIFT) });
       if (opt.preview && !(opt.frames || '').split(',').includes(f.name)) continue;
+      if (add && !add.includes(f.name)) continue;
       const pdir = opt.preview ? path.join(MASTER, 'preview', p.id) : path.join(MASTER, p.id);
       const src = path.join(pdir, f.name + '.png');
       if (!(opt.reuse && fs.existsSync(src) && !opt.preview)) {
@@ -331,6 +348,15 @@ async function openPage() {
       run('convert', [src, '-resize', '1080x1920!', '-strip', '-sampling-factor', '4:2:0', '-interlace', 'JPEG', '-quality', '84',
         path.join(dir, f.name + '.jpg')]);
       console.log(`${p.id}/${f.name} 1080×1920`);
+    }
+    if (add) {
+      // --add=<кадри>: нові кадри стають на своє місце за framesFor, старі записи images лишаються; wide не чіпаємо
+      const order = framesFor(p).map(f => f.name), nameOf = im => im.src.split('/').pop().replace(/-\d+\.webp$/, '');
+      if (!opt.preview) {
+        p.images = [...images, ...p.images.filter(im => !images.some(n => nameOf(n) === nameOf(im)))]
+          .sort((a, b) => order.indexOf(nameOf(a)) - order.indexOf(nameOf(b)));
+      }
+      continue;
     }
     if (!opt.preview) p.images = images;
     // широкий кадр 16:9 (Figma AI або рендер, WIDE_RENDER) — для шапки й обкладинок Meta; окреме поле, не в images: у галерею картки не йде

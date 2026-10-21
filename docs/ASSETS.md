@@ -10,13 +10,15 @@
 |---|---|---|
 | Герой і крупний план товару, де кадр AI збігся з моделлю (`source: "ai"`) | Figma AI, модель `gemini-3.1-flash-image`, файл Figma «ALUMA — фото товаров» (`RLTzPbAof8ObuvaBw6sQUL`), 20.10.2026, дозвіл власника | згенеровано для нас |
 | Геометрія всіх п'яти товарів | `site/assets/products/aluma3d.js` — параметрична модель із розмірів сітки каталогу | наш код |
-| Герой tavor, sahar, ofek, saf, крупний план усіх п'яти, широкий кадр sahar (з 21.10), ракурси, розкладений стіл, механізм tavor, пара «ранок / вечір», текстура дуба (`source: "render"`) | Blender 4.5 Cycles: `tools/blender_scene.py` над геометрією з `aluma3d.js`; лампа над столом — наша процедурна модель | наш код |
+| Жилий кадр `home` усіх п'яти (перший у галереї, герой головної — ofek), герой tavor, sahar, ofek, saf, крупний план усіх п'яти, широкий кадр sahar (з 21.10), ракурси, розкладений стіл, механізм tavor, пара «ранок / вечір», текстура дуба (`source: "render"`) | Blender 4.5 Cycles: `tools/blender_scene.py` над геометрією з `aluma3d.js`; лампа над столом — наша процедурна модель | наш код |
 | Дуб у рендерах, 3D і зразках: натуральний і мед | Poly Haven «Oak Veneer 01», https://polyhaven.com/a/oak_veneer_01 | CC0 |
 | Світлий тон | Poly Haven «Washed Grey Oak Veneer», https://polyhaven.com/a/washed_grey_oak_veneer | CC0 |
 | Копчений і чорний тон | Poly Haven «Black Oak Veneer», https://polyhaven.com/a/black_oak_veneer | CC0 |
 | Олійний шар поверх скану (тон) | `tools/oak_tones.py`, розділ «Тони дуба» нижче | наш код |
 | Інтер'єр Blender: стіна, підлога, льон | Poly Haven: https://polyhaven.com/a/plastered_wall_04 · https://polyhaven.com/a/smooth_concrete_floor · https://polyhaven.com/a/rough_linen | CC0 |
 | Денне світло Blender (HDRI) | Poly Haven: https://polyhaven.com/a/photo_studio_loft_hall · https://polyhaven.com/a/lebombo | CC0 |
+| Жилий кадр: плитка-терацо, вид за вікном, джутовий килим | ambientCG «Tiles110», https://ambientcg.com/view?id=Tiles110 · Poly Haven: https://polyhaven.com/a/bloem_olive_house (лише в прорізі вікна, світла не дає) · https://polyhaven.com/a/hessian_380 | CC0 |
+| Жилий кадр: рослини, кошик | Poly Haven: https://polyhaven.com/a/potted_plant_02 · https://polyhaven.com/a/potted_plant_04 · https://polyhaven.com/a/wicker_basket_02; вікно (рама, підвіконня, жалюзі-«тріс») і фіранка — наша процедурна модель | CC0 / наш код |
 | Декор Blender | Poly Haven: https://polyhaven.com/a/ceramic_vase_01 · https://polyhaven.com/a/ceramic_vase_02 · https://polyhaven.com/a/dry_branches_medium_01 · https://polyhaven.com/a/wooden_cutting_board · https://polyhaven.com/a/food_pears_asian_01 · https://polyhaven.com/a/wooden_bowl_02; стільці — наша процедурна модель | CC0 / наш код |
 
 Шрифтів, логотипів, людей і чужих брендів у кадрах немає.
@@ -86,14 +88,20 @@ Figma AI — **лише фон чи атмосфера без нашого ви�
 | sahar `wide` | круглий, 4 круглі дубові ніжки, царга, 4 стільці | — | — |
 
 ## Кадри Blender: що показують
+- **home** (усі п'ять, 21.10, власник: «у живому інтер'єрі»): той самий виріб, матеріал і світло, що в героя, але кімната —
+  ізраїльська квартира (`room: "home"` у `blender_scene.py`): підлога — плитка-терацо 31 см, у задній стіні вікно в кадрі
+  (розсувна алюмінієва рама, мармурове підвіконня, опущені на 30 см ламелі «тріс»), лляна фіранка, рослина в горщику,
+  сукулент на підвіконні; у tal — джутовий килим. За вікном — вулиця з оливковими деревами (HDRI лише для променів камери:
+  колір виробу дає те саме світло кімнати, що й у героя). Кадр перший у `images` (картка, og:image) і герой головної
+  (`HERO_PRODUCT: "ofek"`). Підпис — «הדמיה». Додати чи перезняти лише його: `node tools/render_products.js --add=home`.
 - **mechanism** (tavor): у моделі — стан `half`: половини розведені на 40 см (пів вставки), видно дві сталеві
   напрямні 30×25 мм і вставку 80 см, складену вдвоє між царгами — як у описі («מאוחסנת מתחת למשטח»).
   Пара `half` / `closed` знята однією камерою над швом (вікно ±0,42 м від центру).
 - **light** (tavor): одна камера й одна сцена; підвісна лампа в кадрі в обох, ранок — холодне бічне сонце з вікна,
   вечір — сутінки за вікном і тепла лампа (2700 K). Кадри збігаються по композиції — вітрина змінює їх плавно.
-- **finish-<тонування>** (tavor, карусель Meta): кадр героя, та сама камера й світло, п'ять тонувань каталогу. Міняється
+- **finish-<тонування>** (tavor, карусель Meta): жилий кадр `home` (з 21.10; раніше — студійний герой), та сама камера й світло, п'ять тонувань каталогу. Міняється
   лише матеріал стола: скан і альбедо тону з `tools/oak_tones.py` (ті самі, що в зразку й 3D),
-  а не готовий кадр; стільці й інтер'єр — без змін. `finish-natural` — сам герой. У `images` не йдуть.
+  а не готовий кадр; стільці й інтер'єр — без змін. `finish-natural` — сам кадр `home`. У `images` не йдуть.
 - **ofek, підвісна**: стіна сцени стоїть упритул до задньої стінки моделі (`wallZ`), тінь падає на стіну — як «תלוי על
   הקיר» в описі. Шов між дверима 4 мм і гладка смуга 8 мм по краях дверей — **конструктивне допущення для
   візуалізації, не обіцянка**: точні зазори й фрезерування фасаду назве фабрика.

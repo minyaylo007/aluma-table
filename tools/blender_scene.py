@@ -250,13 +250,69 @@ def cube(name, size, loc, mat, bevel=0.0, seg=3, rot=(0, 0, 0)):
 
 # підвісне (ofek) висить на стіні: стіна впритул до задньої стінки, як у 3D на сторінці (info.wallZ моделі)
 WALL_Y = CAM.get("wall_y", -INFO["wallZ"] if INFO.get("floating") else HI.y + 1.15)
-FLOOR = tex_material("microcement", "smooth_concrete_floor", 2.2, tint=(0.93, 0.9, 0.86), sat=0.12, bright=0.12,
-                     contrast=-0.25, rough=(0.42, 0.7), nstr=0.25)
+# room: studio — мікроцемент і гладка стіна (кадри галереї); home — жилий кадр (21.10): ізраїльська квартира з
+# плиткою-терацо «балата», вікном у кадрі (розсувна алюмінієва рама, мармурове підвіконня, жалюзі-«тріс»), фіранкою,
+# рослинами й килимом. Виріб і його матеріал ті самі — міняється лише кімната.
+ROOM = CAM.get("room", "studio")
+if ROOM == "home":
+    # плитка 31 см (ambientCG Tiles110: 6 плиток на 1,85 м), полірована — м'який відблиск вікна, темні шви
+    FLOOR = tex_material("balata", "Tiles110", 1.85, sat=0.85, bright=0.03, rough=(0.2, 0.45), nstr=0.6)
+else:
+    FLOOR = tex_material("microcement", "smooth_concrete_floor", 2.2, tint=(0.93, 0.9, 0.86), sat=0.12, bright=0.12,
+                         contrast=-0.25, rough=(0.42, 0.7), nstr=0.25)
 WALL = tex_material("plaster", "plastered_wall_04", 1.6, tint=(0.97, 0.94, 0.9), sat=0.3, bright=0.05,
                     rough=(0.75, 0.95), nstr=0.6)
 plane("floor", 16, 14, FLOOR, loc=(0, WALL_Y - 7, 0))
 GX = CAM.get("win_x", -3.2)                                       # ліва стіна з вікном
-plane("wall", 8 - GX, 5, WALL, loc=((8 + GX) / 2, WALL_Y, 2.5), rot=(math.radians(90), 0, 0))
+
+
+def wall_with_hole(name, xa, xb, height, x0, x1, z0, z1, y, mat):
+    """Стіна-площина з прорізом: один меш, одні координати текстури — без швів штукатурки навколо вікна."""
+    vs, fs = [], []
+    for a, b, za, zb in ((xa, x0, 0, height), (x1, xb, 0, height), (x0, x1, 0, z0), (x0, x1, z1, height)):
+        k = len(vs)
+        vs += [(a, za, 0), (b, za, 0), (b, zb, 0), (a, zb, 0)]
+        fs.append((k, k + 1, k + 2, k + 3))
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(vs, [], fs)
+    me.materials.append(mat)
+    ob = link_obj(name, me)
+    ob.location = (0, y, 0)
+    ob.rotation_euler = (math.radians(90), 0, 0)
+    return ob
+
+
+def home_back_wall():
+    """Вікно в задній стіні, у кадрі: проріз у товщі стіни 20 см, рама, підвіконня, жалюзі трохи опущені."""
+    w = CAM.get("win_w", 1.3)
+    x1 = CAM.get("win_x1", LO.x - 0.15)
+    x0, z0, z1, T = x1 - w, CAM.get("win_z0", 0.85), CAM.get("win_z1", 2.3), 0.2
+    wall_with_hole("wall", GX, 8.0, 5.0, x0, x1, z0, z1, WALL_Y, WALL)
+    reveal = pbr("reveal", rough=0.9, color=(0.86, 0.84, 0.8))[0]
+    yc = WALL_Y + T / 2
+    cube("jamb-l", (0.01, T, z1 - z0), (x0 - 0.005, yc, (z0 + z1) / 2), reveal)
+    cube("jamb-r", (0.01, T, z1 - z0), (x1 + 0.005, yc, (z0 + z1) / 2), reveal)
+    cube("head", (w + 0.02, T, 0.01), ((x0 + x1) / 2, yc, z1 + 0.005), reveal)
+    marble = pbr("marble", rough=0.18, coat=0.2, color=(0.86, 0.84, 0.8))[0]
+    cube("sill", (w + 0.1, T + 0.05, 0.025), ((x0 + x1) / 2, yc - 0.025, z0 - 0.0125), marble, bevel=0.003)
+    alu = pbr("alu", rough=0.35, metal=0.7, color=(0.8, 0.8, 0.78))[0]
+    yf, p = WALL_Y + T * 0.6, 0.045                                 # рама посередині товщі стіни
+    for nm, size, loc in (("fr-b", (w, 0.06, p), ((x0 + x1) / 2, yf, z0 + p / 2)),
+                          ("fr-t", (w, 0.06, p), ((x0 + x1) / 2, yf, z1 - p / 2)),
+                          ("fr-l", (p, 0.06, z1 - z0), (x0 + p / 2, yf, (z0 + z1) / 2)),
+                          ("fr-r", (p, 0.06, z1 - z0), (x1 - p / 2, yf, (z0 + z1) / 2)),
+                          ("fr-m", (0.07, 0.08, z1 - z0), ((x0 + x1) / 2 + 0.03, yf, (z0 + z1) / 2))):   # стулки внахлест
+        cube(nm, size, loc, alu, bevel=0.002)
+    drop = CAM.get("shutter", 0.3)                                  # тріс: ламелі 4 см ззовні, опущені на 30 см
+    shut = pbr("shutter", rough=0.5, color=(0.82, 0.81, 0.78))[0]
+    for k in range(int(drop / 0.04)):
+        cube(f"slat{k}", (w, 0.012, 0.036), ((x0 + x1) / 2, WALL_Y + T - 0.02, z1 - 0.02 - k * 0.04), shut, bevel=0.003)
+    return {"x0": x0, "x1": x1, "z0": z0, "z1": z1, "T": T, "w": w}
+
+
+WIN_BACK = home_back_wall() if ROOM == "home" else None
+if not WIN_BACK:
+    plane("wall", 8 - GX, 5, WALL, loc=((8 + GX) / 2, WALL_Y, 2.5), rot=(math.radians(90), 0, 0))
 SKIRT = pbr("skirt", rough=0.55, color=(0.82, 0.8, 0.76))[0]
 cube("skirting", (8 - GX, 0.012, 0.07), ((8 + GX) / 2, WALL_Y - 0.006, 0.035), SKIRT, bevel=0.002)
 
@@ -390,6 +446,73 @@ elif A.decor == "top":
     top_decor()
 
 
+# ---- жилий кадр: фіранка, рослини, килим, кошик -------------------------------------------------------------
+def curtain(xa, xb, y, top):
+    """Легка лляна фіранка: складки синусоїдою, частково просвічує (транслюцентність + прозорість)."""
+    n, amp, period = 160, CAM.get("curtain_amp", 0.03), 0.12
+    vs, fs = [], []
+    for i in range(n + 1):
+        x = xa + (xb - xa) * i / n
+        dy = amp * math.sin(2 * math.pi * (x - xa) / period)
+        vs += [(x, y + dy, 0.015), (x, y + dy, top)]
+    for i in range(n):
+        fs.append((2 * i, 2 * i + 2, 2 * i + 3, 2 * i + 1))
+    me = bpy.data.meshes.new("curtain")
+    me.from_pydata(vs, [], fs)
+    m, nt, b = pbr("sheer", rough=0.95, color=CAM.get("curtain_color", (0.94, 0.92, 0.87)))
+    out = nt.nodes["Material Output"]
+    tl = nt.nodes.new("ShaderNodeBsdfTranslucent")
+    tl.inputs["Color"].default_value = (0.95, 0.92, 0.86, 1)
+    tp = nt.nodes.new("ShaderNodeBsdfTransparent")
+    m1, m2 = nt.nodes.new("ShaderNodeMixShader"), nt.nodes.new("ShaderNodeMixShader")
+    m1.inputs["Fac"].default_value = 0.45
+    m2.inputs["Fac"].default_value = CAM.get("curtain_sheer", 0.3)
+    nt.links.new(b.outputs["BSDF"], m1.inputs[1])
+    nt.links.new(tl.outputs["BSDF"], m1.inputs[2])
+    nt.links.new(m1.outputs["Shader"], m2.inputs[1])
+    nt.links.new(tp.outputs["BSDF"], m2.inputs[2])
+    nt.links.new(m2.outputs["Shader"], out.inputs["Surface"])
+    me.materials.append(m)
+    me.shade_smooth()
+    link_obj("curtain", me)
+    rod_m = pbr("rod", rough=0.4, metal=0.8, color=(0.12, 0.1, 0.08))[0]
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.011, depth=xb - xa + 0.12,
+                                        location=((xa + xb) / 2, y, top + 0.03), rotation=(0, math.radians(90), 0))
+    bpy.context.object.data.materials.append(rod_m)
+
+
+def floor_obj(name, x, y, yaw=0.0, scale=1.0):
+    root, objs = gltf(name, (x, y, 0), yaw=yaw, scale=scale)
+    drop_on(root, objs, 0.0005)
+    centre_on(root, objs, x, y)
+    return root, objs
+
+
+def home_decor(wb):
+    x0, x1, z0, z1 = wb["x0"], wb["x1"], wb["z0"], wb["z1"]
+    ca = CAM.get("curtain", [-0.5, 0.28])                           # від лівого краю прорізу: де висить фіранка
+    curtain(x0 + ca[0], x0 + ca[1], WALL_Y - 0.09, z1 + 0.16)
+    if CAM.get("sill_plant", True):                                 # сукулент на підвіконні
+        root, objs = gltf("potted_plant_04", (x1 - 0.32, WALL_Y + 0.07, z0), yaw=0.7)
+        drop_on(root, objs, z0 + 0.0005)
+        centre_on(root, objs, x1 - 0.32, WALL_Y + 0.07)
+    # велика рослина в горщику: біля вікна, або "right" — праворуч від виробу, щоб не закривала вікно
+    px, py = {"right": [HI.x + 0.4, WALL_Y - 0.3]}.get(CAM.get("plant"), CAM.get("plant", [x0 + ca[0] - 0.32, WALL_Y - 0.36]))
+    floor_obj("potted_plant_02", px, py, yaw=CAM.get("plant_yaw", 0.4), scale=CAM.get("plant_scale", 1.25 if CAM.get("plant") != "right" else 0.9))
+    if CAM.get("basket"):
+        bx, by = CAM["basket"]
+        floor_obj("wicker_basket_02", bx, by, yaw=0.3)
+    if CAM.get("rug"):                                              # джутовий килим: [ширина, глибина, зсув y від центру виробу]
+        rw, rd, dy = CAM["rug"]
+        rug_m = tex_material("rug", "hessian_380", 2.0, tint=tuple(CAM.get("rug_color", (0.95, 0.92, 0.86))), sat=0.7,
+                             rough=(0.85, 1.0), nstr=1.0)
+        cube("rug", (rw, rd, 0.01), ((LO.x + HI.x) / 2, (LO.y + HI.y) / 2 + dy, 0.005), rug_m, bevel=0.004)
+
+
+if WIN_BACK:
+    home_decor(WIN_BACK)
+
+
 # ---- світло: денне з вікна ліворуч + HDRI інтер'єру --------------------------------------------------------
 world = bpy.data.worlds.new("world")
 scene.world = world
@@ -404,6 +527,35 @@ wn.links.new(mp.outputs["Vector"], env.inputs["Vector"])
 bg = wn.nodes["Background"]
 bg.inputs["Strength"].default_value = CAM.get("hdri_strength", 0.2)
 wn.links.new(env.outputs["Color"], bg.inputs["Color"])
+if WIN_BACK:
+    # за вікном у кадрі — вулиця (сонце, оливкове дерево, будинок), але лише для променів камери: світло кімнати
+    # і далі дає HDRI інтер'єру, тож вид не перефарбовує виріб
+    view = wn.nodes.new("ShaderNodeTexEnvironment")
+    view.image = img(os.path.join(CC0, "hdri", CAM.get("view_hdri", "bloem_olive_house_2k.hdr")))
+    vmp = wn.nodes.new("ShaderNodeMapping")
+    vmp.inputs["Rotation"].default_value = (0, 0, math.radians(CAM.get("view_rot", 152)))
+    wn.links.new(wn.nodes.new("ShaderNodeTexCoord").outputs["Generated"], vmp.inputs["Vector"])
+    wn.links.new(vmp.outputs["Vector"], view.inputs["Vector"])
+    vbg = wn.nodes.new("ShaderNodeBackground")
+    vbg.inputs["Strength"].default_value = CAM.get("view_strength", 2.5)
+    wn.links.new(view.outputs["Color"], vbg.inputs["Color"])
+    lp = wn.nodes.new("ShaderNodeLightPath")
+    mix = wn.nodes.new("ShaderNodeMixShader")
+    wn.links.new(lp.outputs["Is Camera Ray"], mix.inputs["Fac"])
+    wn.links.new(bg.outputs["Background"], mix.inputs[1])
+    wn.links.new(vbg.outputs["Background"], mix.inputs[2])
+    wn.links.new(mix.outputs["Shader"], wn.nodes["World Output"].inputs["Surface"])
+    # денне світло крізь вікно в кадрі: м'яке джерело в прорізі, світить у кімнату, саме в кадрі не видно
+    bl = bpy.data.lights.new("back-window", "AREA")
+    bl.shape = "RECTANGLE"
+    bl.size, bl.size_y = WIN_BACK["w"], WIN_BACK["z1"] - WIN_BACK["z0"]
+    bl.energy = CAM.get("back_window", 90)
+    bl.color = (0.96, 0.97, 1.0)
+    blo = bpy.data.objects.new("back-window", bl)
+    col.objects.link(blo)
+    blo.location = ((WIN_BACK["x0"] + WIN_BACK["x1"]) / 2, WALL_Y + WIN_BACK["T"] + 0.05, (WIN_BACK["z0"] + WIN_BACK["z1"]) / 2)
+    blo.rotation_euler = (math.radians(-90), 0, 0)
+    blo.visible_camera = False
 
 # вікно — велике м'яке джерело ліворуч, поза кадром
 win = bpy.data.lights.new("window", "AREA")
