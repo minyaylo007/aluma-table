@@ -250,6 +250,24 @@ bdi { unicode-bidi: isolate; }
   }
 }
 
+/* годичні кільця дуба — лінійна графіка; без scroll-timeline чи з reduce-motion просто намальовані */
+.rings { display: block; inline-size: clamp(96px, 12vw, 148px); block-size: auto; margin-block-end: 20px;
+  fill: none; stroke: var(--oak); stroke-width: 1.2; stroke-linecap: round; }
+.rings path { vector-effect: non-scaling-stroke; }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* stroke-dashoffset за прокруткою секції (шкала самого знака — лише ~100 px, прорисовка проскакувала):
+       від серцевини назовні, кожна пара кілець трохи пізніше */
+    .material { view-timeline: --rings; }
+    .rings path { stroke-dasharray: 1 1; animation: ring-draw linear both; animation-timeline: --rings;
+      animation-range: cover 12% cover 32%; }
+    .rings path:nth-child(n+3) { animation-range: cover 16% cover 38%; }
+    .rings path:nth-child(n+5) { animation-range: cover 20% cover 44%; }
+    .rings path:nth-child(n+7) { animation-range: cover 24% cover 50%; }
+    @keyframes ring-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  }
+}
+
 /* ---------------------------------------------------------------- медіа і плитки-заглушки */
 .media { position: relative; overflow: hidden; border-radius: var(--r); background: var(--sand); }
 .media--img picture { display: block; width: 100%; height: 100%; }
