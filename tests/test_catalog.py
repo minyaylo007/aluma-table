@@ -164,6 +164,10 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertTrue((ASSETS / image["jpg"].lstrip("/")).is_file(), image["jpg"])
                 biggest = p["images"][0]["srcset_avif"].split(", ")[-1].split(" ")[0]
                 self.assertLessEqual((ASSETS / biggest.lstrip("/")).stat().st_size, 180 * 1024)
+                # 800w — LCP головної й картки на телефоні: ≤ 12 КБ, у перше вікно TCP (render_products.js HERO_800_AVIF_MAX)
+                w800 = [e.split(" ")[0] for e in p["images"][0]["srcset_avif"].split(", ") if e.endswith(" 800w")]
+                for f in w800:
+                    self.assertLessEqual((ASSETS / f.lstrip("/")).stat().st_size, 12 * 1024, f)
 
     def test_small_variants_for_hero_and_angle(self):
         # Картка й плитка каталогу на телефоні беруть 400w (запит вітрини 21.10): hero і angle мають 400/800/рідну.

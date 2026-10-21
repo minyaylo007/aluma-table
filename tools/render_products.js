@@ -29,6 +29,9 @@ const MASTER = path.join(ROOT, 'renders-master', 'products');
 const FIGMA = process.env.ALUMA_FIGMA || '/opt/ihor/aluma-table/tmp/figma-ai';
 const OUT = path.join(ROOT, 'site', 'assets', 'products');
 const HERO_AVIF_MAX = 180 * 1024;
+// 800 px першого кадру — це LCP головної й картки на телефоні: ≤ 12 КБ влазить у перше вікно TCP (~14 КБ),
+// інакше Lighthouse mobile додає ще один круг мережі (+0,25 с LCP; жилий кадр OFEK 21.10 — 18 КБ при q62)
+const HERO_800_AVIF_MAX = 12 * 1024;
 
 const argv = process.argv.slice(2), only = argv.filter(a => !a.startsWith('--'));
 const opt = Object.fromEntries(argv.filter(a => a.startsWith('--')).map(a => { const i = a.indexOf('='); return i < 0 ? [a.slice(2), '1'] : [a.slice(2, i), a.slice(i + 1)]; }));
@@ -219,9 +222,10 @@ function widthsFor(view, W) {
 function encode(src, dstBase, W, hero, widths) {
   for (const width of widths) {
     let q = hero && width === W ? 68 : 62;
+    const max = !hero ? Infinity : width === W ? HERO_AVIF_MAX : width === 800 ? HERO_800_AVIF_MAX : Infinity;
     for (;;) {
       run('convert', [src, '-resize', width + 'x', '-strip', '-quality', String(q), `${dstBase}-${width}.avif`]);
-      if (!(hero && width === W) || fs.statSync(`${dstBase}-${width}.avif`).size <= HERO_AVIF_MAX || q <= 30) break;
+      if (fs.statSync(`${dstBase}-${width}.avif`).size <= max || q <= 30) break;
       q -= 4;
     }
     run('convert', [src, '-resize', width + 'x', '-strip', '-quality', '80', '-define', 'webp:method=6', `${dstBase}-${width}.webp`]);
