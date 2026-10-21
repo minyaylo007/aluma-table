@@ -481,6 +481,7 @@ def specs(p: dict, loc: str) -> str:
 
 # ---- «מה כלול במחיר»: лише факти з каталогу (матеріал, розміри, місця) і з i18n; жодних порівнянь з іншими
 INC_ICONS = {  # 20×20, штрих currentColor, декоративні
+    "table": '<path d="M2 7h16M4 7v9M16 7v9M4 11h12" />',
     "veneer": '<path d="M3 6h14M3 10h14M3 14h14" /><path d="M7 6c1 1.5 1 2.5 0 4M12 10c1 1.5 1 2.5 0 4" />',
     "edge": '<rect x="3" y="6" width="14" height="8" rx="1" /><path d="M3 9h14" />',
     "size": '<path d="M2 13l11-11 5 5-11 11z" /><path d="M6 9l2 2M9 6l2 2M12 3l2 2" />',
@@ -501,7 +502,9 @@ def seat_span(lo_hi: list) -> str:
 
 
 def included(p: dict, loc: str) -> str:
-    rows = [("veneer", "{{t.inc_veneer}}")]
+    # обідній стіл — першим рядком: ціна без стільців (ознака — категорія каталогу, не slug)
+    rows = [("table", "{{t.inc_table_only}}")] if p.get("category") == "dining_table" else []
+    rows.append(("veneer", "{{t.inc_veneer}}"))
     # кромка чи фасади — як написано в матеріалі каталогу (OFEK: фасади з масиву)
     rows.append(("edge", "{{t.inc_fronts}}" if "fronts" in L(p.get("material"), "en") else "{{t.inc_edges}}"))
     n = len(p.get("sizes") or [])
