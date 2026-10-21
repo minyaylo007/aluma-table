@@ -121,6 +121,12 @@ const WIDE_RENDER = {
 // альбедо шпону, пофарбоване gradePixel з aluma3d.js (як свотч і 3D на сторінці), а не готовий кадр.
 // Файли finish-<тонування>-{800,1600}.{avif,webp} і -1600.jpg; у images не йдуть.
 const FINISH_SET = { tavor: 'hero' };
+// Вертикальні кадри 9:16 для Reels (сесія 4): та сама сцена, світло й камера, що в кадру; 1080×1920, лише JPG
+// <кадр>-9x16.jpg поруч з кадром, у images не йдуть. Стіл цілком — у смузі y 300–1000 px (shift_y піднімає його
+// вгору), нижче — підлога під плашку з текстом. Кадр без рендер-камери (герой tal — AI) бере VERTICAL_CAM.
+const VERTICAL = { tavor: ['open', 'hero'], sahar: ['open', 'hero'], ofek: ['hero'], saf: ['hero'], tal: ['hero'] };
+const VERTICAL_CAM = { az: 30, eye: 1.1, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false };
+const VERTICAL_SHIFT = { eye: 1.9, margin: 0.12, shift_y: -0.34 };
 function framesFor(p) {
   const base = p.bases.length ? 'oak' : 'none', ext = p.badges.some(b => b.id === 'extendable');
   const decor = p.category === 'dining_table' ? 'dining' : 'top';
@@ -319,6 +325,27 @@ async function openPage() {
         encode(src, path.join(dir, f.name), W, false, widthsFor(f.view === 'hero' ? 'tone' : f.view, W));
         console.log(`${p.id}/${f.name} ${W}`);
       }
+    }
+    for (const name of VERTICAL[p.id] || []) {
+      const base = framesFor(p).find(f => f.name === name);
+      const f = Object.assign({}, base, { name: name + '-9x16', w: 1080, h: 1920,
+        cam: Object.assign({}, base.source === 'render' ? base.cam : VERTICAL_CAM, VERTICAL_SHIFT) });
+      if (opt.preview && !(opt.frames || '').split(',').includes(f.name)) continue;
+      const pdir = opt.preview ? path.join(MASTER, 'preview', p.id) : path.join(MASTER, p.id);
+      const src = path.join(pdir, f.name + '.png');
+      if (!(opt.reuse && fs.existsSync(src) && !opt.preview)) {
+        const g = await page.evaluate(j => window.geo(j), { product: p.id, size: sizeFor(p), base: f.base, state: f.state || 'closed' });
+        const geoFile = path.join(pdir, f.name + '.geo.json');
+        fs.mkdirSync(pdir, { recursive: true });
+        fs.writeFileSync(geoFile, JSON.stringify(g));
+        const t0 = Date.now();
+        blender(geoFile, src, opt.preview ? Object.assign({}, f, { w: 540, h: 960 }) : f, opt.preview ? 12 : undefined);
+        console.log(`${p.id}/${f.name} blender ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+      }
+      if (opt.preview) continue;
+      run('convert', [src, '-resize', '1080x1920!', '-strip', '-sampling-factor', '4:2:0', '-interlace', 'JPEG', '-quality', '84',
+        path.join(dir, f.name + '.jpg')]);
+      console.log(`${p.id}/${f.name} 1080×1920`);
     }
     if (!opt.preview) p.images = images;
     // широкий кадр 16:9 (Figma AI або рендер, WIDE_RENDER) — для шапки й обкладинок Meta; окреме поле, не в images: у галерею картки не йде
