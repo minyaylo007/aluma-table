@@ -133,7 +133,7 @@
   var TEXT = {
     he: {"label": "הודעת עוגיות", "text": "עוגיות הכרחיות פועלות תמיד. Meta Pixel ו־Microsoft Clarity רק באישור, למדידת פרסום ולשיפור האתר. ניתן לשנות.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
     en: {"label": "Cookie notice", "text": "Essential cookies always on; Meta Pixel and Microsoft Clarity (ad and site stats) only if you accept. Changeable.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"},
-    ru: {"label": "Уведомление о cookie", "text": "Необходимые cookie — всегда; Meta Pixel и Microsoft Clarity (статистика) — только с вашего согласия. Можно изменить.", "accept": "Принять", "decline": "Только необходимые", "more": "Политика конфиденциальности"}
+    ru: {"label": "Уведомление о cookie", "text": "Необходимые cookie — всегда; Meta Pixel, Microsoft Clarity — по согласию. Можно изменить.", "accept": "Принять", "decline": "Только необходимые", "more": "Политика конфиденциальности"}
   };
   function attr(name) { return (SCRIPT && SCRIPT.getAttribute(name)) || ""; }
   function hideNotice() { var b = doc.getElementById("aluma-notice"); if (b && b.parentNode) b.parentNode.removeChild(b); }

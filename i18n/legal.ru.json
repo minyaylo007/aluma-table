@@ -6,7 +6,7 @@
   },
   "cookies": {
     "label": "Уведомление о cookie",
-    "text": "Необходимые cookie — всегда; Meta Pixel и Microsoft Clarity (статистика) — только с вашего согласия. Можно изменить.",
+    "text": "Необходимые cookie — всегда; Meta Pixel, Microsoft Clarity — по согласию. Можно изменить.",
     "accept": "Принять",
     "decline": "Только необходимые",
     "more": "Политика конфиденциальности",
