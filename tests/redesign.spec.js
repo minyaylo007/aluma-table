@@ -576,7 +576,8 @@ for (const [w, h] of [[390, 844], [1440, 900]]) {
         sec: document.getElementById(i).getBoundingClientRect().top, pill: document.querySelector('nav.chapters [aria-current]').getBoundingClientRect() }), id);
       expect(Math.abs(r.nav.top - r.top.bottom)).toBeLessThan(1);          // рівно під шапкою, без щілини й без накладки
       expect(r.sec).toBeGreaterThanOrEqual(r.nav.bottom - 1);              // якір не ховається під смугою
-      expect(r.pill.left).toBeGreaterThanOrEqual(0); expect(r.pill.right).toBeLessThanOrEqual(w);
+      // активна пігулка доїжджає в поле зору плавно — чекаємо, а не міряємо миттєво
+      await expect.poll(() => page.evaluate(() => { const b = document.querySelector('nav.chapters [aria-current]').getBoundingClientRect(); return b.left >= 0 && b.right <= innerWidth; })).toBe(true);
       expect(r.pill.height).toBeGreaterThanOrEqual(44);                   // ціль дотику
     }
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -585,3 +586,17 @@ for (const [w, h] of [[390, 844], [1440, 900]]) {
     expect(errors).toEqual([]);
   });
 }
+
+test('texture first: the console and the TV unit open their gallery on the oak close-up; other pieces and the catalog tiles (main frame) keep the hero', async ({ page }) => {
+  await mockApi(page);
+  for (const p of PRODUCTS) {
+    await page.goto(`/p/${p.slug}/`);
+    const first = await page.locator('.gallery .g-slide img').first().getAttribute('src');
+    const texture = ['console', 'media_unit'].includes(p.category) && p.images.some(i => i.view === 'texture');
+    expect(first, p.slug).toContain(`/products/${p.slug}/${texture ? 'texture' : 'hero'}-`);
+    await expect(page.locator('.gallery .g-slide').first().locator('.viz-tag')).toBeVisible();   // «הדמיה» і на крупному плані
+  }
+  expect(PRODUCTS.some(p => ['console', 'media_unit'].includes(p.category))).toBe(true);
+  await page.goto('/catalog/');
+  for (const src of await page.locator('.card-media img').evaluateAll(is => is.filter(i => !i.closest('.card-alt')).map(i => i.getAttribute('src')))) expect(src).not.toContain('texture-');
+});

@@ -552,9 +552,16 @@ def how(p: dict, loc: str) -> str:
             + (f'<h3 class="h3 plan-h">{{{{t.unfold_plan_h3}}}}</h3>{pl}' if pl else "") + "</div></section>")
 
 
+# у консолі й тумби під ТВ головне — фасад і шпон, тож галерея картки відкривається крупним планом фактури
+# (хвиля 3, приклад Poliform); плитки каталогу, og:image і JSON-LD лишаються на героєві
+TEXTURE_FIRST = ("console", "media_unit")
+
+
 def gallery(p: dict, loc: str) -> str:
     # mechanism і light — окремі блоки вітрини (catalog/README.md), у галерею картки не йдуть
     imgs = [i for i in p.get("images") or [] if i.get("src") and i.get("view") not in ("mechanism", "light")]
+    if p.get("category") in TEXTURE_FIRST:
+        imgs.sort(key=lambda i: i.get("view") != "texture")
     if not imgs:
         return f'<div class="gallery gallery--tile"><div class="media media--tile media--hero">{silhouette(p)}</div>' \
                f'<p class="gallery-note">{{{{t.viz_soon}}}}</p></div>'
