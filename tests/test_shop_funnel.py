@@ -1,0 +1,392 @@
+"""Воронка магазину (specs/003-shop-funnel): події кроків, CAPI InitiateCheckout, заявка з кошика,
+вікно Asia/Jerusalem, /admin/funnel і tools/funnel_report.py.
+
+Справжній api/store.py у пам'яті (ліміти — справжні лічильники), requests.post — дублер; мережі нема.
+
+    python -m unittest tests.test_shop_funnel
+"""
+
+from __future__ import annotations
+
+import contextlib
+import io
+import json
+import os
+import pathlib
+import tempfile
+import unittest
+from datetime import datetime, timedelta, timezone
+from unittest import mock
+from urllib.parse import urlencode
+
+from tests.test_handler import body_json, h, lead_payload, request
+from tests.test_meta_settings import GOOD_FORM, PIXEL, TOKEN, Recorder
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+funnel = h.funnel
+
+FBP = "fb.1.1700000000000.123"
+UA = "Mozilla/5.0 (iPhone; unit test)"
+
+
+def ev(name, **props):
+    return {"name": name, "props": props, "page": "/cart/"}
+
+
+class Base(unittest.TestCase):
+    def setUp(self):
+        self.events_t, self.leads_t, self.sessions_t = h.store.tables(":memory:")
+        self.settings_t = h.store.SqliteStore(":memory:").table("fx_settings", ("pk", "sk"))
+        self.rec = Recorder()
+        for p in (
+            mock.patch.object(h, "_tables", return_value=(self.events_t, self.leads_t, self.sessions_t)),
+            mock.patch.object(h, "_settings_table", return_value=self.settings_t),
+            mock.patch.object(h, "EDGE_SECRET", ""),
+            mock.patch.object(h, "TELEGRAM_BOT_TOKEN", ""),
+            mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", ""),
+            mock.patch.object(h, "ADMIN_USER", "owner"),
+            mock.patch.object(h, "ADMIN_PASS", "pw-for-tests"),
+            mock.patch.object(h.requests, "post", self.rec),
+        ):
+            p.start()
+            self.addCleanup(p.stop)
+        self.out = io.StringIO()
+        stack = contextlib.ExitStack()
+        stack.enter_context(contextlib.redirect_stdout(self.out))
+        self.addCleanup(stack.close)
+
+    def configure(self):
+        hdrs = {"content-type": "application/x-www-form-urlencoded", "host": "table.example",
+                "cookie": "fx_adm=" + h.make_token()}
+        h.lambda_handler(request("POST", "/admin/settings", headers=hdrs, raw_body=urlencode(GOOD_FORM)), None)
+        self.rec.calls.clear()
+
+    def send(self, events, session="s-1", cookies="", headers=None, ctx=None):
+        hdrs = {"user-agent": UA, "x-forwarded-for": "198.51.100.9"}
+        if cookies:
+            hdrs["cookie"] = cookies
+        hdrs.update(headers or {})
+        body = {"session_id": session, "ctx": ctx or {"page": "/cart/", "utm_source": "fb", "utm_campaign": "c1"},
+                "events": events}
+        return h.lambda_handler(request("POST", "/api/fx/event", body, hdrs), None)
+
+    def all_events(self):
+        return self.events_t.scan().get("Items", [])
+
+    def all_leads(self):
+        return self.leads_t.query(KeyConditionExpression=("eq", "pk", "LEAD")).get("Items", [])
+
+    def admin(self, path, query=None, auth=True):
+        hdrs = {"host": "table.example"}
+        if auth:
+            hdrs["cookie"] = "fx_adm=" + h.make_token()
+        e = request("GET", path, headers=hdrs)
+        e["queryStringParameters"] = query or {}
+        return h.lambda_handler(e, None)
+
+
+CHECKOUT = dict(event_id="ic.k1.abcdef12", ads_consent=True, content_ids=["tavor"], content_type="product",
+                value=4490, currency="ILS", num_items=1, size="160×90", finish="natural", base="oak")
+
+
+# --------------------------------------------------------------------------- події кроків
+
+
+class StepEventsTests(Base):
+    def test_every_step_event_is_stored_with_its_params(self):
+        steps = [ev("ViewContent", content_ids=["tavor"], value=4490, currency="ILS"),
+                 ev("select_size", content_ids=["tavor"], size="180×90"),
+                 ev("select_finish", content_ids=["tavor"], finish="smoked"),
+                 ev("AddToCart", content_ids=["tavor"], size="180×90", finish="smoked", price=4890, value=4890),
+                 ev("view_cart", num_items=1, value=4890),
+                 ev("InitiateCheckout", **CHECKOUT),
+                 ev("checkout_details", city="חיפה", when="1-3m", has_name=False, has_phone=True),
+                 ev("reach_payment", value=4890), ev("Lead", value=4890),
+                 ev("scroll", depth=50), ev("leave", step="payment", seconds=40, scroll=90)]
+        r = self.send(steps)
+        self.assertEqual(body_json(r), {"ok": True, "written": len(steps)})
+        rows = self.all_events()
+        self.assertEqual(sorted(e["event_name"] for e in rows), sorted(s["name"] for s in steps))
+        add = next(e for e in rows if e["event_name"] == "AddToCart")
+        self.assertEqual(json.loads(add["props_json"])["price"], 4890)
+        self.assertEqual(add["utm_source"], "fb")
+
+    def test_limits_of_the_event_endpoint_are_not_loosened(self):
+        self.assertEqual(h.MAX_EVENTS_PER_REQUEST, 40)
+        self.assertEqual(h.EVENTS_PER_IP_PER_MINUTE, 120)
+        self.assertEqual(h.MAX_PROPS_BYTES, 2000)
+        self.assertEqual((h.LEADS_PER_IP_PER_HOUR, h.LEADS_PER_IP_PER_HOUR_TEST), (5, 60))
+        r = self.send([ev("view_cart")] * 55)
+        self.assertEqual(body_json(r)["written"], 40)
+        for _ in range(120 - 1):
+            self.send([ev("scroll", depth=50)])
+        self.assertEqual(self.send([ev("scroll")])["statusCode"], 429)
+
+    def test_bots_and_owner_are_still_skipped(self):
+        r = self.send([ev("AddToCart")], headers={"user-agent": "Googlebot/2.1"})
+        self.assertEqual(body_json(r)["skipped"], "bot_ua")
+        r = self.send([ev("AddToCart")], cookies="fx_me=1")
+        self.assertEqual(body_json(r)["skipped"], "self")
+        self.assertEqual(self.all_events(), [])
+
+
+# --------------------------------------------------------------------------- CAPI InitiateCheckout
+
+
+class CheckoutCapiTests(Base):
+    def test_sends_one_deduplicated_initiate_checkout_without_personal_data(self):
+        self.configure()
+        r = self.send([ev("view_cart"), ev("InitiateCheckout", **CHECKOUT), ev("InitiateCheckout", **CHECKOUT)],
+                      cookies=f"_fbp={FBP}; _fbc=fb.1.1700000000000.AbC")
+        self.assertEqual(r["statusCode"], 200)
+        self.assertEqual(len(self.rec.calls), 1, "не більше одного виклику CAPI на запит")
+        call = self.rec.calls[0]
+        self.assertEqual(call["url"], f"https://graph.facebook.com/{h.META_GRAPH_VERSION}/{PIXEL}/events")
+        self.assertNotIn(TOKEN, call["url"])
+        e = call["json"]["data"][0]
+        self.assertEqual(e["event_name"], "InitiateCheckout")
+        self.assertEqual(e["event_id"], "ic.k1.abcdef12")
+        self.assertEqual(e["event_source_url"], "https://table.central-aparts.store/cart/")
+        self.assertEqual(e["custom_data"], {"currency": "ILS", "content_type": "product", "content_ids": ["tavor"],
+                                            "value": 4490, "num_items": 1, "size": "160×90",
+                                            "finish": "natural", "base": "oak"})
+        ud = e["user_data"]
+        self.assertEqual(set(ud), {"country", "fbp", "fbc", "client_ip_address", "client_user_agent"})
+        self.assertEqual(ud["client_ip_address"], "198.51.100.9")
+        self.assertNotIn("test_event_code", call["json"])
+        status = self.settings_t.get_item(Key={"pk": "CAPI", "sk": "status"})["Item"]
+        self.assertEqual(status["source"], "checkout")
+
+    def test_no_consent_no_event_id_test_traffic_or_no_config_send_nothing(self):
+        self.send([ev("InitiateCheckout", **CHECKOUT)])           # CAPI не налаштовано
+        self.configure()
+        self.send([ev("InitiateCheckout", **dict(CHECKOUT, ads_consent=False))])
+        self.send([ev("InitiateCheckout", **dict(CHECKOUT, event_id=""))], cookies=f"_fbp={FBP}")
+        self.send([ev("InitiateCheckout", **dict(CHECKOUT, event_id="<x>"))], cookies=f"_fbp={FBP}")
+        self.send([ev("InitiateCheckout", **CHECKOUT)], headers={"x-test": "1"})
+        self.assertEqual(self.rec.calls, [])
+        self.assertEqual(len(self.all_events()), 5, "подія зберігається завжди")
+        self.send([ev("InitiateCheckout", **dict(CHECKOUT, ads_consent=None))], cookies=f"_fbp={FBP}")
+        self.assertEqual(len(self.rec.calls), 1, "_fbp ставить лише піксель після згоди")
+
+    def test_junk_params_never_reach_meta(self):
+        self.configure()
+        self.send([ev("InitiateCheckout", **dict(CHECKOUT, content_ids=["tavor", "<script>", 5], value="9e9",
+                                                 num_items=500, size="x" * 90, phone="0501234567"))])
+        cd = self.rec.calls[0]["json"]["data"][0]["custom_data"]
+        self.assertEqual(cd, {"currency": "ILS", "content_type": "product", "content_ids": ["tavor"],
+                              "finish": "natural", "base": "oak"})
+        self.assertNotIn("0501234567", json.dumps(self.rec.calls[0]["json"]))
+
+    def test_capi_checkout_has_its_own_small_rate_cap(self):
+        self.configure()
+        for _ in range(10):
+            self.send([ev("InitiateCheckout", **CHECKOUT)])
+        self.assertEqual(len(self.rec.calls), h.CAPI_CHECKOUTS_PER_IP_PER_MINUTE)
+        self.assertEqual(len(self.all_events()), 10)
+
+    def test_meta_down_event_still_stored(self):
+        self.configure()
+        self.rec.fail = True
+        r = self.send([ev("InitiateCheckout", **CHECKOUT)])
+        self.assertEqual(r["statusCode"], 200)
+        self.assertEqual(len(self.all_events()), 1)
+        self.assertNotIn(TOKEN, self.out.getvalue())
+
+
+# --------------------------------------------------------------------------- заявка «שמרו לי את המחיר»
+
+
+def checkout_lead(**over):
+    data = lead_payload(name="", lead_source="checkout", product_id="tavor", size_label="160×90",
+                        finish_id="natural", base_id="oak", timeframe="browsing", city="חיפה",
+                        cart="tavor:160×90:natural:oak:1;saf:120:smoked::2", order_total=9470,
+                        event_id="lead.k1.abcdef12")
+    data.update(over)
+    return data
+
+
+class CheckoutLeadTests(Base):
+    def post(self, payload, headers=None):
+        hdrs = {"user-agent": UA}
+        hdrs.update(headers or {})
+        return h.lambda_handler(request("POST", "/api/fx/lead", payload, hdrs), None)
+
+    def test_saves_cart_total_and_browsing_without_a_name(self):
+        r = self.post(checkout_lead())
+        self.assertEqual(r["statusCode"], 200, r["body"])
+        item = self.all_leads()[0]
+        self.assertEqual(item["cart"], "tavor:160×90:natural:oak:1;saf:120:smoked::2")
+        self.assertEqual(item["order_total"], 9470)
+        self.assertEqual(item["lead_source"], "checkout")
+        self.assertEqual(item["timeframe"], "browsing")
+        self.assertEqual(item["name"], "")
+        self.assertEqual((item["product_id"], item["size_label"]), ("tavor", "160×90"))
+
+    def test_phone_and_consent_still_required_and_name_elsewhere(self):
+        r = self.post(checkout_lead(phone="123", consent=False))
+        self.assertEqual(set(body_json(r)["errors"]), {"phone", "consent"})
+        r = self.post(checkout_lead(lead_source="form"))
+        self.assertEqual(set(body_json(r)["errors"]), {"name"})
+        r = self.post(checkout_lead(name="A"))           # введене ім'я з однієї літери — помилка й тут
+        self.assertEqual(set(body_json(r)["errors"]), {"name"})
+        self.assertEqual(self.all_leads(), [])
+
+    def test_bad_cart_or_total_is_dropped_not_refused(self):
+        for cart, total in (("tavor:160:natural:oak:0", -5), ("<b>:1:x:y:1", "abc"), ("a:b:c:d:1;" * 40, 10**9),
+                            (["tavor"], True)):
+            r = self.post(checkout_lead(cart=cart, order_total=total))
+            self.assertEqual(r["statusCode"], 200)
+        for item in self.all_leads():
+            self.assertEqual((item["cart"], item["order_total"]), ("", 0))
+
+    def test_telegram_and_csv_carry_cart_and_total(self):
+        with mock.patch.object(h, "TELEGRAM_BOT_TOKEN", "123:abc"), \
+                mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", "42"):
+            self.post(checkout_lead())
+        text = self.rec.calls[0]["json"]["text"]
+        for part in ("tavor:160×90:natural:oak:1", "9470", "checkout", "browsing"):
+            self.assertIn(part, text)
+        for col in ("cart", "order_total", "lead_source"):
+            self.assertIn(col, h.CSV_COLUMNS)
+        self.assertEqual(h.TIMEFRAME_LABELS["browsing"], "רק בודק/ת")
+
+
+# --------------------------------------------------------------------------- вікно Asia/Jerusalem
+
+
+class WindowTests(unittest.TestCase):
+    def test_today_starts_at_jerusalem_midnight_summer_and_winter(self):
+        summer = datetime(2026, 10, 21, 10, 0, tzinfo=timezone.utc)      # IDT, UTC+3
+        self.assertEqual(funnel.window_start(1, summer), datetime(2026, 10, 20, 21, 0, tzinfo=timezone.utc))
+        self.assertEqual(funnel.utc_partitions(1, summer), ["2026-10-20", "2026-10-21"])
+        winter = datetime(2026, 12, 1, 10, 0, tzinfo=timezone.utc)       # IST, UTC+2
+        self.assertEqual(funnel.window_start(7, winter), datetime(2026, 11, 24, 22, 0, tzinfo=timezone.utc))
+        late = datetime(2026, 10, 20, 22, 30, tzinfo=timezone.utc)       # 01:30 21.10 за Єрусалимом
+        self.assertEqual(funnel.window_start(1, late), datetime(2026, 10, 20, 21, 0, tzinfo=timezone.utc))
+        self.assertEqual(funnel.utc_partitions(1, late), ["2026-10-20"])
+        self.assertIsNone(funnel.window_start(0, late))
+        self.assertEqual(len(funnel.utc_partitions(0, late)), funnel.ALL_DAYS_SPAN)
+
+    def test_events_by_server_time_and_leads_by_ts_in_one_window(self):
+        now = datetime(2026, 10, 21, 10, 0, tzinfo=timezone.utc)
+        inside, outside = "2026-10-20T21:30:00+00:00", "2026-10-20T20:30:00+00:00"
+        events = [{"sk": inside + "#a", "ts": outside}, {"sk": outside + "#b", "ts": inside}]
+        self.assertEqual(funnel.events_in_window(events, 1, now), [events[0]])   # годинник браузера не рахується
+        leads = [{"ts": inside}, {"ts": outside}]
+        self.assertEqual(funnel.leads_in_window(leads, 1, now), [leads[0]])
+
+
+# --------------------------------------------------------------------------- розрахунок воронки
+
+
+def row(name, session, when, utm="", **props):
+    return {"pk": "D#" + when[:10], "sk": when + "#" + name + session, "session_id": session, "ts": when,
+            "event_name": name, "props_json": json.dumps(props), "utm_source": utm,
+            "utm_campaign": "c1" if utm else ""}
+
+
+T = "2026-10-21T08:00:00+00:00"
+EVENTS = [
+    row("PageView", "s1", T, "fb"), row("ViewContent", "s1", T, "fb", content_ids=["tavor"]),
+    row("AddToCart", "s1", T, "fb", content_ids=["tavor"], size="160×90", price=4490, value=4490),
+    row("view_cart", "s1", T, "fb"), row("InitiateCheckout", "s1", T, "fb", content_ids=["tavor"]),
+    row("reach_payment", "s1", T, "fb", content_ids=["tavor"]), row("Lead", "s1", T, "fb", content_ids=["tavor"]),
+    row("PageView", "s2", T), row("ViewContent", "s2", T, content_ids=["saf"]),
+    row("AddToCart", "s2", T, content_ids=["saf"], size="120", price=2490, value=2490),
+    row("leave", "s2", T, step="cart", seconds=31),
+    row("PageView", "s3", T, "fb"), row("leave", "s3", T, "fb", step="other", seconds=4),
+    row("PageView", "s4", "2026-10-20T08:00:00+00:00"), row("ViewContent", "s4", "2026-10-20T08:00:00+00:00",
+                                                            content_ids=["tal"]),
+]
+
+
+class ComputeTests(unittest.TestCase):
+    def setUp(self):
+        self.rep = funnel.compute(EVENTS, [{"session_id": "s4", "product_id": "tal", "ts": T, "name": "Dana",
+                                            "phone": "+972501234567"}])
+
+    def test_total_steps_and_percentages(self):
+        n = {s["key"]: s["n"] for s in self.rep["steps"]}
+        self.assertEqual(n, {"sessions": 4, "product": 3, "cart": 2, "checkout": 1, "payment": 1, "lead": 2})
+        cart = next(s for s in self.rep["steps"] if s["key"] == "cart")
+        self.assertEqual((cart["of_prev"], cart["of_first"]), (67, 50))
+
+    def test_by_product_source_day(self):
+        prod = {r["key"]: {s["key"]: s["n"] for s in r["steps"]} for r in self.rep["by_product"]}
+        self.assertEqual(prod["tavor"]["lead"], 1)
+        self.assertEqual((prod["saf"]["cart"], prod["saf"]["checkout"]), (1, 0))
+        self.assertEqual(prod["tal"]["lead"], 1, "заявка без події Lead теж рахується товару")
+        src = {r["key"]: r["steps"][0]["n"] for r in self.rep["by_source"]}
+        self.assertEqual(src, {"fb / c1": 2, "direct / —": 2})
+        days = [r["key"] for r in self.rep["by_day"]]
+        self.assertEqual(days, ["2026-10-20", "2026-10-21"])
+
+    def test_where_they_left_and_at_what_price(self):
+        dropped = {d["step"]: d["n"] for d in self.rep["dropped_after"]}
+        self.assertEqual(dropped, {"product": 0, "cart": 1, "checkout": 0, "payment": 0})
+        self.assertEqual(self.rep["leave_by_step"], {"cart": 1, "other": 1})
+        self.assertEqual(self.rep["median_seconds"], {"cart": 31, "other": 4})
+        self.assertEqual(self.rep["price_points"], [
+            {"product": "saf", "size": "120", "price": 2490, "cart": 1, "checkout": 0, "payment": 0, "lead": 0},
+            {"product": "tavor", "size": "160×90", "price": 4490, "cart": 1, "checkout": 1, "payment": 1,
+             "lead": 1}])
+
+    def test_no_personal_data_in_the_report(self):
+        blob = json.dumps(self.rep, ensure_ascii=False) + funnel.text(
+            funnel.report(EVENTS, [], 0))
+        for pii in ("Dana", "501234567", "s1", "s2"):
+            self.assertNotIn(pii, blob)
+
+
+class AdminFunnelTests(Base):
+    def test_requires_login(self):
+        r = self.admin("/admin/funnel", auth=False)
+        self.assertEqual((r["statusCode"], r["headers"]["location"]), (303, "/admin/login"))
+
+    def test_page_shows_counts_and_no_personal_data(self):
+        self.send([ev("PageView"), ev("ViewContent", content_ids=["tavor"]),
+                   ev("AddToCart", content_ids=["tavor"], size="160×90", price=4490)], session="sx")
+        h.lambda_handler(request("POST", "/api/fx/lead", checkout_lead(name="דנה לוי", session_id="sx"),
+                                 {"user-agent": UA}), None)
+        self.send([ev("PageView")], session="test-s", headers={"x-test": "1"})
+        r = self.admin("/admin/funnel", {"range": "1"})
+        self.assertEqual(r["statusCode"], 200)
+        page = r["body"]
+        self.assertIn("משפך קנייה", page)
+        self.assertIn("tavor", page)
+        self.assertIn("₪4490", page)
+        for pii in ("דנה", "050", "501234567", "sx"):
+            self.assertNotIn(pii, page)
+        main = self.admin("/admin", {"range": "7"})["body"]
+        self.assertIn("/admin/funnel", main)
+
+
+class FunnelReportScriptTests(unittest.TestCase):
+    def test_prints_counts_only_and_exits_2_without_db(self):
+        from tools import funnel_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db = os.path.join(tmp, "aluma.db")
+            events_t, leads_t, _ = h.store.tables(db)
+            now = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(seconds=5)
+            for i, e in enumerate(EVENTS[:7]):
+                e = dict(e, pk="D#" + now.strftime("%Y-%m-%d"), sk=f"{now.isoformat()}#{i:04d}")
+                events_t.put_item(Item=e)
+            leads_t.put_item(Item={"pk": "LEAD", "sk": now.isoformat() + "#1", "ts": now.isoformat(),
+                                   "session_id": "s1", "name": "Dana", "phone": "+972501234567"})
+            out = io.StringIO()
+            with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", db), contextlib.redirect_stdout(out):
+                self.assertEqual(funnel_report.main(["--days", "1"]), 0)
+            text = out.getvalue()
+            self.assertIn("Всего:  сессии 1 → карточка 1 (100%)", text)
+            self.assertIn("tavor 160×90 ₪4490", text)
+            self.assertNotIn("Dana", text)
+            self.assertNotIn("501234567", text)
+            with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", os.path.join(tmp, "nope.db")), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(funnel_report.main([]), 2)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
