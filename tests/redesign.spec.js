@@ -65,6 +65,23 @@ for (const p of PRODUCTS) {
   });
 }
 
+test('material block: three facts, a tagged close-up, every catalog finish, link to the materials on About', async ({ page }) => {
+  const errors = watchErrors(page);
+  await mockApi(page);
+  for (const [pre, loc] of [['', 'he'], ['/en', 'en']]) {
+    await page.goto(pre + '/');
+    const sec = page.locator('section.material');
+    await expect(sec.locator('.mat-facts > li')).toHaveCount(3);
+    await expect(sec.locator('.viz-tag')).toBeVisible();
+    const fins = PRODUCTS[0].finishes;
+    await expect(sec.locator('.mat-tones li')).toHaveCount(fins.length);
+    for (const f of fins) await expect(sec.locator('.mat-tones')).toContainText(f.name[loc]);
+    await sec.locator('a[href$="/about/#materials"]').click();
+    await expect(page.locator('#materials')).toBeVisible();
+  }
+  expect(errors).toEqual([]);
+});
+
 test('catalog lists every product with a link to its card', async ({ page }) => {
   await mockApi(page);
   await page.goto('/catalog/');
