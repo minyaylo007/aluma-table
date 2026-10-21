@@ -1098,25 +1098,6 @@
     ],
     "images": [
       {
-        "src": "/assets/products/tal/home-1600.webp",
-        "srcset": "/assets/products/tal/home-400.webp 400w, /assets/products/tal/home-800.webp 800w, /assets/products/tal/home-1600.webp 1600w",
-        "srcset_avif": "/assets/products/tal/home-400.avif 400w, /assets/products/tal/home-800.avif 800w, /assets/products/tal/home-1600.avif 1600w",
-        "jpg": "/assets/products/tal/home-1600.jpg",
-        "width": 1600,
-        "height": 1068,
-        "view": "hero",
-        "finish": "natural",
-        "base": "oak",
-        "state": "closed",
-        "size": "100×60",
-        "alt": {
-          "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
-          "en": "Visualization: TAL coffee table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
-        },
-        "kind": "visualization",
-        "source": "render"
-      },
-      {
         "src": "/assets/products/tal/hero-1264.webp",
         "srcset": "/assets/products/tal/hero-400.webp 400w, /assets/products/tal/hero-800.webp 800w, /assets/products/tal/hero-1264.webp 1264w",
         "srcset_avif": "/assets/products/tal/hero-400.avif 400w, /assets/products/tal/hero-800.avif 800w, /assets/products/tal/hero-1264.avif 1264w",
@@ -1134,6 +1115,25 @@
         },
         "kind": "visualization",
         "source": "ai"
+      },
+      {
+        "src": "/assets/products/tal/home-1600.webp",
+        "srcset": "/assets/products/tal/home-400.webp 400w, /assets/products/tal/home-800.webp 800w, /assets/products/tal/home-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tal/home-400.avif 400w, /assets/products/tal/home-800.avif 800w, /assets/products/tal/home-1600.avif 1600w",
+        "jpg": "/assets/products/tal/home-1600.jpg",
+        "width": 1600,
+        "height": 1068,
+        "view": "hero",
+        "finish": "natural",
+        "base": "oak",
+        "state": "closed",
+        "size": "100×60",
+        "alt": {
+          "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
+          "en": "Visualization: TAL coffee table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+        },
+        "kind": "visualization",
+        "source": "render"
       },
       {
         "src": "/assets/products/tal/angle-1600.webp",

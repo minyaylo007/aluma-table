@@ -29,6 +29,12 @@ const MASTER = path.join(ROOT, 'renders-master', 'products');
 const FIGMA = process.env.ALUMA_FIGMA || '/opt/ihor/aluma-table/tmp/figma-ai';
 const OUT = path.join(ROOT, 'site', 'assets', 'products');
 const HERO_AVIF_MAX = 180 * 1024;
+// 800 px першого кадру героя головної (content.json HERO_PRODUCT) — LCP головної на телефоні: ≤ 12 КБ влазить
+// у перше вікно TCP (~14 КБ), інакше Lighthouse mobile додає ще один круг мережі (+0,25 с; OFEK 21.10 — 18 КБ при q62).
+// Решті карток якість важливіша за 0,2 с LCP (дирижер 21.10): ≤ 30 КБ, без помітної м'якості.
+const HERO_PRODUCT = JSON.parse(fs.readFileSync(path.join(ROOT, 'content.json'), 'utf8')).HERO_PRODUCT;
+const HERO_800_AVIF_MAX = 12 * 1024;
+const CARD_800_AVIF_MAX = 30 * 1024;
 
 const argv = process.argv.slice(2), only = argv.filter(a => !a.startsWith('--'));
 const opt = Object.fromEntries(argv.filter(a => a.startsWith('--')).map(a => { const i = a.indexOf('='); return i < 0 ? [a.slice(2), '1'] : [a.slice(2, i), a.slice(i + 1)]; }));
@@ -216,12 +222,13 @@ function dims(src) {
 function widthsFor(view, W) {
   return [...new Set([(view === 'hero' || view === 'angle') && 400, 800, W])].filter(x => x && x <= W);
 }
-function encode(src, dstBase, W, hero, widths) {
+function encode(src, dstBase, W, hero, widths, max800 = CARD_800_AVIF_MAX) {
   for (const width of widths) {
     let q = hero && width === W ? 68 : 62;
+    const max = !hero ? Infinity : width === W ? HERO_AVIF_MAX : width === 800 ? max800 : Infinity;
     for (;;) {
       run('convert', [src, '-resize', width + 'x', '-strip', '-quality', String(q), `${dstBase}-${width}.avif`]);
-      if (!(hero && width === W) || fs.statSync(`${dstBase}-${width}.avif`).size <= HERO_AVIF_MAX || q <= 30) break;
+      if (fs.statSync(`${dstBase}-${width}.avif`).size <= max || q <= 30) break;
       q -= 4;
     }
     run('convert', [src, '-resize', width + 'x', '-strip', '-quality', '80', '-define', 'webp:method=6', `${dstBase}-${width}.webp`]);
@@ -291,7 +298,8 @@ async function openPage() {
       }
       const { w, h } = dims(src), W = Math.min(1600, w), H = Math.round(h * W / w);
       const widths = widthsFor(f.view, W);
-      encode(src, path.join(dir, f.name), W, f.view === 'hero', widths);
+      encode(src, path.join(dir, f.name), W, f.view === 'hero', widths,
+        p.id === HERO_PRODUCT ? HERO_800_AVIF_MAX : CARD_800_AVIF_MAX);
       const size = sizeFor(p), fin = p.finishes.find(x => x.id === f.finish).name;
       // формат вітрини (build.py picture()): src — WebP від кореня сайту, srcset/srcset_avif — рядки, jpg — запасний
       const rel = `/assets/products/${p.id}/${f.name}`, set = ext => widths.map(x => `${rel}-${x}.${ext} ${x}w`).join(', ');

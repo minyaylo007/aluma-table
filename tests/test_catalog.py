@@ -18,6 +18,7 @@ import unittest
 PROJECT = pathlib.Path(__file__).resolve().parent.parent
 CATALOG = PROJECT / "catalog" / "products.json"
 ASSETS = PROJECT / "site"
+HERO_PRODUCT = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["HERO_PRODUCT"]
 
 LOCALES = ("he", "en")
 CATEGORIES = {"dining_table", "coffee_table", "media_unit", "console"}
@@ -164,6 +165,12 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertTrue((ASSETS / image["jpg"].lstrip("/")).is_file(), image["jpg"])
                 biggest = p["images"][0]["srcset_avif"].split(", ")[-1].split(" ")[0]
                 self.assertLessEqual((ASSETS / biggest.lstrip("/")).stat().st_size, 180 * 1024)
+                # 800w: герой головної — LCP на телефоні, ≤ 12 КБ у перше вікно TCP; картки — ≤ 30 КБ, якість важливіша
+                # (render_products.js HERO_800_AVIF_MAX / CARD_800_AVIF_MAX)
+                limit = 12 * 1024 if p["id"] == HERO_PRODUCT else 30 * 1024
+                w800 = [e.split(" ")[0] for e in p["images"][0]["srcset_avif"].split(", ") if e.endswith(" 800w")]
+                for f in w800:
+                    self.assertLessEqual((ASSETS / f.lstrip("/")).stat().st_size, limit, f)
 
     def test_small_variants_for_hero_and_angle(self):
         # Картка й плитка каталогу на телефоні беруть 400w (запит вітрини 21.10): hero і angle мають 400/800/рідну.

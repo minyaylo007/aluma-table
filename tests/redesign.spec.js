@@ -589,12 +589,15 @@ for (const [w, h] of [[390, 844], [1440, 900]]) {
 
 test('hero first: every card opens its gallery on the whole piece; the oak close-up of the console and the TV unit comes second', async ({ page }) => {
   // 21.10: крупний план першим кадром скасовано — з реклами на 390 видно лише кут дошки, не виріб;
-  // перший — жилий кадр home (виріб цілком у квартирі, власник 21.10), за ним крупний план дуба
+  // перший — жилий кадр home (виріб цілком у квартирі, власник 21.10), за ним крупний план дуба.
+  // TAL — виняток (дирижер 21.10): першим колишній hero у вітальні, він живіший; home — другим.
   await mockApi(page);
   for (const p of PRODUCTS) {
     await page.goto(`/p/${p.slug}/`);
     const srcs = await page.locator('.gallery .g-slide img').evaluateAll(is => is.map(i => i.getAttribute('src')));
-    expect(srcs[0], p.slug).toContain(`/products/${p.slug}/home-`);
+    const first = p.slug === 'tal' ? 'hero' : 'home';
+    expect(p.images[0].view, p.slug).toBe('hero');
+    expect(srcs[0], p.slug).toContain(`/products/${p.slug}/${first}-`);
     if (p.images.some(i => i.view === 'texture')) expect(srcs[1], p.slug).toContain(`/products/${p.slug}/texture-`);
   }
 });
