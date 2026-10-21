@@ -13,6 +13,40 @@
     "product": "tavor",
     "sub": "{name} · פורניר אלון · <bdi dir=\"ltr\">{i}/{n}</bdi>"
   },
+  "ru": {
+    "_comment": "Група C «русский» (docs/META-TEST.md): той самий план, ті самі факти, слова — як на /ru/ (i18n/ru.json: viz_tag, lead_exact, price_incl, cart_fine). Структура один в один із коренем; товари, формати й порядок — лише з кореня. Типографіка: «ёлочки», «—», нерозривний пробіл перед «₪», «см» і навколо «→». build.js --lang ru.",
+    "brand": "ALUMA",
+    "mark": "Визуализация",
+    "cta": "Выбрать размер и тон",
+    "cta_note": "Точный срок доставки — при подтверждении заказа",
+    "from": "от ",
+    "price_note": "Ориентировочная цена, ещё не подтверждена",
+    "price_note_many": "Ориентировочные цены, ещё не подтверждены",
+    "includes": "с НДС, доставкой и сборкой",
+    "tones": {
+      "sub": "{name} · дубовый шпон · {i}/{n}"
+    },
+    "variants": [
+      {
+        "id": "tavor",
+        "headline": "В будни — {seats} за столом, в праздник — до {seats_extended}.",
+        "sub": "Раздвижной обеденный стол, дубовый шпон · {length} → {extended} см",
+        "price": "{from}{price} ₪"
+      },
+      {
+        "id": "sahar",
+        "headline": "@tagline",
+        "sub": "Круглый раздвижной стол, дубовый шпон · Ø{length} → {extended} см",
+        "price": "{from}{price} ₪"
+      },
+      {
+        "id": "collection",
+        "headline": "Стартовая серия ALUMA",
+        "sub": "Пять изделий в дубовом шпоне · размеры и тона на выбор",
+        "price": "{from}{price} ₪"
+      }
+    ]
+  },
   "variants": [
     {
       "id": "tavor",

@@ -64,6 +64,11 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 .f-9x16 .card { bottom: 400px; }
 .f-4x5 .card { padding: 34px 46px; gap: 12px; }
 .f-1x1 .card { padding: 28px 40px; gap: 10px; }
+/* ru 9:16: русський рядок довший за іврит — дрібніші заголовок і підзаголовок (в один рядок), щоб картка лишалась
+   нижче 1000 px над вертикальним рендером. he ці правила не зачіпають. */
+html[lang="ru"] .f-9x16 { --h1: 50px; --fs-sub: 26px; }
+html[lang="ru"] .f-9x16 .card { padding: 34px 48px; }
+html[lang="ru"] .f-9x16 .price small { font-size: 22px; }
 </style>
 </head>
 <body>
