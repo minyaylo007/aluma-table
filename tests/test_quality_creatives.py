@@ -91,6 +91,28 @@ class CreativeConfigTests(unittest.TestCase):
         for key in ("MARK", "BRAND", "HEADLINE", "SUB", "PRICE", "PRICE_NOTE", "CTA", "CTA_NOTE"):
             self.assertRegex(html, r"data-text>[^<]*\{\{" + key + r"\}\}", key)
 
+    def test_generators_take_language(self):
+        """--lang ru (група C): кожен генератор бере мову, шаблони — її lang/dir, ru пише в docs/creatives/ru/.
+        he — за замовчуванням і в корінь docs/creatives/, щоб he-вихід лишився байт-у-байт тим самим."""
+        js = (ROOT / "tools" / "creatives" / "build.js").read_text(encoding="utf-8")
+        self.assertIn("he: { dir: 'rtl', locale: 'he-IL', out: '' },", js)
+        self.assertIn("ru: { dir: 'ltr', locale: 'ru-RU', out: 'ru' },", js)
+        for name in ("build.js", "tones.js", "video.js"):
+            src = (ROOT / "tools" / "creatives" / name).read_text(encoding="utf-8")
+            self.assertIn("'--lang'", src, name)
+            self.assertIn("lang: 'he'", src, f"{name}: he — мова за замовчуванням")
+            self.assertNotRegex(src, r"\.he\b|'he-IL'(?!, out)", f"{name}: іврит зашитий мимо мови")
+        for name in ("template.html", "tones.html", "video.html"):
+            html = (ROOT / "tools" / "creatives" / name).read_text(encoding="utf-8")
+            self.assertIn('<html lang="{{LANG}}" dir="{{DIR}}">', html, name)
+        # кирилиця — ті самі файли й unicode-range, що на сайті (site/assets/aluma.css)
+        css = (ROOT / "site" / "assets" / "aluma.css").read_text(encoding="utf-8")
+        self.assertIn("unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;", css)
+        self.assertIn("unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;", js)
+        for f in ("PlexSans-400-cyrillic.woff2", "PlexSans-600-cyrillic.woff2", "PlexSans-700-cyrillic.woff2", "PTSerif-cyrillic.woff2"):
+            self.assertIn(f, js)
+            self.assertTrue((ROOT / "site" / "assets" / "fonts" / f).is_file(), f)
+
     def test_static_9x16_card_below_product_above_reels_zone(self):
         """Статика 9:16: картка під кадрами, не в нижніх 20 %; вертикальний рендер — картка нижче 1000 px.
         Раніше картка лежала на кадрі й різала ніжки й нижні плитки колекції (дирижер, 21.10)."""
