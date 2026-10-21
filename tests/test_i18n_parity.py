@@ -17,6 +17,8 @@ LOCALES = ("he", "en", "ru")
 TOKEN = re.compile(r"\{\{[^}]+\}\}")
 # ключі, що за змістом різні в кожній мові (шрифти, посилання на сторінку своєї мови тощо) — токени можуть різнитись
 OWN_PER_LANG = {"lang", "dir", "locale", "font_display", "font_body", "lang_name", "lang_label"}
+# назви латиницею однакові в en і ru — це не пропущений переклад
+LATIN_NAMES = {"brand_name"}
 
 
 def load(loc: str) -> dict:
@@ -49,9 +51,11 @@ class I18nParityTests(unittest.TestCase):
                 self.assertEqual(got, want, f"{loc}.{key}")
 
     def test_no_empty_strings(self):
+        # порожній в усіх мовах — заглушка, яку build.py заповнює з legal.<мова>.json (напр. f_lead_notice)
+        stubs = {k for k, v in self.data["he"].items() if v == "" and all(self.data[l].get(k) == "" for l in LOCALES)}
         for loc, d in self.data.items():
             for key, v in d.items():
-                if isinstance(v, str):
+                if isinstance(v, str) and key not in stubs:
                     self.assertTrue(v.strip(), f"{loc}.{key}")
 
     def test_lang_meta(self):
@@ -67,6 +71,8 @@ class I18nParityTests(unittest.TestCase):
             if not isinstance(v, str) or key.endswith("_html"):
                 continue
             self.assertIsNone(hebrew.search(TOKEN.sub("", v)), f"ru.{key}")
+            if key in LATIN_NAMES:
+                continue
             if re.search(r"[A-Za-z]{4,}", TOKEN.sub("", re.sub(r"<[^>]+>", "", v))) and v == self.data["en"][key]:
                 self.fail(f"ru.{key} збігається з en — не перекладено")
 
