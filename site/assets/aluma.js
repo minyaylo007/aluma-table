@@ -445,7 +445,12 @@
     // і без смуги ціна й кнопка заявки там не видні; ховається, поки на екрані коротка форма біля фото
     var hero = qs(".hero .actions"), anchor = hero || qs(".pdp-price"), reg = qs("#register"), foot = qs(".foot"), queued = false;
     var visible = function (el) { if (!el) return false; var r = el.getBoundingClientRect(); return r.top < W.innerHeight && r.bottom > 0; };
-    var whole = function (el) { var r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= W.innerHeight; };
+    // «вся на екрані» — над банером згоди, якщо він унизу на всю ширину: ціна під ним не видна (21.10, 390×844)
+    var edge = function () {
+      return notice && !notice.hidden && !notice.classList.contains("is-away") && notice.offsetWidth > W.innerWidth * .8
+        ? Math.min(W.innerHeight, notice.getBoundingClientRect().top) : W.innerHeight;
+    };
+    var whole = function (el) { var r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= edge(); };
     var apply = function () {
       queued = false;
       var past = !anchor ? W.scrollY > W.innerHeight : hero ? anchor.getBoundingClientRect().bottom < 0 : !whole(anchor);
@@ -459,6 +464,8 @@
     var schedule = function () { if (!queued) { queued = true; W.requestAnimationFrame(apply); } };
     W.addEventListener("scroll", schedule, { passive: true });
     W.addEventListener("resize", schedule, { passive: true });
+    // банер з'являється після шрифтів, ховається на вибір — межа «вся на екрані» зсувається без прокрутки
+    if (notice && W.MutationObserver) new MutationObserver(schedule).observe(notice, { attributes: true, attributeFilter: ["hidden", "class"] });
     apply();
   }
 
