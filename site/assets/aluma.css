@@ -235,6 +235,12 @@ bdi { unicode-bidi: isolate; }
     @keyframes band-arch { from { clip-path: inset(0 16% round 50vw 50vw 0 0); } to { clip-path: inset(0 0 round 0 0 0 0); } }
     .band-cap { animation: band-cap linear both; animation-timeline: --band; animation-range: entry 50% cover 45%; }
     @keyframes band-cap { from { opacity: 0; } to { opacity: 1; } }
+    /* «світлий дуб → темний дуб»: тло майстерні темнішає на вході; текст з'являється, лише коли тло вже
+       темне (від 85 % входу — між oak-deep і dark), тож проміжний стан ніколи не дає тексту нижче AA */
+    .workshop { animation: oak-dusk linear both; animation-timeline: view(); animation-range: entry 0% entry 85%; }
+    @keyframes oak-dusk { 0% { background-color: var(--linen); } 35% { background-color: var(--oak-light); }
+      65% { background-color: var(--oak-deep); } 100% { background-color: var(--dark); } }
+    .workshop-grid { animation: band-cap linear both; animation-timeline: view(); animation-range: entry 90% cover 50%; }
     .card { animation: card-in linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; }
     /* лише зсув, без прозорості: картка ніколи не лишається невидимою (повний знімок, старий рушій) */
     @keyframes card-in { from { transform: translateY(36px); } to { transform: none; } }

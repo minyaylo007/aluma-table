@@ -420,3 +420,32 @@ for (const rm of ['no-preference', 'reduce']) {
     await expect(band.locator('.viz-tag')).toBeVisible();
   });
 }
+
+for (const rm of ['no-preference', 'reduce']) {
+  test(`oak dusk (${rm}): the workshop darkens from light oak to dark oak; text shows only on a dark ground (AA)`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.emulateMedia({ reducedMotion: rm });
+    await mockApi(page);
+    await page.goto('/');
+    const ws = page.locator('.workshop');
+    // f — яка частка висоти вікна вже зайнята секцією знизу
+    const at = async f => {
+      await ws.evaluate((el, f) => scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight * (1 - f)), f);
+      await page.waitForTimeout(150);
+      return ws.evaluate(el => {
+        const lum = c => { const v = c.match(/[\d.]+/g).slice(0, 3).map(n => { n /= 255; return n <= .03928 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4; });
+          return .2126 * v[0] + .7152 * v[1] + .0722 * v[2]; };
+        const bg = getComputedStyle(el).backgroundColor, p = el.querySelector('p:not(.eyebrow)');
+        const [a, b] = [lum(bg), lum(getComputedStyle(p).color)].sort((x, y) => y - x);
+        return { bg, op: +getComputedStyle(el.querySelector('.workshop-grid')).opacity, ratio: (a + .05) / (b + .05) };
+      });
+    };
+    const steps = [];
+    for (const f of [0.02, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8]) steps.push(await at(f));
+    for (const s of steps) if (s.op > 0) expect(s.ratio).toBeGreaterThanOrEqual(4.5);
+    const last = steps[steps.length - 1];
+    expect(last).toMatchObject({ bg: 'rgb(31, 26, 21)', op: 1 });
+    if (rm === 'reduce') expect(steps[0]).toMatchObject({ bg: 'rgb(31, 26, 21)', op: 1 });
+    else expect(steps[0].bg).not.toBe('rgb(31, 26, 21)');
+  });
+}
