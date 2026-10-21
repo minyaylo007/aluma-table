@@ -102,7 +102,8 @@ bdi { unicode-bidi: isolate; }
 .display, .h1, .h2, .h3, .pdp-h1, .card-name, .logo-lat, .step-n, .price { font-family: var(--serif); font-weight: 400; }
 /* перший екран: крупний гротеск, акцентна фраза — Frank Ruhl Libre; в івриті без курсиву і без розрядки */
 .display { font-family: var(--sans); font-weight: 600; font-size: clamp(2.4rem, 6.2vw, 5rem); line-height: 1.06; letter-spacing: -.02em; }
-.display .acc { font-family: var(--serif); font-weight: 400; letter-spacing: 0; }
+/* акцентна фраза — з нового рядка: інакше перенос після підміни шрифту ліг інакше і зсував її (CLS 0.139 на проді) */
+.display .acc { display: block; text-wrap: balance; font-family: var(--serif); font-weight: 400; letter-spacing: 0; }
 :lang(he) .display, :lang(he) .h1 { letter-spacing: normal; }
 .h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.08; letter-spacing: -.01em; }
 .h2 { font-size: clamp(1.8rem, 3.6vw, 2.75rem); line-height: 1.12; }
