@@ -556,3 +556,32 @@ test('cookie notice on 390: two lines of Hebrew text with the policy link, and b
   expect(r.lines).toBeLessThanOrEqual(2);
   expect(r.ok).toBe(r.no);                                     // без темних патернів: «אישור» не виділено проти «רק הכרחיות»
 });
+
+for (const [w, h] of [[390, 844], [1440, 900]]) {
+  test(`chapters ${w}px: the card's chapter bar sticks under the header, every link has a target, aria-current follows the scroll`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: h });
+    await mockApi(page);
+    const errors = watchErrors(page);
+    await page.goto(`/p/${PRODUCTS[0].slug}/`);
+    const nav = page.locator('nav.chapters');
+    await expect(nav).toHaveAttribute('aria-label', /\S/);
+    const ids = await nav.locator('a').evaluateAll(as => as.map(a => a.hash.slice(1)));
+    expect(ids.length).toBeGreaterThanOrEqual(3);
+    for (const id of ids) await expect(page.locator(`#${id}`)).toHaveCount(1);
+    for (const id of [ids[ids.length - 1], ids[1], ids[0]]) {
+      await page.evaluate(i => document.getElementById(i).scrollIntoView({ behavior: 'instant' }), id);
+      await expect(nav.locator('[aria-current="location"]')).toHaveAttribute('href', `#${id}`);
+      await expect(nav.locator('[aria-current]')).toHaveCount(1);
+      const r = await page.evaluate(i => ({ nav: document.querySelector('nav.chapters').getBoundingClientRect(), top: document.querySelector('.top').getBoundingClientRect(),
+        sec: document.getElementById(i).getBoundingClientRect().top, pill: document.querySelector('nav.chapters [aria-current]').getBoundingClientRect() }), id);
+      expect(Math.abs(r.nav.top - r.top.bottom)).toBeLessThan(1);          // рівно під шапкою, без щілини й без накладки
+      expect(r.sec).toBeGreaterThanOrEqual(r.nav.bottom - 1);              // якір не ховається під смугою
+      expect(r.pill.left).toBeGreaterThanOrEqual(0); expect(r.pill.right).toBeLessThanOrEqual(w);
+      expect(r.pill.height).toBeGreaterThanOrEqual(44);                   // ціль дотику
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(nav.locator('[aria-current]')).toHaveCount(0);           // над першою главою — жодна не поточна
+    expect(await noOverflow(page)).toBe(0);
+    expect(errors).toEqual([]);
+  });
+}
