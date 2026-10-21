@@ -634,8 +634,10 @@ def notify(item):
     """
     if not (TELEGRAM_BOT_TOKEN and OWNER_TELEGRAM_CHAT_ID):
         return
+    # з кроку «תשלום» — не просто лід, а прохання підтвердити замовлення: видно з першого рядка
+    head = "בקשה לאישור הזמנה" if item.get("lead_source") == "checkout" else "ליד חדש"
     text = (
-        f"ליד חדש — {SITE_DOMAIN}\n\n"
+        f"{head} — {SITE_DOMAIN}\n\n"
         f"Name:    {item['name']}\n"
         f"Phone:   {item['phone']}\n"
         f"City:    {item['city']}\n"

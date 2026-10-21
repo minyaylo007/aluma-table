@@ -92,7 +92,7 @@
       {
         "h": "What we use it for",
         "li": [
-          "To get back to you about your request or order, and to keep the price you chose;",
+          "To get back to you about your request or order, and to confirm the order with you before any payment;",
           "To tell you about the launch date, availability and price;",
           "To send advertising — only if you ticked the separate consent box;",
           "To measure advertising and site use and improve the site — third-party tools only after you accept cookies."
@@ -151,7 +151,7 @@
       },
       {
         "h": "Advance orders",
-        "p": ["The site shows the launch series and takes advance orders. No payment is made on the site, and it has no field for card details. Adding to the cart and going to checkout are not a transaction: every order is confirmed with you separately, in a written order confirmation, and only your acceptance of it binds.", "While the launch series is closed for orders, you can leave your phone so that we keep the price you saw in the cart and get back to you when orders open. Leaving a phone is not an order and does not bind you."]
+        "p": ["The site shows the launch series and takes advance orders. No payment is made on the site, and it has no field for card details. Adding to the cart and going to checkout are not a transaction: every order is confirmed with you separately, in a written order confirmation, and only your acceptance of it binds.", "At the last step of checkout you leave a phone or WhatsApp number so that we can get back to you to confirm the order. Leaving a phone is not an order and does not bind you: first you receive a written order confirmation — final price, specification and delivery date — and only after you accept it do you move on to payment."]
       },
       {
         "h": "Prices",

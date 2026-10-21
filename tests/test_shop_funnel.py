@@ -198,7 +198,7 @@ class CheckoutCapiTests(Base):
         self.assertNotIn(TOKEN, self.out.getvalue())
 
 
-# --------------------------------------------------------------------------- заявка «שמרו לי את המחיר»
+# --------------------------------------------------------------------------- заявка «לאישור ההזמנה» (крок оплати)
 
 
 def checkout_lead(**over):
@@ -249,6 +249,7 @@ class CheckoutLeadTests(Base):
                 mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", "42"):
             self.post(checkout_lead())
         text = self.rec.calls[0]["json"]["text"]
+        self.assertTrue(text.startswith("בקשה לאישור הזמנה — "))
         for part in ("tavor:160×90:natural:oak:1", "9470", "checkout", "browsing"):
             self.assertIn(part, text)
         for col in ("cart", "order_total", "lead_source"):

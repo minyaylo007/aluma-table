@@ -36,6 +36,7 @@
         <form class="lead-form" data-co-keep novalidate>
           <p>{{t.pay_keep}}</p>
           <div class="f"><label for="pay-phone">{{t.pay_phone}}</label><input id="pay-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="pay-e-phone"><p class="f-err" id="pay-e-phone" hidden></p></div>
+          <div class="f"><label for="pay-name">{{t.co_name}} <span class="opt-l">{{t.f_optional}}</span></label><input id="pay-name" name="name" autocomplete="name" maxlength="80"></div>
           <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
           <label class="check"><input type="checkbox" name="consent" required aria-describedby="pay-e-consent"><span>{{t.f_consent}}</span></label>
           <p class="f-err" id="pay-e-consent" hidden></p>
@@ -47,6 +48,11 @@
           <p class="thanks-mark" aria-hidden="true">✓</p>
           <p class="h3">{{t.pay_thx_h}}</p>
           <p>{{t.pay_thx_p}}</p>
+          <ol class="thanks-steps">
+            <li>{{t.pay_thx_1}}</li>
+            <li>{{t.pay_thx_2}}</li>
+            <li>{{t.pay_thx_3}}</li>
+          </ol>
           <a class="btn btn--line js-wa" data-wa="pay" href="#" hidden>{{t.whatsapp}}</a>
           <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a>
         </div>
