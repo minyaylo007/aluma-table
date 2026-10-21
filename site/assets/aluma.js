@@ -506,9 +506,9 @@
   // швидкий свайп перестрибує його за один кадр, і кнопка не з'являлася.
   var sticky = qs("[data-sticky]");
   if (sticky) {
-    // у картці товару — щойно блок ціни поза екраном, і ДО нього теж: на телефоні фото займає перший екран,
-    // і без смуги ціна й «הוספה לסל» там не видні
-    var hero = qs(".hero .actions"), anchor = hero || qs(".pdp-price"), reg = qs("#register"), foot = qs(".foot"), queued = false;
+    // у картці товару — щойно кнопка «הוספה לסל» поза екраном, і ДО неї теж: перший екран телефона — кадр, назва
+    // й ціна (22.10), а кнопка нижче, під конфігуратором; смуга дає її одразу
+    var hero = qs(".hero .actions"), anchor = hero || qs(".pdp-actions"), reg = qs("#register"), foot = qs(".foot"), queued = false;
     var visible = function (el) { if (!el) return false; var r = el.getBoundingClientRect(); return r.top < W.innerHeight && r.bottom > 0; };
     // «вся на екрані» — над банером згоди, якщо він унизу на всю ширину: ціна під ним не видна (21.10, 390×844)
     var edge = function () {

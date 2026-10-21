@@ -6,7 +6,7 @@
   },
   "cookies": {
     "label": "Cookie notice",
-    "text": "Essential cookies always run. Meta Pixel and Microsoft Clarity only if you accept, to measure ads and improve the site. You can change this.",
+    "text": "Essential cookies always on; Meta Pixel and Microsoft Clarity (ad and site stats) only if you accept. Changeable.",
     "accept": "Accept",
     "decline": "Essential only",
     "more": "Privacy policy",

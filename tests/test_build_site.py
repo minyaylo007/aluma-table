@@ -72,7 +72,7 @@ class BuiltSiteTests(unittest.TestCase):
                         for d in deps:
                             self.assertTrue((self.dist / d.lstrip("/")).is_file(), f"{m} → {d}")
                     if models:
-                        vid = re.search(r'class="btn btn--ghost g-3d js-3d"[^>]*aria-controls="([^"]+)"', html).group(1)
+                        vid = re.search(r'class="g-3d js-3d"[^>]*aria-controls="([^"]+)"', html).group(1)
                         self.assertIn(f'<div class="viewer3d" id="{vid}" hidden>', html)
                         self.assertEqual('data-state="open"' in html, any(sz.get("extended_cm") for sz in p["sizes"]))
 
