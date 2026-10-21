@@ -96,6 +96,11 @@ function headlineOf(variant, products) {
   return out;
 }
 
+// 9:16 одного товару: вертикальний рендер сесії 2 (<ракурс>-9x16.jpg поруч із кадром, стіл у смузі 300–1000 px,
+// підлога до низу) — на все полотно, картка на підлозі. Без нього кадр 16:10 у 9:16 ріже ніжки — креатив не готовий.
+const tallOf = (file) => file.replace(/-\d+\.\w+$/, '-9x16.jpg');
+const frameFor = (file, format, count) => (format.id === '9x16' && count === 1 && fs.existsSync(tallOf(file)) ? tallOf(file) : file);
+
 function variantHtml(template, cfg, variant, format, products, fonts, imagePaths) {
   const first = products[0];
   const size = first.sizes[0];
@@ -103,8 +108,9 @@ function variantHtml(template, cfg, variant, format, products, fonts, imagePaths
   const headline = headlineOf(variant, products);
   const tiles = imagePaths.map((_, i) =>
     `<img src="${ORIGIN}/img/${variant.id}/${i}" alt="">`).join('');
+  const tall = imagePaths.length === 1 && frameFor(imagePaths[0], format, 1) !== imagePaths[0];
   const map = {
-    FONTS: fonts.css, SERIF: fonts.serif, W: format.width, H: format.height, FORMAT: format.id,
+    FONTS: fonts.css, SERIF: fonts.serif, W: format.width, H: format.height, FORMAT: format.id + (tall ? ' tall' : ''),
     COUNT: imagePaths.length, TILES: tiles, MARK: esc(cfg.mark), BRAND: esc(cfg.brand), HEADLINE: headline,
     SUB: fill(variant.sub, vars), PRICE: fill(variant.price, vars),
     PRICE_NOTE: esc(products.length > 1 ? cfg.price_note_many : cfg.price_note), INCLUDES: esc(cfg.includes),
@@ -156,7 +162,11 @@ function measure() {
   const panel = document.querySelector('.panel');
   const mark = document.querySelector('.mark');
   const mbox = mark.getBoundingClientRect();
+  const pbox = panel.getBoundingClientRect();
+  const media = document.querySelector('.media').getBoundingClientRect();
   return {
+    panelBox: { top: pbox.top, bottom: pbox.bottom }, mediaBottom: media.bottom, tall: !!document.querySelector('.canvas.tall'),
+    tallNot916: [...document.querySelectorAll('.canvas.tall .media img')].some((i) => i.naturalWidth * 16 !== i.naturalHeight * 9),
     textShare: textArea / (W * H),
     texts,
     tiles,
@@ -241,7 +251,7 @@ async function main() {
           if (url.origin !== ORIGIN) return route.abort();
           let file = null;
           const m = url.pathname.match(/^\/img\/([\w-]+)\/(\d+)$/);
-          if (m && m[1] === v.id) file = images[Number(m[2])];
+          if (m && m[1] === v.id) file = frameFor(images[Number(m[2])], f, images.length);
           else if (url.pathname.startsWith('/fonts/')) file = path.join(ROOT, 'site', 'assets', 'fonts', path.basename(url.pathname));
           if (!file || !fs.existsSync(file)) return route.fulfill({ status: 404, body: '' });
           return route.fulfill({ status: 200, contentType: TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream', body: fs.readFileSync(file) });
@@ -267,11 +277,19 @@ async function main() {
           if (share < MIN_TILE_SHARE) problems.push(`кадр ${products[i] ? products[i].id : i} видно на ${(share * 100).toFixed(1)} % < ${MIN_TILE_SHARE * 100} %`);
         });
         if (!m.fontsOk) problems.push('шрифт сайту не завантажився');
+        if (f.id === '9x16') {
+          // Інтерфейс Reels/Stories займає нижні ~20 %; картка не лягає на кадр (крім вертикального рендера,
+          // де під нею підлога, а стіл вище 1000 px).
+          if (m.panelBox.bottom > 0.8 * f.height + 0.5) problems.push('картка в нижніх 20 % (інтерфейс Reels)');
+          if (m.tall && m.panelBox.top < 1000) problems.push('картка вище 1000 px — закриє стіл вертикального рендера');
+          if (m.tall && m.tallNot916) problems.push('вертикальний рендер не 9:16');
+          if (!m.tall && m.panelBox.top < m.mediaBottom - 0.5) problems.push('картка закриває кадр товару');
+        }
         if (shot.bytes > MAX_BYTES) problems.push(`${Math.round(shot.bytes / 1024)} КБ > 500`);
         if (problems.length) failures.push(`${name}: ${problems.join('; ')}`);
         const item = { file: name, width: f.width, height: f.height, bytes: shot.bytes, jpeg_quality: shot.quality,
           textShare: m.textShare, minContrast, tiles: m.tiles.map((t) => Number(t.toFixed(4))), products: products.map((p) => p.id),
-          images: images.map((p) => path.relative(ROOT, p).split(path.sep).join('/')) };
+          images: images.map((p) => path.relative(ROOT, frameFor(p, f, images.length)).split(path.sep).join('/')) };
         row.items[f.id] = item;
         report.creatives.push({ ...item, text_share: Number(m.textShare.toFixed(4)), min_contrast: Number(minContrast.toFixed(2)),
           textShare: undefined, minContrast: undefined });

@@ -88,6 +88,19 @@ class CreativeConfigTests(unittest.TestCase):
         for key in ("MARK", "BRAND", "HEADLINE", "SUB", "PRICE", "PRICE_NOTE", "CTA", "CTA_NOTE"):
             self.assertRegex(html, r"data-text>[^<]*\{\{" + key + r"\}\}", key)
 
+    def test_static_9x16_card_below_product_above_reels_zone(self):
+        """Статика 9:16: картка під кадрами, не в нижніх 20 %; вертикальний рендер — картка нижче 1000 px.
+        Раніше картка лежала на кадрі й різала ніжки й нижні плитки колекції (дирижер, 21.10)."""
+        html = TEMPLATE.read_text(encoding="utf-8")
+        js = (ROOT / "tools" / "creatives" / "build.js").read_text(encoding="utf-8")
+        media = int(re.search(r"\.f-9x16 \{ --media-h: (\d+)px;", html).group(1))
+        self.assertLessEqual(media, 1000)
+        self.assertIn(".f-9x16 .panel { inset: calc(var(--media-h) + 16px) 48px 384px 48px;", html)
+        self.assertIn(".f-9x16.tall .panel { top: 1016px; }", html)
+        self.assertEqual(384, 0.2 * 1920)
+        for problem in ("картка закриває кадр товару", "картка в нижніх 20 %", "картка вище 1000 px", "вертикальний рендер не 9:16"):
+            self.assertIn(problem, js)
+
 
 @unittest.skipUnless((OUT / "report.json").exists(), "docs/creatives/ ще не зібрано")
 class PublishedCreativesTests(unittest.TestCase):
