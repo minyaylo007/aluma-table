@@ -8,6 +8,11 @@
   "price_note": "מחיר משוער, טרם אושר",
   "price_note_many": "מחירים משוערים, טרם אושרו",
   "includes": "כולל מע״מ, משלוח והרכבה",
+  "tones": {
+    "_comment": "Карусель «один стіл у п'яти тонах» (tools/creatives/tones.js, розвідка 21.10, висновок 4). Назви тонів — з catalog finishes, застереження — з i18n/he.json (matb_3_p), {i}/{n}/{name} підставляє tones.js.",
+    "product": "tavor",
+    "sub": "{name} · פורניר אלון · <bdi dir=\"ltr\">{i}/{n}</bdi>"
+  },
   "variants": [
     {
       "id": "tavor",
