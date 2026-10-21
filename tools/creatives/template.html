@@ -49,9 +49,14 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 /* 1:1 і 4:5 — кадр зверху, текст на панелі знизу. */
 .f-1x1 { --media-h: 688px; --safe-top: 28px; --pad-y: 34px; --gap: 12px; --h1: 52px; --fs-sub: 27px; --fs-price: 36px; --fs-cta: 28px; }
 .f-4x5 { --media-h: 900px; --safe-top: 28px; --pad-y: 40px; --gap: 14px; --h1: 58px; --fs-sub: 29px; --fs-price: 38px; --fs-cta: 30px; }
-/* 9:16 — кадр на весь екран, картка над нижньою зоною інтерфейсу Stories/Reels (~340 px), позначка нижче верхньої (~250 px). */
-.f-9x16 { --media-h: var(--h); --safe-top: 270px; --pad-y: 44px; --gap: 16px; --h1: 64px; --fs-sub: 30px; --fs-price: 40px; --fs-cta: 30px; }
-.f-9x16 .panel { inset: auto 48px 360px 48px; height: auto; border-radius: 10px; padding: 44px 52px; }
+/* 9:16 — кадри у верхніх 1000 px, картка під ними без накладання, нижні 20 % (інтерфейс Reels, 384 px) порожні;
+   позначка нижче верхньої зони (~250 px). .tall — вертикальний рендер одного товару (build.js frameFor) на все
+   полотно: стіл у смузі 300–1000 px, картка на підлозі нижче. */
+.f-9x16 { --media-h: 1000px; --safe-top: 270px; --pad-y: 36px; --gap: 14px; --h1: 60px; --fs-sub: 29px; --fs-price: 40px; --fs-cta: 30px; }
+.f-9x16 .panel { inset: calc(var(--media-h) + 16px) 48px 384px 48px; height: auto; border-radius: 10px; padding: var(--pad-y) 52px; }
+.f-9x16 .media.n5 { grid-template-rows: repeat(3, minmax(0, 1fr)); }
+.f-9x16.tall { --media-h: var(--h); }
+.f-9x16.tall .panel { top: 1016px; }
 </style>
 </head>
 <body>
