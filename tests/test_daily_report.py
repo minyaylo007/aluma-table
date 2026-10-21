@@ -50,6 +50,18 @@ def day_pk(dt: datetime) -> str:
     return "D#" + dt.strftime("%Y-%m-%d")
 
 
+@contextlib.contextmanager
+def frozen(at: datetime):
+    """datetime.now() у scripts/daily_report.py повертає at — час тесту не залежить від годинника."""
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return at.astimezone(tz) if tz else at.replace(tzinfo=None)
+
+    with mock.patch.object(report, "datetime", Frozen):
+        yield
+
+
 class Box:
     """Тимчасова база з тією самою розкладкою, що пише handler.py."""
 
@@ -130,15 +142,27 @@ class DailyReportSqliteTests(unittest.TestCase):
         # заявки — від нових до старих, як query(ScanIndexForward=False) у DynamoDB
         self.assertEqual([l["ts"] for l in leads], sorted((l["ts"] for l in leads), reverse=True))
 
-    def test_leads_newest_first_and_events_oldest_first(self):
-        b, now = self.box, self.now
-        t0 = now - timedelta(minutes=30)
+    def _newest_first_oldest_first(self, at: datetime):
+        # Час заморожено: з живим now() о 00:00–00:30 UTC «now−30 хв» падає у вчорашню партицію D#<дата>,
+        # і load(1) її не читав — тест падав щоночі. load(2) бере і сьогодні, і вчора.
+        b = self.box
+        t0 = at - timedelta(minutes=30)
         for i in range(3):
             b.event("page_view", t0 + timedelta(minutes=i), session=f"s{i}")
             b.lead(t0 + timedelta(minutes=i), comment=str(i))
-        events, leads = report.load(1, False, self.tables())
+        with frozen(at):
+            events, leads = report.load(2, False, self.tables())
         self.assertEqual([e["session_id"] for e in events], ["s0", "s1", "s2"])
         self.assertEqual([l["comment"] for l in leads], ["2", "1", "0"])
+
+    def test_leads_newest_first_and_events_oldest_first(self):
+        self._newest_first_oldest_first(self.now.replace(hour=12, minute=0, second=0, microsecond=0))
+
+    def test_leads_and_events_order_just_after_midnight_utc(self):
+        """00:10 UTC: події за 30 хв до того — у вчорашній партиції; колишній флейк, тепер стабільно."""
+        at = self.now.replace(hour=0, minute=10, second=0, microsecond=0)
+        self.assertNotEqual((at - timedelta(minutes=30)).date(), at.date())
+        self._newest_first_oldest_first(at)
 
     # ------------------------------------------------------------ без DynamoDB
 
