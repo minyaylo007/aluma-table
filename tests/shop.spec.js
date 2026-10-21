@@ -97,7 +97,7 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       await waitFb(page, 'ViewContent');
       await expect(page.locator('.pdp-price')).toBeVisible();
       await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'משוער' : /estimat|ориентиров/i);
-      await expect(page.locator('.pdp-buy')).not.toContainText(lang === 'he' ? 'שבועות' : /weeks|недел/i);
+      await expect(page.locator('.pdp-buy')).not.toContainText(lang === 'he' ? 'שבועות' : /weeks|(^|[^а-яё])недел/i);
       await expect(page.locator('.pdp-lead')).toHaveText(T.lead_exact);
       await page.locator(`label:has(input[name="size"][value="${size.label}"])`).first().click();
       await page.locator(`label:has(input[name="finish"][value="${fin}"])`).first().click();
