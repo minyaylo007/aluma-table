@@ -107,6 +107,10 @@ const DETAIL_RENDER = {
   saf:   { az: 25, eye: 1.15, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.05, 0, 0.7], [0.6, 0.3, 1]], sun: 7.0, window: 180,
            end_chair: false }
 };
+// Тонування рендером (карусель Meta, сесія 4): той самий кадр, камера й світло, міняється лише матеріал стола —
+// альбедо шпону, пофарбоване gradePixel з aluma3d.js (як свотч і 3D на сторінці), а не готовий кадр.
+// Файли finish-<тонування>-{800,1600}.{avif,webp} і -1600.jpg; у images не йдуть.
+const FINISH_SET = { tavor: 'hero' };
 function framesFor(p) {
   const base = p.bases.length ? 'oak' : 'none', ext = p.badges.some(b => b.id === 'extendable');
   const decor = p.category === 'dining_table' ? 'dining' : 'top';
@@ -150,7 +154,8 @@ function blender(geoFile, out, f, samples) {
   const a = ['120m', 'nice', '-n', '19', 'systemd-run', '--user', '--scope', '-q', '--slice=app-ihor\\x2dconductor.slice',
     '-p', 'MemoryMax=4G', '-p', 'CPUQuota=200%', BLENDER, '-b', '--factory-startup', '-P', path.join(__dirname, 'blender_scene.py'), '--',
     '--geo', geoFile, '--out', out, '--shot', f.view, '--w', String(f.w), '--h', String(f.h), '--samples', String(samples || SAMPLES), '--threads', '2',
-    '--decor', f.decor, '--cam', JSON.stringify(f.cam || {})];
+    '--decor', f.decor, '--cam', JSON.stringify(f.cam || {}), '--finish', f.finish || 'natural'];
+  if (f.albedo) a.push('--albedo', f.albedo);
   const r = spawnSync('timeout', a, { stdio: ['ignore', 'pipe', 'pipe'], env: Object.assign({}, process.env, { TMPDIR: '/tmp' }), cwd: ROOT });
   if (r.status !== 0 || !/ALUMA_RENDER_OK/.test(r.stdout)) throw new Error('blender ' + f.name + '\n' + String(r.stderr).slice(-2000) + String(r.stdout).slice(-2000));
 }
@@ -185,6 +190,27 @@ function encode(src, dstBase, W, hero, widths) {
     run('convert', [src, '-resize', width + 'x', '-strip', '-quality', '80', '-define', 'webp:method=6', `${dstBase}-${width}.webp`]);
   }
   run('convert', [src, '-resize', W + 'x', '-strip', '-sampling-factor', '4:2:0', '-interlace', 'JPEG', '-quality', '82', `${dstBase}-${W}.jpg`]);
+}
+
+// Альбедо тонування для Blender: natural-albedo-2048 через gradePixel сторінки (той самий код, що свотчі й 3D).
+async function finishAlbedo(page, finish) {
+  const out = path.join(ROOT, 'renders-master', 'textures', `catalog-${finish}-albedo-2048.png`);
+  if (fs.existsSync(out)) return out;
+  const url = await page.evaluate(async f => {
+    const im = new Image();
+    await new Promise((res, rej) => { im.onload = res; im.onerror = () => rej(new Error('albedo')); im.src = '../renders-master/textures/natural-albedo-2048.jpg'; });
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height), q = d.data;
+    for (let i = 0; i < q.length; i += 4) {
+      const o = window.Aluma3D.gradePixel(f, q[i] / 255, q[i + 1] / 255, q[i + 2] / 255);
+      q[i] = o[0] * 255; q[i + 1] = o[1] * 255; q[i + 2] = o[2] * 255;
+    }
+    x.putImageData(d, 0, 0);
+    return c.toDataURL('image/png');
+  }, finish);
+  fs.writeFileSync(out, Buffer.from(url.split(',')[1], 'base64'));
+  return out;
 }
 
 async function openPage() {
@@ -258,6 +284,31 @@ async function openPage() {
       });
       if (f.light) images[images.length - 1].light = f.light;
       console.log(`${p.id}/${f.name} ${W}×${H}`);
+    }
+    if (FINISH_SET[p.id]) {
+      const hero = framesFor(p).find(f => f.name === FINISH_SET[p.id]);
+      for (const fin of p.finishes) {
+        const f = Object.assign({}, hero, { name: 'finish-' + fin.id, finish: fin.id });
+        const pdir = opt.preview ? path.join(MASTER, 'preview', p.id) : path.join(MASTER, p.id);
+        if (opt.preview && opt.frames && !opt.frames.split(',').includes(f.name)) continue;
+        // натуральний — це сам кадр героя, другий рендер не потрібен
+        let src = path.join(pdir, (fin.id === hero.finish ? hero.name : f.name) + '.png');
+        if (!(opt.reuse && fs.existsSync(src)) && !(fin.id === hero.finish && !opt.preview)) {
+          if (fin.id !== 'natural') f.albedo = await finishAlbedo(page, fin.id);
+          const g = await page.evaluate(j => window.geo(j), { product: p.id, size: sizeFor(p), base: f.base, state: 'closed' });
+          const geoFile = path.join(pdir, f.name + '.geo.json');
+          fs.mkdirSync(pdir, { recursive: true });
+          fs.writeFileSync(geoFile, JSON.stringify(g));
+          src = path.join(pdir, f.name + '.png');
+          const t0 = Date.now();
+          blender(geoFile, src, opt.preview ? Object.assign({}, f, { w: Math.round(f.w / 2), h: Math.round(f.h / 2) }) : f, opt.preview ? 12 : undefined);
+          console.log(`${p.id}/${f.name} blender ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+        }
+        if (opt.preview) continue;
+        const W = Math.min(1600, dims(src).w);
+        encode(src, path.join(dir, f.name), W, false, widthsFor(f.view === 'hero' ? 'tone' : f.view, W));
+        console.log(`${p.id}/${f.name} ${W}`);
+      }
     }
     if (opt.preview) continue;
     p.images = images;

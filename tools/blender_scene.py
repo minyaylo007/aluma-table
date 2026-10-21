@@ -23,6 +23,7 @@ ap.add_argument("--geo", required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--shot", default="hero")            # hero | angle | open
 ap.add_argument("--finish", default="natural")
+ap.add_argument("--albedo", default="")             # альбедо тонування каталогу (gradePixel), інакше <finish>-albedo
 ap.add_argument("--w", type=int, default=1600)
 ap.add_argument("--h", type=int, default=1000)
 ap.add_argument("--samples", type=int, default=160)
@@ -77,9 +78,9 @@ def pbr(name, base=None, rough=0.6, metal=0.0, coat=0.0, coat_rough=0.3, color=(
 
 
 # ---- дуб виробу -----------------------------------------------------------------------------------------
-def oak_material(finish):
+def oak_material(finish, albedo=""):
     """Дуб під сатиновим лаком: запечене альбедо тонування, нормалі й шорсткість шпону oak_veneer_01."""
-    alb = os.path.join(TEX, f"{finish}-albedo-2048.jpg")
+    alb = albedo or os.path.join(TEX, f"{finish}-albedo-2048.jpg")
     if not os.path.exists(alb):
         alb = os.path.join(TEX, "natural-albedo-2048.jpg")
     m, nt, b = pbr(f"oak-{finish}", coat=0.22, coat_rough=0.28)
@@ -101,7 +102,9 @@ def oak_material(finish):
     return m
 
 
-OAK = oak_material(A.finish)
+OAK = oak_material(A.finish, A.albedo)
+# стільці — декор, не товар: тонування міняє лише стіл, стільці завжди натуральний дуб
+CHAIR_OAK = OAK if A.finish == "natural" and not A.albedo else oak_material("natural")
 MATS = {
     "oak": OAK, "face": OAK,
     "under": pbr("under", rough=0.8, color=(0.62, 0.56, 0.48) if A.finish != "black" else (0.08, 0.075, 0.07))[0],
@@ -252,14 +255,14 @@ def chair(name, loc, yaw):
     for sx in (-1, 1):
         for sy in (-1, 1):
             parts.append(cube(f"{name}-leg", (0.034, 0.034, h - 0.03), (sx * (sw / 2 - 0.03), sy * (sd / 2 - 0.03),
-                                                                           (h - 0.03) / 2), OAK, bevel=0.004))
-    parts.append(cube(f"{name}-rail-f", (sw - 0.06, 0.02, 0.05), (0, -(sd / 2 - 0.03), h - 0.06), OAK, bevel=0.003))
-    parts.append(cube(f"{name}-rail-b", (sw - 0.06, 0.02, 0.05), (0, (sd / 2 - 0.03), h - 0.06), OAK, bevel=0.003))
+                                                                           (h - 0.03) / 2), CHAIR_OAK, bevel=0.004))
+    parts.append(cube(f"{name}-rail-f", (sw - 0.06, 0.02, 0.05), (0, -(sd / 2 - 0.03), h - 0.06), CHAIR_OAK, bevel=0.003))
+    parts.append(cube(f"{name}-rail-b", (sw - 0.06, 0.02, 0.05), (0, (sd / 2 - 0.03), h - 0.06), CHAIR_OAK, bevel=0.003))
     parts.append(cube(f"{name}-seat", (sw, sd, 0.05), (0, 0, h), LINEN_SEAT, bevel=0.018, seg=5))
     for sx in (-1, 1):                                 # задні стійки спинки
-        parts.append(cube(f"{name}-post", (0.03, 0.03, 0.36), (sx * (sw / 2 - 0.03), sd / 2 - 0.02, h + 0.18), OAK,
+        parts.append(cube(f"{name}-post", (0.03, 0.03, 0.36), (sx * (sw / 2 - 0.03), sd / 2 - 0.02, h + 0.18), CHAIR_OAK,
                           bevel=0.004, rot=(math.radians(-8), 0, 0)))
-    parts.append(cube(f"{name}-back", (sw - 0.02, 0.022, 0.12), (0, sd / 2 + 0.01, h + 0.30), OAK, bevel=0.006,
+    parts.append(cube(f"{name}-back", (sw - 0.02, 0.022, 0.12), (0, sd / 2 + 0.01, h + 0.30), CHAIR_OAK, bevel=0.006,
                       rot=(math.radians(-8), 0, 0)))
     root = bpy.data.objects.new(name, None)
     col.objects.link(root)
