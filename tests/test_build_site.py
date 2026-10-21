@@ -88,7 +88,8 @@ class BuiltSiteTests(unittest.TestCase):
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     inc = re.search(r'<section class="pdp-inc".*?</section>', html, re.S)
                     self.assertIsNotNone(inc)
-                    self.assertEqual(inc.group(0).count("<li>"), 5 + bool(p.get("seats")))
+                    dining = p["category"] == "dining_table"
+                    self.assertEqual(inc.group(0).count("<li>"), 5 + bool(p.get("seats")) + dining)
                     if p.get("seats"):
                         lo, hi = p["seats"]["closed"][0], p["seats"]["extended"][-1]
                         self.assertIn(f'<bdi dir="ltr">{lo}', inc.group(0))
@@ -100,6 +101,35 @@ class BuiltSiteTests(unittest.TestCase):
                         self.assertEqual("55 " in size.group(0), p["category"] == "dining_table")
                         self.assertIn('data-wa="size"', size.group(0))
                     self.assertNotIn("{{", html)
+
+    def test_table_only_line_first_on_dining_tables_only(self):
+        # 22.10, аудит (б) №2: «ціна — за стіл, без стільців» першим рядком «מה כלול במחיר» лише в обідніх столів;
+        # ознака — категорія каталогу; країна виробництва — рядком inc_own на кожній картці (аудит (б) №3)
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            only, own = t["inc_table_only"].split(",")[0], t["inc_own"].split(" · ")[0]
+            for p in PRODUCTS:
+                inc = re.search(r'<section class="pdp-inc".*?</section>', self.page(f"{prefix}p/{p['slug']}/"), re.S).group(0)
+                first = re.search(r"<li>.*?<span>(.*?)</span>", inc, re.S).group(1)
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    self.assertEqual(first.startswith(only), p["category"] == "dining_table")
+                    self.assertEqual(inc.count(only), int(p["category"] == "dining_table"))
+                    self.assertIn(own, inc)
+
+    def test_funnel_steps_and_buttons_never_promise_payment(self):
+        # 22.10, аудит (б) №1: оплати на сайті немає — у кроках і кнопках кошика/оформлення ні слова «оплата»;
+        # рамка «התשלום לא מתבצע באתר» лишається (вона — пояснення, а не обіцянка)
+        word = {"he": "תשלום", "ru": "оплат", "en": "pay"}
+        for lang, prefix in DIST_PREFIX.items():
+            for rel in ("cart/", "checkout/"):
+                html = self.page(prefix + rel)
+                bits = re.findall(r'<ol class="co-steps"[^>]*>.*?</ol>', html, re.S)
+                bits += re.findall(r"<(?:button|a)\b[^>]*class=\"btn\b[^>]*>(.*?)</(?:button|a)>", html, re.S)
+                with self.subTest(page=prefix + rel):
+                    self.assertTrue(bits)
+                    for b in bits:
+                        self.assertNotIn(word.get(lang, "pay"), re.sub(r"<[^>]+>", "", b).lower())  # текст, не data-атрибути
+            self.assertIn("data-co-keep", self.page(prefix + "checkout/"))
 
     def test_no_cdn_for_3d(self):
         # three.js — свій файл: при відкритті 3D жодного зовнішнього запиту (приватність)
