@@ -1,0 +1,122 @@
+{
+  "generated_by": "tools/creatives/tones.js",
+  "product": "tavor",
+  "note": "הגוון במסך הוא קירוב",
+  "limits": {
+    "max_bytes": 512000,
+    "max_text_share": 0.2,
+    "min_contrast": 4.5
+  },
+  "cards": [
+    {
+      "file": "tavor-natural-1080x1080.jpg",
+      "tone": "natural",
+      "tone_name": "אלון טבעי",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 104141,
+      "text_share": 0.0286,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-natural-1600.jpg"
+    },
+    {
+      "file": "tavor-natural-1080x1350.jpg",
+      "tone": "natural",
+      "tone_name": "אלון טבעי",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 107821,
+      "text_share": 0.0312,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-natural-1600.jpg"
+    },
+    {
+      "file": "tavor-light-1080x1080.jpg",
+      "tone": "light",
+      "tone_name": "אלון בהיר",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 98950,
+      "text_share": 0.0285,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-light-1600.jpg"
+    },
+    {
+      "file": "tavor-light-1080x1350.jpg",
+      "tone": "light",
+      "tone_name": "אלון בהיר",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 100489,
+      "text_share": 0.0311,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-light-1600.jpg"
+    },
+    {
+      "file": "tavor-honey-1080x1080.jpg",
+      "tone": "honey",
+      "tone_name": "דבש",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 102518,
+      "text_share": 0.0226,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-honey-1600.jpg"
+    },
+    {
+      "file": "tavor-honey-1080x1350.jpg",
+      "tone": "honey",
+      "tone_name": "דבש",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 105113,
+      "text_share": 0.0228,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-honey-1600.jpg"
+    },
+    {
+      "file": "tavor-smoked-1080x1080.jpg",
+      "tone": "smoked",
+      "tone_name": "אלון מעושן",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 103742,
+      "text_share": 0.0299,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-smoked-1600.jpg"
+    },
+    {
+      "file": "tavor-smoked-1080x1350.jpg",
+      "tone": "smoked",
+      "tone_name": "אלון מעושן",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 108128,
+      "text_share": 0.033,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-smoked-1600.jpg"
+    },
+    {
+      "file": "tavor-black-1080x1080.jpg",
+      "tone": "black",
+      "tone_name": "שחור פחם",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 100728,
+      "text_share": 0.029,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-black-1600.jpg"
+    },
+    {
+      "file": "tavor-black-1080x1350.jpg",
+      "tone": "black",
+      "tone_name": "שחור פחם",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 103239,
+      "text_share": 0.0319,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-black-1600.jpg"
+    }
+  ]
+}
