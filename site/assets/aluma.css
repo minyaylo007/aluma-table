@@ -350,6 +350,8 @@ bdi { unicode-bidi: isolate; }
 .mat-facts > li { counter-increment: mat; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; }
 .mat-facts > li::before { content: counter(mat); grid-row: span 3; display: inline-grid; place-items: center; width: 28px; height: 28px;
   border: 1px solid var(--ink); border-radius: 50%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+/* усе, що в пункті, — у колонці тексту: інакше 4-й елемент (позначка «הדמיה») стає в колонку номера й звужує текст */
+.mat-facts > li > * { grid-column: 2; }
 .mat-h { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; line-height: 1.3; }
 .mat-facts p { margin-block-start: 6px; }
 .mat-tones { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-block-start: 12px; font-size: .9rem; }
