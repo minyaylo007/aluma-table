@@ -1,0 +1,64 @@
+<section class="sec shop" data-shop="checkout">
+  <div class="wrap shop-wrap co-grid">
+    <div class="co-main">
+      <ol class="co-steps" aria-label="{{t.co_steps}}">
+        <li><a href="{{PREFIX}}/cart/">{{t.co_step_cart}}</a></li><li data-co-step="ship" aria-current="step">{{t.co_step_ship}}</li><li data-co-step="pay">{{t.co_step_pay}}</li>
+      </ol>
+      <h1 class="h2 shop-h1" tabindex="-1" data-co-h>{{t.co_h1}}</h1>
+      <p class="cart-empty" data-co-empty hidden>{{t.co_empty}} <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a></p>
+
+      <form class="lead-form co-form" data-co-ship novalidate hidden>
+        <div class="f"><label for="co-city">{{t.co_city}}</label>
+          <select id="co-city" name="city" required aria-describedby="co-e-city"><option value="">{{t.co_city_pick}}</option>{{CITY_OPTIONS}}</select>
+          <p class="f-err" id="co-e-city" hidden></p></div>
+        <fieldset class="f f-choice" aria-describedby="co-e-when">
+          <legend>{{t.co_when}}</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="when" value="now"><span>{{t.co_when_now}}</span></label>
+            <label class="chip"><input type="radio" name="when" value="1-3m"><span>{{t.co_when_13}}</span></label>
+            <label class="chip"><input type="radio" name="when" value="browsing"><span>{{t.co_when_browse}}</span></label>
+          </div>
+          <p class="f-err" id="co-e-when" hidden></p>
+        </fieldset>
+        <div class="f-row f-row--2">
+          <div class="f"><label for="co-name">{{t.co_name}} <span class="opt-l">{{t.f_optional}}</span></label><input id="co-name" name="name" autocomplete="name" maxlength="80"></div>
+          <div class="f"><label for="co-phone">{{t.co_phone}} <span class="opt-l">{{t.f_optional}}</span></label><input id="co-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="40"></div>
+        </div>
+        <button class="btn btn--dark btn--block" type="submit">{{t.co_next}}</button>
+      </form>
+
+      <div class="co-pay" data-co-pay hidden>
+        <h2 class="h3">{{t.pay_h}}</h2>
+        <div class="pay-closed" role="status">
+          <p class="pay-closed-h">{{t.pay_closed_h}}</p>
+          <p>{{t.pay_closed_p}}</p>
+        </div>
+        <form class="lead-form" data-co-keep novalidate>
+          <p>{{t.pay_keep}}</p>
+          <div class="f"><label for="pay-phone">{{t.pay_phone}}</label><input id="pay-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="pay-e-phone"><p class="f-err" id="pay-e-phone" hidden></p></div>
+          <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <label class="check"><input type="checkbox" name="consent" required aria-describedby="pay-e-consent"><span>{{t.f_consent}}</span></label>
+          <p class="f-err" id="pay-e-consent" hidden></p>
+          <button class="btn btn--dark btn--block" type="submit">{{t.pay_submit}}</button>
+          <p class="f-status" role="status" aria-live="polite"></p>
+          <p class="f-fine">{{t.cart_fine}}</p>
+        </form>
+        <div class="thanks" data-co-thanks hidden tabindex="-1">
+          <p class="thanks-mark" aria-hidden="true">✓</p>
+          <p class="h3">{{t.pay_thx_h}}</p>
+          <p>{{t.pay_thx_p}}</p>
+          <a class="btn btn--line js-wa" data-wa="pay" href="#" hidden>{{t.whatsapp}}</a>
+          <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a>
+        </div>
+        <a class="link-arrow" href="{{PREFIX}}/cart/" data-co-back>{{t.pay_back}}</a>
+      </div>
+      <noscript><p class="f-status">{{t.cart_nojs}}</p></noscript>
+    </div>
+    <aside class="co-side" aria-labelledby="co-sum-h" data-co-side hidden data-l-size="{{t.f_size}}" data-l-finish="{{t.f_finish}}" data-l-base="{{t.f_base}}">
+      <h2 class="h3" id="co-sum-h">{{t.co_summary}}</h2>
+      <ul class="cart-list cart-list--mini" role="list" data-co-list></ul>
+      <p class="cart-total"><span>{{t.cart_total}}</span> <bdi dir="ltr" data-co-total></bdi></p>
+      <p class="price-incl">{{t.price_incl}}</p>
+    </aside>
+  </div>
+</section>

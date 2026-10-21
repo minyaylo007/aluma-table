@@ -161,6 +161,7 @@ class CiTests(unittest.TestCase):
         self.assertLess(body.index("python build.py"), body.index("playwright.tracking.config.js"))
         cfg = (ROOT / "playwright.tracking.config.js").read_text(encoding="utf-8")
         self.assertIn("tracking-events.spec.js", cfg)
+        self.assertIn("shop.spec.js", cfg)   # воронка магазину — той самий крок CI
 
 
 class WorkflowSafetyTests(unittest.TestCase):

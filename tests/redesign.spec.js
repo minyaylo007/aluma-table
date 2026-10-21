@@ -51,13 +51,15 @@ for (const [path, lang, dir] of [['/', 'he', 'rtl'], ['/en/', 'en', 'ltr']]) {
 }
 
 for (const p of PRODUCTS) {
-  test(`card /p/${p.slug}/ opens with a price, sizes and the estimate mark`, async ({ page }) => {
+  test(`card /p/${p.slug}/ opens with a price, sizes and "add to cart", no weeks and no estimate mark next to the price`, async ({ page }) => {
     await mockApi(page);
     const errors = watchErrors(page);
     await page.goto(`/p/${p.slug}/`);
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('input[name="size"]')).toHaveCount(p.sizes.length);
-    if (p.preliminary) await expect(page.locator('.pdp-buy')).toContainText('מחיר משוער, טרם אושר');
+    await expect(page.locator('.pdp-actions [data-add-cart]')).toHaveText('הוספה לסל');
+    await expect(page.locator('.pdp-price')).not.toContainText('משוער');
+    await expect(page.locator('.pdp-buy')).not.toContainText('שבועות');
     if ((p.images || []).length) await expect(page.locator('.viz-tag').first()).toContainText('הדמיה');
     if (!p.model3d) await expect(page.locator('.js-3d')).toHaveCount(0);
     expect(await noOverflow(page)).toBeLessThanOrEqual(0);
@@ -89,10 +91,10 @@ test('catalog lists every product with a link to its card', async ({ page }) => 
 });
 
 test('every page of both languages answers 200 with one h1', async ({ page }) => {
-  test.setTimeout(90000);   // 16 сторінок на однопотоковому serve-preview
+  test.setTimeout(120000);  // 20 сторінок на однопотоковому serve-preview
   await mockApi(page);
   for (const pre of ['', '/en']) {
-    for (const rel of ['/', '/catalog/', '/how/', '/about/', '/faq/', '/privacy', '/terms', '/accessibility']) {
+    for (const rel of ['/', '/catalog/', '/cart/', '/checkout/', '/how/', '/about/', '/faq/', '/privacy', '/terms', '/accessibility']) {
       const res = await page.goto(pre + rel);
       expect(res.status(), pre + rel).toBe(200);
       await expect(page.locator('h1'), pre + rel).toHaveCount(1);
@@ -237,38 +239,12 @@ test('mobile: sticky CTA shows while the price is off screen and hides at the pr
   await expect(sticky).toHaveClass(/is-on/);                   // перший екран — фото, ціна нижче: смуга з ціною і заявкою
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-price').getBoundingClientRect().top + scrollY - 200));
   await expect(sticky).not.toHaveClass(/is-on/);               // ціна на екрані — дубль не потрібен
-  await page.locator('#quick-form').scrollIntoViewIfNeeded();
-  await expect(sticky).not.toHaveClass(/is-on/);               // коротка форма на екрані — «пігулка» не потрібна
-  await page.evaluate(() => scrollTo(0, document.querySelector('[data-quick]').getBoundingClientRect().bottom + scrollY + 200));
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(sticky).toHaveClass(/is-on/);
+  await expect(sticky.locator('[data-add-cart]')).toHaveText('הוספה לסל');
   await expect(sticky.locator('.sticky-thumb')).toHaveCount(1);
   await page.locator('#register').scrollIntoViewIfNeeded();
   await expect(sticky).not.toHaveClass(/is-on/);
-});
-
-test('quick form next to the photo sends the chosen size, finish and base as hidden fields', async ({ page }) => {
-  const p = PRODUCTS[0];
-  const sent = await mockApi(page);
-  await page.goto(`/p/${p.slug}/`);
-  const size = p.sizes[p.sizes.length - 1], fin = p.finishes[p.finishes.length - 1];
-  await page.locator(`.opt[data-opt="size"] label:has(input[value="${size.label}"])`).click();
-  await page.locator(`.opt[data-opt="finish"] label:has(input[value="${fin.id}"])`).click();
-  const q = page.locator('#quick-form');
-  await q.locator('button[type="submit"]').click();
-  await expect(page.locator('#q-e-name')).toBeVisible();
-  expect(sent.leads).toEqual([]);
-  await q.locator('input[name="name"]').fill('ישראל ישראלי');
-  await q.locator('input[name="phone"]').fill(FAKE_PHONE);
-  await q.locator('input[name="consent"]').check();
-  await q.locator('button[type="submit"]').click();
-  await expect(page.locator('.thanks--quick')).toBeVisible();
-  expect(sent.leads).toHaveLength(1);
-  const lead = sent.leads[0];
-  expect(lead.product_id).toBe(p.id);
-  expect(lead.size_label).toBe(size.label);
-  expect(lead.finish_id).toBe(fin.id);
-  expect(lead.consent).toBe(true);
-  expect(lead.lang).toBe('he');
 });
 
 test('mobile: a product with 8+ frames keeps the gallery inside the screen and the sticky pill still turns on', async ({ page }) => {
@@ -290,7 +266,7 @@ test('mobile: a product with 8+ frames keeps the gallery inside the screen and t
   expect(widths.page).toBeLessThanOrEqual(390);
   expect(widths.gallery).toBeLessThanOrEqual(390);
   expect(widths.slide).toBeLessThanOrEqual(390);
-  await page.evaluate(() => scrollTo(0, document.querySelector('[data-quick]').getBoundingClientRect().bottom + scrollY + 200));
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(page.locator('[data-sticky]')).toHaveClass(/is-on/);
 });
 

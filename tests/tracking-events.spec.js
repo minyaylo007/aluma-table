@@ -50,7 +50,8 @@ async function open(page, path, { consent = null, config = {}, lead = { ok: true
 }
 
 const fbCalls = (page) => page.evaluate(() => window.__fb || []);
-const tracked = async (page, name) => (await fbCalls(page)).filter((c) => c[0] === 'track' && c[1] === name);
+// стандартні події — track, власні кроки воронки (select_*, view_cart…) — trackCustom
+const tracked = async (page, name) => (await fbCalls(page)).filter((c) => (c[0] === 'track' || c[0] === 'trackCustom') && c[1] === name);
 // Перша сторона копить події 2,5 с; pagehide шле решту. Чекаємо, доки потрібна подія дійде.
 const firstParty = (net, name) => net.events.flatMap((b) => b.events || []).filter((e) => e.name === name);
 
@@ -135,18 +136,20 @@ test.describe('після згоди', () => {
     expect((await tracked(page, 'ViewContent')).length).toBe(1);
   });
 
-  test('/p/tavor/ — розмір і тонування: CustomizeProduct', async ({ page }) => {
+  test('/p/tavor/ — розмір і тонування: select_size і select_finish', async ({ page }) => {
     await open(page, '/p/tavor/', { consent: '1' });
     await waitFb(page, 'PageView');  // tracking.js завантажено — далі лише події від дій
     await page.locator('label.pill:has(input[name="size"][value="180×90"])').click();
-    let [c1] = await waitFb(page, 'CustomizeProduct', 1);
+    const [c1] = await waitFb(page, 'select_size', 1);
+    expect(c1[0]).toBe('trackCustom');
     expect(c1[2]).toMatchObject({ content_ids: ['tavor'], content_type: 'product', size: '180×90' });
     const finish = page.locator('input[name="finish"][value="smoked"]');
     await page.locator('label:has(input[name="finish"][value="smoked"])').first().click();
     await expect(finish).toBeChecked();
-    const all = await waitFb(page, 'CustomizeProduct', 2);
-    expect(all[1][2]).toMatchObject({ content_ids: ['tavor'], size: '180×90', finish: 'smoked' });
-    expect(new Set(all.map((c) => c[3].eventID)).size).toBe(2);
+    const [c2] = await waitFb(page, 'select_finish', 1);
+    expect(c2[2]).toMatchObject({ content_ids: ['tavor'], size: '180×90', finish: 'smoked' });
+    expect(c2[3].eventID).not.toBe(c1[3].eventID);
+    expect(await tracked(page, 'CustomizeProduct')).toEqual([]);
   });
 
   test('WhatsApp є в конфігу — клік дає Contact', async ({ page }) => {

@@ -162,7 +162,8 @@ bdi { unicode-bidi: isolate; }
 .launch-bar { text-align: center; font-size: .82rem; padding: 6px var(--gut); background: var(--esp); color: var(--cream); }
 @media (max-width: 900px) {
   .menu-btn { display: block; flex: none; }
-  .top-cta { display: none; }
+  .top-cta:not(.top-cart) { display: none; }
+  .top-cart { padding-inline: 14px; }
   /* логотип росте з текстом (200 %), але не ширший за екран — інакше «תפריט» виїжджає за край */
   .logo { min-width: 0; }
   .logo-lat { font-size: min(1.45rem, 6.5vw); }
@@ -332,7 +333,6 @@ bdi { unicode-bidi: isolate; }
 .card-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
 .card-name { font-size: 1.45rem; line-height: 1.2; }
 .card-price { font-size: .95rem; font-variant-numeric: tabular-nums; }
-.est, .card-price small { font-weight: 400; color: var(--muted); font-size: .78rem; margin-inline-start: 4px; }
 .card-dots { display: flex; gap: 6px; }
 /* зразки тонів — шматочки шпону (скан або фото з фабрики, --i), колір каталогу — підкладка (--c) */
 .card-dot { width: 18px; height: 18px; border-radius: 3px; background: var(--i, none) center / cover, var(--c);
@@ -505,8 +505,6 @@ bdi { unicode-bidi: isolate; }
 .pdp-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-block: 24px 4px; padding-block-start: 20px; border-block-start: 1px solid var(--line); }
 .price { font-size: 2.2rem; line-height: 1; }
 .price-incl { font-size: .88rem; color: var(--muted); }
-.badge-est { flex-basis: 100%; font-size: .82rem; color: var(--oak-deep); font-weight: 600; }
-.badge-est::before { content: "● "; font-size: .6rem; vertical-align: middle; }
 .pdp-config { display: grid; gap: 22px; margin-block: 24px; }
 .opt { border: 0; padding: 0; margin: 0; min-width: 0; }
 .opt legend { font-weight: 600; font-size: .9rem; margin-block-end: 10px; padding: 0; }
@@ -615,12 +613,6 @@ html:has(.chapters) { scroll-padding-top: 160px; } /* без JS; з JS — то�
 .sticky-cta--pdp .btn { flex: 0 1 auto; min-width: 0; margin-inline-start: auto; min-height: 44px; padding-inline: 20px; border-radius: 999px; }
 .sticky-thumb { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--sand); }
 .sticky-cta--pdp .sticky-price { font-size: 1.1rem; }
-/* коротка форма біля фото */
-.quick { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: clamp(16px, 2.6vw, 24px); }
-.quick-form { gap: 14px; }
-.quick-h { font-weight: 600; margin: 0; }
-.quick .f-fine a { color: inherit; }
-.thanks--quick { text-align: start; }
 .pill-pop { justify-self: start; margin-block-start: 4px; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 600;
   background: var(--esp); color: var(--cream); }
 @media (min-width: 900px) { .sticky-cta { display: none !important; } }
@@ -719,3 +711,45 @@ html.a11y-still::view-transition-new(*) { animation: none !important; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 @media print { .top, .sticky-cta, .notice, .a11y, .register, .foot { display: none !important; } }
+
+/* ---------------------------------------------------------------- магазин: кошик, оформлення, оплата (specs/003) */
+.cart-n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-inline-start: 8px; padding-inline: 5px;
+  border-radius: 999px; background: var(--cream); color: var(--esp); font-size: .78rem; font-weight: 700; line-height: 1; }
+.cart-n[hidden] { display: none; }
+.shop { padding-block: clamp(28px, 5vw, 64px) var(--sec); }
+.shop-wrap { max-width: 980px; }
+.shop-h1 { margin-block: 12px 24px; }
+.shop-h1:focus { outline: none; }
+.co-steps { display: flex; flex-wrap: wrap; gap: 8px 14px; list-style: none; padding: 0; margin: 0; font-size: .88rem; color: var(--muted); counter-reset: co; }
+.co-steps li { counter-increment: co; display: flex; align-items: center; gap: 8px; }
+.co-steps li::before { content: counter(co); display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid var(--line); font-size: .78rem; }
+.co-steps li + li::after { content: none; }
+.co-steps li + li { padding-inline-start: 8px; border-inline-start: 1px solid var(--line); }
+.co-steps [aria-current="step"] { color: var(--ink); font-weight: 600; }
+.co-steps [aria-current="step"]::before { background: var(--esp); border-color: var(--esp); color: var(--cream); }
+.cart-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; border-block-start: 1px solid var(--line); }
+.cart-line { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: start; padding-block: 18px; border-block-end: 1px solid var(--line); }
+.cart-img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--r); background: var(--sand); }
+.cart-info { display: grid; gap: 6px; min-width: 0; }
+.cart-name { font-weight: 600; margin: 0; }
+.cart-name a { text-decoration: none; }
+.cart-meta { margin: 0; font-size: .88rem; color: var(--muted); }
+.cart-price { margin: 0; font-weight: 600; white-space: nowrap; }
+.qty { display: inline-flex; align-items: center; border: 1px solid #BFB2A0; border-radius: 999px; justify-self: start; }
+.qty-b { width: 44px; height: 44px; border: 0; background: none; font: inherit; font-size: 1.15rem; cursor: pointer; color: var(--ink); border-radius: 50%; }
+.qty-b:disabled { color: #A89C8C; cursor: default; }
+.qty-n { min-width: 24px; text-align: center; font-weight: 600; }
+.cart-rm { justify-self: start; font-size: .88rem; }
+.cart-sum { display: grid; gap: 12px; margin-block-start: 24px; max-width: 420px; margin-inline-start: auto; }
+.cart-total { display: flex; justify-content: space-between; gap: 12px; font-size: 1.2rem; font-weight: 700; margin: 0; }
+.cart-empty { font-size: 1.05rem; }
+.co-grid { display: grid; gap: 32px; }
+.co-form, .co-pay { display: grid; gap: 18px; }
+.co-side { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; display: grid; gap: 12px; align-self: start; }
+.cart-list--mini .cart-line { grid-template-columns: 56px 1fr auto; padding-block: 12px; }
+.cart-list--mini .cart-img { width: 56px; height: 56px; }
+.pay-closed { border: 1px solid var(--esp); border-radius: var(--r-lg); padding: 18px 20px; background: var(--linen); display: grid; gap: 6px; }
+.pay-closed p { margin: 0; }
+.pay-closed-h { font-weight: 700; font-size: 1.1rem; }
+@media (min-width: 900px) { .co-grid { grid-template-columns: 7fr 5fr; align-items: start; } .co-side { position: sticky; top: 120px; } }

@@ -204,7 +204,7 @@
   }
 
   // ---------------------------------------------------------------- форма: селекти товару
-  var form = qs("#lead-form"), quick = qs("[data-quick]");
+  var form = qs("#lead-form");
   var fProduct = form && qs("#f-product", form), fSize = form && qs("#f-size", form),
       fFinish = form && qs("#f-finish", form), fBase = form && qs("#f-base", form),
       cfgRow = form && qs("[data-config-row]", form);
@@ -251,8 +251,6 @@
     var val = function (n) { var el = qs('input[name="' + n + '"]:checked', config || D); return el ? el.value : ""; };
     var syncAll = function () {
       if (P) syncFormProduct(P.id, val("size"), val("finish"), val("base"));
-      // коротка форма біля фото: вибір іде прихованими полями
-      if (quick) { quick.elements.size_label.value = val("size"); quick.elements.finish_id.value = val("finish"); quick.elements.base_id.value = val("base"); }
     };
     // план «סגור / פתוח» — лише для вибраного розміру
     var showPlan = function (v) {
@@ -274,7 +272,8 @@
       updatePrice();
       syncAll();
       if (t.name === "size") showPlan(t.value);
-      if (P) track("CustomizeProduct", { content_ids: [P.id], content_type: "product", size: val("size"), finish: val("finish"), base: val("base") });
+      // кожен вибір — окремий крок воронки (specs/003): select_size / select_finish / select_base
+      if (P && /^(size|finish|base)$/.test(t.name)) track("select_" + t.name, { content_ids: [P.id], content_type: "product", size: val("size"), finish: val("finish"), base: val("base") });
     });
     updatePrice();
     syncAll();
@@ -425,7 +424,7 @@
     else return d.length >= 8;            // іноземний номер — нехай вирішує сервер
     return PHONE_NATIONAL.test(nat);
   }
-  // повна форма (#lead-form) і коротка в картці товару ([data-quick]) — один обробник
+  // повна форма (#lead-form): питання про розмір або тон
   function wireForm(form) {
     var status = qs(".f-status", form), btn = qs('button[type="submit"]', form), busy = false;
     var thanks = form.id === "lead-form" ? qs("[data-thanks]") : qs(".thanks", form.parentNode);
@@ -501,7 +500,6 @@
     });
   }
   if (form) wireForm(form);
-  if (quick) wireForm(quick);
 
   // ---------------------------------------------------------------- липка кнопка: після першого екрана, не над формою
   // Положення рахуємо на scroll (пасивно, раз на кадр): IntersectionObserver пропускає якір, якщо
@@ -509,7 +507,7 @@
   var sticky = qs("[data-sticky]");
   if (sticky) {
     // у картці товару — щойно блок ціни поза екраном, і ДО нього теж: на телефоні фото займає перший екран,
-    // і без смуги ціна й кнопка заявки там не видні; ховається, поки на екрані коротка форма біля фото
+    // і без смуги ціна й «הוספה לסל» там не видні
     var hero = qs(".hero .actions"), anchor = hero || qs(".pdp-price"), reg = qs("#register"), foot = qs(".foot"), queued = false;
     var visible = function (el) { if (!el) return false; var r = el.getBoundingClientRect(); return r.top < W.innerHeight && r.bottom > 0; };
     // «вся на екрані» — над банером згоди, якщо він унизу на всю ширину: ціна під ним не видна (21.10, 390×844)
@@ -521,7 +519,7 @@
     var apply = function () {
       queued = false;
       var past = !anchor ? W.scrollY > W.innerHeight : hero ? anchor.getBoundingClientRect().bottom < 0 : !whole(anchor);
-      var on = past && !visible(reg) && !visible(quick) && !visible(foot) && !D.body.classList.contains("is-registered");
+      var on = past && !visible(reg) && !visible(foot) && !D.body.classList.contains("is-registered");
       sticky.hidden = false;
       sticky.classList.toggle("is-on", on);
       sticky.inert = !on;

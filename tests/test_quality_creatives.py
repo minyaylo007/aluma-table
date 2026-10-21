@@ -57,8 +57,11 @@ class CreativeConfigTests(unittest.TestCase):
         self.assertIn("משוער", self.cfg["price_note"])
         self.assertIn("טרם אושר", self.cfg["price_note"])
         self.assertIn("טרם אושרו", self.cfg["price_note_many"])
-        # снімає страх, як launch-bar сайту (розвідка 21.10, висновок 5) — і нічого не обіцяє понад сайт
-        self.assertEqual(self.cfg["cta_note"], "ללא תשלום וללא התחייבות")
+        # магазин (specs/003-shop-funnel): ні «реєстрації», ні тижнів — лише те, що каже картка товару
+        self.assertEqual(self.cfg["cta_note"], "זמן אספקה מדויק — באישור ההזמנה")
+        for t in texts(self.cfg):
+            for bad in ("הרשמה", "להרשמה", "ללא תשלום", "שבועות"):
+                self.assertNotIn(bad, t)
         for t in texts(self.cfg) + [self.catalog[p]["tagline"]["he"] for v in self.cfg["variants"] for p in v["products"]]:
             for pat in FORBIDDEN:
                 self.assertIsNone(re.search(pat, t), f"«{pat}» у «{t}»")
@@ -257,15 +260,18 @@ class MetaTestPlanTests(unittest.TestCase):
                 self.assertIsNone(re.search(pat, t), f"{pat}: {t}")
             self.assertNotIn("מקבלים מחיר השקה", t, "знижку раннім ніхто не підтвердив")
 
-    def test_every_ad_says_no_payment_no_commitment(self):
-        """Висновок 5 розвідки 21.10: в описі кожного оголошення — фраза launch-bar сайту, дослівно."""
+    def test_every_ad_says_what_the_price_includes(self):
+        """В описі кожного оголошення — фраза launch-bar сайту дослівно; ні «реєстрації», ні «без оплати», ні тижнів."""
         section = self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0]
         descs = re.findall(r"^- \*\*Описание:\*\* (.+)$", section, re.M)
         self.assertEqual(len(descs), 4, descs)  # три креативи + карусель тонів
+        phrase = "המחיר כולל מע״מ, משלוח והרכבה"
         for d in descs:
-            self.assertIn("ללא תשלום וללא התחייבות", d)
+            self.assertIn(phrase, d)
         site = json.loads((ROOT / "i18n" / "he.json").read_text(encoding="utf-8"))
-        self.assertIn("ללא תשלום וללא התחייבות", site["launch_bar"])
+        self.assertIn(phrase, site["launch_bar"])
+        for bad in ("הרשמה", "ללא תשלום", "שבועות"):
+            self.assertNotIn(bad, self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0])
 
 
 if __name__ == "__main__":

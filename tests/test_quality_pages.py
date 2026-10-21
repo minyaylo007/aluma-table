@@ -278,6 +278,8 @@ class PagesQualityTests(unittest.TestCase):
         locs = set(re.findall(r"<loc>([^<]+)</loc>", sitemap))
         bad = []
         for rel in self.content_pages():
+            if 'name="robots" content="noindex"' in self.pages[rel]:
+                continue                    # кошик і оформлення (specs/003) — свідомо поза sitemap
             path = rel[:-len("index.html")] if rel.endswith("index.html") else rel[:-len(".html")]
             if f"{SITE}/{path}" not in locs:
                 bad.append(f"sitemap.xml: немає {SITE}/{path}")

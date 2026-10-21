@@ -11,7 +11,7 @@
       "file": "tavor-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 107978,
+      "bytes": 108508,
       "jpeg_quality": 88,
       "tiles": [
         0.6289
@@ -22,14 +22,14 @@
       "images": [
         "site/assets/products/tavor/hero-1600.webp"
       ],
-      "text_share": 0.089,
+      "text_share": 0.091,
       "min_contrast": 5.88
     },
     {
       "file": "tavor-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 125814,
+      "bytes": 126031,
       "jpeg_quality": 88,
       "tiles": [
         0.6631
@@ -40,14 +40,14 @@
       "images": [
         "site/assets/products/tavor/hero-1600.webp"
       ],
-      "text_share": 0.0823,
+      "text_share": 0.0838,
       "min_contrast": 5.88
     },
     {
       "file": "tavor-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 158674,
+      "bytes": 158903,
       "jpeg_quality": 88,
       "tiles": [
         0.7526
@@ -58,14 +58,14 @@
       "images": [
         "site/assets/products/tavor/hero-9x16.jpg"
       ],
-      "text_share": 0.0597,
+      "text_share": 0.0608,
       "min_contrast": 5.88
     },
     {
       "file": "sahar-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 109219,
+      "bytes": 109744,
       "jpeg_quality": 88,
       "tiles": [
         0.6289
@@ -76,14 +76,14 @@
       "images": [
         "site/assets/products/sahar/hero-1600.webp"
       ],
-      "text_share": 0.0852,
+      "text_share": 0.0872,
       "min_contrast": 5.88
     },
     {
       "file": "sahar-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 129222,
+      "bytes": 129474,
       "jpeg_quality": 88,
       "tiles": [
         0.6631
@@ -94,14 +94,14 @@
       "images": [
         "site/assets/products/sahar/hero-1600.webp"
       ],
-      "text_share": 0.0784,
+      "text_share": 0.08,
       "min_contrast": 5.88
     },
     {
       "file": "sahar-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 168474,
+      "bytes": 168759,
       "jpeg_quality": 88,
       "tiles": [
         0.7526
@@ -112,14 +112,14 @@
       "images": [
         "site/assets/products/sahar/hero-9x16.jpg"
       ],
-      "text_share": 0.0568,
+      "text_share": 0.0579,
       "min_contrast": 5.88
     },
     {
       "file": "collection-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 161706,
+      "bytes": 162307,
       "jpeg_quality": 88,
       "tiles": [
         0.2511,
@@ -142,14 +142,14 @@
         "site/assets/products/saf/hero-1600.webp",
         "site/assets/products/tal/hero-1264.webp"
       ],
-      "text_share": 0.0826,
+      "text_share": 0.0846,
       "min_contrast": 5.88
     },
     {
       "file": "collection-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 192457,
+      "bytes": 192662,
       "jpeg_quality": 88,
       "tiles": [
         0.2631,
@@ -172,14 +172,14 @@
         "site/assets/products/saf/hero-1600.webp",
         "site/assets/products/tal/hero-1264.webp"
       ],
-      "text_share": 0.0757,
+      "text_share": 0.0773,
       "min_contrast": 5.88
     },
     {
       "file": "collection-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 209841,
+      "bytes": 210120,
       "jpeg_quality": 88,
       "tiles": [
         0.1663,
@@ -202,7 +202,7 @@
         "site/assets/products/saf/hero-1600.webp",
         "site/assets/products/tal/hero-1264.webp"
       ],
-      "text_share": 0.055,
+      "text_share": 0.0561,
       "min_contrast": 5.88
     }
   ]

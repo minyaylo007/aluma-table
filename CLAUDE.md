@@ -26,7 +26,7 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
 ## 3. Stack and architecture
 | Layer | What | Pinned in |
 |---|---|---|
-| Static site | `build.py` (stdlib; Pillow optional) → `dist/` (gitignored): home, `/catalog/`, `/p/<slug>/` from the catalog, how, about, faq, privacy, terms, accessibility, 404; vanilla `site/assets/aluma.{js,css}` + `tracking.js`; 3D on click — `site/assets/products/aluma3d.js` + three 0.160.0 vendored in `site/assets/vendor/` (no CDN); design rationale `docs/REDESIGN-2026-10.md` | — |
+| Static site | `build.py` (stdlib; Pillow optional) → `dist/` (gitignored): home, `/catalog/`, `/p/<slug>/` from the catalog, `/cart/` + `/checkout/` (shop, closed payment — `specs/003-shop-funnel`), how, about, faq, privacy, terms, accessibility, 404; vanilla `site/assets/aluma.{js,css}` + `shop.js` + `tracking.js`; 3D on click — `site/assets/products/aluma3d.js` + three 0.160.0 vendored in `site/assets/vendor/` (no CDN); design rationale `docs/REDESIGN-2026-10.md` | — |
 | API | `api/handler.py` (`lambda_handler`), `api/wsgi.py` (gunicorn), `api/store.py` (SQLite twin of `fx_*`); server runtime gunicorn + boto3 (unconditional import) + requests | `api/requirements.txt`, `deploy/requirements-server.txt` |
 | Browser tests | `@playwright/test` 1.62.1, chromium only; browsers in `/opt/ihor/aluma-table/ms-playwright`; `@axe-core/playwright` — `tests/a11y.spec.js` (no port, `playwright.a11y.config.js`; IL checklist `docs/COMPLIANCE-IL.md`) | `package.json`, `package-lock.json` |
 | CI/CD | GitHub Actions: `ci.yml` on every PR to `master`, nightly, and from `release.yml` — six required checks `secret-scan`, `lint`, `test (3.12)`, `test (3.13)`, `build`, `browser`; release/deploy behind `RELEASES_ENABLED` (unset); `rollback.yml` manual | `.github/workflows/`, `docs/DELIVERY.md` |
@@ -52,7 +52,7 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
 Guide: `tests/README-python-tests.md`. Stdlib `unittest`, no network, no AWS: Telegram patched, DynamoDB faked,
 `FX_DB_PATH` forced to `:memory:`. Venv and `TMPDIR` **outside the tree** (`/opt/ihor/aluma-table/tmp/venv`; `/tmp` gets wiped).
 Three modes: `tools/run_tests.py` (quick, `tests/QUICK.txt`), `--pr` (`tests/CRITICAL.txt`: + build, secret scan, prod units),
-`--full` (everything — what a merge needs). Playwright: `tests/redesign.spec.js` is fully mocked (preview on 8007);
+`--full` (everything — what a merge needs). Playwright: `tests/redesign.spec.js`, `tests/shop.spec.js` are fully mocked (preview on 8007);
 `tests/smoke.spec.js` **writes leads** — only against `tools/serve-local-stack.py`, never prod. Proving a test can fail: break
 the code in memory, not on disk.
 
