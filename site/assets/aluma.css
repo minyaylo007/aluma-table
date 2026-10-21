@@ -632,6 +632,16 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after { animati
 .legal { padding-block: clamp(40px, 6vw, 88px); }
 .legal h1 { margin-block-end: 8px; }
 .legal h2 { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; margin-block: 36px 10px; }
+/* ---------------------------------------------------------------- перехід між сторінками (View Transitions, без JS-бібліотек) */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  .top { view-transition-name: top; }
+  ::view-transition-group(root) { animation-duration: .28s; }
+  ::view-transition-group(p-img) { animation-duration: .45s; animation-timing-function: var(--ease); }
+}
+html.a11y-still::view-transition-group(*), html.a11y-still::view-transition-old(*),
+html.a11y-still::view-transition-new(*) { animation: none !important; }
+
 .legal p, .legal ul { max-width: 68ch; margin-block-end: 12px; }
 .legal ul { padding-inline-start: 1.2em; }
 .nf { text-align: start; }
