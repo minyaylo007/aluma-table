@@ -253,14 +253,14 @@ test('rate limit answer is shown as text, the form stays', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------- телефон
-test('mobile: sticky CTA shows while the price is off screen and hides at the price and the form', async ({ page }) => {
+test('mobile: sticky CTA shows while the add-to-cart button is off screen and hides at the button and the form', async ({ page }) => {
   await mockApi(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
   const sticky = page.locator('[data-sticky]');
-  await expect(sticky).toHaveClass(/is-on/);                   // перший екран — фото, ціна нижче: смуга з ціною і заявкою
-  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-price').getBoundingClientRect().top + scrollY - 200));
-  await expect(sticky).not.toHaveClass(/is-on/);               // ціна на екрані — дубль не потрібен
+  await expect(sticky).toHaveClass(/is-on/);                   // перший екран — кадр, назва й ціна; кнопка нижче: смуга з ціною і кнопкою
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().top + scrollY - 300));
+  await expect(sticky).not.toHaveClass(/is-on/);               // кнопка на екрані — дубль не потрібен
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(sticky).toHaveClass(/is-on/);
   await expect(sticky.locator('[data-add-cart]')).toHaveText('הוספה לסל');
@@ -541,6 +541,33 @@ test('first screen 390×844 of a card: price and the register button are on scre
   for (const b of [r.btn, r.price]) { expect(b.bottom).toBeLessThanOrEqual(r.h); expect(b.top).toBeGreaterThanOrEqual(r.noticeBottom); }
 });
 
+// 22.10: реклама веде на картку з телефона — назва, гасло й ціна «כולל מע״מ…» в першому екрані, над банером і смугою;
+// 3D — чип на кадрі, а не блок на всю ширину між кадром і назвою
+for (const [prefix, lang] of [['', 'he'], ['/en', 'en']]) {
+  for (const slug of ['tavor', 'sahar', 'tal']) {
+    test(`first screen 390×844 of ${prefix}/p/${slug}/ (${lang}): name, tagline and price with "incl." above the notice, no scroll`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await mockApi(page);
+      await page.goto(`${prefix}/p/${slug}/`);
+      await expect(page.locator('#notice')).toBeVisible();
+      const sticky = page.locator('[data-sticky]');
+      await expect(sticky).toHaveClass(/is-on/);
+      await sticky.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
+      const r = await page.evaluate(() => {
+        const box = s => document.querySelector(s).getBoundingClientRect();
+        return { y: scrollY, notice: box('#notice').top, h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
+          incl: box('.pdp-price .price-incl'), chip: box('.g-3d'), img: box('.g-track') };
+      });
+      expect(r.y).toBe(0);
+      for (const b of [r.h1, r.tag, r.price, r.incl]) { expect(b.top).toBeGreaterThan(0); expect(b.bottom).toBeLessThanOrEqual(r.notice); }
+      // чип 3D лежить на кадрі
+      expect(r.chip.top).toBeGreaterThanOrEqual(r.img.top);
+      expect(r.chip.bottom).toBeLessThanOrEqual(r.img.bottom);
+      expect(r.chip.width).toBeLessThan(r.img.width / 2);
+    });
+  }
+}
+
 test('cookie notice on 390: two lines of Hebrew text with the policy link, and both choices look the same', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page);
@@ -556,6 +583,22 @@ test('cookie notice on 390: two lines of Hebrew text with the policy link, and b
   expect(r.lines).toBeLessThanOrEqual(2);
   expect(r.ok).toBe(r.no);                                     // без темних патернів: «אישור» не виділено проти «רק הכרחיות»
 });
+
+// 22.10: банер — не третина екрана: ≤ 80 px, дві кнопки в один ряд, обидві ≥ 24 px (WCAG 2.5.8)
+for (const path of ['/', '/en/', '/p/tavor/', '/en/p/tavor/']) {
+  test(`cookie notice on 390 at ${path}: at most 80 px high, the two buttons side by side`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockApi(page);
+    await page.goto(path);
+    const n = page.locator('#notice');
+    await expect(n).toBeVisible();
+    const r = await n.evaluate(el => ({ h: el.getBoundingClientRect().height,
+      ok: el.querySelector('[data-notice-ok]').getBoundingClientRect(), no: el.querySelector('[data-notice-no]').getBoundingClientRect() }));
+    expect(r.h).toBeLessThanOrEqual(80);
+    expect(Math.abs(r.ok.top - r.no.top)).toBeLessThan(1);
+    for (const b of [r.ok, r.no]) expect(b.height).toBeGreaterThanOrEqual(24);
+  });
+}
 
 for (const [w, h] of [[390, 844], [1440, 900]]) {
   test(`chapters ${w}px: the card's chapter bar sticks under the header, every link has a target, aria-current follows the scroll`, async ({ page }) => {

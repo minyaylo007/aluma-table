@@ -610,8 +610,12 @@ def gallery(p: dict, loc: str) -> str:
             states = ('<div class="v3d-states" role="group" aria-label="{{t.v3d_state}}">'
                       '<button class="v3d-st" type="button" data-state="closed" aria-pressed="true">{{t.v3d_closed}}</button>'
                       '<button class="v3d-st" type="button" data-state="open" aria-pressed="false">{{t.v3d_open}}</button></div>')
-        viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="/{esc(p["model3d"])}" '
-                  f'aria-controls="{vid}" aria-expanded="false">{{{{t.view_3d}}}}</button>'
+        # чип на самому кадрі (кут навпроти «הדמיה»), не блок на всю ширину: на телефоні назва й ціна — в першому екрані
+        viewer = (f'<button class="g-3d js-3d" type="button" data-model="/{esc(p["model3d"])}" '
+                  f'aria-controls="{vid}" aria-expanded="false">'
+                  '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">'
+                  '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9" fill="none" stroke="currentColor" '
+                  'stroke-width="1.6" stroke-linejoin="round"/></svg>{{t.view_3d}}</button>'
                   f'<div class="viewer3d" id="{vid}" hidden><div class="v3d-stage"></div>'
                   '<p class="v3d-msg" role="status"></p><span class="viz-tag">{{t.viz_tag}}</span>'
                   f'<div class="v3d-bar">{states}<span class="v3d-hint">{{{{t.v3d_hint}}}}</span>'
