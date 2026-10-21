@@ -19,3 +19,4 @@ tests.test_build_catalog_facts  # строк і тонування в текст
 tests.test_build_plan         # план «סגור / פתוח»: місця в межах seats каталогу, блок лише з кадрами або планом
 tests.test_i18n_parity        # he/en/ru: ті самі ключі й токени — без чужої мови посеред сторінки
 tests.test_i18n_material      # блок матеріалу: фанера — фанера, «אלון מלא» лише про крайки
+tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy

@@ -99,8 +99,9 @@
 #             файлу без нього Content-Type не ставить (сніфінг вимкнено), тож
 #             тип задано явно — як deploy.sh ставив у S3 text/html.
 #   404       CloudFront віддає сторінку /404 зі статусом 404
-#             (CustomErrorResponses). Тут — handle_errors. Відповіді API з
-#             кодом 404 не переписуються: reverse_proxy віддає їх як є, в
+#             (CustomErrorResponses). Тут — handle_errors; з 22.10 — 404
+#             своєї мови: /en/* → /en/404.html, /ru/* → /ru/404.html.
+#             Відповіді API з кодом 404 не переписуються: reverse_proxy віддає їх як є, в
 #             handle_errors потрапляють лише помилки file_server.
 #   Кеш       як у scripts/deploy.sh: /assets/* — рік, immutable (імена з
 #             хешем); robots.txt і sitemap.xml — година; сторінки —
@@ -161,10 +162,32 @@ handle {
 # ── 404: сторінка сайту, як CustomErrorResponses у CloudFront ──────────────
 # 403 теж: так CloudFront перетворював «ключа нема» від S3, і так тут
 # виглядатиме відсутнє право на читання файлу.
+# Сторінка 404 — тієї мови, чий префікс у шляху (build.py кладе 404 у кожну
+# локаль). Окремі handle, а не кілька rewrite: rewrite підряд перезаписують
+# один одного, handle — взаємовиключні, спрацьовує перший, що збігся.
 handle_errors 403 404 {
 	header Cache-Control "no-store"
-	rewrite * /404.html
-	file_server {
-		status 404
+
+	@err_en path /en/*
+	handle @err_en {
+		rewrite * /en/404.html
+		file_server {
+			status 404
+		}
+	}
+
+	@err_ru path /ru/*
+	handle @err_ru {
+		rewrite * /ru/404.html
+		file_server {
+			status 404
+		}
+	}
+
+	handle {
+		rewrite * /404.html
+		file_server {
+			status 404
+		}
 	}
 }
