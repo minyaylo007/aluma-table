@@ -31,7 +31,7 @@
       "height": 1350,
       "duration": 8,
       "fps": 30,
-      "bytes": 655565,
+      "bytes": 663027,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -49,7 +49,7 @@
       "height": 1080,
       "duration": 8,
       "fps": 30,
-      "bytes": 628541,
+      "bytes": 632896,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -84,7 +84,7 @@
       "height": 1350,
       "duration": 8,
       "fps": 30,
-      "bytes": 580905,
+      "bytes": 585712,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -101,7 +101,7 @@
       "height": 1080,
       "duration": 8,
       "fps": 30,
-      "bytes": 545066,
+      "bytes": 553899,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
