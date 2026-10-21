@@ -93,11 +93,18 @@ const LIGHT = {
   evening: { sun: 0.0, window: 10, window_color: [0.5, 0.6, 0.95], hdri_strength: 0.01, lamp: 90, lamp_color: [1.0, 0.7, 0.42],
              glow: 0.05, exposure: 1.1 }
 };
+// Герой рендером моделі (а не Figma AI), де кадр AI не збігся з моделлю (docs/ASSETS.md): інтер'єр, ранкове сонце
+// з вікна ліворуч, м'яка тінь; 3:2, як герой Figma.
+const HERO_RENDER = {
+  tavor: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18 }
+};
 function framesFor(p) {
   const base = p.bases.length ? 'oak' : 'none', ext = p.badges.some(b => b.id === 'extendable');
   const decor = p.category === 'dining_table' ? 'dining' : 'top';
   const L = [
-    { name: 'hero', view: 'hero', source: 'ai', file: `${p.id}-hero-v1.png`, finish: 'natural', base },
+    HERO_RENDER[p.id]
+      ? { name: 'hero', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HERO_RENDER[p.id] }
+      : { name: 'hero', view: 'hero', source: 'ai', file: `${p.id}-hero-v1.png`, finish: 'natural', base },
     { name: 'angle', view: 'angle', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor, cam: ANGLE[p.id] },
     { name: 'detail', view: 'detail', source: 'ai', file: `${p.id}-detail-v1.png`, finish: 'natural', base }
   ];
