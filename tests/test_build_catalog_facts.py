@@ -33,6 +33,10 @@ class CatalogFactsTests(unittest.TestCase):
         self.assertEqual(he["FINISH_NAMES"].count(","), 1)
         self.assertIn(" ו", he["FINISH_NAMES"])
         self.assertIn(" and ", en["FINISH_NAMES"])
+        ru = build.catalog_facts(ps, "ru")
+        self.assertEqual(ru["FINISH_COUNT"], "трёх")
+        self.assertIn(" и ", ru["FINISH_NAMES"])
+        self.assertEqual(ru["FINISH_NAMES"], ru["FINISH_NAMES"].lower())
 
     def test_count_outside_the_words_is_digits(self):
         self.assertEqual(build.num_word(12, "he"), "־12")
@@ -45,10 +49,10 @@ class CatalogFactsTests(unittest.TestCase):
         self.assertEqual({k for k, v in sets.items() if v != union}, set(), "зміни catalog_lede / v2_p, якщо так задумано")
 
     def test_i18n_holds_no_lead_time_or_finish_count(self):
-        for loc in ("he", "en"):
+        for loc in ("he", "en", "ru"):
             raw = (ROOT / "i18n" / f"{loc}.json").read_text(encoding="utf-8")
-            self.assertNotRegex(raw, r"\d+\s*[–-]\s*\d+\s*(שבועות|weeks)", loc)
-            self.assertIsNone(re.search(r"(חמישה|[Ff]ive) (גוונים|finishes)", raw), loc)
+            self.assertNotRegex(raw, r"\d+\s*[–-]\s*\d+\s*(שבועות|weeks|недел)", loc)
+            self.assertIsNone(re.search(r"(חמישה|[Ff]ive|пяти) (גוונים|finishes|тонах)", raw), loc)
 
 
 if __name__ == "__main__":

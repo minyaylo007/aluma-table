@@ -77,6 +77,11 @@ class TrackingJsTests(unittest.TestCase):
         self.assertEqual((r["noticeText"], r["noticeDir"]), (en["text"], "ltr"))
         self.assertEqual(r["buttons"], [en["accept"], en["decline"], en["more"]])
         self.assertEqual(r["posts"][0]["ctx"]["lang"], "en")
+        ru = json.loads((ROOT / "i18n/legal.ru.json").read_text(encoding="utf-8"))["cookies"]
+        r = run(config={"pixel_id": PIXEL}, lang="ru")
+        self.assertEqual((r["noticeText"], r["noticeDir"]), (ru["text"], "ltr"))
+        self.assertEqual(r["buttons"], [ru["accept"], ru["decline"], ru["more"]])
+        self.assertEqual(r["posts"][0]["ctx"]["lang"], "ru")
 
     def test_decline_loads_nothing_and_is_not_asked_again(self):
         cfg = {"pixel_id": PIXEL, "clarity_id": "abcdef1234"}

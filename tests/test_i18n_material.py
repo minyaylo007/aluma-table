@@ -35,6 +35,8 @@ class MaterialBlockTests(unittest.TestCase):
     def test_finish_count_from_catalog_not_digits(self):
         for loc in ("he", "en"):
             self.assertIn("{{FINISH_COUNT_CAP}}", strings(loc)["matb_3_h"])
+        # ru: «В {{FINISH_COUNT}} тонах» — число в прийменниковому відмінку всередині речення, не з великої
+        self.assertIn("{{FINISH_COUNT}}", strings("ru")["matb_3_h"])
 
 
 if __name__ == "__main__":

@@ -299,6 +299,11 @@ class PutLeadTests(HandlerTestCase):
         self.assertEqual(r["statusCode"], 200)
         self.assertEqual(self.leads_t.items[0]["lang"], "")
 
+    def test_ru_lang_is_stored(self):
+        r = self.post_lead(lead_payload(lang="ru", page="/ru/p/tavor/"))
+        self.assertEqual(r["statusCode"], 200)
+        self.assertEqual(self.leads_t.items[0]["lang"], "ru")
+
     def test_unknown_size_is_stored_as_empty(self):
         r = self.post_lead(lead_payload(size="999"))
         self.assertEqual(r["statusCode"], 200)

@@ -10,6 +10,7 @@ const CATALOG = require('../catalog/products.json');
 const TAVOR = (CATALOG.products || CATALOG).find((p) => p.id === 'tavor');
 const HE = require('../i18n/he.json');
 const EN = require('../i18n/en.json');
+const RU = require('../i18n/ru.json');
 // вигаданий номер складено з частин — сканер секретів шукає цілі номери
 const PHONE = ['05', '2-98', '7-6543'].join('');
 const DIGITS = PHONE.replace(/-/g, '');
@@ -82,7 +83,7 @@ async function waitFb(page, name, n = 1) {
   return fbNamed(page, name);
 }
 
-for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN]]) {
+for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', RU]]) {
   for (const [w, h] of [[390, 844], [1440, 900]]) {
     test(`${lang} ${w}px: картка → кошик → оформлення → закрита оплата → заявка, події на кожному кроці`, async ({ page }) => {
       test.setTimeout(90000);
@@ -95,8 +96,8 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN]]) {
       await page.goto(`${ORIGIN}${pre}/p/tavor/`);
       await waitFb(page, 'ViewContent');
       await expect(page.locator('.pdp-price')).toBeVisible();
-      await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'משוער' : /estimat/i);
-      await expect(page.locator('.pdp-buy')).not.toContainText(lang === 'he' ? 'שבועות' : /weeks/i);
+      await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'משוער' : /estimat|ориентиров/i);
+      await expect(page.locator('.pdp-buy')).not.toContainText(lang === 'he' ? 'שבועות' : /weeks|недел/i);
       await expect(page.locator('.pdp-lead')).toHaveText(T.lead_exact);
       await page.locator(`label:has(input[name="size"][value="${size.label}"])`).first().click();
       await page.locator(`label:has(input[name="finish"][value="${fin}"])`).first().click();
@@ -122,7 +123,8 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN]]) {
       await expect(page.locator('.cart-meta')).toContainText(size.label);
       await page.locator('button[data-act="more"]').click();
       await expect(page.locator('.qty-n')).toHaveText('2');
-      const sum = '₪' + (2 * size.price_ils).toLocaleString('en-US');
+      const n = (2 * size.price_ils).toLocaleString('en-US');      // ru: «8 980 ₪» з нерозривними пробілами
+      const sum = lang === 'ru' ? n.replace(/,/g, '\u00a0') + '\u00a0₪' : '₪' + n;
       await expect(page.locator('[data-cart-total]')).toHaveText(sum);
       await expect(page.locator('[data-cart-sum]')).toContainText(T.price_incl);
       expect(await noOverflow(page)).toBeLessThanOrEqual(0);
