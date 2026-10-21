@@ -497,6 +497,18 @@ bdi { unicode-bidi: isolate; }
 .plan-fig figcaption { margin-block-start: 8px; font-size: .95rem; font-variant-numeric: tabular-nums; }
 .plan > .small { margin-block-start: 16px; max-width: 64ch; }
 
+/* ---------------------------------------------------------------- «בוקר / ערב»: та сама камера, інше світло */
+.light .sec-head { margin-block-end: 20px; }
+.light-switch { display: inline-flex; gap: 4px; padding: 4px; margin-block-end: 16px; border: 1px solid var(--line); border-radius: 999px; }
+.light-btn { min-height: 44px; min-width: 96px; padding-inline: 18px; border: 0; border-radius: 999px; background: none;
+  font: inherit; color: var(--ink); cursor: pointer; }
+.light-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.light-btn:focus-visible { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
+.light-media { aspect-ratio: 4 / 3; max-width: 1040px; }
+.light-l { position: absolute; inset: 0; transition: opacity .7s var(--ease); }
+.light-l[data-l="evening"], [data-on="evening"] .light-l[data-l="morning"] { opacity: 0; }
+[data-on="evening"] .light-l[data-l="evening"] { opacity: 1; }
+
 /* ---------------------------------------------------------------- липка кнопка (мобільна) */
 .sticky-cta { position: fixed; inset-inline: 0; bottom: 0; z-index: 30; display: flex; gap: 12px; align-items: center;
   padding: 10px var(--gut) calc(10px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--paper) 94%, transparent);

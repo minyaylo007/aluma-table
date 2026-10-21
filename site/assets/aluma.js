@@ -225,6 +225,17 @@
   }
   if (fProduct) fProduct.addEventListener("change", function () { syncFormProduct(fProduct.value); });
 
+  // ---------------------------------------------------------------- «בוקר / ערב»: перемикаємо шар, приховане — aria-hidden
+  qsa("[data-light]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-light"), fig = qs("[data-light-fig]");
+      if (!fig) return;
+      fig.setAttribute("data-on", k);
+      qsa(".light-l", fig).forEach(function (l) { l.setAttribute("aria-hidden", l.getAttribute("data-l") === k ? "false" : "true"); });
+      qsa("[data-light]").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+    });
+  });
+
   // ---------------------------------------------------------------- конфігуратор картки товару
   var pdp = qs("[data-pdp]"), config = qs("[data-config]");
   if (pdp) {
