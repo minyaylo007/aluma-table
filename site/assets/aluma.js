@@ -310,13 +310,80 @@
       thumbs.forEach(function (t, j) { if (j === i) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current"); });
     }, { passive: true });
   });
-  // 3D — модуль сесії моделей вантажиться лише на натискання
+  // 3D — three.js і модель вантажаться лише на натискання; помилка — коротким текстом у .viewer3d, не тишею (21.10)
+  var scriptP = {};
+  function loadScript(src) {
+    if (!scriptP[src]) {
+      scriptP[src] = new Promise(function (resolve, reject) {
+        var s = D.createElement("script"); s.src = src; s.async = true;
+        s.onload = resolve;
+        s.onerror = function () { delete scriptP[src]; s.remove(); reject(new Error("script")); };
+        D.head.appendChild(s);
+      });
+    }
+    return scriptP[src];
+  }
   qsa(".js-3d").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var box = b.nextElementSibling, src = b.getAttribute("data-model");
-      if (!box || !src) return;
-      box.hidden = false; b.hidden = true;
-      import(src).then(function (m) { var fn = m.mount || m.default; if (typeof fn === "function") fn(box); }, function () { box.hidden = true; b.hidden = false; });
+    var box = qs("#" + b.getAttribute("aria-controls")), src = b.getAttribute("data-model");
+    if (!box || !src) return;
+    var msg = qs(".v3d-msg", box), states = qsa(".v3d-st", box), view = null, stage = null, state = "closed";
+    var P3 = currentProduct();
+    var cfg = qs("[data-config]");
+    var val = function (n) { var el = cfg && qs('input[name="' + n + '"]:checked', cfg); return el ? el.value : ""; };
+    var size = function () {
+      var v = val("size"), s = P3 && (P3.sizes.filter(function (x) { return x.label === v; })[0] || P3.sizes[0]);
+      return s ? s.dims : null;
+    };
+    var say = function (t) { if (msg) { msg.textContent = t || ""; msg.hidden = !t; } };
+    var paintStates = function () { states.forEach(function (x) { x.setAttribute("aria-pressed", String(x.getAttribute("data-state") === state)); }); };
+    function close() {
+      if (view) view.dispose();
+      view = null;
+      if (stage) stage.remove();
+      stage = null; say("");
+      box.hidden = true; b.hidden = false; b.setAttribute("aria-expanded", "false");
+      b.focus();
+    }
+    function open() {
+      box.hidden = false; b.hidden = true; b.setAttribute("aria-expanded", "true");
+      say(S.v3d_loading);
+      stage = D.createElement("div"); stage.className = "v3d-stage";
+      var old = qs(".v3d-stage", box);
+      if (old) box.replaceChild(stage, old); else box.insertBefore(stage, box.firstChild);
+      var mine = stage, sz = size() || {}, fin = cfg && qs('input[name="finish"]:checked', cfg);
+      var desc = (P3 ? P3.name : "") + " " + (val("size") || "") + (fin ? ", " + (fin.getAttribute("data-name") || "") : "");
+      loadScript(src).then(function () {
+        if (!W.Aluma3D) throw new Error("model");
+        return W.Aluma3D.mount(mine, { product: P3 ? P3.id : "", size: sz, finish: val("finish") || "natural",
+          base: val("base") || "oak", state: state, label: P3 ? P3.name : "", description: desc,
+          keysText: S.v3d_keys, roleText: S.v3d_role });
+      }).then(function (v) {
+        if (stage !== mine) { v.dispose(); return; }   // закрили, поки вантажилось
+        view = v; say("");
+        mine.focus({ preventScroll: true });
+      }, function (e) {
+        if (stage !== mine) return;
+        stage = D.createElement("div"); stage.className = "v3d-stage"; box.replaceChild(stage, mine);   // порожнє місце під текст
+        say(e && e.message === "webgl" ? S.v3d_err_webgl : S.v3d_err);
+      });
+    }
+    b.addEventListener("click", open);
+    var x = qs(".v3d-close", box);
+    if (x) x.addEventListener("click", close);
+    box.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+    states.forEach(function (s) {
+      s.addEventListener("click", function () {
+        state = s.getAttribute("data-state"); paintStates();
+        if (view) view.setState(state);
+      });
+    });
+    // вибір на сторінці — одразу в перегляді: тон без перебудови, розмір і опори — перебудова моделі
+    if (cfg) cfg.addEventListener("change", function (e) {
+      var t = e.target;
+      if (!view || !t || t.type !== "radio") return;
+      if (t.name === "finish") view.setFinish(t.value);
+      else if (t.name === "size") view.setSize(size());
+      else if (t.name === "base") view.setBase(t.value);
     });
   });
 

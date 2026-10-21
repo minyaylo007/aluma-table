@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import re
@@ -236,6 +237,13 @@ class CatalogSchemaTest(unittest.TestCase):
             if p.get("model3d"):
                 self.assertTrue(p["model3d"].startswith("assets/products/"), p["id"])
                 self.assertTrue((ASSETS / p["model3d"]).is_file(), p["model3d"])
+
+    def test_vendored_three_is_unmodified(self):
+        # site/assets/vendor/README.md: three 0.160.0 з npm без змін, ліцензія MIT поруч
+        three = ASSETS / "assets" / "vendor" / "three.min.js"
+        self.assertEqual(hashlib.sha256(three.read_bytes()).hexdigest(),
+                         "170c6789f43217c96b3170f4b42fafe135de7f7cd48497a4218f9757ee1d49fa")
+        self.assertIn("MIT License", (ASSETS / "assets" / "vendor" / "three.LICENSE.txt").read_text(encoding="utf-8"))
 
     def test_solid_oak_only_for_edges_and_fronts(self):
         for p in self.products:

@@ -53,12 +53,34 @@ class BuiltSiteTests(unittest.TestCase):
                 self.assertEqual(len(re.findall(r"<h1[\s>]", html)), 1, f"{prefix + rel}: рівно один h1")
         self.assertIn('lang="he"', (self.dist / "404.html").read_text(encoding="utf-8"))
 
-    def test_no_dead_3d_button(self):
-        # 21.10: кнопка 3D мовчала на живому — поки переглядач не працює, її немає на жодній сторінці виробу
+    def test_3d_button_points_at_published_files(self):
+        # 21.10: data-model був відносним (з /en/p/tavor/ — у 404), файл не публікувався, і кнопка мовчала.
+        # Тепер: шлях абсолютний, файл у dist/, і все, на що посилається модуль (three.js, текстури), теж там
+        ref = re.compile(r"/assets/[\w\-./]+?\.(?:js|jpg|png|webp|hdr)")
         for p in PRODUCTS:
             for prefix in ("", "en/"):
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                models = re.findall(r'data-model="([^"]*)"', html)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
-                    self.assertNotIn("js-3d", self.page(f"{prefix}p/{p['slug']}/"))
+                    self.assertEqual(len(models), 1 if p.get("model3d") else 0)
+                    for m in models:
+                        self.assertTrue(m.startswith("/assets/"), m)
+                        js = self.dist / m.lstrip("/")
+                        self.assertTrue(js.is_file(), m)
+                        deps = ref.findall(js.read_text(encoding="utf-8"))
+                        self.assertTrue(any("/vendor/three." in d for d in deps), "модуль не посилається на свій three.js")
+                        for d in deps:
+                            self.assertTrue((self.dist / d.lstrip("/")).is_file(), f"{m} → {d}")
+                    if models:
+                        vid = re.search(r'class="btn btn--ghost g-3d js-3d"[^>]*aria-controls="([^"]+)"', html).group(1)
+                        self.assertIn(f'<div class="viewer3d" id="{vid}" hidden>', html)
+                        self.assertEqual('data-state="open"' in html, any(sz.get("extended_cm") for sz in p["sizes"]))
+
+    def test_no_cdn_for_3d(self):
+        # three.js — свій файл: при відкритті 3D жодного зовнішнього запиту (приватність)
+        for f in (self.dist / "assets").rglob("*.js"):
+            with self.subTest(file=f.name):
+                self.assertNotIn("cdnjs.cloudflare.com", f.read_text(encoding="utf-8"))
 
     def test_gallery_skips_mechanism_and_light(self):
         # mechanism і light — окремі блоки вітрини (catalog/README.md); у галереї й мініатюрах лише решта кадрів

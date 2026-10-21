@@ -552,10 +552,6 @@ def how(p: dict, loc: str) -> str:
             + (f'<h3 class="h3 plan-h">{{{{t.unfold_plan_h3}}}}</h3>{pl}' if pl else "") + "</div></section>")
 
 
-# кнопка 3D вимкнена, доки переглядач не працює на живому (21.10: модуль не вантажився, кнопка мовчала)
-VIEWER_3D = False
-
-
 def gallery(p: dict, loc: str) -> str:
     # mechanism і light — окремі блоки вітрини (catalog/README.md), у галерею картки не йдуть
     imgs = [i for i in p.get("images") or [] if i.get("src") and i.get("view") not in ("mechanism", "light")]
@@ -572,9 +568,20 @@ def gallery(p: dict, loc: str) -> str:
             f'<a class="g-thumb" href="#g-{p["slug"]}-{i}" aria-label="{{{{t.gallery_item}}}} {i + 1}">'
             f'{picture(im, loc, sizes="88px")}</a>' for i, im in enumerate(imgs)) + "</div>"
     viewer = ""
-    if VIEWER_3D and p.get("model3d"):
-        viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="{esc(p["model3d"])}">'
-                  '{{t.view_3d}}</button><div class="viewer3d" hidden></div>')
+    if p.get("model3d"):
+        # шлях абсолютний: відносний з /en/p/<slug>/ вів у 404 (21.10); build.py публікує й хешує файл за цим посиланням
+        vid = f'v3d-{p["slug"]}'
+        states = ""
+        if any(sz.get("extended_cm") for sz in p["sizes"]):
+            states = ('<div class="v3d-states" role="group" aria-label="{{t.v3d_state}}">'
+                      '<button class="v3d-st" type="button" data-state="closed" aria-pressed="true">{{t.v3d_closed}}</button>'
+                      '<button class="v3d-st" type="button" data-state="open" aria-pressed="false">{{t.v3d_open}}</button></div>')
+        viewer = (f'<button class="btn btn--ghost g-3d js-3d" type="button" data-model="/{esc(p["model3d"])}" '
+                  f'aria-controls="{vid}" aria-expanded="false">{{{{t.view_3d}}}}</button>'
+                  f'<div class="viewer3d" id="{vid}" hidden><div class="v3d-stage"></div>'
+                  '<p class="v3d-msg" role="status"></p><span class="viz-tag">{{t.viz_tag}}</span>'
+                  f'<div class="v3d-bar">{states}<span class="v3d-hint">{{{{t.v3d_hint}}}}</span>'
+                  '<button class="v3d-close" type="button">{{t.v3d_close}}</button></div></div>')
     return f'<div class="gallery"><ul class="g-track" role="list" tabindex="0" aria-label="{{{{t.gallery_label}}}}">{slides}</ul>{dots}{viewer}</div>'
 
 
@@ -610,9 +617,12 @@ def faq_jsonld(items: list) -> str:
 
 
 def product_data(products: list, loc: str) -> list:
-    """Мінімум для форми й конфігуратора: id, назва, розміри з ціною, тонування, опори."""
+    """Мінімум для форми, конфігуратора й 3D: id, назва, розміри з ціною й габаритами, тонування, опори."""
     return [{"id": p["id"], "slug": p["slug"], "name": L(p.get("name"), loc),
-             "sizes": [{"label": str(s.get("label")), "price": int(s["price_ils"])} for s in p["sizes"]],
+             "sizes": [{"label": str(s.get("label")), "price": int(s["price_ils"]),
+                        # габарити — для 3D-перегляду (aluma3d.js бере ту саму сітку, що й рендери)
+                        "dims": {k: s[k] for k in ("length_cm", "width_cm", "height_cm", "extended_cm") if s.get(k)}}
+                       for s in p["sizes"]],
              "finishes": [{"id": f.get("id"), "name": L(f.get("name"), loc)} for f in p["finishes"]],
              "bases": [{"id": b.get("id"), "name": L(b.get("name"), loc)} for b in p["bases"]],
              "from": int(p.get("price_from_ils") or 0)} for p in products]
@@ -816,13 +826,19 @@ def main() -> None:
 
     hashed = {}
     assets = sorted(f for f in (DIST / "assets").rglob("*") if f.is_file()) if (DIST / "assets").exists() else []
+    # js, на який посилається інший js (aluma3d.js → vendor/three.min.js), хешується раніше за нього —
+    # інакше хеш того, хто посилається, рахувався б до заміни посилання і не мінявся б разом із залежністю
+    js = [f for f in assets if f.suffix == ".js"]
+    url = {f: "/" + f.relative_to(DIST).as_posix() for f in js}
+    body = {f: read_text(f) for f in js}
+    js_order = []
+    while js:
+        f = next((f for f in js if not any(url[g] in body[f] for g in js if g is not f)), js[0])
+        js_order.append(f)
+        js.remove(f)
     order = ([f for f in assets if f.suffix not in (".css", ".js")] + [f for f in assets if f.suffix == ".css"]
-             + [f for f in assets if f.suffix == ".js"])
-    # модулі three.js імпортують одне одного відносно — їх не перейменовуємо
-    keep = {f for f in assets if "/products/" in f.as_posix() and f.suffix == ".js"}
+             + js_order)
     for f in order:
-        if f in keep:
-            continue
         h = digest_bytes(f.read_bytes(), f.suffix)
         new = f.with_name(f"{f.stem}.{h}{f.suffix}")
         f.rename(new)
