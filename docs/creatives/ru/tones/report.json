@@ -1,0 +1,123 @@
+{
+  "generated_by": "tools/creatives/tones.js",
+  "lang": "ru",
+  "product": "tavor",
+  "note": "На экране тон передаётся приблизительно",
+  "limits": {
+    "max_bytes": 512000,
+    "max_text_share": 0.2,
+    "min_contrast": 4.5
+  },
+  "cards": [
+    {
+      "file": "tavor-natural-1080x1080.jpg",
+      "tone": "natural",
+      "tone_name": "Натуральный дуб",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 155282,
+      "text_share": 0.0536,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-natural-1600.jpg"
+    },
+    {
+      "file": "tavor-natural-1080x1350.jpg",
+      "tone": "natural",
+      "tone_name": "Натуральный дуб",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 159905,
+      "text_share": 0.0596,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-natural-1600.jpg"
+    },
+    {
+      "file": "tavor-light-1080x1080.jpg",
+      "tone": "light",
+      "tone_name": "Светлый дуб",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 149570,
+      "text_share": 0.0468,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-light-1600.jpg"
+    },
+    {
+      "file": "tavor-light-1080x1350.jpg",
+      "tone": "light",
+      "tone_name": "Светлый дуб",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 155071,
+      "text_share": 0.0502,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-light-1600.jpg"
+    },
+    {
+      "file": "tavor-honey-1080x1080.jpg",
+      "tone": "honey",
+      "tone_name": "Медовый",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 151954,
+      "text_share": 0.0427,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-honey-1600.jpg"
+    },
+    {
+      "file": "tavor-honey-1080x1350.jpg",
+      "tone": "honey",
+      "tone_name": "Медовый",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 157179,
+      "text_share": 0.0444,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-honey-1600.jpg"
+    },
+    {
+      "file": "tavor-smoked-1080x1080.jpg",
+      "tone": "smoked",
+      "tone_name": "Копчёный дуб",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 152489,
+      "text_share": 0.0492,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-smoked-1600.jpg"
+    },
+    {
+      "file": "tavor-smoked-1080x1350.jpg",
+      "tone": "smoked",
+      "tone_name": "Копчёный дуб",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 157444,
+      "text_share": 0.0534,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-smoked-1600.jpg"
+    },
+    {
+      "file": "tavor-black-1080x1080.jpg",
+      "tone": "black",
+      "tone_name": "Угольно-чёрный",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 151302,
+      "text_share": 0.0524,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-black-1600.jpg"
+    },
+    {
+      "file": "tavor-black-1080x1350.jpg",
+      "tone": "black",
+      "tone_name": "Угольно-чёрный",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 156229,
+      "text_share": 0.0579,
+      "min_contrast": 5.88,
+      "image": "site/assets/products/tavor/finish-black-1600.jpg"
+    }
+  ]
+}

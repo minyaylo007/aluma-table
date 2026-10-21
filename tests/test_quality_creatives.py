@@ -26,6 +26,13 @@ FORBIDDEN = [
     r"★", r"קנ[הו]\b", r"רק היום", r"חינם", r"עץ אלון מלא", r"שנות ניסיון",
     r"(?<!\w)מאלון(?!\w)",  # шпон: «פורניר אלון», як на сайті, а не «з дуба» — читається як масив
 ]
+# Група C «русский» — ті самі заборони російською (re.I). «Массив» — лише про кромки, як на /ru/: сам стіл — шпон.
+FORBIDDEN_RU = [
+    r"скидк", r"акци", r"%", r"осталос", r"последн", r"ограничен", r"в наличии", r"отзыв", r"довольных клиентов",
+    r"★", r"\bкупи(те)?\b", r"только сегодня", r"бесплатн", r"лет на рынке", r"лет опыта",
+    r"массивн", r"из (цельного )?дуба", r"цельн\w* дуб", r"стол из массива",
+]
+NB = "\u00a0"
 
 
 def texts(cfg: dict) -> list[str]:
@@ -127,10 +134,70 @@ class CreativeConfigTests(unittest.TestCase):
             self.assertIn(problem, js)
 
 
+class RussianCreativeTests(unittest.TestCase):
+    """Група C «русский» (--lang ru): блок "ru" у creatives.json — той самий план, слова — як на /ru/ (i18n/ru.json)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root = json.loads(CONFIG.read_text(encoding="utf-8"))
+        cls.cfg = cls.root["ru"]
+        cls.catalog = {p["id"]: p for p in json.loads(CATALOG.read_text(encoding="utf-8"))}
+        cls.site = json.loads((ROOT / "i18n" / "ru.json").read_text(encoding="utf-8"))
+
+    def test_same_structure_as_he(self):
+        """Товари, формати й порядок — лише з кореня; ru міняє тільки слова."""
+        self.assertEqual([v["id"] for v in self.cfg["variants"]], [v["id"] for v in self.root["variants"]])
+        for v in self.cfg["variants"]:
+            self.assertEqual(set(v), {"id", "headline", "sub", "price"}, v["id"])
+        for key in ("mark", "cta", "cta_note", "from", "price_note", "price_note_many", "includes"):
+            self.assertIn(key, self.cfg)
+        self.assertNotIn("formats", self.cfg)
+        self.assertEqual(self.cfg["brand"], self.root["brand"])
+        for p in {p for v in self.root["variants"] for p in v["products"]}:
+            self.assertEqual(self.catalog[p]["name"]["ru"], self.catalog[p]["name"]["en"], "назви — латиницею, як у каталозі")
+
+    def test_words_are_the_site_words(self):
+        """Позначка, строк, що входить у ціну, і застереження — дослівно як на /ru/."""
+        self.assertEqual(self.cfg["mark"], self.site["viz_tag"])
+        self.assertEqual(self.cfg["cta_note"], self.site["lead_exact"])
+        self.assertEqual(self.cfg["includes"], self.site["price_incl"])
+        self.assertTrue(self.site["cart_fine"].startswith(self.cfg["price_note"]), "застереження сайту змінилось")
+        self.assertIn("не подтверждена", self.cfg["price_note"])
+        self.assertIn("не подтверждены", self.cfg["price_note_many"])
+
+    def test_honest_text(self):
+        taglines = [self.catalog[p]["tagline"]["ru"] for v in self.root["variants"] for p in v["products"]]
+        tones = [f["name"]["ru"] for f in self.catalog[self.root["tones"]["product"]]["finishes"]]
+        for t in texts(self.cfg) + taglines + tones + [self.cfg["tones"]["sub"]]:
+            self.assertNotRegex(t, r"[\u0590-\u05ff]", "іврит у ru")
+            for pat in FORBIDDEN_RU:
+                self.assertIsNone(re.search(pat, t, re.I), f"«{pat}» у «{t}»")
+            for bad in ("регистрац", "недел", "без оплаты"):
+                self.assertNotIn(bad, t.lower())
+
+    def test_numbers_from_catalog_and_typography(self):
+        """Жодної цифри в конфігу; «ёлочки» й «—»; нерозривний пробіл перед «₪», «см» і навколо «→»."""
+        self.assertEqual(self.cfg["from"], "от" + NB)
+        for v in self.cfg["variants"]:
+            self.assertNotRegex(v["headline"] + v["sub"] + v["price"], r"\d", v["id"])
+            self.assertEqual(v["price"], "{from}{price}" + NB + "₪", v["id"])
+            if "{extended}" in v["sub"]:
+                self.assertIn("{length}" + NB + "→" + NB + "{extended}" + NB + "см", v["sub"], v["id"])
+        self.assertIn("{seats}", next(v for v in self.cfg["variants"] if v["id"] == "tavor")["headline"])
+        self.assertNotRegex(self.cfg["tones"]["sub"].replace("{i}/{n}", ""), r"\d")
+        for t in texts(self.cfg) + [self.cfg["tones"]["sub"]]:
+            self.assertNotIn('"', t, "лапки — «ёлочки»")
+            self.assertNotIn(" - ", t, "тире — «—»")
+
+
 @unittest.skipUnless((OUT / "report.json").exists(), "docs/creatives/ ще не зібрано")
 class PublishedCreativesTests(unittest.TestCase):
+    out, lang = OUT, "he"
+
     def test_report_matches_files_and_limits(self):
+        OUT = self.out  # той самий тест для he (docs/creatives/) і ru (docs/creatives/ru/)
         report = json.loads((OUT / "report.json").read_text(encoding="utf-8"))
+        self.assertEqual(report.get("lang", "he"), self.lang)
         items = report["creatives"]
         self.assertEqual(len(items), 9)
         for it in items:
@@ -148,6 +215,11 @@ class PublishedCreativesTests(unittest.TestCase):
                 self.assertTrue(img.startswith("site/assets/products/"), f"{it['file']}: кадр не з каталогу — {img}")
         self.assertTrue((OUT / "preview.html").is_file())
         self.assertLessEqual((OUT / "preview.jpg").stat().st_size, 500 * 1024)
+
+
+@unittest.skipUnless((OUT / "ru" / "report.json").exists(), "docs/creatives/ru/ ще не зібрано")
+class PublishedRussianCreativesTests(PublishedCreativesTests):
+    out, lang = OUT / "ru", "ru"
 
 
 class TonesCarouselTests(unittest.TestCase):
@@ -184,14 +256,18 @@ TONES = OUT / "tones"
 
 @unittest.skipUnless((TONES / "report.json").exists(), "docs/creatives/tones/ ще не зібрано")
 class PublishedTonesTests(unittest.TestCase):
+    tones_dir, lang = TONES, "he"
+
     def test_report_matches_files_and_limits(self):
+        TONES = self.tones_dir
         report = json.loads((TONES / "report.json").read_text(encoding="utf-8"))
+        self.assertEqual(report.get("lang", "he"), self.lang)
         catalog = {p["id"]: p for p in json.loads(CATALOG.read_text(encoding="utf-8"))}
         tones = catalog[report["product"]]["finishes"]
         cards = report["cards"]
         self.assertEqual({(c["tone"], c["width"], c["height"]) for c in cards},
                          {(t["id"], 1080, h) for t in tones for h in (1080, 1350)})
-        names = {t["id"]: t["name"]["he"] for t in tones}
+        names = {t["id"]: t["name"][self.lang] for t in tones}
         images = set()
         for c in cards:
             f = TONES / c["file"]
@@ -206,6 +282,11 @@ class PublishedTonesTests(unittest.TestCase):
         self.assertTrue((TONES / "sheet.jpg").is_file())
 
 
+@unittest.skipUnless((OUT / "ru" / "tones" / "report.json").exists(), "docs/creatives/ru/tones/ ще не зібрано")
+class PublishedRussianTonesTests(PublishedTonesTests):
+    tones_dir, lang = OUT / "ru" / "tones", "ru"
+
+
 VIDEO = OUT / "video"
 
 
@@ -213,8 +294,12 @@ VIDEO = OUT / "video"
 class PublishedVideosTests(unittest.TestCase):
     """Відео (tools/creatives/video.js): 3 ролики × 9:16, 4:5 і 1:1, 6–10 с, ≤ 4 МБ, кадри лише з каталогу."""
 
+    video_dir, lang = VIDEO, "he"
+
     def test_report_matches_files_and_limits(self):
+        VIDEO = self.video_dir
         report = json.loads((VIDEO / "report.json").read_text(encoding="utf-8"))
+        self.assertEqual(report.get("lang", "he"), self.lang)
         cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
         items = report["videos"]
         self.assertEqual({(it["file"].rsplit("-", 1)[0], it["width"], it["height"]) for it in items},
@@ -232,6 +317,12 @@ class PublishedVideosTests(unittest.TestCase):
                 self.assertTrue(img.startswith("site/assets/products/"), f"{it['file']}: кадр не з каталогу — {img}")
         self.assertAlmostEqual(report["limits"]["safe_zone"], 0.14)
         self.assertTrue((VIDEO / "sheet.jpg").is_file())
+
+
+@unittest.skipUnless((VIDEO.parent / "ru" / "video" / "report.json").exists(), "docs/creatives/ru/video/ ще не зібрано")
+class PublishedRussianVideosTests(unittest.TestCase):
+    video_dir, lang = VIDEO.parent / "ru" / "video", "ru"
+    test_report_matches_files_and_limits = PublishedVideosTests.test_report_matches_files_and_limits
 
     def test_vertical_formats_keep_product_above_card(self):
         # 9:16 і 4:5: кадр — смуга над карткою (весь стіл на 0 с), video.js падає, якщо картка заходить на кадр
@@ -294,6 +385,54 @@ class MetaTestPlanTests(unittest.TestCase):
         self.assertIn(phrase, site["launch_bar"])
         for bad in ("הרשמה", "ללא תשלום", "שבועות"):
             self.assertNotIn(bad, self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0])
+
+
+class MetaTestGroupCTests(unittest.TestCase):
+    """docs/META-TEST.md §4а, група C «русский»: посилання на /ru/, назви з -ru — за файлами docs/creatives/ru/."""
+
+    @classmethod
+    def setUpClass(cls):
+        doc = (ROOT / "docs" / "META-TEST.md").read_text(encoding="utf-8")
+        cls.section = doc.split("## 4а.", 1)[1].split("## 5.", 1)[0]
+        cls.ids = {p["id"] for p in json.loads(CATALOG.read_text(encoding="utf-8"))}
+        cls.site = json.loads((ROOT / "i18n" / "ru.json").read_text(encoding="utf-8"))
+
+    def test_links_lead_to_ru_pages(self):
+        line = re.search(r"\*\*Ссылки объявлений:\*\*(.*?)\n\n", self.section, re.S).group(1)
+        links = re.findall(r"`(/[^`]*)`", line)
+        self.assertEqual(links, ["/ru/p/tavor/", "/ru/p/sahar/", "/ru/catalog/"])
+        for link in links[:2]:
+            self.assertIn(link.split("/")[3], self.ids, link)
+
+    def test_ad_names_match_ru_files(self):
+        part = self.section.split("**Названия объявлений**", 1)[1].split("UTM", 1)[0]
+        names = set(re.findall(r"`([a-z]+-[a-z0-9]+-ru)`", part))
+        ratio = {"1080x1080": "1x1", "1080x1350": "4x5", "1080x1920": "9x16"}
+        ru = OUT / "ru"
+        files = {f"{f.stem.rsplit('-', 1)[0]}-{ratio[f.stem.rsplit('-', 1)[1]]}-ru" for f in ru.glob("*-1080x*.jpg")}
+        files |= {f"{f.stem.rsplit('-', 1)[0]}-video-ru" for f in (ru / "video").glob("*-1080x1920.mp4")}
+        files |= {"tavor-tones-ru"} if (ru / "tones").is_dir() else set()
+        self.assertEqual(names, files)
+
+    def test_ad_copy_is_honest(self):
+        ads = re.findall(r"```text\n(.*?)```", self.section, re.S)
+        ads += re.findall(r"^- \*\*(?:Заголовок|Описание|Заголовки карточек):\*\* (.+)$", self.section, re.M)
+        self.assertEqual(len(ads), 4 * 3 + 1)
+        for t in ads:
+            self.assertNotRegex(t, r"[\u0590-\u05ff]")
+            for pat in FORBIDDEN_RU:
+                self.assertIsNone(re.search(pat, t, re.I), f"{pat}: {t}")
+            for bad in ("регистрац", "недел", "без оплаты"):
+                self.assertNotIn(bad, t.lower())
+            self.assertNotRegex(t, r"\d ₪|\d см", "перед «₪» і «см» — нерозривний пробіл")
+
+    def test_every_ad_says_what_the_price_includes(self):
+        descs = re.findall(r"^- \*\*Описание:\*\* (.+)$", self.section, re.M)
+        self.assertEqual(len(descs), 4, descs)
+        phrase = "в цену входят НДС, доставка и сборка"
+        self.assertIn(phrase, self.site["launch_bar"])
+        for d in descs:
+            self.assertIn(phrase, d)
 
 
 PAGEKIT = ROOT / "tools" / "creatives" / "pagekit.json"
