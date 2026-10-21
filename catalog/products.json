@@ -145,12 +145,12 @@
     ],
     "images": [
       {
-        "src": "/assets/products/tavor/hero-1264.webp",
-        "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1264.webp 1264w",
-        "srcset_avif": "/assets/products/tavor/hero-400.avif 400w, /assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1264.avif 1264w",
-        "jpg": "/assets/products/tavor/hero-1264.jpg",
-        "width": 1264,
-        "height": 848,
+        "src": "/assets/products/tavor/hero-1600.webp",
+        "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1600.webp 1600w",
+        "srcset_avif": "/assets/products/tavor/hero-400.avif 400w, /assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1600.avif 1600w",
+        "jpg": "/assets/products/tavor/hero-1600.jpg",
+        "width": 1600,
+        "height": 1068,
         "view": "hero",
         "finish": "natural",
         "base": "oak",
@@ -161,7 +161,7 @@
           "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight"
         },
         "kind": "visualization",
-        "source": "ai"
+        "source": "render"
       },
       {
         "src": "/assets/products/tavor/angle-1600.webp",
