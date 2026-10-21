@@ -11,7 +11,7 @@
       "file": "tavor-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 175556,
+      "bytes": 175635,
       "jpeg_quality": 88,
       "tiles": [
         0.6289
@@ -22,14 +22,14 @@
       "images": [
         "site/assets/products/tavor/hero-1264.webp"
       ],
-      "text_share": 0.0798,
+      "text_share": 0.0841,
       "min_contrast": 5.88
     },
     {
       "file": "tavor-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 197804,
+      "bytes": 198492,
       "jpeg_quality": 88,
       "tiles": [
         0.6631
@@ -40,14 +40,14 @@
       "images": [
         "site/assets/products/tavor/hero-1264.webp"
       ],
-      "text_share": 0.074,
+      "text_share": 0.0783,
       "min_contrast": 5.88
     },
     {
       "file": "tavor-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 215393,
+      "bytes": 215967,
       "jpeg_quality": 88,
       "tiles": [
         0.8324
@@ -58,7 +58,7 @@
       "images": [
         "site/assets/products/tavor/hero-1264.webp"
       ],
-      "text_share": 0.0577,
+      "text_share": 0.0613,
       "min_contrast": 5.88
     },
     {
