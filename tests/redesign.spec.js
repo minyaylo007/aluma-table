@@ -229,12 +229,14 @@ test('rate limit answer is shown as text, the form stays', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------- телефон
-test('mobile: sticky CTA appears after the first screen and hides at the form', async ({ page }) => {
+test('mobile: sticky CTA shows while the price is off screen and hides at the price and the form', async ({ page }) => {
   await mockApi(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
   const sticky = page.locator('[data-sticky]');
-  await expect(sticky).not.toHaveClass(/is-on/);
+  await expect(sticky).toHaveClass(/is-on/);                   // перший екран — фото, ціна нижче: смуга з ціною і заявкою
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-price').getBoundingClientRect().top + scrollY - 200));
+  await expect(sticky).not.toHaveClass(/is-on/);               // ціна на екрані — дубль не потрібен
   await page.locator('#quick-form').scrollIntoViewIfNeeded();
   await expect(sticky).not.toHaveClass(/is-on/);               // коротка форма на екрані — «пігулка» не потрібна
   await page.evaluate(() => scrollTo(0, document.querySelector('[data-quick]').getBoundingClientRect().bottom + scrollY + 200));
@@ -507,3 +509,34 @@ for (const rm of ['no-preference', 'reduce']) {
     else expect(steps[0].bg).not.toBe('rgb(31, 26, 21)');
   });
 }
+
+// трафік із Meta приходить на телефон із банером cookies: дія має бути в першому екрані, не під банером
+for (const [path, lang] of [['/', 'he'], ['/en/', 'en']]) {
+  test(`first screen 390×844 (${lang}): the hero button sits above the cookie notice`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockApi(page);
+    await page.goto(path);
+    await expect(page.locator('#notice')).toBeVisible();
+    const top = await page.locator('#notice').evaluate(el => el.getBoundingClientRect().top);
+    const btn = await page.locator('.hero .actions .btn').first().boundingBox();
+    expect(btn.y).toBeGreaterThanOrEqual(0);
+    expect(btn.y + btn.height).toBeLessThanOrEqual(top);
+    // абзац лише візуально під кнопками: у DOM він, як і був, перед ними
+    expect(await page.evaluate(() => !!(document.querySelector('.hero .lede').compareDocumentPosition(document.querySelector('.hero .actions')) & 4))).toBe(true);
+  });
+}
+
+test('first screen 390×844 of a card: price and the register button are on screen above the edge with the notice shown', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page);
+  await page.goto(`/p/${PRODUCTS[0].slug}/`);
+  await expect(page.locator('#notice')).toBeVisible();
+  const sticky = page.locator('[data-sticky]');
+  await expect(sticky).toHaveClass(/is-on/);
+  const r = await page.evaluate(() => {
+    const n = document.querySelector('#notice').getBoundingClientRect(), s = document.querySelector('[data-sticky]');
+    const box = el => el.getBoundingClientRect();
+    return { noticeBottom: n.bottom, btn: box(s.querySelector('.btn')), price: box(s.querySelector('[data-price-mini]')), h: innerHeight };
+  });
+  for (const b of [r.btn, r.price]) { expect(b.bottom).toBeLessThanOrEqual(r.h); expect(b.top).toBeGreaterThanOrEqual(r.noticeBottom); }
+});
