@@ -38,7 +38,11 @@
 
   // ---------------------------------------------------------------- кошик
   var byId = function (id) { for (var i = 0; i < PRODUCTS.length; i++) if (PRODUCTS[i].id === id) return PRODUCTS[i]; return null; };
-  var money = function (n) { return "₪" + Number(n || 0).toLocaleString("en-US"); };
+  // ціна як у build.py money(): «₪4,490»; у ru — «4 490 ₪» з нерозривними пробілами
+  var money = function (n) {
+    var s = Number(n || 0).toLocaleString("en-US");
+    return D.documentElement.lang === "ru" ? s.replace(/,/g, "\u00a0") + "\u00a0₪" : "₪" + s;
+  };
   var find = function (list, key, v) { for (var i = 0; i < list.length; i++) if (list[i][key] === v) return list[i]; return null; };
   // рядок кошика лише з того, що є в каталозі: товар, розмір із ціною, тон і опора зі списку товару
   function line(it) {

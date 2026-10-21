@@ -20,9 +20,10 @@ CATALOG = PROJECT / "catalog" / "products.json"
 ASSETS = PROJECT / "site"
 HERO_PRODUCT = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["HERO_PRODUCT"]
 
-LOCALES = ("he", "en")
+LOCALES = ("he", "en", "ru")
 CATEGORIES = {"dining_table", "coffee_table", "media_unit", "console"}
 HEBREW = re.compile(r"[א-ת]")
+CYRILLIC = re.compile(r"[а-яё]", re.IGNORECASE)
 SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
 # Масив дозволено називати лише про те, що справді масив: кромки й фасади.
@@ -30,7 +31,10 @@ SOLID_EN = re.compile(r"solid[- ]oak\s+(\w+)", re.IGNORECASE)
 SOLID_EN_OK = {"edge", "edges", "front", "fronts"}
 SOLID_HE = "אלון מלא"
 SOLID_HE_OK = ("קנט", "חזית")
-FORBIDDEN = ("קנו עכשיו", "קנה עכשיו", "במלאי", "buy now", "in stock", "add to cart")
+SOLID_RU = "массив"
+SOLID_RU_OK = ("кромк", "фасад")
+FORBIDDEN = ("קנו עכשיו", "קנה עכשיו", "במלאי", "buy now", "in stock", "add to cart",
+             "купить сейчас", "купите сейчас", "в наличии", "только сегодня", "скидк")
 
 
 def _load():
@@ -58,11 +62,13 @@ def _false_solid_claim(loc, text):
     """True, якщо текст називає масивом щось, крім кромок і фасадів."""
     if loc == "en":
         return any(w.lower() not in SOLID_EN_OK for w in SOLID_EN.findall(text))
-    start = text.find(SOLID_HE)
+    word, ok = (SOLID_RU, SOLID_RU_OK) if loc == "ru" else (SOLID_HE, SOLID_HE_OK)
+    text = text.lower() if loc == "ru" else text
+    start = text.find(word)
     while start != -1:
-        if not any(w in text[max(0, start - 20):start] for w in SOLID_HE_OK):
+        if not any(w in text[max(0, start - 20):start] for w in ok):
             return True
-        start = text.find(SOLID_HE, start + 1)
+        start = text.find(word, start + 1)
     return False
 
 
@@ -88,6 +94,15 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertRegex(p[key]["he"], HEBREW)
                     self.assertTrue(p[key]["en"].strip())
                     self.assertIsNone(HEBREW.search(p[key]["en"]))
+                    # ru: назва латиницею (як en), решта — російською; іврит лише раз — назва в дужках на початку опису
+                    if key == "name":
+                        self.assertEqual(p[key]["ru"], p[key]["en"])
+                    else:
+                        self.assertRegex(p[key]["ru"], CYRILLIC)
+                    if key == "description":
+                        self.assertTrue(p[key]["ru"].startswith(f'{p["name"]["en"]} ({p["name"]["he"]}) — '))
+                    elif key != "name":
+                        self.assertIsNone(HEBREW.search(p[key]["ru"]))
 
     def test_category(self):
         for p in self.products:
@@ -147,6 +162,7 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertTrue((ASSETS / image["src"].lstrip("/")).is_file(), image["src"])
                     self.assertIn("הדמיה", image["alt"]["he"])
                     self.assertIn("visualization", image["alt"]["en"].lower())
+                    self.assertIn("визуализация", image["alt"]["ru"].lower())
                     self.assertIn(image["source"], {"ai", "render"})
 
     def test_image_variants_exist_and_hero_is_light(self):
@@ -266,9 +282,9 @@ class CatalogSchemaTest(unittest.TestCase):
     def test_rule_catches_solid_oak_claim(self):
         # Перевірка правила на зламаних даних — у пам'яті, не на диску.
         bad = dict(self.products[0])
-        bad["description"] = {"he": "שולחן מעץ אלון מלא", "en": "A solid oak table"}
+        bad["description"] = {"he": "שולחן מעץ אלון מלא", "en": "A solid oak table", "ru": "Стол из массива дуба"}
         failures = sorted({loc for loc, text in _texts(bad) if _false_solid_claim(loc, text)})
-        self.assertEqual(failures, ["en", "he"])
+        self.assertEqual(failures, ["en", "he", "ru"])
 
 
 if __name__ == "__main__":

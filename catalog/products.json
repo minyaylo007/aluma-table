@@ -4,16 +4,19 @@
     "slug": "tavor",
     "name": {
       "he": "תבור",
-      "en": "TAVOR"
+      "en": "TAVOR",
+      "ru": "TAVOR"
     },
     "category": "dining_table",
     "tagline": {
       "he": "קומפקטי בשגרה, ארוך בחג.",
-      "en": "Compact on weekdays. Long for the holidays."
+      "en": "Compact on weekdays. Long for the holidays.",
+      "ru": "Компактный в будни. Длинный в праздники."
     },
     "description": {
       "he": "שולחן אוכל נפתח: פלטת הארכה של 80 ס״מ מאוחסנת מתחת למשטח. הקנט מעץ אלון מלא מקבל שיפוע מתחתיו, ולכן משטח בעובי 4 ס״מ נראה דק וקל. רגלי אלון שמתחדדות כלפי מטה, או בסיס פלדה שחור. נקרא על שם אלון התבור, העץ שגדל בגליל ובעמקים.",
-      "en": "An extending dining table: an 80 cm leaf is stored under the top. The solid-oak edge is bevelled underneath, so a 4 cm top reads thin and light. Oak legs that taper towards the floor, or a black steel base. Named after the Tabor oak that grows in the Galilee and the valleys."
+      "en": "An extending dining table: an 80 cm leaf is stored under the top. The solid-oak edge is bevelled underneath, so a 4 cm top reads thin and light. Oak legs that taper towards the floor, or a black steel base. Named after the Tabor oak that grows in the Galilee and the valleys.",
+      "ru": "TAVOR (תבור) — раздвижной обеденный стол: вставка 80 см хранится под столешницей. Кромка из массива дуба снизу скошена, поэтому столешница толщиной 4 см выглядит тонкой и лёгкой. Дубовые ножки, сужающиеся к полу, или основание из чёрной стали. Назван в честь дуба Табор, который растёт в Галилее и в долинах."
     },
     "price_from_ils": 4490,
     "preliminary": true,
@@ -82,7 +85,8 @@
         "id": "natural",
         "name": {
           "he": "אלון טבעי",
-          "en": "Natural oak"
+          "en": "Natural oak",
+          "ru": "Натуральный дуб"
         },
         "hex": "#B48F64"
       },
@@ -90,7 +94,8 @@
         "id": "light",
         "name": {
           "he": "אלון בהיר",
-          "en": "Light oak"
+          "en": "Light oak",
+          "ru": "Светлый дуб"
         },
         "hex": "#C2AE9B"
       },
@@ -98,7 +103,8 @@
         "id": "honey",
         "name": {
           "he": "דבש",
-          "en": "Honey"
+          "en": "Honey",
+          "ru": "Медовый"
         },
         "hex": "#956D3E"
       },
@@ -106,7 +112,8 @@
         "id": "smoked",
         "name": {
           "he": "אלון מעושן",
-          "en": "Smoked oak"
+          "en": "Smoked oak",
+          "ru": "Копчёный дуб"
         },
         "hex": "#6A5744"
       },
@@ -114,7 +121,8 @@
         "id": "black",
         "name": {
           "he": "שחור פחם",
-          "en": "Charcoal"
+          "en": "Charcoal",
+          "ru": "Угольно-чёрный"
         },
         "hex": "#2D2722"
       }
@@ -124,20 +132,23 @@
         "id": "oak",
         "name": {
           "he": "רגלי אלון",
-          "en": "Oak legs"
+          "en": "Oak legs",
+          "ru": "Дубовые ножки"
         }
       },
       {
         "id": "steel",
         "name": {
           "he": "פלדה שחורה",
-          "en": "Black steel"
+          "en": "Black steel",
+          "ru": "Чёрная сталь"
         }
       }
     ],
     "material": {
       "he": "משטח פורניר אלון טבעי, קנטים מעץ אלון מלא; רגלי אלון או פלדה בצביעה אלקטרוסטטית",
-      "en": "Natural oak veneer top with solid-oak edges; oak legs or powder-coated steel"
+      "en": "Natural oak veneer top with solid-oak edges; oak legs or powder-coated steel",
+      "ru": "Столешница из натурального дубового шпона, кромки из массива дуба; дубовые ножки или сталь с порошковым покрытием"
     },
     "lead_time_weeks": [
       10,
@@ -158,7 +169,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, at home by a window in daylight, on a terrazzo floor",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», дома у окна при дневном свете, на полу из терраццо"
         },
         "kind": "visualization",
         "source": "render"
@@ -177,7 +189,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», в гостиной при дневном свете"
         },
         "kind": "visualization",
         "source": "render"
@@ -196,7 +209,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, במבט נמוך מהצד",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, low three-quarter view"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, low three-quarter view",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», вид в три четверти снизу"
         },
         "kind": "visualization",
         "source": "render"
@@ -215,7 +229,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, תקריב של הקנט המשופע מלמטה ושל הרגל המתחדדת",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the edge bevelled underneath and the tapered leg"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the edge bevelled underneath and the tapered leg",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», крупный план: скошенная снизу кромка и сужающаяся ножка"
         },
         "kind": "visualization",
         "source": "render"
@@ -234,7 +249,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, פתוח עם התוספת",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, extended with the leaf"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, extended with the leaf",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», в разложенном виде, со вставкой"
         },
         "kind": "visualization",
         "source": "render"
@@ -253,7 +269,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, מנגנון הפתיחה: פתוח למחצה, רואים את המסילות ואת פלטת ההארכה המקופלת מתחת למשטח",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, opening mechanism: half open, showing the runners and the folded leaf under the top"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, opening mechanism: half open, showing the runners and the folded leaf under the top",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», механизм раскладки: наполовину раскрыт, видны направляющие и сложенная вставка под столешницей"
         },
         "kind": "visualization",
         "source": "render"
@@ -272,7 +289,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, מנגנון הפתיחה: סגור, קו החיבור באמצע המשטח",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, opening mechanism: closed, the seam in the middle of the top"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, opening mechanism: closed, the seam in the middle of the top",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», механизм раскладки: в сложенном виде, стык посередине столешницы"
         },
         "kind": "visualization",
         "source": "render"
@@ -291,7 +309,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, באור בוקר קריר מהחלון",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in cool morning light from the window"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in cool morning light from the window",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», в холодном утреннем свете из окна"
         },
         "kind": "visualization",
         "source": "render",
@@ -311,7 +330,8 @@
         "size": "180×90",
         "alt": {
           "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, באור ערב חם של מנורה מעל השולחן",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in warm evening light from a lamp above the table"
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in warm evening light from a lamp above the table",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», в тёплом вечернем свете лампы над столом"
         },
         "kind": "visualization",
         "source": "render",
@@ -323,14 +343,16 @@
         "id": "extendable",
         "label": {
           "he": "נפתח",
-          "en": "Extending"
+          "en": "Extending",
+          "ru": "Раздвижной"
         }
       },
       {
         "id": "launch_series",
         "label": {
           "he": "סדרת השקה",
-          "en": "Launch series"
+          "en": "Launch series",
+          "ru": "Стартовая серия"
         }
       }
     ],
@@ -341,16 +363,19 @@
     "slug": "sahar",
     "name": {
       "he": "סהר",
-      "en": "SAHAR"
+      "en": "SAHAR",
+      "ru": "SAHAR"
     },
     "category": "dining_table",
     "tagline": {
       "he": "עגול לארבעה, נפתח לשישה.",
-      "en": "Round for four. Opens to seat six."
+      "en": "Round for four. Opens to seat six.",
+      "ru": "Круглый на четверых. Раскрывается — и садятся шестеро."
     },
     "description": {
       "he": "שולחן עגול בקוטר 115 ס״מ שנפתח לאליפסה של 155 ס״מ. המשטח נפתח לשני חצאים, ופלטת הארכה של 40 ס״מ נכנסת ביניהם — ויש מקום לעוד שניים. בלי פינות שנתקלים בהן, מתאים לפינת אוכל קטנה או למטבח פתוח. ארבע רגלי אלון או עמוד מרכזי מפלדה שחורה.",
-      "en": "A 115 cm round table that opens into a 155 cm oval. The top parts into two halves, a 40 cm leaf drops in between, and there is room for two more. No corners to bump into: suits a small dining nook or an open kitchen. Four oak legs, or a black steel pedestal."
+      "en": "A 115 cm round table that opens into a 155 cm oval. The top parts into two halves, a 40 cm leaf drops in between, and there is room for two more. No corners to bump into: suits a small dining nook or an open kitchen. Four oak legs, or a black steel pedestal.",
+      "ru": "SAHAR (סהר) — круглый стол диаметром 115 см, который раскрывается в овал 155 см. Столешница расходится на две половины, между ними ложится вставка 40 см — и за столом помещаются ещё двое. Углов, о которые можно удариться, нет: подойдёт для небольшой обеденной зоны или открытой кухни. Четыре дубовые ножки или центральная опора из чёрной стали."
     },
     "price_from_ils": 5490,
     "preliminary": true,
@@ -379,7 +404,8 @@
         "id": "natural",
         "name": {
           "he": "אלון טבעי",
-          "en": "Natural oak"
+          "en": "Natural oak",
+          "ru": "Натуральный дуб"
         },
         "hex": "#B48F64"
       },
@@ -387,7 +413,8 @@
         "id": "light",
         "name": {
           "he": "אלון בהיר",
-          "en": "Light oak"
+          "en": "Light oak",
+          "ru": "Светлый дуб"
         },
         "hex": "#C2AE9B"
       },
@@ -395,7 +422,8 @@
         "id": "honey",
         "name": {
           "he": "דבש",
-          "en": "Honey"
+          "en": "Honey",
+          "ru": "Медовый"
         },
         "hex": "#956D3E"
       },
@@ -403,7 +431,8 @@
         "id": "smoked",
         "name": {
           "he": "אלון מעושן",
-          "en": "Smoked oak"
+          "en": "Smoked oak",
+          "ru": "Копчёный дуб"
         },
         "hex": "#6A5744"
       },
@@ -411,7 +440,8 @@
         "id": "black",
         "name": {
           "he": "שחור פחם",
-          "en": "Charcoal"
+          "en": "Charcoal",
+          "ru": "Угольно-чёрный"
         },
         "hex": "#2D2722"
       }
@@ -421,20 +451,23 @@
         "id": "oak",
         "name": {
           "he": "רגלי אלון",
-          "en": "Oak legs"
+          "en": "Oak legs",
+          "ru": "Дубовые ножки"
         }
       },
       {
         "id": "steel",
         "name": {
           "he": "פלדה שחורה",
-          "en": "Black steel"
+          "en": "Black steel",
+          "ru": "Чёрная сталь"
         }
       }
     ],
     "material": {
       "he": "משטח פורניר אלון טבעי, קנט מעץ אלון מלא; רגלי אלון או עמוד פלדה בצביעה אלקטרוסטטית",
-      "en": "Natural oak veneer top with a solid-oak edge; oak legs or a powder-coated steel pedestal"
+      "en": "Natural oak veneer top with a solid-oak edge; oak legs or a powder-coated steel pedestal",
+      "ru": "Столешница из натурального дубового шпона, кромка из массива дуба; дубовые ножки или центральная опора из стали с порошковым покрытием"
     },
     "lead_time_weeks": [
       10,
@@ -455,7 +488,8 @@
         "size": "Ø115",
         "alt": {
           "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
-          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, at home by a window in daylight, on a terrazzo floor",
+          "ru": "Визуализация: круглый раздвижной обеденный стол SAHAR, тон «натуральный дуб», дома у окна при дневном свете, на полу из терраццо"
         },
         "kind": "visualization",
         "source": "render"
@@ -474,7 +508,8 @@
         "size": "Ø115",
         "alt": {
           "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a living room in daylight"
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a living room in daylight",
+          "ru": "Визуализация: круглый раздвижной обеденный стол SAHAR, тон «натуральный дуб», в гостиной при дневном свете"
         },
         "kind": "visualization",
         "source": "render"
@@ -493,7 +528,8 @@
         "size": "Ø115",
         "alt": {
           "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, תקריב של הרגל ושל המסגרת מתחת למשטח",
-          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of a leg and the apron under the top"
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of a leg and the apron under the top",
+          "ru": "Визуализация: круглый раздвижной обеденный стол SAHAR, тон «натуральный дуб», крупный план: ножка и царга под столешницей"
         },
         "kind": "visualization",
         "source": "render"
@@ -512,7 +548,8 @@
         "size": "Ø115",
         "alt": {
           "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, תקריב של הפלטה העגולה ושל קו החיבור באמצע",
-          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of the round top and the seam where it opens"
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, close-up of the round top and the seam where it opens",
+          "ru": "Визуализация: круглый раздвижной обеденный стол SAHAR, тон «натуральный дуб», крупный план: круглая столешница и стык, по которому она раскрывается"
         },
         "kind": "visualization",
         "source": "render"
@@ -531,7 +568,8 @@
         "size": "Ø115",
         "alt": {
           "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, פתוח עם התוספת",
-          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, extended with the leaf"
+          "en": "Visualization: SAHAR round extendable dining table, natural oak finish, extended with the leaf",
+          "ru": "Визуализация: круглый раздвижной обеденный стол SAHAR, тон «натуральный дуб», в разложенном виде, со вставкой"
         },
         "kind": "visualization",
         "source": "render"
@@ -542,14 +580,16 @@
         "id": "extendable",
         "label": {
           "he": "נפתח",
-          "en": "Extending"
+          "en": "Extending",
+          "ru": "Раздвижной"
         }
       },
       {
         "id": "launch_series",
         "label": {
           "he": "סדרת השקה",
-          "en": "Launch series"
+          "en": "Launch series",
+          "ru": "Стартовая серия"
         }
       }
     ],
@@ -568,7 +608,8 @@
       "size": "Ø115",
       "alt": {
         "he": "הדמיה: שולחן אוכל עגול נפתח סהר, גוון אלון טבעי, בחלל מגורים מואר, מבט רחב",
-        "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a bright room, wide view"
+        "en": "Visualization: SAHAR round extendable dining table, natural oak finish, in a bright room, wide view",
+        "ru": "Визуализация: круглый раздвижной обеденный стол SAHAR, тон «натуральный дуб», в светлой комнате, общий план"
       },
       "kind": "visualization",
       "source": "render"
@@ -579,16 +620,19 @@
     "slug": "ofek",
     "name": {
       "he": "אופק",
-      "en": "OFEK"
+      "en": "OFEK",
+      "ru": "OFEK"
     },
     "category": "media_unit",
     "tagline": {
       "he": "מזנון תלוי. הרצפה נשארת פנויה.",
-      "en": "A floating media unit. The floor stays clear."
+      "en": "A floating media unit. The floor stays clear.",
+      "ru": "Подвесная тумба под ТВ. Пол остаётся свободным."
     },
     "description": {
       "he": "מזנון טלוויזיה שנתלה על הקיר בגובה שתבחרו. החזיתות מעץ אלון מלא, עם חריצים אנכיים שתופסים את האור לאורך היום. דלתות בלחיצה, בלי ידיות, ותעלת כבלים נסתרת מאחור — רואים רק עץ.",
-      "en": "A TV unit that hangs on the wall at whatever height you choose. Solid-oak fronts with vertical fluting that catches the light through the day. Push-to-open doors with no handles and a hidden cable channel at the back: all you see is wood."
+      "en": "A TV unit that hangs on the wall at whatever height you choose. Solid-oak fronts with vertical fluting that catches the light through the day. Push-to-open doors with no handles and a hidden cable channel at the back: all you see is wood.",
+      "ru": "OFEK (אופק) — тумба под ТВ, которая висит на стене на любой выбранной вами высоте. Фасады из массива дуба с вертикальными рейками, на которых в течение дня играет свет. Дверцы без ручек открываются нажатием, сзади скрытый кабель-канал: видно только дерево."
     },
     "price_from_ils": 5090,
     "preliminary": true,
@@ -620,7 +664,8 @@
         "id": "natural",
         "name": {
           "he": "אלון טבעי",
-          "en": "Natural oak"
+          "en": "Natural oak",
+          "ru": "Натуральный дуб"
         },
         "hex": "#B48F64"
       },
@@ -628,7 +673,8 @@
         "id": "light",
         "name": {
           "he": "אלון בהיר",
-          "en": "Light oak"
+          "en": "Light oak",
+          "ru": "Светлый дуб"
         },
         "hex": "#C2AE9B"
       },
@@ -636,7 +682,8 @@
         "id": "honey",
         "name": {
           "he": "דבש",
-          "en": "Honey"
+          "en": "Honey",
+          "ru": "Медовый"
         },
         "hex": "#956D3E"
       },
@@ -644,7 +691,8 @@
         "id": "smoked",
         "name": {
           "he": "אלון מעושן",
-          "en": "Smoked oak"
+          "en": "Smoked oak",
+          "ru": "Копчёный дуб"
         },
         "hex": "#6A5744"
       },
@@ -652,7 +700,8 @@
         "id": "black",
         "name": {
           "he": "שחור פחם",
-          "en": "Charcoal"
+          "en": "Charcoal",
+          "ru": "Угольно-чёрный"
         },
         "hex": "#2D2722"
       }
@@ -660,7 +709,8 @@
     "bases": [],
     "material": {
       "he": "גוף פורניר אלון טבעי, חזיתות מעץ אלון מלא; מתלה פלדה נסתר",
-      "en": "Natural oak veneer body, solid-oak fronts; hidden steel wall rail"
+      "en": "Natural oak veneer body, solid-oak fronts; hidden steel wall rail",
+      "ru": "Корпус из натурального дубового шпона, фасады из массива дуба; скрытая стальная настенная шина"
     },
     "lead_time_weeks": [
       10,
@@ -681,7 +731,8 @@
         "size": "180",
         "alt": {
           "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
-          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, at home by a window in daylight, on a terrazzo floor",
+          "ru": "Визуализация: подвесная тумба под ТВ OFEK, тон «натуральный дуб», дома у окна при дневном свете, на полу из терраццо"
         },
         "kind": "visualization",
         "source": "render"
@@ -700,7 +751,8 @@
         "size": "180",
         "alt": {
           "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, תקריב של פורניר האלון ושל קנט האלון המלא",
-          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the oak veneer and the solid-oak edge"
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the oak veneer and the solid-oak edge",
+          "ru": "Визуализация: подвесная тумба под ТВ OFEK, тон «натуральный дуб», крупный план: дубовый шпон и кромка из массива дуба"
         },
         "kind": "visualization",
         "source": "render"
@@ -719,7 +771,8 @@
         "size": "180",
         "alt": {
           "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight"
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, in a living room in daylight",
+          "ru": "Визуализация: подвесная тумба под ТВ OFEK, тон «натуральный дуб», в гостиной при дневном свете"
         },
         "kind": "visualization",
         "source": "render"
@@ -738,7 +791,8 @@
         "size": "180",
         "alt": {
           "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, במבט נמוך מהצד",
-          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, low three-quarter view"
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, low three-quarter view",
+          "ru": "Визуализация: подвесная тумба под ТВ OFEK, тон «натуральный дуб», вид в три четверти снизу"
         },
         "kind": "visualization",
         "source": "render"
@@ -757,7 +811,8 @@
         "size": "180",
         "alt": {
           "he": "הדמיה: מזנון טלוויזיה תלוי אופק, גוון אלון טבעי, תקריב של החזיתות עם חריצים אנכיים, בלי ידיות",
-          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the fluted fronts with no handles"
+          "en": "Visualization: OFEK wall-mounted media unit, natural oak finish, close-up of the fluted fronts with no handles",
+          "ru": "Визуализация: подвесная тумба под ТВ OFEK, тон «натуральный дуб», крупный план: реечные фасады без ручек"
         },
         "kind": "visualization",
         "source": "render"
@@ -768,14 +823,16 @@
         "id": "wall_mounted",
         "label": {
           "he": "תלוי על הקיר",
-          "en": "Wall-hung"
+          "en": "Wall-hung",
+          "ru": "Подвесная"
         }
       },
       {
         "id": "launch_series",
         "label": {
           "he": "סדרת השקה",
-          "en": "Launch series"
+          "en": "Launch series",
+          "ru": "Стартовая серия"
         }
       }
     ],
@@ -786,16 +843,19 @@
     "slug": "saf",
     "name": {
       "he": "סף",
-      "en": "SAF"
+      "en": "SAF",
+      "ru": "SAF"
     },
     "category": "console",
     "tagline": {
       "he": "35 ס״מ עומק. מקום למפתחות, לפרחים ולמכתבים.",
-      "en": "35 cm deep. Room for keys, flowers and the mail."
+      "en": "35 cm deep. Room for keys, flowers and the mail.",
+      "ru": "Глубина 35 см. Место для ключей, цветов и почты."
     },
     "description": {
       "he": "קונסולה צרה לכניסה או למסדרון. שתי מגירות דקות עם חריץ אחיזה במקום ידית, ומדף תחתון לסל או לנעליים. המשטח והמגירות עם קנט מעץ אלון מלא; רגלי אלון או מסגרת פלדה דקה.",
-      "en": "A slim console for the entrance or the hallway. Two shallow drawers with a finger groove instead of a handle, and a lower shelf for a basket or shoes. Top and drawers with solid-oak edges; oak legs or a slim steel frame."
+      "en": "A slim console for the entrance or the hallway. Two shallow drawers with a finger groove instead of a handle, and a lower shelf for a basket or shoes. Top and drawers with solid-oak edges; oak legs or a slim steel frame.",
+      "ru": "SAF (סף) — узкая консоль для прихожей или коридора. Два неглубоких ящика с пазом под пальцы вместо ручки и нижняя полка для корзины или обуви. Столешница и ящики с кромками из массива дуба; дубовые ножки или тонкая стальная рама."
     },
     "price_from_ils": 2490,
     "preliminary": true,
@@ -827,7 +887,8 @@
         "id": "natural",
         "name": {
           "he": "אלון טבעי",
-          "en": "Natural oak"
+          "en": "Natural oak",
+          "ru": "Натуральный дуб"
         },
         "hex": "#B48F64"
       },
@@ -835,7 +896,8 @@
         "id": "light",
         "name": {
           "he": "אלון בהיר",
-          "en": "Light oak"
+          "en": "Light oak",
+          "ru": "Светлый дуб"
         },
         "hex": "#C2AE9B"
       },
@@ -843,7 +905,8 @@
         "id": "honey",
         "name": {
           "he": "דבש",
-          "en": "Honey"
+          "en": "Honey",
+          "ru": "Медовый"
         },
         "hex": "#956D3E"
       },
@@ -851,7 +914,8 @@
         "id": "smoked",
         "name": {
           "he": "אלון מעושן",
-          "en": "Smoked oak"
+          "en": "Smoked oak",
+          "ru": "Копчёный дуб"
         },
         "hex": "#6A5744"
       },
@@ -859,7 +923,8 @@
         "id": "black",
         "name": {
           "he": "שחור פחם",
-          "en": "Charcoal"
+          "en": "Charcoal",
+          "ru": "Угольно-чёрный"
         },
         "hex": "#2D2722"
       }
@@ -869,20 +934,23 @@
         "id": "oak",
         "name": {
           "he": "רגלי אלון",
-          "en": "Oak legs"
+          "en": "Oak legs",
+          "ru": "Дубовые ножки"
         }
       },
       {
         "id": "steel",
         "name": {
           "he": "פלדה שחורה",
-          "en": "Black steel"
+          "en": "Black steel",
+          "ru": "Чёрная сталь"
         }
       }
     ],
     "material": {
       "he": "פורניר אלון טבעי, קנטים מעץ אלון מלא; רגלי אלון או פלדה בצביעה אלקטרוסטטית",
-      "en": "Natural oak veneer with solid-oak edges; oak legs or powder-coated steel"
+      "en": "Natural oak veneer with solid-oak edges; oak legs or powder-coated steel",
+      "ru": "Натуральный дубовый шпон, кромки из массива дуба; дубовые ножки или сталь с порошковым покрытием"
     },
     "lead_time_weeks": [
       10,
@@ -903,7 +971,8 @@
         "size": "130",
         "alt": {
           "he": "הדמיה: קונסולה סף, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
-          "en": "Visualization: SAF console table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+          "en": "Visualization: SAF console table, natural oak finish, at home by a window in daylight, on a terrazzo floor",
+          "ru": "Визуализация: консоль SAF, тон «натуральный дуб», дома у окна при дневном свете, на полу из терраццо"
         },
         "kind": "visualization",
         "source": "render"
@@ -922,7 +991,8 @@
         "size": "130",
         "alt": {
           "he": "הדמיה: קונסולה סף, גוון אלון טבעי, תקריב של פורניר האלון ושל קנט האלון המלא",
-          "en": "Visualization: SAF console table, natural oak finish, close-up of the oak veneer and the solid-oak edge"
+          "en": "Visualization: SAF console table, natural oak finish, close-up of the oak veneer and the solid-oak edge",
+          "ru": "Визуализация: консоль SAF, тон «натуральный дуб», крупный план: дубовый шпон и кромка из массива дуба"
         },
         "kind": "visualization",
         "source": "render"
@@ -941,7 +1011,8 @@
         "size": "130",
         "alt": {
           "he": "הדמיה: קונסולה סף, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight"
+          "en": "Visualization: SAF console table, natural oak finish, in a living room in daylight",
+          "ru": "Визуализация: консоль SAF, тон «натуральный дуб», в гостиной при дневном свете"
         },
         "kind": "visualization",
         "source": "render"
@@ -960,7 +1031,8 @@
         "size": "130",
         "alt": {
           "he": "הדמיה: קונסולה סף, גוון אלון טבעי, במבט נמוך מהצד",
-          "en": "Visualization: SAF console table, natural oak finish, low three-quarter view"
+          "en": "Visualization: SAF console table, natural oak finish, low three-quarter view",
+          "ru": "Визуализация: консоль SAF, тон «натуральный дуб», вид в три четверти снизу"
         },
         "kind": "visualization",
         "source": "render"
@@ -979,7 +1051,8 @@
         "size": "130",
         "alt": {
           "he": "הדמיה: קונסולה סף, גוון אלון טבעי, תקריב של המגירה עם חריץ אחיזה במקום ידית",
-          "en": "Visualization: SAF console table, natural oak finish, close-up of the drawer with a finger groove instead of a handle"
+          "en": "Visualization: SAF console table, natural oak finish, close-up of the drawer with a finger groove instead of a handle",
+          "ru": "Визуализация: консоль SAF, тон «натуральный дуб», крупный план: ящик с пазом под пальцы вместо ручки"
         },
         "kind": "visualization",
         "source": "render"
@@ -990,7 +1063,8 @@
         "id": "launch_series",
         "label": {
           "he": "סדרת השקה",
-          "en": "Launch series"
+          "en": "Launch series",
+          "ru": "Стартовая серия"
         }
       }
     ],
@@ -1001,16 +1075,19 @@
     "slug": "tal",
     "name": {
       "he": "טל",
-      "en": "TAL"
+      "en": "TAL",
+      "ru": "TAL"
     },
     "category": "coffee_table",
     "tagline": {
       "he": "שולחן סלון נמוך עם פינות רכות.",
-      "en": "A low coffee table with soft corners."
+      "en": "A low coffee table with soft corners.",
+      "ru": "Низкий журнальный стол с мягкими углами."
     },
     "description": {
       "he": "משטח בעובי 4 ס״מ עם פינות מעוגלות, שנוח לעבור לידו גם עם ילדים בבית. בשתי צורות: מלבן ⁦100×60⁩ ס״מ או עיגול בקוטר 80 ס״מ. רגלי אלון עגולות ועבות בקוטר 9 ס״מ או בסיס פלדה שחור.",
-      "en": "A 4 cm top with rounded corners, easy to walk past even with kids around. Two shapes: a 100×60 cm rectangle or an 80 cm circle. Chunky round oak legs, 9 cm across, or a black steel base."
+      "en": "A 4 cm top with rounded corners, easy to walk past even with kids around. Two shapes: a 100×60 cm rectangle or an 80 cm circle. Chunky round oak legs, 9 cm across, or a black steel base.",
+      "ru": "TAL (טל) — столешница толщиной 4 см со скруглёнными углами: мимо легко пройти, даже когда рядом дети. Две формы: прямоугольник 100×60 см или круг 80 см. Толстые круглые дубовые ножки диаметром 9 см или основание из чёрной стали."
     },
     "price_from_ils": 2190,
     "preliminary": true,
@@ -1035,7 +1112,8 @@
         "id": "natural",
         "name": {
           "he": "אלון טבעי",
-          "en": "Natural oak"
+          "en": "Natural oak",
+          "ru": "Натуральный дуб"
         },
         "hex": "#B48F64"
       },
@@ -1043,7 +1121,8 @@
         "id": "light",
         "name": {
           "he": "אלון בהיר",
-          "en": "Light oak"
+          "en": "Light oak",
+          "ru": "Светлый дуб"
         },
         "hex": "#C2AE9B"
       },
@@ -1051,7 +1130,8 @@
         "id": "honey",
         "name": {
           "he": "דבש",
-          "en": "Honey"
+          "en": "Honey",
+          "ru": "Медовый"
         },
         "hex": "#956D3E"
       },
@@ -1059,7 +1139,8 @@
         "id": "smoked",
         "name": {
           "he": "אלון מעושן",
-          "en": "Smoked oak"
+          "en": "Smoked oak",
+          "ru": "Копчёный дуб"
         },
         "hex": "#6A5744"
       },
@@ -1067,7 +1148,8 @@
         "id": "black",
         "name": {
           "he": "שחור פחם",
-          "en": "Charcoal"
+          "en": "Charcoal",
+          "ru": "Угольно-чёрный"
         },
         "hex": "#2D2722"
       }
@@ -1077,20 +1159,23 @@
         "id": "oak",
         "name": {
           "he": "רגלי אלון",
-          "en": "Oak legs"
+          "en": "Oak legs",
+          "ru": "Дубовые ножки"
         }
       },
       {
         "id": "steel",
         "name": {
           "he": "פלדה שחורה",
-          "en": "Black steel"
+          "en": "Black steel",
+          "ru": "Чёрная сталь"
         }
       }
     ],
     "material": {
       "he": "משטח פורניר אלון טבעי, קנט מעץ אלון מלא; רגלי אלון או פלדה בצביעה אלקטרוסטטית",
-      "en": "Natural oak veneer top with a solid-oak edge; oak legs or powder-coated steel"
+      "en": "Natural oak veneer top with a solid-oak edge; oak legs or powder-coated steel",
+      "ru": "Столешница из натурального дубового шпона, кромка из массива дуба; дубовые ножки или сталь с порошковым покрытием"
     },
     "lead_time_weeks": [
       10,
@@ -1111,7 +1196,8 @@
         "size": "100×60",
         "alt": {
           "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: TAL coffee table, natural oak finish, in a living room in daylight"
+          "en": "Visualization: TAL coffee table, natural oak finish, in a living room in daylight",
+          "ru": "Визуализация: журнальный стол TAL, тон «натуральный дуб», в гостиной при дневном свете"
         },
         "kind": "visualization",
         "source": "ai"
@@ -1130,7 +1216,8 @@
         "size": "100×60",
         "alt": {
           "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, בבית, ליד חלון באור יום, על ריצוף טראצו",
-          "en": "Visualization: TAL coffee table, natural oak finish, at home by a window in daylight, on a terrazzo floor"
+          "en": "Visualization: TAL coffee table, natural oak finish, at home by a window in daylight, on a terrazzo floor",
+          "ru": "Визуализация: журнальный стол TAL, тон «натуральный дуб», дома у окна при дневном свете, на полу из терраццо"
         },
         "kind": "visualization",
         "source": "render"
@@ -1149,7 +1236,8 @@
         "size": "100×60",
         "alt": {
           "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, במבט נמוך מהצד",
-          "en": "Visualization: TAL coffee table, natural oak finish, low three-quarter view"
+          "en": "Visualization: TAL coffee table, natural oak finish, low three-quarter view",
+          "ru": "Визуализация: журнальный стол TAL, тон «натуральный дуб», вид в три четверти снизу"
         },
         "kind": "visualization",
         "source": "render"
@@ -1168,7 +1256,8 @@
         "size": "100×60",
         "alt": {
           "he": "הדמיה: שולחן סלון טל, גוון אלון טבעי, תקריב של הפינה המעוגלת ושל הרגל העגולה העבה",
-          "en": "Visualization: TAL coffee table, natural oak finish, close-up of the rounded corner and the chunky round leg"
+          "en": "Visualization: TAL coffee table, natural oak finish, close-up of the rounded corner and the chunky round leg",
+          "ru": "Визуализация: журнальный стол TAL, тон «натуральный дуб», крупный план: скруглённый угол и толстая круглая ножка"
         },
         "kind": "visualization",
         "source": "render"
@@ -1179,7 +1268,8 @@
         "id": "launch_series",
         "label": {
           "he": "סדרת השקה",
-          "en": "Launch series"
+          "en": "Launch series",
+          "ru": "Стартовая серия"
         }
       }
     ],

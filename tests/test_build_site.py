@@ -124,11 +124,13 @@ class BuiltSiteTests(unittest.TestCase):
     def test_every_catalog_product_has_a_card_in_every_language(self):
         self.assertTrue(PRODUCTS)
         for p in PRODUCTS:
-            for prefix in DIST_PREFIX.values():
+            for loc, prefix in DIST_PREFIX.items():
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 self.assertIn(f'data-product="{p["id"]}"', html)
                 for s in p["sizes"]:
-                    self.assertIn(f'{int(s["price_ils"]):,}', html, f"{p['slug']}: ціна розміру {s['label']}")
+                    # «₪4,490»; у ru — «4 490 ₪» з нерозривними пробілами (build.py money)
+                    want = f'₪{int(s["price_ils"]):,}' if loc != "ru" else f'{int(s["price_ils"]):,}'.replace(",", "\u00a0") + "\u00a0₪"
+                    self.assertIn(want, html, f"{p['slug']}: ціна розміру {s['label']} ({loc})")
                 ld = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))
                 self.assertEqual(ld["@type"], "Product")
                 self.assertEqual(ld["offers"]["priceCurrency"], "ILS")
@@ -143,6 +145,7 @@ class BuiltSiteTests(unittest.TestCase):
         for rel in ("cart/", "checkout/"):
             self.assertIn("מחיר משוער, טרם אושר", self.page(rel), rel)
             self.assertIn("not yet confirmed", self.page("en/" + rel).lower(), rel)
+            self.assertIn("ещё не подтверждена", self.page("ru/" + rel), rel)
         for p in PRODUCTS:
             self.assertNotIn("טרם אושר", re.sub(r"<[^>]+>", " ", self.page(f"p/{p['slug']}/")).split("pdp-points")[0], p["slug"])
 

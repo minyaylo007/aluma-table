@@ -1,4 +1,4 @@
-"""i18n/legal.he.json і legal.en.json: обов'язкові ізраїльські тексти (docs/COMPLIANCE-IL.md).
+"""i18n/legal.he.json, legal.en.json і legal.ru.json: обов'язкові ізраїльські тексти (docs/COMPLIANCE-IL.md).
 
 Доводить: обидві мови мають однакову структуру (сторінку будують з одного шаблону), плейсхолдери — лише відомі
 й однакові в he/en, немає подвійних фігурних дужок (їх займає build.py), і в кожному тексті є те, що вимагає
@@ -49,11 +49,12 @@ def text(doc: dict) -> str:
 
 class LegalTextsTests(unittest.TestCase):
     def setUp(self):
-        self.he, self.en = load("he"), load("en")
+        self.he, self.en, self.ru = load("he"), load("en"), load("ru")
 
     def test_same_structure_in_both_languages(self):
         self.assertEqual(shape(self.he), shape(self.en))
-        for lang in (self.he, self.en):
+        self.assertEqual(shape(self.he), shape(self.ru))
+        for lang in (self.he, self.en, self.ru):
             for s in strings(lang):
                 self.assertIsInstance(s, str)
                 self.assertTrue(s.strip(), "порожній рядок")
@@ -62,9 +63,11 @@ class LegalTextsTests(unittest.TestCase):
         for key in ("cookies", "marketing", "lead_notice", *DOCS):
             he = re.findall(r"\{(\w+)\}", text(self.he[key]))
             en = re.findall(r"\{(\w+)\}", text(self.en[key]))
+            ru = re.findall(r"\{(\w+)\}", text(self.ru[key]))
             self.assertEqual(sorted(he), sorted(en), key)
+            self.assertEqual(sorted(he), sorted(ru), key)
             self.assertLessEqual(set(he), PLACEHOLDERS, key)
-        for lang in ("he", "en"):
+        for lang in ("he", "en", "ru"):
             raw = (ROOT / f"i18n/legal.{lang}.json").read_text(encoding="utf-8")
             self.assertNotIn("{{", raw)
             self.assertNotIn("\r", raw)
@@ -75,6 +78,12 @@ class LegalTextsTests(unittest.TestCase):
                      "הסדרי נגישות", "נציבות"):
             self.assertIn(must, he)
         self.assertIn("Regulation 35", text(self.en["accessibility"]))
+        self.assertIn("правилу 35", text(self.ru["accessibility"]))
+
+    def test_ru_is_a_convenience_translation_hebrew_binds(self):
+        # переклад для зручності: на кожній сторінці — що юридичну силу має текст івритом
+        for doc in DOCS:
+            self.assertIn("юридическую силу имеет текст на иврите", text(self.ru[doc]), doc)
 
     def test_privacy_policy_amendment_13(self):
         he, en = text(self.he["privacy"]), text(self.en["privacy"])
@@ -84,9 +93,12 @@ class LegalTextsTests(unittest.TestCase):
             self.assertIn(must, he)
         for must in ("Amendment 13", "Meta Pixel", "Clarity", "Telegram", "180", "outside Israel"):
             self.assertIn(must, en)
+        ru = text(self.ru["privacy"])
+        for must in ("поправкой 13", "Meta Pixel", "Clarity", "Telegram", "SHA-256", "180", "статья 13"):
+            self.assertIn(must, ru)
 
     def test_cookie_notice_offers_a_real_choice(self):
-        for lang in (self.he, self.en):
+        for lang in (self.he, self.en, self.ru):
             c = lang["cookies"]
             self.assertTrue(c["accept"] and c["decline"])
             self.assertNotEqual(c["accept"], c["decline"])
@@ -99,6 +111,8 @@ class LegalTextsTests(unittest.TestCase):
         self.assertIn("לא חובה", he["hint"])
         self.assertIn("הסרה", he["hint"])
         self.assertIn("Optional", self.en["marketing"]["hint"])
+        self.assertIn("{brand}", self.ru["marketing"]["label"])
+        self.assertIn("Необязательно", self.ru["marketing"]["hint"])
 
     def test_terms_advance_orders_no_payment_estimated_prices(self):
         # магазин (specs/003): сайт приймає попередні замовлення, оплати й поля карти на сайті немає,
@@ -111,12 +125,16 @@ class LegalTextsTests(unittest.TestCase):
         for must in ("advance orders", "No payment is made on the site", "card details", "VAT",
                      "estimates, not yet confirmed", "written order confirmation"):
             self.assertIn(must, en)
+        ru = text(self.ru["terms"])
+        for must in ("предварительные заказы", "не производится", "карты", "НДС", "ещё не подтверждены",
+                     "письменном подтверждении заказа"):
+            self.assertIn(must, ru)
         for gone in ("הרשמה מוקדמת", "ללא תשלום וללא התחייבות", "שבועות"):
             self.assertNotIn(gone, he)
 
     def test_tracking_js_banner_copy_matches(self):
         js = (ROOT / "site/assets/tracking.js").read_text(encoding="utf-8")
-        for lang in (self.he, self.en):
+        for lang in (self.he, self.en, self.ru):
             for k in ("label", "text", "accept", "decline", "more"):
                 self.assertIn(json.dumps(lang["cookies"][k], ensure_ascii=False), js, k)
 

@@ -1,4 +1,4 @@
-// Доступність усіх сторінок (he і en) за axe-core: WCAG 2.0/2.1 A і AA — основа ת"י 5568 (תקנה 35).
+// Доступність усіх сторінок (he, en, ru) за axe-core: WCAG 2.0/2.1 A і AA — основа ת"י 5568 (תקנה 35).
 // Без порту й без мережі: dist/ (python3 build.py) віддається через page.route на вигаданому origin,
 // API підмінено, будь-який сторонній запит обривається. Конфіг — playwright.a11y.config.js.
 // Падає на serious/critical; усі порушення (і moderate/minor) друкуються списком для сесії (1).
@@ -33,7 +33,7 @@ for (const pagePath of pages()) {
 }
 
 // Власний банер згоди tracking.js (показується, коли вітрина не має свого #notice): кнопки, контраст, мова.
-for (const pagePath of ['/', '/en/']) {
+for (const pagePath of ['/', '/en/', '/ru/']) {
   test(`a11y банер tracking.js ${pagePath}`, async ({ page }) => {
     await serveDist(page);
     await page.goto(ORIGIN + pagePath, { waitUntil: 'load' });
@@ -63,7 +63,7 @@ async function axeBlocking(page) {
   return result.violations.filter((v) => BLOCKING.has(v.impact)).map((v) => `${v.impact}: ${v.id} ×${v.nodes.length}`);
 }
 
-for (const pagePath of ['/', '/en/', '/p/tavor/', '/en/p/tavor/']) {
+for (const pagePath of ['/', '/en/', '/ru/', '/p/tavor/', '/en/p/tavor/', '/ru/p/tavor/']) {
   test(`a11y стани ${pagePath}: меню, панель доступності, режими`, async ({ page }) => {
     await serveDist(page);
     await page.setViewportSize(VIEWPORTS.mobile);

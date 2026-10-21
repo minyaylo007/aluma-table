@@ -196,6 +196,14 @@ bdi { unicode-bidi: isolate; }
   .nav-lang { gap: 0 22px; border-block-end: 1px solid var(--line); }
   .nav-lang a, .nav-lang .lang-cur { border: 0; padding-block: 14px; font-size: 1.15rem; }
 }
+/* ru: «Корзина» удвічі довша за «סל»/«Cart» — на вузькому телефоні «אלומה» в шапці лягала під кнопку (−50 px на 320);
+   у шапці лишається ALUMA, «אלומה» — у підвалі */
+@media (max-width: 420px) {
+  html[lang="ru"] .top .logo-he { display: none; }
+}
+/* ru: слова довгі («конфиденциальности», «несовершеннолетние») — при шрифті 200 % (WCAG 1.4.4) і на 360 px не влазять
+   у рядок. Переносимо за словником (lang="ru"), а де його нема — будь-де */
+html[lang="ru"] body { hyphens: auto; overflow-wrap: anywhere; }
 
 /* ---------------------------------------------------------------- секції */
 .sec { padding-block: var(--sec); }

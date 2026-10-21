@@ -136,7 +136,7 @@ test.skip(!built(), 'спершу python3 build.py');
 const dedupe = (ps) => [...new Map(ps.map((p) => [`${p.rule}|${p.where}`, p])).values()];
 
 for (const pagePath of pages()) {
-  const rtl = !pagePath.startsWith('/en/');
+  const rtl = !/^\/(en|ru)\//.test(pagePath);           // ltr-мови мають свій префікс
 
   test(`ширини ${pagePath}`, async ({ page }) => {
     await serveDist(page);
@@ -203,7 +203,7 @@ for (const pagePath of pages()) {
 }
 
 // Липка кнопка (телефон): не накриває поле форми у фокусі і банер cookies
-for (const pagePath of ['/', '/en/', '/p/tavor/', '/en/p/tavor/']) {
+for (const pagePath of ['/', '/en/', '/ru/', '/p/tavor/', '/en/p/tavor/', '/ru/p/tavor/']) {
   for (const w of [320, 390]) {
     test(`липка кнопка ${pagePath} @${w}`, async ({ page }) => {
       await serveDist(page);
