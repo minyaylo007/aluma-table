@@ -106,6 +106,7 @@ const HERO_RENDER = {
 const DETAIL_RENDER = {
   tavor: { az: 42, eye: 1.05, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.78, 0, 0.35], [1, 0.45, 1]], sun: 7.0, window: 180 },
   sahar: { az: 15, eye: 1.25, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.3, 0, 0.6], [0.7, 0.35, 1]], sun: 7.0, window: 180 },
+  ofek:  { az: 22, eye: 1.0, lens: 70, fstop: 2.8, margin: 0.04, fit: [[0, 0, 0], [0.52, 1, 1]], sun: 7.0, window: 180, end_chair: false },
   saf:   { az: 25, eye: 1.15, lens: 70, fstop: 2.8, margin: 0.03, fit: [[0.05, 0, 0.7], [0.6, 0.3, 1]], sun: 7.0, window: 180,
            end_chair: false }
 };
