@@ -54,6 +54,13 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 .f-9x16 { --safe-top: 300px; --safe-bottom: 300px; --h1: 66px; --fs-sub: 32px; --fs-price: 44px; --fs-cta: 32px; --fs-size: 40px; --card-h: 420px; }
 .f-4x5 { --safe-top: 36px; --safe-bottom: 36px; --h1: 56px; --fs-sub: 29px; --fs-price: 40px; --fs-cta: 30px; --fs-size: 36px; --card-h: 340px; }
 .f-1x1 { --safe-top: 32px; --safe-bottom: 32px; --h1: 50px; --fs-sub: 27px; --fs-price: 36px; --fs-cta: 28px; --fs-size: 32px; --card-h: 300px; }
+/* 9:16 і 4:5: кадр — смуга на всю ширину 3:2 (720 px) над карткою, щоб на 0 с було видно весь стіл — довжину й усі
+   чотири ніжки; картка під кадром не перекриває товар (перевіряє video.js). 9:16: смуга в верхніх 55 %, картка — вище
+   нижніх 20 % (інтерфейс Reels). 1:1 — кадр на все полотно, як було. */
+.f-9x16 .shot, .f-4x5 .shot { inset: auto 0 auto 0; top: var(--media-top); height: var(--media-h); }
+.f-9x16 { --media-top: 300px; --media-h: 720px; }
+.f-4x5 { --media-top: 0px; --media-h: 720px; }
+.f-9x16 .card { bottom: 400px; }
 .f-4x5 .card { padding: 34px 46px; gap: 12px; }
 .f-1x1 .card { padding: 28px 40px; gap: 10px; }
 </style>
