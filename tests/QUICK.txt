@@ -12,6 +12,7 @@ tests.test_user_units         # юніти прода
 tests.test_box_env            # оточення прода без друку значень
 tests.test_lambda_no_fx_storage  # пастка «тиха втрата заявки»
 tests.test_catalog            # каталог товарів: схема, ціни «משוער», лише візуалізації
+tests.test_oak_tones          # тони дуба: одна таблиця в 3D, Blender і генераторі; зразок і фото фабрики
 tests.test_quality_creatives  # креативи Meta: чесний текст, ціни з каталогу, межі docs/creatives/
 tests.test_build_bidi         # розміри в he-описах: U+2066…U+2069 → <bdi dir="ltr">
 tests.test_build_catalog_facts  # строк і тонування в текстах — з каталогу, не числами в i18n

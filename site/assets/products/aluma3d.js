@@ -4,7 +4,8 @@
    window.Aluma3D.build(THREE, opts)  -> Promise<model { group, bounds(), setFinish(id), dispose() }>
      opts: { product: 'tavor'|'sahar'|'ofek'|'saf'|'tal', size: {length_cm, width_cm, height_cm, extended_cm?},
              finish: 'natural'|'light'|'honey'|'smoked'|'black', base: 'oak'|'steel', state: 'closed'|'open',
-             textures: { albedo, normal, rough } (URL; типово /assets/textures/*-1024.jpg),
+             texDir, texRes — тека й розмір файлів тону для рендерів (типово /assets/textures/ і '1024', як на сайті),
+             textures: { albedo, normal, rough } — один набір без тонування (старі сцени),
              decor: true — ваза/книжки для інтер'єрного кадру }
    window.Aluma3D.studio(THREE, scene, renderer, o)    -> світло й підлога світлого фону; середовище з градієнтів
    window.Aluma3D.interior(THREE, scene, renderer, o)  -> стіна, підлога-плитка, сонце з вікна з тінню рами
@@ -16,8 +17,8 @@
      жодної анімації; полотно aria-hidden, контейнер — role=img у фокусі, опис — прихований абзац.
 
    Розміри — з сітки каталогу; усе в метрах, x — довжина, z — глибина (перед до камери), y — вгору.
-   Матеріал: CC0-скан Poly Haven «oak_veneer_01» (tools/bake_textures.py), одне дерево на всі тонування —
-   тонування фарбує альбедо на canvas (gradeFinish), зерно, нормалі й шорсткість спільні.
+   Матеріал: справжні CC0-скани шпону Poly Haven, свій на тон (FINISHES, tools/oak_tones.py): альбедо тону,
+   нормалі й шорсткість його скану — ті самі файли, що в зразках на сайті й у Blender-рендерах.
 */
 (function (root) {
   'use strict';
@@ -27,44 +28,23 @@
   var GAP = 0.0016;      // шов між половинами й вставкою: 1,6 мм
   var SINK = 0.0005;     // деталі в одній площині заходять одна в одну на 0,5 мм — без z-fighting
 
-  // Тонування: роль, шорсткість (лак/олія), колір свотча — з каталогу.
+  // Тони: кожен — справжній скан шпону з олійним тоном (tools/oak_tones.py, docs/ASSETS.md «Тони дуба»).
+  //   albedo, nmap, rmap — альбедо тону, нормалі й шорсткість його скану; шляхи абсолютні й повні — build.py знаходить їх
+  //   тут, публікує й хешує; scale — щільність повтору (скани 1 м проти 1,83 м),
+  //   rough — множник шорсткості (олія з пігментом матовіша), normal — сила рельєфу. Ті самі файли бере Blender.
   var FINISHES = {
-    natural: { rough: 1.00 },
-    light:   { rough: 1.08 },
-    honey:   { rough: 0.95 },
-    smoked:  { rough: 1.00 },
-    black:   { rough: 1.12 }
+    natural: { rough: 1.00, normal: 0.7,  scale: 1,    albedo: '/assets/textures/natural-albedo-1024.jpg',
+               nmap: '/assets/textures/oak-normal-1024.jpg',        rmap: '/assets/textures/oak-rough-1024.jpg' },
+    light:   { rough: 1.08, normal: 0.7,  scale: 1.83, albedo: '/assets/textures/tone-light-albedo-1024.jpg',
+               nmap: '/assets/textures/washed-oak-normal-1024.jpg', rmap: '/assets/textures/washed-oak-rough-1024.jpg' },
+    honey:   { rough: 0.95, normal: 0.7,  scale: 1,    albedo: '/assets/textures/tone-honey-albedo-1024.jpg',
+               nmap: '/assets/textures/oak-normal-1024.jpg',        rmap: '/assets/textures/oak-rough-1024.jpg' },
+    smoked:  { rough: 1.00, normal: 0.7,  scale: 1.83, albedo: '/assets/textures/tone-smoked-albedo-1024.jpg',
+               nmap: '/assets/textures/black-oak-normal-1024.jpg',  rmap: '/assets/textures/black-oak-rough-1024.jpg' },
+    black:   { rough: 1.12, normal: 0.55, scale: 1.83, albedo: '/assets/textures/tone-black-albedo-1024.jpg',
+               nmap: '/assets/textures/black-oak-normal-1024.jpg',  rmap: '/assets/textures/black-oak-rough-1024.jpg' }
   };
 
-  // ---- тонування: альбедо натурального дуба -> тон, у sRGB 0..1 --------------------------------------
-  function gradePixel(f, r, g, b) {
-    var l = 0.299 * r + 0.587 * g + 0.114 * b;
-    switch (f) {
-      case 'light':   // біла пігментна олія: розбілене, менш насичене, зерно лишається
-        r = l + (r - l) * 0.55; g = l + (g - l) * 0.55; b = l + (b - l) * 0.55;
-        return [1 - (1 - r) * 0.50, 1 - (1 - g) * 0.53, 1 - (1 - b) * 0.60];
-      case 'honey':   // теплий бурштин
-        return [r * 0.95, g * 0.84, b * 0.66];
-      case 'smoked':  // копчений дуб: темніше, холодніше, контраст зерна більший
-        return [Math.pow(r, 1.5) * 0.62, Math.pow(g, 1.5) * 0.70, Math.pow(b, 1.5) * 0.82];
-      case 'black':   // чорна морилка на відкритих порах: зерно ледь читається
-        return [0.055 + l * 0.16, 0.050 + l * 0.15, 0.047 + l * 0.14];
-      default:
-        return [r, g, b];
-    }
-  }
-  function gradeFinish(img, f) {
-    var c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
-    var x = c.getContext('2d'); x.drawImage(img, 0, 0);
-    if (f === 'natural') return c;
-    var d = x.getImageData(0, 0, c.width, c.height), p = d.data;
-    for (var i = 0; i < p.length; i += 4) {
-      var o = gradePixel(f, p[i] / 255, p[i + 1] / 255, p[i + 2] / 255);
-      p[i] = o[0] * 255; p[i + 1] = o[1] * 255; p[i + 2] = o[2] * 255;
-    }
-    x.putImageData(d, 0, 0);
-    return c;
-  }
 
   function loadImage(url) {
     return new Promise(function (resolve, reject) {
@@ -475,26 +455,32 @@
 
   // ---- матеріали й складання --------------------------------------------------------------------------
   var texCache = {};
-  function loadTex(THREE, url, srgb, finish) {
-    var key = url + '|' + (finish || '');
+  function loadTex(THREE, url, srgb, scale) {
+    var key = url + '|' + (scale || 1);
     if (!texCache[key]) {
       texCache[key] = loadImage(url).then(function (img) {
-        var t = new THREE.Texture(finish ? gradeFinish(img, finish) : img);
-        t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+        var t = new THREE.Texture(img);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.repeat.set(scale || 1, scale || 1);
         t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.needsUpdate = true;
         return t;
       }, function (e) { delete texCache[key]; throw e; });   // мережа впала — наступне відкриття спробує знову
     }
     return texCache[key];
   }
-  function defaultTextures() {
-    // шляхи абсолютні й повні: build.py знаходить їх у цьому файлі, публікує й хешує
-    return { albedo: '/assets/textures/natural-albedo-1024.jpg', normal: '/assets/textures/oak-normal-1024.jpg', rough: '/assets/textures/oak-rough-1024.jpg' };
+  // файли тону: на сайті — шляхи з FINISHES; рендери підміняють теку (opts.texDir) і розмір (opts.texRes, '2048');
+  // opts.textures {albedo, normal, rough} — один набір на всі тони (старі сцени), без тонування
+  function toneTextures(opts, f) {
+    if (opts.textures) return { albedo: opts.textures.albedo, normal: opts.textures.normal, rough: opts.textures.rough, scale: 1 };
+    var t = FINISHES[f];
+    function at(u) {
+      if (opts.texDir) u = opts.texDir + u.split('/').pop();
+      return opts.texRes ? u.replace(/-1024\.jpg$/, '-' + opts.texRes + '.jpg') : u;
+    }
+    return { albedo: at(t.albedo), normal: at(t.nmap), rough: at(t.rmap), scale: t.scale };
   }
 
   function build(THREE, opts) {
     var product = opts.product, finish = FINISHES[opts.finish] ? opts.finish : 'natural';
-    var tex = opts.textures || defaultTextures();
     var bd = { oak: new Builder(), face: new Builder(), under: new Builder(), steel: new Builder(), dark: new Builder(), extra: [] };
     var info = PRODUCTS[product](THREE, bd, opts.size, opts.base || 'oak', opts.state || 'closed');
     var group = new THREE.Group(); group.name = product;
@@ -510,14 +496,15 @@
     bd.extra.forEach(function (e) { var m = new THREE.Mesh(e.geo, mats[e.mat]); m.castShadow = m.receiveShadow = true; group.add(m); });
     var bounds = new THREE.Box3().setFromObject(group);
     if (opts.decor) decor(THREE, product, opts.size, group);
-    var shared = Promise.all([loadTex(THREE, tex.normal, false), loadTex(THREE, tex.rough, false)]);
     function setFinish(f) {
       f = FINISHES[f] ? f : 'natural';
-      return Promise.all([loadTex(THREE, tex.albedo, true, f), shared]).then(function (r) {
-        var alb = r[0], nor = r[1][0], rgh = r[1][1];
+      var tex = toneTextures(opts, f);
+      return Promise.all([loadTex(THREE, tex.albedo, true, tex.scale), loadTex(THREE, tex.normal, false, tex.scale),
+                          loadTex(THREE, tex.rough, false, tex.scale)]).then(function (r) {
+        var alb = r[0], nor = r[1], rgh = r[2];
         [oak, under].forEach(function (m) {
           m.map = alb; m.normalMap = nor; m.roughnessMap = rgh; m.aoMap = rgh; m.aoMapIntensity = 0.6;
-          m.normalScale.set(f === 'black' ? 0.4 : 0.7, f === 'black' ? 0.4 : 0.7); m.roughness = FINISHES[f].rough; m.needsUpdate = true;
+          m.normalScale.set(FINISHES[f].normal, FINISHES[f].normal); m.roughness = FINISHES[f].rough; m.needsUpdate = true;
         });
         under.color.set(f === 'black' ? 0x8a8580 : 0xe8e2da);
         model.finish = f; return model;
@@ -686,7 +673,7 @@
 
   // ---- свотч: дощечка шпону з кромкою, згори під скісним світлом -------------------------------------
   function swatch(THREE, opts) {
-    return build(THREE, { product: 'tal', size: { length_cm: 60, width_cm: 60, height_cm: 4, label: 'swatch' }, finish: opts.finish, textures: opts.textures, base: 'none' });
+    return build(THREE, { product: 'tal', size: { length_cm: 60, width_cm: 60, height_cm: 4, label: 'swatch' }, finish: opts.finish, textures: opts.textures, texDir: opts.texDir, texRes: opts.texRes, base: 'none' });
   }
 
   // ---- перегляд на сторінці: three.js — свій файл (без CDN і cookie), обертання пальцем і мишею --------
@@ -739,7 +726,7 @@
       var alive = true, gen = 0, queued = false;
       function rebuild() {
         var my = ++gen;
-        return build(THREE, { product: opts.product, size: cur.size, finish: cur.finish, base: cur.base, state: cur.state, textures: opts.textures }).then(function (m) {
+        return build(THREE, { product: opts.product, size: cur.size, finish: cur.finish, base: cur.base, state: cur.state, textures: opts.textures, texDir: opts.texDir, texRes: opts.texRes }).then(function (m) {
           if (!alive || my !== gen) { m.dispose(); return; }   // поки вантажилось, вибір змінився або перегляд закрили
           if (model) { scene.remove(model.group); model.dispose(); }
           if (scene.environment) scene.environment.dispose();
@@ -810,5 +797,5 @@
   }
 
   root.Aluma3D = { build: build, studio: studio, interior: interior, frame: frame, swatch: swatch, mount: mount,
-                   gradePixel: gradePixel, FINISHES: FINISHES, PRODUCTS: Object.keys(PRODUCTS) };
+                   FINISHES: FINISHES, PRODUCTS: Object.keys(PRODUCTS) };
 })(typeof window !== 'undefined' ? window : this);

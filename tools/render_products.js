@@ -1,7 +1,7 @@
 // Картинки каталогу ALUMA однією командою -> site/assets/products + поле images у catalog/products.json.
 //
-//   node tools/render_products.js                   усі товари й свотчі: AVIF/WebP/JPG + products.json
-//   node tools/render_products.js tavor sahar       лише ці товари (finishes — лише свотчі)
+//   node tools/render_products.js                   усі товари: AVIF/WebP/JPG + products.json
+//   node tools/render_products.js tavor sahar       лише ці товари
 //   --preview [--frames=a,b]  лише звірка ракурсів: ½ сторони, 12 семплів, renders-master/preview; каталог не чіпає
 //   --reuse        не рендерити Blender, якщо майстер PNG уже є    --samples=48   семпли Cycles (+ OIDN)
 //
@@ -10,10 +10,10 @@
 //                     (типово /opt/ihor/aluma-table/tmp/figma-ai, не в git): <товар>-<кадр>-v1.png;
 //                     кожен звірено з моделлю (ніжки, опори, форма, пропорції) — docs/ASSETS.md;
 //   source "render" — Blender Cycles (tools/blender_scene.py) над геометрією aluma3d.js: низький ракурс, розкладений;
-//   свотчі тонувань — three.js-сцена tools/render_products.html (file://, без власного порту).
+//   зразки тонів — шматки справжніх сканів шпону, їх робить tools/oak_tones.py (не цей скрипт).
 // Широкий кадр 16:9 (<товар>-wide-v1.png, якщо є) — поле товару wide, не в images.
 // Вихід: site/assets/products/<id>/<кадр>-{<ширина>,800[,400 — hero, angle]}.{avif,webp} + <кадр>-<ширина>.jpg — у рідній ширині
-// майстра, без збільшення; site/assets/products/finishes/<тонування>.{avif,webp,jpg}.
+// майстра, без збільшення.
 // Герой AVIF ≤ 180 КБ: якість знижується, поки файл не влізе.
 
 const { chromium } = require('playwright');
@@ -124,7 +124,7 @@ const WIDE_RENDER = {
   sahar: { az: 26, eye: 1.3, lens: 85, margin: 0.5, sun: 7.0, window: 180, hdri_strength: 0.18 }
 };
 // Тонування рендером (карусель Meta, сесія 4): той самий кадр, камера й світло, міняється лише матеріал стола —
-// альбедо шпону, пофарбоване gradePixel з aluma3d.js (як свотч і 3D на сторінці), а не готовий кадр.
+// справжній скан шпону цього тону (tools/oak_tones.py — ті самі файли, що зразок і 3D на сторінці), а не готовий кадр.
 // Файли finish-<тонування>-{800,1600}.{avif,webp} і -1600.jpg; у images не йдуть.
 const FINISH_SET = { tavor: 'hero' };
 // Вертикальні кадри 9:16 для Reels (сесія 4): та сама сцена, світло й камера, що в кадру; 1080×1920, лише JPG
@@ -215,27 +215,6 @@ function encode(src, dstBase, W, hero, widths) {
   run('convert', [src, '-resize', W + 'x', '-strip', '-sampling-factor', '4:2:0', '-interlace', 'JPEG', '-quality', '82', `${dstBase}-${W}.jpg`]);
 }
 
-// Альбедо тонування для Blender: natural-albedo-2048 через gradePixel сторінки (той самий код, що свотчі й 3D).
-async function finishAlbedo(page, finish) {
-  const out = path.join(ROOT, 'renders-master', 'textures', `catalog-${finish}-albedo-2048.png`);
-  if (fs.existsSync(out)) return out;
-  const url = await page.evaluate(async f => {
-    const im = new Image();
-    await new Promise((res, rej) => { im.onload = res; im.onerror = () => rej(new Error('albedo')); im.src = '../renders-master/textures/natural-albedo-2048.jpg'; });
-    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
-    const x = c.getContext('2d'); x.drawImage(im, 0, 0);
-    const d = x.getImageData(0, 0, c.width, c.height), q = d.data;
-    for (let i = 0; i < q.length; i += 4) {
-      const o = window.Aluma3D.gradePixel(f, q[i] / 255, q[i + 1] / 255, q[i + 2] / 255);
-      q[i] = o[0] * 255; q[i + 1] = o[1] * 255; q[i + 2] = o[2] * 255;
-    }
-    x.putImageData(d, 0, 0);
-    return c.toDataURL('image/png');
-  }, finish);
-  fs.writeFileSync(out, Buffer.from(url.split(',')[1], 'base64'));
-  return out;
-}
-
 async function openPage() {
   const browser = await chromium.launch({ args: [
     '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist',
@@ -249,8 +228,8 @@ async function openPage() {
 }
 
 (async () => {
-  if (!fs.existsSync(path.join(ROOT, 'renders-master', 'textures', 'oak-normal-2048.jpg'))) {
-    throw new Error('немає renders-master/textures — python3 tools/fetch_assets.py && python3 tools/bake_textures.py');
+  if (!fs.existsSync(path.join(ROOT, 'renders-master', 'textures', 'tone-black-albedo-2048.jpg'))) {
+    throw new Error('немає renders-master/textures — python3 tools/fetch_assets.py && python3 tools/bake_textures.py && python3 tools/oak_tones.py');
   }
   const catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8'));
   const { browser, page } = await openPage();
@@ -317,7 +296,6 @@ async function openPage() {
         // натуральний — це сам кадр героя, другий рендер не потрібен
         let src = path.join(pdir, (fin.id === hero.finish ? hero.name : f.name) + '.png');
         if (!(opt.reuse && fs.existsSync(src)) && !(fin.id === hero.finish && !opt.preview)) {
-          if (fin.id !== 'natural') f.albedo = await finishAlbedo(page, fin.id);
           const g = await page.evaluate(j => window.geo(j), { product: p.id, size: sizeFor(p), base: f.base, state: 'closed' });
           const geoFile = path.join(pdir, f.name + '.geo.json');
           fs.mkdirSync(pdir, { recursive: true });
@@ -386,22 +364,5 @@ async function openPage() {
     p.model3d = 'assets/products/aluma3d.js';
   }
   if (!opt.preview) fs.writeFileSync(CATALOG, JSON.stringify(catalog, null, 2) + '\n');
-  if (!opt.preview && (!only.length || only.includes('finishes'))) await swatches(page, catalog[0].finishes.map(f => f.id));
   await browser.close();
 })().catch(e => { console.error(e); process.exit(1); });
-
-// Свотчі тонувань: дощечка 60×60 згори під скісним світлом (three.js) — спільні для всіх товарів.
-async function swatches(page, finishes) {
-  for (const f of finishes) {
-    const r = await page.evaluate(j => window.shot(j), { scene: 'swatch', finish: f, w: 480, h: 480, view: { az: 0, el: 89, fov: 20, margin: -0.9 } });
-    const file = path.join(MASTER, 'finishes', f + '.png');
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, Buffer.from(r.png.split(',')[1], 'base64'));
-    const dst = path.join(OUT, 'finishes', f);
-    fs.mkdirSync(path.dirname(dst), { recursive: true });
-    run('convert', [file, '-resize', '240x', '-strip', '-quality', '55', dst + '.avif']);
-    run('convert', [file, '-resize', '240x', '-strip', '-quality', '80', dst + '.webp']);
-    run('convert', [file, '-resize', '240x', '-strip', '-quality', '84', dst + '.jpg']);
-    console.log('finishes/' + f);
-  }
-}

@@ -11,7 +11,7 @@
 //   job: { product, size, finish, base, state, scene: 'studio'|'interior'|'swatch', view: {az, el, fov, margin, shiftY, lift},
 //          w, h, bg, exposure, light: {...} — параметри studio()/interior() }
 const TEXDIR = '../renders-master/textures/';
-const TEXTURES = { albedo: TEXDIR + 'natural-albedo-2048.jpg', normal: TEXDIR + 'oak-normal-2048.jpg', rough: TEXDIR + 'oak-rough-2048.jpg' };
+const TEX = { texDir: TEXDIR, texRes: '2048' };   // файли тонів tools/oak_tones.py — ті самі, що в Blender
 let renderer = null;
 
 function ensure(w, h, bg, exposure) {
@@ -33,10 +33,10 @@ window.shot = async function (job) {
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, job.w / job.h, 0.05, 60);
   let model;
   if (job.scene === 'swatch') {
-    model = await Aluma3D.build(THREE, { product: 'tal', size: { length_cm: 60, width_cm: 60, height_cm: 4, label: 'swatch' }, finish: job.finish, base: 'oak', textures: TEXTURES });
+    model = await Aluma3D.build(THREE, { product: 'tal', size: { length_cm: 60, width_cm: 60, height_cm: 4, label: 'swatch' }, finish: job.finish, base: 'oak', texDir: TEX.texDir, texRes: TEX.texRes });
   } else {
     model = await Aluma3D.build(THREE, { product: job.product, size: job.size, finish: job.finish, base: job.base, state: job.state,
-      textures: TEXTURES, decor: job.scene === 'interior' });
+      texDir: TEX.texDir, texRes: TEX.texRes, decor: job.scene === 'interior' });
   }
   scene.add(model.group);
   if (job.scene === 'interior') Aluma3D.interior(THREE, scene, renderer, model, job.light || {});
@@ -62,7 +62,7 @@ window.shot = async function (job) {
 // Вершини — у світових координатах three (Y вгору, метри), UV — світові, як у Builder (TILE 1.2 м).
 window.geo = async function (job) {
   const model = await Aluma3D.build(THREE, { product: job.product, size: job.size, finish: 'natural', base: job.base,
-    state: job.state, textures: TEXTURES });
+    state: job.state, texDir: TEX.texDir, texRes: TEX.texRes });
   model.group.updateMatrixWorld(true);
   const keyOf = new Map();
   model.group.children.forEach(o => { if (o.isMesh && o.name) keyOf.set(o.material, o.name); });

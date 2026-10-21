@@ -35,6 +35,12 @@ PAGES = SITE / "pages"
 DIST = ROOT / "dist"
 I18N = ROOT / "i18n"
 CATALOG = pathlib.Path(os.environ.get("ALUMA_CATALOG") or (ROOT / "catalog" / "products.json"))
+# Зразки тонів: шматок справжнього скану шпону (tools/oak_tones.py, «הדמיה») — або ФОТО зразка з фабрики.
+# Фото кладемо сюди як <тон>.jpg (tools/oak_tones.py --factory фото.jpg <тон>): воно заміняє скан, і коли
+# фото є для всіх тонів товару, підпис «הדמיה» біля зразків зникає. README.md поруч.
+FINISH_SCANS = SITE / "assets" / "products" / "finishes"
+FINISH_PHOTOS = FINISH_SCANS / "photo"
+FINISH_PHOTO_MAX = 60 * 1024
 
 PRODUCTION = "--production" in sys.argv
 CONTENT = json.loads((ROOT / "content.json").read_text(encoding="utf-8"))
@@ -297,6 +303,28 @@ def media(p: dict, loc: str, *, eager: bool = False, sizes: str = "100vw") -> st
     return f'<div class="media media--tile">{silhouette(p)}</div>'
 
 
+def finish_chip(f: dict) -> tuple:
+    """(style для зразка, чи це фото з фабрики). Колір каталогу — підкладка, поки вантажиться картинка."""
+    hexv = f.get("hex") if re.fullmatch(r"#[0-9a-fA-F]{3,8}", str(f.get("hex") or "")) else "#c8a27a"
+    fid = str(f.get("id") or "")
+    if not re.fullmatch(r"[a-z0-9-]+", fid):
+        return f"--c:{hexv}", False
+    photo = FINISH_PHOTOS / f"{fid}.jpg"
+    if photo.is_file():
+        if photo.stat().st_size > FINISH_PHOTO_MAX:
+            raise SystemExit(f"photo/{photo.name}: більше {FINISH_PHOTO_MAX // 1024} КБ — "
+                             "пропустіть через tools/oak_tones.py --factory")
+        return f"--c:{hexv};--i:url(/assets/products/finishes/photo/{fid}.jpg)", True
+    if (FINISH_SCANS / f"{fid}.webp").is_file():
+        return f"--c:{hexv};--i:url(/assets/products/finishes/{fid}.webp)", False
+    return f"--c:{hexv}", False
+
+
+def finishes_viz(fins: list) -> bool:
+    """Чи є серед зразків хоч один не-фото (тоді група підписана «הדמיה»)."""
+    return any(not finish_chip(f)[1] for f in fins)
+
+
 def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
     """Картка товару: фото 4:5 (другий кадр — при наведенні), назва, ціна «מ־₪», кружки тонувань."""
     est = ' <small class="est">{{t.price_estimate_short}}</small>' if p.get("preliminary") else ""
@@ -311,7 +339,7 @@ def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
                f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></span>')
     else:
         pic = f'<span class="media media--tile card-media">{silhouette(p)}</span>'
-    dots = "".join(f'<span class="card-dot" style="--c:{esc(f.get("hex") or "#ccc")}" title="{esc(L(f.get("name"), loc))}"></span>'
+    dots = "".join(f'<span class="card-dot" style="{esc(finish_chip(f)[0])}" title="{esc(L(f.get("name"), loc))}"></span>'
                    for f in (p.get("finishes") or [])[:6] if f.get("hex"))
     names = ", ".join(esc(L(f.get("name"), loc)) for f in (p.get("finishes") or [])[:6] if f.get("hex"))
     sw = (f'<span class="card-dots" role="img" aria-label="{{{{t.finishes_label}}}}: {names}">{dots}</span>' if dots else "")
@@ -371,14 +399,11 @@ def configurator(p: dict, loc: str) -> str:
         out.append('<fieldset class="opt" data-opt="finish"><legend>{{t.pick_finish}} <span class="opt-val" data-finish-name>'
                    + first + '</span></legend><div class="swatches">')
         for i, f in enumerate(fins):
-            hexv = f.get("hex") or "#c8a27a"
-            if not re.fullmatch(r"#[0-9a-fA-F]{3,8}", hexv):
-                hexv = "#c8a27a"
             name = esc(L(f.get("name"), loc))
             out.append(f'<label class="swatch" title="{name}"><input type="radio" name="finish" value="{esc(f.get("id"))}"'
-                       f' data-name="{name}"{" checked" if i == 0 else ""}><span class="swatch-dot" style="--c:{hexv}"></span>'
+                       f' data-name="{name}"{" checked" if i == 0 else ""}><span class="swatch-dot" style="{esc(finish_chip(f)[0])}"></span>'
                        f'<span class="sr">{name}</span></label>')
-        out.append("</div></fieldset>")
+        out.append("</div>" + ('<span class="swatch-viz">{{t.viz_tag}}</span>' if finishes_viz(fins) else "") + "</fieldset>")
     bases = p.get("bases") or []
     if bases:
         out.append('<fieldset class="opt" data-opt="base"><legend>{{t.pick_base}}</legend><div class="pills pills--text">')
@@ -723,9 +748,11 @@ def main() -> None:
             f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure>' if tex else "")
         tones = []
         for f in (hero_p.get("finishes") or []):
-            hexv = f.get("hex") if re.fullmatch(r"#[0-9a-fA-F]{3,8}", str(f.get("hex") or "")) else "#c8a27a"
-            tones.append(f'<li><span class="swatch-dot" style="--c:{hexv}" aria-hidden="true"></span>{esc(L(f.get("name"), loc))}</li>')
-        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>' if tones else ""
+            tones.append(f'<li><span class="swatch-dot" style="{esc(finish_chip(f)[0])}" aria-hidden="true"></span>{esc(L(f.get("name"), loc))}</li>')
+        # «הדמיה» — під списком, а не пунктом: у списку лише тони (redesign.spec.js рахує li = тони каталогу)
+        viz = ('<span class="swatch-viz mat-viz">{{t.viz_tag}}</span>'
+               if tones and finishes_viz(hero_p.get("finishes") or []) else "")
+        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>{viz}' if tones else ""
 
         def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str, alt_path: str):
             toks = {**base_tokens, **tokens}
