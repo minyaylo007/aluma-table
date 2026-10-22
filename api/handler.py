@@ -673,25 +673,29 @@ def _money(n: int) -> str:
     return f"₪{n:,}"
 
 
-def _catalog_name(options, wanted: str) -> str:
-    """Ім'я тону/основи з каталогу (іврит, як на сайті); нема в каталозі — сам id."""
+def _catalog_name(options, wanted: str, lang: str = "he") -> str:
+    """Ім'я тону/основи з каталогу мовою заявки (нема перекладу — іврит, як на сайті); нема в каталозі — сам id."""
     for o in options or ():
         if isinstance(o, dict) and o.get("id") == wanted and isinstance(o.get("name"), dict):
-            return o["name"].get("he") or wanted
+            return o["name"].get(lang) or o["name"].get("he") or wanted
     return wanted
 
 
-def describe_item(slug: str, size: str, finish: str = "", base: str = "", qty: int = 0) -> tuple[str, int]:
-    """«TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490» і сума рядка (0 — невідома)."""
+def describe_item(slug: str, size: str, finish: str = "", base: str = "", qty: int = 0,
+                  lang: str = "he") -> tuple[str, int]:
+    """«TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490» і сума рядка (0 — невідома).
+
+    Тон і основа — мовою заявки (аудит 22.10: «відповісти російською», а тон на івриті).
+    """
     p = CATALOG.get(slug) or {}
     name = p["name"].get("en") if isinstance(p.get("name"), dict) else ""
     sz = next((x for x in p.get("sizes") or () if isinstance(x, dict) and x.get("label") == size), None) or {}
     size_txt = size + (f" → {sz['extended_cm']}" if sz.get("extended_cm") else "")
     parts = [f"{name or slug} {size_txt}".strip()]
     if finish:
-        parts.append(_catalog_name(p.get("finishes"), finish))
+        parts.append(_catalog_name(p.get("finishes"), finish, lang))
     if base:
-        parts.append(_catalog_name(p.get("bases"), base))
+        parts.append(_catalog_name(p.get("bases"), base, lang))
     text = " · ".join(x for x in parts if x)
     if qty:
         text += f" × {qty}"
@@ -730,12 +734,12 @@ def lead_message(item) -> str:
     if cart:
         for part in cart.split(";"):
             slug, size, finish, base, qty = (part.split(":") + ["", "", "", "", ""])[:5]
-            text, amount = describe_item(slug, size, finish, base, int(qty) if qty.isdigit() else 1)
+            text, amount = describe_item(slug, size, finish, base, int(qty) if qty.isdigit() else 1, lang)
             computed += amount
             lines.append(f"🛒 {text}")
     elif item.get("product_id"):
         text, _ = describe_item(item["product_id"], item.get("size_label") or "",
-                                item.get("finish_id") or "", item.get("base_id") or "")
+                                item.get("finish_id") or "", item.get("base_id") or "", lang=lang)
         lines.append(f"🪵 {text}")
     elif item.get("size") or item.get("color"):
         lines.append("🪵 " + " · ".join(str(x) for x in (item.get("size"), item.get("color")) if x))
@@ -746,13 +750,14 @@ def lead_message(item) -> str:
     if comment:
         lines.append(f"✏️ {comment}")
 
-    lines += [
-        "",
-        f"Страница: {_line(item.get('page'))} · источник: {item.get('lead_source') or '—'}",
-        f"utm_source={_line(item.get('utm_source'))} utm_campaign={_line(item.get('utm_campaign'))}",
-        f"consent_marketing={'yes' if item.get('consent_marketing') else 'no'}",
-        f"time={item.get('ts', '')}  id={item.get('id', '')}",
-    ]
+    lines += ["", f"Страница: {_line(item.get('page'))} · источник: {item.get('lead_source') or '—'}"]
+    # аудит 22.10: порожні utm не друкуємо; згода на розсилку — лише «так», «ні» до запуску розсилок — шум
+    utm = " ".join(f"{k}={_line(item.get(k))}" for k in ("utm_source", "utm_campaign") if _line(item.get(k)))
+    if utm:
+        lines.append(utm)
+    if item.get("consent_marketing"):
+        lines.append("Рассылка: да")
+    lines.append(f"time={item.get('ts', '')}  id={item.get('id', '')}")
     text = "\n".join(lines)
     return text if len(text) <= TELEGRAM_TEXT_MAX else text[:TELEGRAM_TEXT_MAX - 1] + "…"
 

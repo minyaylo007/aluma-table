@@ -480,7 +480,8 @@ class NotifyTests(HandlerTestCase):
         self.assertRegex(text, r"(?m)^🪵 220 · smoked$")     # стара заявка без product_id — розмір і колір як є
         self.assertEqual(text.splitlines()[1], "Ответить: на иврите")
         self.assertRegex(text, r"(?m)^Страница: / · ")
-        self.assertIn("consent_marketing=yes", text)
+        self.assertRegex(text, r"(?m)^Рассылка: да$")
+        self.assertRegex(text, r"(?m)^utm_source=fb utm_campaign=c1$")
         self.assertIn("abc123def456", text)
         self.assertIn(h.SITE_DOMAIN, text)
         self.assertNotIn("parse_mode", rec.calls[0]["json"])  # без розмітки: нема чого ламати екрануванням
@@ -494,7 +495,9 @@ class NotifyTests(HandlerTestCase):
         text = rec.texts[0]
         self.assertTrue(text.startswith("בקשה לאישור הזמנה — "))
         self.assertEqual(text.splitlines()[1], "Ответить: по-русски")
-        self.assertIn("🛒 TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490", text)
+        # заявка російською — тон і основа російською з каталогу (аудит 22.10)
+        self.assertIn("🛒 TAVOR 160×90 → 240 · Натуральный дуб · Дубовые ножки × 1 — ₪4,490", text)
+        self.assertNotRegex(text.split("🛒", 1)[1].splitlines()[0], r"[֐-׿]")
         self.assertRegex(text, r"(?m)^Итого: ₪4,490$")
         self.assertRegex(text, r"(?m)^Когда: сейчас · Связь: WhatsApp$")
         self.assertRegex(text, r"(?m)^📍 חיפה$")
@@ -561,9 +564,31 @@ class NotifyTests(HandlerTestCase):
         rec = TelegramRecorder()
         self.notify_once(rec, self.sample_item(consent_marketing=False, lang="en", page="/en/"))
         text = rec.texts[0]
-        self.assertIn("consent_marketing=no", text)
+        self.assertNotIn("consent_marketing", text)   # «ні» не друкуємо — до запуску розсилок це шум
+        self.assertNotIn("Рассылка", text)
         self.assertEqual(text.splitlines()[1], "Ответить: по-английски")
         self.assertRegex(text, r"(?m)^Страница: /en/ · ")
+
+    def test_empty_utm_is_not_printed(self):
+        """Аудит 22.10: «utm_source= utm_campaign=» з порожніми значеннями — не друкуємо; одне — лише його."""
+        text = h.lead_message(self.sample_item(utm_source="", utm_campaign=None))
+        self.assertNotIn("utm_", text)
+        text = h.lead_message(self.sample_item(utm_source=" ", utm_campaign="launch"))
+        self.assertRegex(text, r"(?m)^utm_campaign=launch$")
+        self.assertNotIn("utm_source", text)
+
+    def test_finish_and_base_in_the_language_of_the_lead(self):
+        for lang, line in (("he", "TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון"),
+                           ("en", "TAVOR 160×90 → 240 · Natural oak · Oak legs"),
+                           ("ru", "TAVOR 160×90 → 240 · Натуральный дуб · Дубовые ножки"),
+                           ("", "TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון")):   # мова невідома — іврит, як на сайті
+            text = h.lead_message(self.sample_item(lang=lang, product_id="tavor", size_label="160×90",
+                                                   finish_id="natural", base_id="oak"))
+            self.assertIn(f"🪵 {line} — ₪4,490", text, lang)
+        # перекладу нема — іврит; нема в каталозі — id
+        cat = {"x": {"name": {"en": "X"}, "sizes": [], "finishes": [{"id": "f", "name": {"he": "גוון"}}], "bases": []}}
+        with mock.patch.object(h, "CATALOG", cat):
+            self.assertEqual(h.describe_item("x", "1", "f", "zz", lang="ru")[0], "X 1 · גוון · zz")
 
     def test_never_raises_when_telegram_is_down(self):
         self.assertIsNone(self.notify_once(TelegramRecorder(fail=True), self.sample_item()))
