@@ -195,7 +195,7 @@ python3 build.py                                      # dist/ must exist
 ss -ltn | grep ':8007 '                               # must print nothing
 TMPDIR=/tmp timeout 30m systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=2G \
   heavy --label aluma -- env PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright \
-  npx playwright test --config tests/playwright.smoke.config.js    # → SMOKE_RESULT
+  npx playwright test --config tests/playwright.smoke.config.js    # → 6 passed
 ss -ltn | grep ':8007 '                               # nothing again; the temp db is gone
 ```
 
