@@ -26,7 +26,7 @@ from api import funnel, store  # noqa: E402
 from scripts import funnel_digest as fd  # noqa: E402
 
 NAME = "Testname Ivanova"
-PHONE = "+972501234567"
+PHONE = "050-000-PHONEMARK"   # не номер: сканер секретів шукає справжні формати телефонів
 TOKEN = "123456:SECRET-token_value"
 
 
@@ -107,7 +107,7 @@ class DigestTests(unittest.TestCase):
         self.assertIn("fb 1 (1 заяв.)", text)
         self.assertIn("прямые 1", text)
         self.assertIn("после «карточка» 1", text)
-        for word in (NAME, "Testname", PHONE, "501234567"):
+        for word in (NAME, "Testname", PHONE, "PHONEMARK"):
             self.assertNotIn(word, text)
         self.assertLessEqual(len(text), fd.TEXT_MAX)
 
