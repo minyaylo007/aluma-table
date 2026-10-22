@@ -37,7 +37,8 @@
    on the hero text against Arial's 0.449 (measured with fontTools); ascent 1025 / descent 275 on 1000 upm. */
 @font-face { font-family: "Plex Fallback"; src: local("Arial"); size-adjust: 104.5%; ascent-override: 102.5%; descent-override: 27.5%; line-gap-override: 0%; }
 /* Frank Ruhl Libre (OFL), змінна вага 400–500 — заголовки. Латинське обличчя (воно несе й цифри) і кирилиця —
-   у site/assets/fonts-<мова>.css: build.py вбудовує в сторінку лише файл її мови, щоб he не качала чужих облич. */
+   у site/assets/fonts-<мова>.css: build.py вбудовує в сторінку лише файл її мови, щоб he не качала чужих облич.
+   Ліцензія — fonts/OFL-FrankRuhlLibre.txt (Copyright з таблиці name самих .woff2, текст — з github fontef/frankruhllibre). */
 @font-face { font-family: "Frank Ruhl Libre"; font-style: normal; font-weight: 400 500; font-display: swap;
   src: url(/assets/fonts/FrankRuhlLibre-hebrew.woff2) format("woff2");
   unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
@@ -207,6 +208,9 @@ html[lang="ru"] body { hyphens: auto; overflow-wrap: anywhere; }
 html[lang="ru"] .cart-meta { hyphens: manual; overflow-wrap: break-word; }
 /* ru: у заголовках і коротких рядках перенос «са-дятся» виглядає дешево (аудит 22.10 (б) 4) */
 html[lang="ru"] :is(h1, h2, .pdp-tag, .pdp-lead, .pdp-inc li, .foot p) { hyphens: manual; }
+/* ru: дрібний текст про орієнтовну ціну (кошик, оформлення, картка) — «окончатель-ную», «подтвер-ждаем» читаються
+   гірше за рваний край (другий прохід 22.10 (17)) */
+html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 
 /* ---------------------------------------------------------------- секції */
 .sec { padding-block: var(--sec); }
@@ -765,6 +769,8 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after { animati
   @view-transition { navigation: auto; }
   .top { view-transition-name: top; }
   ::view-transition-group(root) { animation-duration: .28s; }
+  /* p-img: фото картки «перелітає» в галерею товару і назад — ім'я ставить вбудований скрипт у site/_layout.html
+     (pageswap/pagereveal), лише там, де є View Transitions; коментар тут, бо в HTML він їхав би в кожну сторінку */
   ::view-transition-group(p-img) { animation-duration: .45s; animation-timing-function: var(--ease); }
 }
 html.a11y-still::view-transition-group(*), html.a11y-still::view-transition-old(*),

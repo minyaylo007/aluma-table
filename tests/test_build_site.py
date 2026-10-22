@@ -394,5 +394,12 @@ class BuiltSiteTests(unittest.TestCase):
         self.assertIn('data-lneed="a11y_email a11y_name a11y_phone"', self.page("accessibility.html"))
 
 
+    def test_no_comments_in_pages(self):
+        # 22.10: коментарі aluma.css (12,9 КБ) і вбудованого скрипта їхали в кожну сторінку кожної мови
+        pages = [f for f in sorted(self.dist.rglob("*")) if f.is_file() and (f.suffix == ".html" or f.suffix == "")]
+        self.assertGreater(len(pages), 20)
+        for f in pages:
+            self.assertNotIn("/*", f.read_text(encoding="utf-8"), f.relative_to(self.dist).as_posix())
+
 if __name__ == "__main__":
     unittest.main()

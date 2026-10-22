@@ -24,7 +24,7 @@
 <meta property="og:locale" content="{{t.locale}}">
 {{JSONLD}}
 {{TRACKING}}
-<script>/* фото картки «перелітає» в галерею товару і назад; лише там, де є View Transitions */(function(){if(!window.PageSwapEvent)return;function pick(u){if(!u)return null;var g=document.querySelector(".gallery .media");if(g&&/\/p\/[^/]+\/$/.test(location.pathname))return g;return document.querySelector('.card-link[href="'+new URL(u).pathname+'"] .card-media')}function tag(t,u){var e=t&&pick(u);if(!e)return;e.style.viewTransitionName="p-img";t.finished.finally(function(){e.style.viewTransitionName=""})}addEventListener("pageswap",function(e){tag(e.viewTransition,e.activation&&e.activation.entry.url)});addEventListener("pagereveal",function(e){var a=window.navigation&&navigation.activation;tag(e.viewTransition,a&&a.from&&a.from.url)})})();</script>
+<script>(function(){if(!window.PageSwapEvent)return;function pick(u){if(!u)return null;var g=document.querySelector(".gallery .media");if(g&&/\/p\/[^/]+\/$/.test(location.pathname))return g;return document.querySelector('.card-link[href="'+new URL(u).pathname+'"] .card-media')}function tag(t,u){var e=t&&pick(u);if(!e)return;e.style.viewTransitionName="p-img";t.finished.finally(function(){e.style.viewTransitionName=""})}addEventListener("pageswap",function(e){tag(e.viewTransition,e.activation&&e.activation.entry.url)});addEventListener("pagereveal",function(e){var a=window.navigation&&navigation.activation;tag(e.viewTransition,a&&a.from&&a.from.url)})})();</script>
 <script src="/assets/aluma.js" defer></script>
 <script src="/assets/shop.js" defer></script>
 </head>
