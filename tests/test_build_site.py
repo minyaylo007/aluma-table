@@ -78,16 +78,21 @@ class BuiltSiteTests(unittest.TestCase):
                         self.assertIn(f'<div class="viewer3d" id="{vid}" hidden>', html)
                         self.assertEqual('data-state="open"' in html, any(sz.get("extended_cm") for sz in p["sizes"]))
 
-    def test_estimate_word_next_to_the_price(self):
-        # аудит 22.10 (г) 1: реклама обіцяє «מחיר משוער» — слово стоїть у рядку під ціною, до плиток розмірів
-        word = {"": "מחיר משוער", "en/": "estimate", "ru/": "ориентировочно"}
+    def test_series_caption_next_to_the_price(self):
+        # хвиля 1 (22.10): ціна тверда — під нею «מחיר השקה לסדרה הראשונה», у товарів серії (SERIES_PRODUCTS) —
+        # ще й розмір серії з content.json; «משוער» про ціну — ніде; рядок — до плиток розмірів
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        series = [x.strip() for x in content["SERIES_PRODUCTS"].split(",")]
         for p in PRODUCTS:
-            for prefix, w in word.items():
+            for lang, prefix in DIST_PREFIX.items():
+                t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     incl = re.search(r'<span class="price-incl">([^<]*)</span>', html)
                     self.assertIsNotNone(incl)
-                    self.assertIn(w, incl.group(1))
+                    want = t["series_price_n" if p["slug"] in series else "series_price"]
+                    self.assertEqual(incl.group(1), want.replace("{{SERIES_SIZE}}", content["SERIES_SIZE"]))
+                    self.assertIsNone(re.search(r"משוער|estimate|ориентировоч", incl.group(1), re.I))
                     self.assertLess(incl.start(), html.index('name="size"'), "рядок під ціною — над плитками")
 
     def test_cart_thumbnail_is_the_smallest_frame(self):
@@ -115,7 +120,9 @@ class BuiltSiteTests(unittest.TestCase):
                     inc = re.search(r'<section class="pdp-inc".*?</section>', html, re.S)
                     self.assertIsNotNone(inc)
                     dining = p["category"] == "dining_table"
-                    self.assertEqual(inc.group(0).count("<li>"), 5 + bool(p.get("seats")) + dining)
+                    # + гарантія (хвиля 1, WARRANTY_MONTHS)
+                    self.assertEqual(inc.group(0).count("<li>"), 6 + bool(p.get("seats")) + dining)
+                    self.assertRegex(inc.group(0), rf"\b{content['WARRANTY_MONTHS']}\b")
                     if p.get("seats"):
                         lo, hi = p["seats"]["closed"][0], p["seats"]["extended"][-1]
                         self.assertIn(f'<bdi dir="ltr">{lo}', inc.group(0))
@@ -142,18 +149,28 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertEqual(inc.count(only), int(p["category"] == "dining_table"))
                     self.assertIn(own, inc)
 
-    def test_card_says_price_is_estimated_like_the_ads(self):
-        # аудит 22.10 (в) 1: реклама обіцяє «מחיר משוער (טרם אושר)» — картка каже те саме рядком price_est над кнопкою
-        word = {"he": "משוער", "en": "Estimated", "ru": "Ориентировочная"}
+    def test_card_shows_delivery_terms_and_lead_cta_under_the_price(self):
+        # хвиля 1 (22.10): під ціною — «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 (· הרכבה עצמית)», ціни — з
+        # content.json; кнопка «השאירו פרטים» → #register ще до плиток (перший екран телефона); «משוער» про ціну — ні
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        assembly = [x.strip() for x in content["ASSEMBLY_PRODUCTS"].split(",")]
+        fee = {"he": f"₪{int(content['DELIVERY_ILS']):,}", "en": f"₪{int(content['DELIVERY_ILS']):,}",
+               "ru": f"{int(content['DELIVERY_ILS']):,}".replace(",", "\u00a0") + "\u00a0₪"}
         for lang, prefix in DIST_PREFIX.items():
-            est = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))["price_est"]
-            self.assertIn(word[lang], est)
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
             for p in PRODUCTS:
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 buy = re.search(r'<div class="pdp-buy">.*?<div class="pdp-actions">', html, re.S).group(0)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
-                    self.assertGreaterEqual(buy.count(word[lang]), 1)
-                    self.assertIn(f'<p class="pdp-est muted small">{est}</p>', buy)
+                    terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', buy, re.S).group(1)
+                    self.assertIn(t["ship_pickup"], terms)
+                    self.assertIn(t["ship_door"] + " — " + fee[lang], terms)
+                    self.assertEqual(terms.count("<li>"), 3 if p["slug"] in assembly else 2)
+                    ask = re.search(r'<a class="btn[^"]*pdp-ask" href="#register"[^>]*>([^<]+)</a>', buy)
+                    self.assertEqual(ask.group(1), t["ask_cta"])
+                    self.assertLess(ask.start(), buy.index('name="size"'))
+                    self.assertIsNone(re.search(r"מחיר משוער|[Ee]stimated price|[Оо]риентировочная цена", buy))
+                    self.assertIn(f'<p class="pdp-est muted small">{t["price_est"]}</p>', buy)
 
     def test_round_table_tile_reads_like_the_cart(self):
         # аудит 22.10 (б) 5: розмір із підписом «Ø…» на плитці — той самий «Ø115», що в кошику й рекламі, без висоти
@@ -317,24 +334,33 @@ class BuiltSiteTests(unittest.TestCase):
                 for banned in ("aggregateRating", "review", "Review"):
                     self.assertNotIn(banned, json.dumps(ld), f"{p['slug']}: вигаданий рейтинг у schema.org")
 
-    def test_preliminary_prices_carry_the_estimate_mark_in_cart_and_payment(self):
-        # specs/003: чесна дрібна примітка — у кошику й на екрані оплати; з аудиту 22.10 (в) 1 — і на картці
-        # (не в самій .pdp-price, а рядком над кнопкою — test_card_says_price_is_estimated_like_the_ads)
-        if not any(p.get("preliminary") for p in PRODUCTS):
-            self.skipTest("усі ціни підтверджені")
-        for rel in ("cart/", "checkout/"):
-            self.assertIn("מחיר משוער, טרם אושר", self.page(rel), rel)
-            self.assertIn("not yet confirmed", self.page("en/" + rel).lower(), rel)
-            self.assertIn("ещё не подтверждена", self.page("ru/" + rel), rel)
-        for p in PRODUCTS:
-            price = re.search(r'<div class="pdp-price">.*?</div>', self.page(f"p/{p['slug']}/"), re.S).group(0)
-            self.assertNotIn("טרם אושר", price, p["slug"])
+    def test_cart_and_checkout_offer_pickup_or_door_and_promise_no_payment(self):
+        # хвиля 1 (22.10): у кошику й на кроці «משלוח» — вибір самовивіз / до дверей (shop.js рахує суму з
+        # DATA.ship); над кроком оплати — «נחזור תוך יום עסקים… בלי תשלום עכשיו»; «טרם אושר» — ніде
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for rel in ("cart/", "checkout/"):
+                html = self.page(prefix + rel)
+                with self.subTest(page=prefix + rel):
+                    self.assertEqual(re.findall(r'<input type="radio" name="ship" value="(\w+)">', html), ["door", "pickup"])
+                    for k in ("data-sum-goods", "data-sum-ship"):
+                        self.assertIn(k, html)
+                    self.assertNotIn("טרם אושר", html)
+                    self.assertIn(t["cart_fine"], html)
+            self.assertIn(t["reg_promise"], self.page(prefix + "checkout/"))
+            self.assertIn(t["reg_promise"], self.page(prefix))
+            data = json.loads(re.search(r'<script type="application/json" id="aluma-data">(.*?)</script>',
+                                        self.page(prefix + "cart/"), re.S).group(1))
+            self.assertEqual(data["ship"], {"pickup": int(content["PICKUP_ILS"]), "door": int(content["DELIVERY_ILS"])})
 
     def test_no_lead_weeks_early_registration_or_free_promise(self):
-        # specs/003: «10–12 שבועות» → «זמן אספקה מדויק — באישור ההזמנה»; без «הרשמה מוקדמת» і «ללא תשלום וללא התחייבות»
+        # specs/003: «10–12 שבועות» → «זמן אספקה מדויק — באישור ההזמנה»; без «הרשמה מוקדמת» і «ללא תשלום וללא התחייבות».
+        # Хвиля 1 (22.10): тижні — лише чесною оцінкою першої серії («אספקה משוערת 10–12 שבועות»), не в блоці купівлі
         for rel, html in self.all_html():
             text = re.sub(r"<script\b.*?</script>|<[^>]+>", " ", html, flags=re.S)
-            self.assertIsNone(re.search(r"\d+\s*[–-]\s*\d+\s*(שבועות|weeks)", text), rel)
+            for m in re.finditer(r"\d+\s*[–-]\s*\d+\s*(שבועות|weeks|недель)", text):
+                self.assertRegex(text[max(0, m.start() - 40):m.start()], r"אספקה משוערת|estimated delivery|срок поставки", rel)
             for phrase in ("הרשמה מוקדמת", "ללא תשלום וללא התחייבות", "Early registration", "No payment, no commitment"):
                 self.assertNotIn(phrase, text, rel)
         for p in PRODUCTS:
@@ -370,11 +396,14 @@ class BuiltSiteTests(unittest.TestCase):
             self.assertIsNone(re.search(r">\s*(קנה|קנו|Buy now)\s*<", html), f"{rel}: кнопка «купити»")
 
     def test_no_launch_discount_promise(self):
-        # знижки для перших нема — ціни лише «משוער · טרם אושר»
+        # «מחיר השקה לסדרה הראשונה» (хвиля 1) — ціна серії, не знижка: ні «было», ні закреслених, ні відсотків,
+        # ні «залишилось N», ні таймерів (§15 חוק הגנת הצרכן)
         for rel, html in self.all_html():
-            text = re.sub(r"<[^>]+>", " ", html)
-            for phrase in ("מחיר השקה", "מחיר ההשקה", "launch price"):
-                self.assertFalse(phrase in text, f"{rel}: «{phrase}»")
+            text = re.sub(r"<script\b.*?</script>|<[^>]+>", " ", html, flags=re.S)
+            self.assertIsNone(re.search(r"<(s|del|strike)\b", html), f"{rel}: закреслена ціна")
+            for pat in (r"הנחה", r"במקום ₪", r"\d+\s*%\s*(הנחה|off)", r"discount", r"скидк", r"\bбыло\b", r"נותרו \d",
+                        r"only \d+ left", r"осталось \d", r"מקבלים מחיר השקה"):
+                self.assertIsNone(re.search(pat, text, re.I), f"{rel}: «{pat}»")
             # «справжній дуб» заголовком двозначний — у нас шпон; у FAQ пояснення шару шпону лишається
             self.assertIsNone(re.search(r">\s*(אלון אמיתי|Real oak)\s*<", html), f"{rel}: «אלון אמיתי» заголовком")
 

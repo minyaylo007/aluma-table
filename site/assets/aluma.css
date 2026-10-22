@@ -539,12 +539,20 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .pdp-h1 { font-size: 2.2rem; }
   .pdp-tag { margin-block-start: 4px; font-size: 1rem; }
   .pdp-price { margin-block: 12px 2px; padding-block-start: 12px; row-gap: 0; }
-  .pdp-price .price-incl { line-height: 1.3; } /* en/ru «estimate · incl.…» — окремим рядком, плитки не з'їжджають під банер */
+  .pdp-price .price-incl { line-height: 1.3; } /* «מחיר השקה לסדרה הראשונה · 12 שולחנות» — окремим рядком, плитки не з'їжджають під банер */
   .price { font-size: 2rem; }
 }
 .price { font-size: 2.2rem; line-height: 1; }
+/* «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 · הרכבה» — один рядок через «·», на вузькому переноситься по пунктах */
+.pdp-terms { display: flex; flex-wrap: wrap; gap: 2px 0; margin: 4px 0 0; padding: 0; list-style: none; font-size: .88rem; color: var(--muted); }
+.pdp-terms li:not(:last-child)::after { content: "·"; margin-inline: 8px; }
+/* «השאירו פרטים» — у першому екрані телефона, одразу під ціною (хвиля 1, 22.10) */
+.pdp-ask { margin-block-start: 12px; }
+.reg-promise { font-weight: 600; }
+.cart-row { display: flex; justify-content: space-between; gap: 12px; margin: 0; color: var(--muted); }
+.ship-choice .f-hint { margin-block-start: 8px; }
 .price-incl { font-size: .88rem; color: var(--muted); }
-/* «מחיר משוער, טרם אושר» — як у рекламі; над «זמן אספקה מדויק» і кнопкою: під ціною на 390 витісняв плитки під банер (аудит 22.10 (в) 1) */
+/* «המחיר כולל מע״מ; משלוח — בנפרד» — над «זמן אספקה מדויק» і кнопкою: під ціною на 390 витісняв плитки під банер (аудит 22.10 (в) 1) */
 .pdp-est { margin-block: 0 8px; line-height: 1.4; }
 .pdp-config { display: grid; gap: 22px; margin-block: 24px; }
 .opt { border: 0; padding: 0; margin: 0; min-width: 0; }

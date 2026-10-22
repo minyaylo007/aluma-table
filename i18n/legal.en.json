@@ -25,11 +25,15 @@
     "sections": [
       {
         "h": "Our commitment",
-        "p": ["{company_name} works so that everyone, including people with disabilities, can use this site independently and equally, under the Equal Rights for Persons with Disabilities Law, 5758-1998, and the Equal Rights for Persons with Disabilities (Service Accessibility Adjustments) Regulations, 5773-2013. This statement is given under Regulation 35."]
+        "p": [
+          "{company_name} works so that everyone, including people with disabilities, can use this site independently and equally, under the Equal Rights for Persons with Disabilities Law, 5758-1998, and the Equal Rights for Persons with Disabilities (Service Accessibility Adjustments) Regulations, 5773-2013. This statement is given under Regulation 35."
+        ]
       },
       {
         "h": "Accessibility level",
-        "p": ["The site is built to Israeli Standard SI 5568, based on WCAG 2.0 level AA. Every change is checked automatically (axe-core) on all pages in Hebrew and English, and by automated checks of keyboard navigation, focus and layout at screen widths from 320 to 1920 px. The work was done by our own development team."]
+        "p": [
+          "The site is built to Israeli Standard SI 5568, based on WCAG 2.0 level AA. Every change is checked automatically (axe-core) on all pages in Hebrew and English, and by automated checks of keyboard navigation, focus and layout at screen widths from 320 to 1920 px. The work was done by our own development team."
+        ]
       },
       {
         "h": "What we have done",
@@ -54,7 +58,9 @@
       },
       {
         "h": "Physical arrangements",
-        "p": ["We have no shop or showroom open to the public at the moment. Meetings, delivery and assembly are arranged in advance, and we are glad to adapt them to your needs."]
+        "p": [
+          "We have no shop or showroom open to the public at the moment. Meetings, delivery and pickup are arranged in advance, and we are glad to adapt them to your needs."
+        ]
       },
       {
         "h": "Accessibility coordinator",
@@ -65,7 +71,9 @@
       },
       {
         "h": "Complaint to the Commission",
-        "p": ["If your request was not handled properly, you can contact the Commission for Equal Rights of Persons with Disabilities at the Ministry of Justice."]
+        "p": [
+          "If your request was not handled properly, you can contact the Commission for Equal Rights of Persons with Disabilities at the Ministry of Justice."
+        ]
       }
     ]
   },
@@ -75,7 +83,9 @@
     "sections": [
       {
         "h": "Who is responsible",
-        "p": ["This site is run by {company_name}, company/business no. {business_id}, {address} — the database controller. Privacy questions: e-mail {email}, phone {phone}. This policy follows the Protection of Privacy Law, 5741-1981, as amended by Amendment 13."]
+        "p": [
+          "This site is run by {company_name}, company/business no. {business_id}, {address} — the database controller. Privacy questions: e-mail {email}, phone {phone}. This policy follows the Protection of Privacy Law, 5741-1981, as amended by Amendment 13."
+        ]
       },
       {
         "h": "What we collect",
@@ -87,7 +97,9 @@
       },
       {
         "h": "Do you have to give it",
-        "p": ["You are not required by law to give us any information. Without a name and phone we cannot get back to you — that is the only consequence."]
+        "p": [
+          "You are not required by law to give us any information. Without a name and phone we cannot get back to you — that is the only consequence."
+        ]
       },
       {
         "h": "What we use it for",
@@ -119,11 +131,15 @@
       },
       {
         "h": "Cookies",
-        "p": ["Essential: your cookie choice, a temporary visit id and your product choices and cart. Measurement and advertising cookies (Meta Pixel, Microsoft Clarity) load only after “Accept”. You can change your choice at any time with “Cookie settings” at the bottom of the page, or clear cookies in your browser."]
+        "p": [
+          "Essential: your cookie choice, a temporary visit id and your product choices and cart. Measurement and advertising cookies (Meta Pixel, Microsoft Clarity) load only after “Accept”. You can change your choice at any time with “Cookie settings” at the bottom of the page, or clear cookies in your browser."
+        ]
       },
       {
         "h": "Security",
-        "p": ["Traffic is encrypted (HTTPS), access to data is limited to what is needed, and IP addresses are stored only as hashes. No system is fully immune, and we will report a serious security incident as the law requires."]
+        "p": [
+          "Traffic is encrypted (HTTPS), access to data is limited to what is needed, and IP addresses are stored only as hashes. No system is fully immune, and we will report a serious security incident as the law requires."
+        ]
       },
       {
         "h": "Your rights",
@@ -137,7 +153,9 @@
       },
       {
         "h": "Minors and changes",
-        "p": ["The site is not meant for anyone under 18. We may update this policy; the binding version is the one on this page, with its date."]
+        "p": [
+          "The site is not meant for anyone under 18. We may update this policy; the binding version is the one on this page, with its date."
+        ]
       }
     ]
   },
@@ -147,39 +165,58 @@
     "sections": [
       {
         "h": "Who we are",
-        "p": ["This site is run by {company_name}, company/business no. {business_id}, {address}; phone {phone}, e-mail {email} (the “Company”). Use of the site is subject to these terms and to the privacy policy."]
+        "p": [
+          "This site is run by {company_name}, company/business no. {business_id}, {address}; phone {phone}, e-mail {email} (the “Company”). Use of the site is subject to these terms and to the privacy policy."
+        ]
       },
       {
         "h": "Advance orders",
-        "p": ["The site shows the launch series and takes advance orders. No payment is made on the site, and it has no field for card details. Adding to the cart and going to checkout are not a transaction: every order is confirmed with you separately, in a written order confirmation, and only your acceptance of it binds.", "At the last step of checkout you leave a phone or WhatsApp number so that we can get back to you to confirm the order. Leaving a phone is not an order and does not bind you: first you receive a written order confirmation — final price, specification and delivery date — and only after you accept it do you move on to payment."]
+        "p": [
+          "The site shows the launch series and takes advance orders. No payment is made on the site, and it has no field for card details. Adding to the cart and going to checkout are not a transaction: every order is confirmed with you separately, in a written order confirmation, and only your acceptance of it binds.",
+          "At the last step of checkout you leave a phone or WhatsApp number so that we can get back to you to confirm the order. Leaving a phone is not an order and does not bind you: first you receive a written order confirmation — final price, specification and delivery date — and only after you accept it do you move on to payment."
+        ]
       },
       {
         "h": "Prices",
-        "p": ["Prices are in new Israeli shekels and include VAT. At this stage they are estimates, not yet confirmed. The final price, specification, delivery time, delivery and assembly terms and cancellation terms will be given to you in a written order confirmation before any payment, and only they bind."]
+        "p": [
+          "Prices are in new Israeli shekels and include VAT. This is the launch price of the first series. The specification, delivery time, delivery terms and cancellation terms will be given to you in a written order confirmation before any payment, and only they bind."
+        ]
       },
       {
-        "h": "What is included",
-        "p": ["What the price includes (for example delivery and assembly) is listed on the product page and in the cart, and confirmed in the written order confirmation, after we check the delivery area and building access."]
+        "h": "Delivery and assembly",
+        "p": [
+          "Delivery to your door or pickup — as you choose in the cart; the delivery price is shown on the product page and in the cart and is not included in the price of the piece. Assembly is done by you, following the instructions in the box, unless the order confirmation says otherwise."
+        ]
       },
       {
         "h": "Cancellation",
-        "p": ["As long as no order is confirmed in writing and nothing is paid, there is no transaction to cancel. If a transaction is made, the cancellation rights of the Consumer Protection Law, 5741-1981, and its regulations apply, and the details will be in the written order confirmation. If the product is made especially for you to a size or finish you chose, the right to cancel may be limited as far as the law allows — and the order confirmation will say so plainly before payment. Nothing here limits rights that cannot be waived."]
+        "p": [
+          "As long as no order is confirmed in writing and nothing is paid, there is no transaction to cancel. If a transaction is made, the cancellation rights of the Consumer Protection Law, 5741-1981, and its regulations apply, and the details will be in the written order confirmation. If the product is made especially for you to a size or finish you chose, the right to cancel may be limited as far as the law allows — and the order confirmation will say so plainly before payment. Nothing here limits rights that cannot be waived."
+        ]
       },
       {
         "h": "Images and information",
-        "p": ["Images are visualisations of the planned product, not photographs, and each is marked “Visualisation”. Colour, texture and finish may differ. The Company may change the specification, dates or launch plan until an order is confirmed in writing."]
+        "p": [
+          "Images are visualisations of the planned product, not photographs, and each is marked “Visualisation”. Colour, texture and finish may differ. The Company may change the specification, dates or launch plan until an order is confirmed in writing."
+        ]
       },
       {
         "h": "Intellectual property and use",
-        "p": ["All rights in the site content belong to the Company or its licensors. Do not copy it or use it commercially without written permission, do not collect data from the site automatically, and do not send another person's details in the form."]
+        "p": [
+          "All rights in the site content belong to the Company or its licensors. Do not copy it or use it commercially without written permission, do not collect data from the site automatically, and do not send another person's details in the form."
+        ]
       },
       {
         "h": "Liability and links",
-        "p": ["The site is provided as is. The Company is not responsible for outside services such as WhatsApp. Nothing here limits rights that cannot be waived by law."]
+        "p": [
+          "The site is provided as is. The Company is not responsible for outside services such as WhatsApp. Nothing here limits rights that cannot be waived by law."
+        ]
       },
       {
         "h": "Accessibility, changes and law",
-        "p": ["Accessibility details are in the accessibility statement. The Company may update these terms; the binding version is the one on the site at the time of use. Israeli law applies, and the competent courts in {court_city} have jurisdiction, without limiting jurisdiction under the Consumer Protection Law."]
+        "p": [
+          "Accessibility details are in the accessibility statement. The Company may update these terms; the binding version is the one on the site at the time of use. Israeli law applies, and the competent courts in {court_city} have jurisdiction, without limiting jurisdiction under the Consumer Protection Law."
+        ]
       }
     ]
   }

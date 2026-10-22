@@ -407,6 +407,8 @@ class PutLeadTests(HandlerTestCase):
             "product_id", "size_label", "finish_id", "base_id", "timeframe", "contact_pref", "email", "event_id", "consent_ads",
             # магазин 21.10 (specs/003-shop-funnel)
             "cart", "order_total", "lead_source",
+            # хвиля 1, 22.10: самовивіз / до дверей
+            "delivery",
         }
         self.assertEqual(set(self.leads_t.items[0]), expected)
 
@@ -551,6 +553,32 @@ class NotifyTests(HandlerTestCase):
         self.assertIn("tavor", h.CATALOG)
         self.assertEqual(h.describe_item("tavor", "160×90", "natural", "oak", 1),
                          ("TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490", 4490))
+
+    def test_delivery_line_and_total_with_fee(self):
+        """Хвиля 1: спосіб отримання в сповіщенні; ціна доставки — з content.json, не з браузера."""
+        self.assertEqual(h.SHIP_FEES, {"pickup": 0, "door": 350})
+        text = h.lead_message(self.sample_item(cart="tavor:200×100:natural:oak:1", order_total=5290, delivery="door"))
+        self.assertRegex(text, r"(?m)^🚚 Доставка: до двери — ₪350$")
+        self.assertRegex(text, r"(?m)^Итого: ₪5,640 \(товары ₪5,290 \+ доставка ₪350\)$")
+        text = h.lead_message(self.sample_item(cart="tavor:200×100:natural:oak:1", order_total=5290, delivery="pickup"))
+        self.assertRegex(text, r"(?m)^🚚 Доставка: самовывоз — ₪0$")
+        self.assertRegex(text, r"(?m)^Итого: ₪5,290$")
+        # форма без вибору — рядка доставки нема, нічого не вигадуємо
+        self.assertNotIn("🚚", h.lead_message(self.sample_item(product_id="tavor", size_label="160×90")))
+
+    def test_delivery_is_stored_only_from_the_allowed_list(self):
+        self.post_lead(lead_payload(delivery="door"))
+        self.post_lead(lead_payload(delivery="free; ₪0", phone="0521234567"))
+        got = sorted(i.get("delivery") for i in self.leads_t.items)
+        self.assertEqual(got, ["", "door"])
+        self.assertIn("delivery", h.CSV_COLUMNS)
+
+    def test_missing_content_json_keeps_the_way_without_a_sum(self):
+        self.assertEqual(h._load_ship_fees(("/nonexistent/content.json",)), {})
+        with mock.patch.object(h, "SHIP_FEES", {}):
+            text = h.lead_message(self.sample_item(order_total=4490, delivery="door"))
+        self.assertRegex(text, r"(?m)^🚚 Доставка: до двери$")
+        self.assertRegex(text, r"(?m)^Итого: ₪4,490$")
 
     def test_unparseable_phone_is_shown_as_text_without_wa_link(self):
         text = h.lead_message(self.sample_item(phone="+12125550100", phone_raw="+1 212 555 0100"))
