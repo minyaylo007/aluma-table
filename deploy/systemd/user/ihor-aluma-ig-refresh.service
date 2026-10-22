@@ -1,0 +1,36 @@
+# ALUMA — оновлення токена Instagram API (одноразовий запуск, кличе ihor-aluma-ig-refresh.timer).
+# КОРИСТУВАЦЬКИЙ юніт (systemctl --user), образець — ihor-aluma-digest.service.
+#
+# Токен довгоживучий: 60 днів від видачі або останнього оновлення; оновлювати можна не раніше ніж
+# через 24 години після видачі. Таймер — 1-го і 15-го о 04:00, тобто запас ~45 днів.
+#
+# Установка руками (scripts/deploy-box.sh юнітів не ставить), один раз:
+#   install -m 0644 deploy/systemd/user/ihor-aluma-ig-refresh.service \
+#       deploy/systemd/user/ihor-aluma-ig-refresh.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now ihor-aluma-ig-refresh.timer
+# Запуск руками: systemctl --user start ihor-aluma-ig-refresh.service
+#   journalctl --user -u ihor-aluma-ig-refresh -n 3   # {"event": "ig_token_refreshed", "expires_in_days": N}
+# Відкат: systemctl --user disable --now ihor-aluma-ig-refresh.timer.
+
+[Unit]
+Description=ALUMA — refresh Instagram API token (user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ihor/aluma-table
+
+# Без EnvironmentFile: скрипт сам читає ~/.config/aluma/ig.env і атомарно пише туди новий токен (0600).
+ExecStart=/opt/ihor/aluma-table/.venv/bin/python scripts/ig_publish.py --refresh
+
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2min
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-ig-refresh
+
+NoNewPrivileges=true
+UMask=0077
