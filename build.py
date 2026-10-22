@@ -589,7 +589,9 @@ def ship_terms(p: dict, loc: str) -> str:
 
 def ship_choice() -> str:
     """Вибір «самовивіз / до дверей» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
-    opts = [("door", '{{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'), ("pickup", '{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi>')]
+    # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—350 ₪»), тому &nbsp;
+    opts = [("door", '{{t.ship_door}} —&nbsp;<bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'),
+            ("pickup", '{{t.ship_pickup}} —&nbsp;<bdi dir="ltr">{{PICKUP_PRICE}}</bdi>')]
     chips = "".join(f'<label class="chip"><input type="radio" name="ship" value="{v}"><span>{x}</span></label>' for v, x in opts)
     return (f'<fieldset class="f f-choice ship-choice" data-ship-choice><legend>{{{{t.ship_legend}}}}</legend>'
             f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
