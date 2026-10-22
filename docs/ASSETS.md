@@ -127,7 +127,7 @@ node tools/render_products.js tavor --preview --frames=light-morning,light-eveni
 python3 -I tools/fetch_cc0.py            # раз: CC0 для Blender у /opt/ihor/aluma-table/tmp/cc0 (не в git)
 ```
 Без власного порту: кадри three.js — сторінка `tools/render_products.html` з `file://`, three.js r160 з cdnjs. Запуск — у рамці
-CLAUDE.md §8. У дерево їдуть `<кадр>-{<ширина>,800}.{avif,webp}` (для hero і angle ще `-400`) і `<кадр>-<ширина>.jpg` у рідній ширині майстра
+CLAUDE.md §8. У дерево їдуть `<кадр>-{<ширина>,800}.{avif,webp}` (для hero і angle ще `-400`, для hero ще `-1200`) і `<кадр>-<ширина>.jpg` у рідній ширині майстра
 (без збільшення); герой AVIF ≤ 180 КБ. Зразки тонів — `site/assets/products/finishes/<id>.{webp,jpg}`, 240 px (`tools/oak_tones.py`).
 
 Blender (портативний, `/opt/ihor/aluma-table/tmp/blender`, не в git) — лише в рамці дирижера, один процес за раз:
