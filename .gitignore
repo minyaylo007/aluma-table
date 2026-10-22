@@ -28,6 +28,8 @@ renders-master/product/
 # знімок DynamoDB і локальна база SQLite (персональні дані заявок) — у git не йдуть
 dump/
 data/
+# почасові копії бази заявок (scripts/backup_leads.py) — ті самі персональні дані
+backups/
 
 # Lighthouse: сирі звіти важкі (по ~650 КБ на прогін) і легко перезнімаються — у git
 # їдуть лише summary.json і README.md кожного заміру (docs/lighthouse/<дата>/README.md).

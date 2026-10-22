@@ -74,6 +74,34 @@ class PurgeUnitTests(unittest.TestCase):
         self.assertEqual(values(self.NAME, "EnvironmentFile"), ["%h/.config/aluma/aluma.env"])
 
 
+class BackupUnitTests(unittest.TestCase):
+    """Бекап заявок: з клону, як встановлені сьогодні api і purge (не current/ — коментар у юніті)."""
+    NAME = "ihor-aluma-backup.service"
+    TIMER = "ihor-aluma-backup.timer"
+
+    def test_runs_from_clone_with_api_venv_and_env(self):
+        self.assertEqual(one(self.NAME, "Type"), "oneshot")
+        self.assertEqual(one(self.NAME, "WorkingDirectory"), BASE)
+        self.assertEqual(one(self.NAME, "ExecStart"), BASE + "/.venv/bin/python scripts/backup_leads.py")
+        self.assertEqual(values(self.NAME, "EnvironmentFile"), ["%h/.config/aluma/aluma.env"])
+
+    def test_background_and_private(self):
+        self.assertEqual(one(self.NAME, "Nice"), "10")
+        self.assertEqual(one(self.NAME, "IOSchedulingClass"), "idle")
+        self.assertEqual(one(self.NAME, "UMask"), "0077")
+        self.assertEqual(one(self.NAME, "NoNewPrivileges"), "true")
+        # Як у сусідів: опції простору імен у менеджері користувача мовчки не діють — не вдавати захист.
+        for key in ("User", "PrivateTmp", "ProtectSystem", "ProtectHome", "ReadWritePaths"):
+            self.assertEqual(values(self.NAME, key), [], key)
+
+    def test_timer_hourly_at_07_not_00(self):
+        self.assertEqual(one(self.TIMER, "Unit"), self.NAME)
+        self.assertEqual(one(self.TIMER, "OnCalendar"), "*-*-* *:07:00")
+        self.assertTrue(one(self.TIMER, "OnBootSec"))
+        self.assertEqual(one(self.TIMER, "Persistent"), "true")
+        self.assertEqual(one(self.TIMER, "WantedBy"), "timers.target")
+
+
 class DeployUnitTests(unittest.TestCase):
     NAME = "ihor-aluma-deploy.service"
 

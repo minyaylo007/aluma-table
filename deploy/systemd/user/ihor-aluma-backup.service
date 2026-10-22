@@ -1,0 +1,47 @@
+# ALUMA — почасовий бекап бази заявок (одноразовий запуск, кличе ihor-aluma-backup.timer).
+# КОРИСТУВАЦЬКИЙ юніт (systemctl --user), образець — ihor-aluma-purge.service.
+#
+# Установка руками (scripts/deploy-box.sh юнітів не ставить), один раз:
+#   install -m 0644 deploy/systemd/user/ihor-aluma-backup.service \
+#       deploy/systemd/user/ihor-aluma-backup.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now ihor-aluma-backup.timer
+# Перевірити, не чекаючи години:
+#   systemctl --user start ihor-aluma-backup.service
+#   journalctl --user -u ihor-aluma-backup -n 3      # один JSON-рядок, без даних
+# Відкат: systemctl --user disable --now ihor-aluma-backup.timer (копії в backups/ лишаються).
+#
+# ЧОМУ /opt/ihor/aluma-table, а не current/, як у сусідів у цій теці: прод сьогодні працює з клону
+# (так встановлені й api, і purge — deploy/README.md, «Користувацькі юніти»), а теку backups/ версії
+# агента не перемикають — вона одна на машину. Після T040 перевести ExecStart на current/ разом з усіма.
+#
+# Відмінності від системних юнітів — ті самі, що в ihor-aluma-api.service: нема User=/Group=,
+# оточення з %h/.config/aluma, нема PrivateTmp/ProtectSystem/ProtectHome/ReadWritePaths (у менеджері
+# користувача на цій машині вони мовчки не діють — заміри в коментарі ihor-aluma-api.service).
+
+[Unit]
+Description=ALUMA — hourly consistent backup of the leads SQLite (user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+# Сервіс API не зупиняємо: Connection.backup() бере знімок читання, WAL пускає записи паралельно.
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ihor/aluma-table
+
+# Той самий файл, що й у API: потрібні FX_DB_PATH і, якщо задано, LEADS_TABLE. Значення не друкуються.
+EnvironmentFile=%h/.config/aluma/aluma.env
+
+ExecStart=/opt/ihor/aluma-table/.venv/bin/python scripts/backup_leads.py
+
+# Копія — фонова робота: не віднімати процесор і диск у gunicorn.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=10min
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-backup
+
+NoNewPrivileges=true
+# У копіях імена й телефони: лише для ihor (скрипт і сам ставить 0700/0600).
+UMask=0077
