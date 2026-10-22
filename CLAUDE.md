@@ -36,9 +36,8 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
   (owner blanks shown as markers; **prod is built this way today**); `--production` refuses while an owner fact is missing.
 - Routes: `GET /api/fx/health`, `GET /api/fx/config` (public, 60 s), `POST /api/fx/event`, `POST /api/fx/lead` (+ CAPI Lead), `GET /admin`
   (+ `login`, `logout`, `POST status`, `settings`, `settings/test`, `leads.csv`, `funnel` — shop funnel, text twin `tools/funnel_report.py`, `specs/003-shop-funnel`). `FX_STORAGE=sqlite` is the only one in use; dynamodb stays tested, not deployed (`test_lambda_no_fx_storage.py`).
-- Notifications: `notify()` → Telegram, best effort, plain text `lead_message()` (reply language, wa.me via `wa_number()`, names
-  from the catalog; offline preview `tools/preview_lead_message.py`); the lead is stored first; a failure logs `notify_failed` with
-  the token cut out by `_redact()`. Header `x-test: 1` stores the lead with `is_test`, sends nothing, has its own rate bucket.
+- Notifications: `notify()` → Telegram plain text `lead_message()` (preview `tools/preview_lead_message.py`), best effort: lead
+  stored first; failure → `notify_failed`, token cut by `_redact()`. `x-test: 1` stores `is_test`, sends nothing, own rate bucket.
   `EDGE_SECRET` (unset on the box): when set, a request without `x-fx-edge` gets 403 before routing.
 
 ## 4. Code style and logging
