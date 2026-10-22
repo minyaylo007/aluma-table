@@ -218,9 +218,11 @@ function dims(src) {
   return { w, h };
 }
 // Ширини: рідна ширина майстра (не більше 1600, без збільшення), 800, а для hero і angle ще 400 — їх вітрина
-// ставить у картку й плитку каталогу на телефоні (srcset).
+// ставить у картку й плитку каталогу на телефоні (srcset). Для hero ще 1200: телефон 390 px з DPR 3 хоче 1170 px
+// і без неї качав 1600 (22.10). AVIF, важчий за WebP, build.py picture() не віддає — увесь набір картинки йде WebP.
 function widthsFor(view, W) {
-  return [...new Set([(view === 'hero' || view === 'angle') && 400, 800, W])].filter(x => x && x <= W);
+  return [...new Set([(view === 'hero' || view === 'angle') && 400, 800, view === 'hero' && W > 1200 && 1200, W])]
+    .filter(x => x && x <= W);
 }
 function encode(src, dstBase, W, hero, widths, max800 = CARD_800_AVIF_MAX) {
   for (const width of widths) {

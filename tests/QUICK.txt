@@ -18,6 +18,7 @@ tests.test_build_bidi         # розміри в he-описах: U+2066…U+20
 tests.test_build_catalog_facts  # строк і тонування в текстах — з каталогу, не числами в i18n
 tests.test_build_plan         # план «סגור / פתוח»: місця в межах seats каталогу, блок лише з кадрами або планом
 tests.test_build_css_comments  # вбудований CSS без коментарів: регулярка не ріже рядки й url(…)
+tests.test_build_avif_source  # <source> AVIF лише повним набором, кожен легший за WebP; home/hero з 1200w
 tests.test_fonts_he_latin     # he — латиниця Plex лише latin-he (−39 КБ), en/ru — повна; обличчя не перетинаються
 tests.test_i18n_parity        # he/en/ru: ті самі ключі й токени — без чужої мови посеред сторінки
 tests.test_i18n_material      # блок матеріалу: фанера — фанера, «אלון מלא» лише про крайки

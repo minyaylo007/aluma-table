@@ -302,17 +302,32 @@ def picture(img: dict, loc: str, *, eager: bool = False, sizes: str = "100vw", c
         attrs += f' width="{int(img["width"])}" height="{int(img["height"])}"'
     if img.get("srcset"):
         attrs += f' srcset="{esc(img["srcset"])}" sizes="{esc(sizes)}"'
-    sources = ""
-    if src.endswith(".webp"):
-        avif = src[:-5] + ".avif"
-        if (SITE / avif.lstrip("/")).is_file():
-            avset = img.get("srcset_avif") or avif
-            if not img.get("srcset_avif") and img.get("srcset"):
-                cand = re.sub(r"\.webp(?=\s)", ".avif", img["srcset"])
-                if all((SITE / u.lstrip("/")).is_file() for u in re.findall(r"(\S+\.avif)", cand)):
-                    avset = cand
-            sources = f'<source type="image/avif" srcset="{esc(avset)}" sizes="{esc(sizes)}">'
+    avset = avif_srcset(img, src)
+    sources = f'<source type="image/avif" srcset="{esc(avset)}" sizes="{esc(sizes)}">' if avset else ""
     return f'<picture class="{cls}">{sources}<img {attrs}></picture>'
+
+
+def avif_srcset(img: dict, src: str) -> str:
+    """AVIF-набір для <source> або "" — тоді браузер бере WebP.
+
+    Браузер з AVIF бере <source> першим, навіть коли AVIF важчий (22.10: tavor/home-1600.avif 75 КБ проти 65 КБ WebP).
+    Тому набір іде, лише якщо він повний: ті самі ширини, що в WebP, і КОЖЕН AVIF є й легший за свого WebP-близнюка.
+    Розміри файлів детерміновані — збірка лишається байт у байт на будь-якій ОС."""
+    if not src.endswith(".webp"):
+        return ""
+    webset = img.get("srcset") or src
+    avset = img.get("srcset_avif") or re.sub(r"\.webp(?=\s|,|$)", ".avif", webset)
+    web = [e.split() for e in webset.split(",")]
+    av = [e.split() for e in avset.split(",")]
+    if len(web) != len(av):
+        return ""
+    for (w_url, *w_desc), (a_url, *a_desc) in zip(web, av):
+        w_file, a_file = SITE / w_url.lstrip("/"), SITE / a_url.lstrip("/")
+        if w_desc != a_desc or not a_url.endswith(".avif") or not w_file.is_file() or not a_file.is_file():
+            return ""
+        if a_file.stat().st_size >= w_file.stat().st_size:
+            return ""
+    return avset
 
 
 def media(p: dict, loc: str, *, eager: bool = False, sizes: str = "100vw") -> str:
