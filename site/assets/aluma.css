@@ -541,6 +541,9 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .pdp-price { margin-block: 12px 2px; padding-block-start: 12px; row-gap: 0; }
   .pdp-price .price-incl { line-height: 1.3; } /* «מחיר השקה לסדרה הראשונה · 12 שולחנות» — окремим рядком, плитки не з'їжджають під банер */
   .price { font-size: 2rem; }
+  /* умови й «השאירו פרטים» щільніше: у TAVOR кнопка над банером cookies (хвиля 1, крок 5) */
+  .pdp-terms { line-height: 1.35; }
+  .pdp-buy .pdp-ask { margin-block-start: 8px; }
 }
 .price { font-size: 2.2rem; line-height: 1; }
 /* «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 · הרכבה» — один рядок через «·», на вузькому переноситься по пунктах */
