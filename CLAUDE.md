@@ -11,7 +11,7 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
 ## 1. Small-change path (text, number, small API fix)
 1. Branch from `master`; edit `content.json` / `i18n/*.json` / `site/` / `api/`. No plan mode, no SDD, no subagents.
 2. `tools/run_tests.py` (quick set, ~0.5 s). If `site/`, `i18n/`, `content.json` or `build.py` changed: `python3 build.py` exits 0.
-3. Before the PR: `tools/run_tests.py --pr` and `ruff check .` inside the frame of §8 (skill `/aluma-check`).
+3. Before the PR: `tools/run_tests.py --pr` and `ruff check .` and `scripts/secret_scan.py --repo . --mode tree --baseline .github/secret-scan-baseline.json` (`--pr` tests the scanner, it does not scan the tree) inside the frame of §8 (skill `/aluma-check`).
 4. `git add <files>` → commit `type(scope): опис` → push → `gh pr create` → `gh pr merge --squash --auto`. CI runs on the PR only.
 5. After the merge: `scripts/deploy-box.sh <sha>` (skill `/aluma-deploy`), check health and `/` live, report with the rollback line.
 
@@ -51,7 +51,7 @@ owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn +
 ## 5. Testing
 Guide: `tests/README-python-tests.md`. Stdlib `unittest`, no network, no AWS: Telegram patched, DynamoDB faked,
 `FX_DB_PATH` forced to `:memory:`. Venv and `TMPDIR` **outside the tree** (`/opt/ihor/aluma-table/tmp/venv`; `/tmp` gets wiped).
-Three modes: `tools/run_tests.py` (quick, `tests/QUICK.txt`), `--pr` (`tests/CRITICAL.txt`: + build, secret scan, prod units),
+Three modes: `tools/run_tests.py` (quick, `tests/QUICK.txt`), `--pr` (`tests/CRITICAL.txt`: + build, scanner tests, prod units),
 `--full` (everything — what a merge needs). Playwright: `tests/redesign.spec.js`, `tests/shop.spec.js` are fully mocked (preview on 8007);
 `tests/smoke.spec.js` (current funnel he+ru, lead → local SQLite) **writes leads**, not in CI: `--config tests/playwright.smoke.config.js`
 starts its own `tools/serve-local-stack.py` on a free 8007, never prod. Proving a test can fail: break the code in memory, not on disk.
@@ -72,7 +72,7 @@ per-user control socket and breaks the other gunicorn of this user). Stop proces
 ## 8. Commands
 ```bash
 tools/run_tests.py            # quick set — the default: logic only, ~140 tests, ~0.5 s quiet
-tools/run_tests.py --pr       # before a PR: + build byte-for-byte, secret scan, prod units — ~190 tests, ~12 s
+tools/run_tests.py --pr       # before a PR: + build byte-for-byte, scanner tests, prod units — ~190 tests, ~12 s
 tools/run_tests.py --full     # before a merge: everything, via the heavy queue
 gh pr merge --squash --auto   # deploy of code = merge into master; then scripts/deploy-box.sh <sha> (/aluma-deploy)
 ```
