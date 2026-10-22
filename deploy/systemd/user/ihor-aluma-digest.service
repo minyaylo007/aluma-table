@@ -1,0 +1,40 @@
+# ALUMA — дайджест воронки власнику в Telegram (одноразовий запуск, кличе ihor-aluma-digest.timer).
+# КОРИСТУВАЦЬКИЙ юніт (systemctl --user), образець — ihor-aluma-backup.service.
+#
+# Установка руками (scripts/deploy-box.sh юнітів не ставить), один раз:
+#   install -m 0644 deploy/systemd/user/ihor-aluma-digest.service \
+#       deploy/systemd/user/ihor-aluma-digest.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now ihor-aluma-digest.timer
+# Перевірити, не чекаючи 09:00/20:00 (це СПРАВЖНЄ повідомлення власнику; текст без відправки —
+# scripts/funnel_digest.py --dry-run):
+#   systemctl --user start ihor-aluma-digest.service
+#   journalctl --user -u ihor-aluma-digest -n 3      # один JSON-рядок: digest_sent / digest_failed
+# Відкат: systemctl --user disable --now ihor-aluma-digest.timer.
+#
+# З клону /opt/ihor/aluma-table, як api, purge і backup сьогодні (коментар у ihor-aluma-backup.service).
+
+[Unit]
+Description=ALUMA — funnel digest to the owner in Telegram (user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ihor/aluma-table
+
+# Той самий файл, що й у API: FX_DB_PATH, TELEGRAM_BOT_TOKEN, OWNER_TELEGRAM_CHAT_ID. Значення не друкуються.
+EnvironmentFile=%h/.config/aluma/aluma.env
+
+ExecStart=/opt/ihor/aluma-table/.venv/bin/python scripts/funnel_digest.py
+
+# Фонова робота: не віднімати процесор і диск у gunicorn.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2min
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-digest
+
+NoNewPrivileges=true
+UMask=0077
