@@ -131,6 +131,26 @@ class BuiltSiteTests(unittest.TestCase):
                         self.assertNotIn(word.get(lang, "pay"), re.sub(r"<[^>]+>", "", b).lower())  # текст, не data-атрибути
             self.assertIn("data-co-keep", self.page(prefix + "checkout/"))
 
+    def test_workshop_photo_slot_hidden_until_photos(self):
+        # 22.10, аудит (а) 6: «תמונות מבית המלאכה יעלו בקרוב» не показуємо, доки WORKSHOP_PHOTOS у content.json не "1";
+        # розмітка лишається (з'явиться фото — один прапор)
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        for prefix in DIST_PREFIX.values():
+            slot = re.search(r'<div class="photo-slot"[^>]*>', self.page(prefix + "about/"))
+            with self.subTest(page=prefix + "about/"):
+                self.assertIsNotNone(slot)
+                self.assertEqual(" hidden " in slot.group(0), content.get("WORKSHOP_PHOTOS") != "1")
+
+    def test_sticky_thumb_has_alt(self):
+        # 22.10, аудит (а) 11: жодного <img> без alt на картці; мініатюра смуги — «הדמיה: <назва>»
+        for lang, prefix in DIST_PREFIX.items():
+            viz = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))["viz_tag"]
+            for p in PRODUCTS:
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    self.assertEqual([i for i in re.findall(r"<img\b[^>]*>", html) if not re.search(r'\balt="[^"]+"', i)], [])
+                    self.assertRegex(html, r'<img class="sticky-thumb"[^>]*alt="' + re.escape(viz) + r': [^"]+"')
+
     def test_no_cdn_for_3d(self):
         # three.js — свій файл: при відкритті 3D жодного зовнішнього запиту (приватність)
         for f in (self.dist / "assets").rglob("*.js"):

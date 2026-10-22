@@ -253,18 +253,28 @@ test('rate limit answer is shown as text, the form stays', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------- телефон
-test('mobile: sticky CTA shows while the add-to-cart button is off screen and hides at the button and the form', async ({ page }) => {
+// аудит 22.10, (б) 5: смуга — лише коли «הוספה לסל» пішла за верх екрана і банер cookies закритий
+test('mobile: sticky CTA shows only after the add-to-cart button scrolls above the screen, never with the notice open', async ({ page }) => {
   await mockApi(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
   const sticky = page.locator('[data-sticky]');
-  await expect(sticky).toHaveClass(/is-on/);                   // перший екран — кадр, назва й ціна; кнопка нижче: смуга з ціною і кнопкою
+  await expect(page.locator('#notice')).toBeVisible();
+  await expect(sticky).not.toHaveClass(/is-on/);               // перший екран — кадр, назва, ціна й розміри, смуги нема
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
+  await page.waitForTimeout(200);
+  await expect(sticky).not.toHaveClass(/is-on/);               // кнопка вже вище, але банер відкритий — смуги нема
+  await page.locator('[data-notice-no]').click();
+  await expect(sticky).toHaveClass(/is-on/);                   // банер закрито — смуга є без прокрутки
+  await page.evaluate(() => scrollTo(0, 0));
+  await expect(sticky).not.toHaveClass(/is-on/);               // кнопка ще нижче екрана — смуги нема
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().top + scrollY - 300));
   await expect(sticky).not.toHaveClass(/is-on/);               // кнопка на екрані — дубль не потрібен
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(sticky).toHaveClass(/is-on/);
   await expect(sticky.locator('[data-add-cart]')).toHaveText('הוספה לסל');
   await expect(sticky.locator('.sticky-thumb')).toHaveCount(1);
+  await expect(sticky.locator('.sticky-thumb')).toHaveAttribute('alt', /^הדמיה: \S/);
   await page.locator('#register').scrollIntoViewIfNeeded();
   await expect(sticky).not.toHaveClass(/is-on/);
 });
@@ -288,6 +298,7 @@ test('mobile: a product with 8+ frames keeps the gallery inside the screen and t
   expect(widths.page).toBeLessThanOrEqual(390);
   expect(widths.gallery).toBeLessThanOrEqual(390);
   expect(widths.slide).toBeLessThanOrEqual(390);
+  await page.locator('[data-notice-no]').click();             // з відкритим банером смуги нема (аудит 22.10)
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(page.locator('[data-sticky]')).toHaveClass(/is-on/);
 });
@@ -524,42 +535,52 @@ for (const [path, lang] of [['/', 'he'], ['/en/', 'en']]) {
   });
 }
 
-test('first screen 390×844 of a card: price and the register button are on screen above the edge with the notice shown', async ({ page }) => {
+// аудит 22.10, (б) 5: перший екран картки з банером — без смуги; смуга з'являється лише після «הוספה לסל»
+// і закритого банера — і тоді її ціна й кнопка в межах екрана
+test('first screen 390×844 of a card: no sticky bar with the notice open; after the notice and the button, the bar is on screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page);
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
   await expect(page.locator('#notice')).toBeVisible();
   const sticky = page.locator('[data-sticky]');
+  await page.waitForTimeout(300);
+  await expect(sticky).not.toHaveClass(/is-on/);
+  await page.locator('[data-notice-no]').click();
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(sticky).toHaveClass(/is-on/);
   // смуга виїжджає transform .3s: міряти після виїзду, а не посередині (CI 21.10: 863 > 844)
   await sticky.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
   const r = await page.evaluate(() => {
-    const n = document.querySelector('#notice').getBoundingClientRect(), s = document.querySelector('[data-sticky]');
+    const s = document.querySelector('[data-sticky]');
     const box = el => el.getBoundingClientRect();
-    return { noticeBottom: n.bottom, btn: box(s.querySelector('.btn')), price: box(s.querySelector('[data-price-mini]')), h: innerHeight };
+    return { btn: box(s.querySelector('.btn')), price: box(s.querySelector('[data-price-mini]')), h: innerHeight };
   });
-  for (const b of [r.btn, r.price]) { expect(b.bottom).toBeLessThanOrEqual(r.h); expect(b.top).toBeGreaterThanOrEqual(r.noticeBottom); }
+  for (const b of [r.btn, r.price]) { expect(b.top).toBeGreaterThanOrEqual(0); expect(b.bottom).toBeLessThanOrEqual(r.h); }
 });
 
 // 22.10: реклама веде на картку з телефона — назва, гасло й ціна «כולל מע״מ…» в першому екрані, над банером і смугою;
 // 3D — чип на кадрі, а не блок на всю ширину між кадром і назвою
-for (const [prefix, lang] of [['', 'he'], ['/en', 'en']]) {
+// аудит 22.10: смуги на першому екрані нема — під ціною видно плитки розмірів (перший ряд — над банером)
+for (const [prefix, lang] of [['', 'he'], ['/en', 'en'], ['/ru', 'ru']]) {
   for (const slug of ['tavor', 'sahar', 'tal']) {
-    test(`first screen 390×844 of ${prefix}/p/${slug}/ (${lang}): name, tagline and price with "incl." above the notice, no scroll`, async ({ page }) => {
+    test(`first screen 390×844 of ${prefix}/p/${slug}/ (${lang}): name, tagline, price with "incl." and the size tiles above the notice, no sticky bar`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await mockApi(page);
       await page.goto(`${prefix}/p/${slug}/`);
       await expect(page.locator('#notice')).toBeVisible();
-      const sticky = page.locator('[data-sticky]');
-      await expect(sticky).toHaveClass(/is-on/);
-      await sticky.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
+      await page.waitForTimeout(300);
+      await expect(page.locator('[data-sticky]')).not.toHaveClass(/is-on/);
       const r = await page.evaluate(() => {
         const box = s => document.querySelector(s).getBoundingClientRect();
         return { y: scrollY, notice: box('#notice').top, h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
-          incl: box('.pdp-price .price-incl'), chip: box('.g-3d'), img: box('.g-track') };
+          incl: box('.pdp-price .price-incl'), chip: box('.g-3d'), img: box('.g-track'),
+          tile: box('label.pill:has(input[name="size"])') };
       });
       expect(r.y).toBe(0);
       for (const b of [r.h1, r.tag, r.price, r.incl]) { expect(b.top).toBeGreaterThan(0); expect(b.bottom).toBeLessThanOrEqual(r.notice); }
+      // перший ряд плиток читається над банером (розмір видно); ru-гасло довше — у sahar плитки на екрані, але під банером
+      if (lang === 'ru') expect(r.tile.top).toBeLessThan(844);
+      else expect(r.tile.top + 40).toBeLessThanOrEqual(r.notice);
       // чип 3D лежить на кадрі
       expect(r.chip.top).toBeGreaterThanOrEqual(r.img.top);
       expect(r.chip.bottom).toBeLessThanOrEqual(r.img.bottom);

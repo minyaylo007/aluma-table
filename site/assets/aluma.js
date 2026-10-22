@@ -505,25 +505,21 @@
   }
   if (form) wireForm(form);
 
-  // ---------------------------------------------------------------- липка кнопка: після першого екрана, не над формою
+  // ---------------------------------------------------------------- липка кнопка: після якоря, не над формою, не з банером
   // Положення рахуємо на scroll (пасивно, раз на кадр): IntersectionObserver пропускає якір, якщо
   // швидкий свайп перестрибує його за один кадр, і кнопка не з'являлася.
   var sticky = qs("[data-sticky]");
   if (sticky) {
-    // у картці товару — щойно кнопка «הוספה לסל» поза екраном, і ДО неї теж: перший екран телефона — кадр, назва
-    // й ціна (22.10), а кнопка нижче, під конфігуратором; смуга дає її одразу
-    var hero = qs(".hero .actions"), anchor = hero || qs(".pdp-actions"), reg = qs("#register"), foot = qs(".foot"), queued = false;
+    // якір — кнопки hero на головній, «הוספה לסל» у картці: смуга лише коли якір пішов за верх екрана. До нього — ні:
+    // перший екран картки на телефоні — плитки розмірів, а не смуга над ними (аудит 22.10, (б) 5)
+    var anchor = qs(".hero .actions") || qs(".pdp-actions"), reg = qs("#register"), foot = qs(".foot"), queued = false;
     var visible = function (el) { if (!el) return false; var r = el.getBoundingClientRect(); return r.top < W.innerHeight && r.bottom > 0; };
-    // «вся на екрані» — над банером згоди, якщо він унизу на всю ширину: ціна під ним не видна (21.10, 390×844)
-    var edge = function () {
-      return notice && !notice.hidden && !notice.classList.contains("is-away") && notice.offsetWidth > W.innerWidth * .8
-        ? Math.min(W.innerHeight, notice.getBoundingClientRect().top) : W.innerHeight;
-    };
-    var whole = function (el) { var r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= edge(); };
+    // банер згоди відкритий — смуги немає: удвох вони закривали третину екрана над розмірами (аудит 22.10)
+    var noticeOpen = function () { return !!notice && !notice.hidden && !notice.classList.contains("is-away"); };
     var apply = function () {
       queued = false;
-      var past = !anchor ? W.scrollY > W.innerHeight : hero ? anchor.getBoundingClientRect().bottom < 0 : !whole(anchor);
-      var on = past && !visible(reg) && !visible(foot) && !D.body.classList.contains("is-registered");
+      var past = anchor ? anchor.getBoundingClientRect().bottom < 0 : W.scrollY > W.innerHeight;
+      var on = past && !noticeOpen() && !visible(reg) && !visible(foot) && !D.body.classList.contains("is-registered");
       sticky.hidden = false;
       sticky.classList.toggle("is-on", on);
       sticky.inert = !on;
