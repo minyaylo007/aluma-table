@@ -180,12 +180,15 @@ class BuiltSiteTests(unittest.TestCase):
     def test_each_language_embeds_only_its_own_font_faces(self):
         # he-картка качала 44 КБ латинського Frank Ruhl і 15 КБ кирилиці (аудит 22.10): обличчя мови —
         # у fonts-<мова>.css, вбудованому лише в її сторінки; he — без кирилиці, крім літер «Русский»
+        # (22.10, далі) і повну латиницю Plex — 39 КБ заради «Meta Pixel», «English»: на he — лише latin-he
         common = {"FrankRuhlLibre-hebrew"} | {f"PlexSansHebrew-{w}-{s}" for w in (400, 600, 700)
-                                              for s in ("hebrew", "latin", "num")}
+                                              for s in ("hebrew", "num")}
+        plex_latin = {f"PlexSansHebrew-{w}-latin" for w in (400, 600, 700)}
         cyrillic = {"PlexSans-400-cyrillic", "PlexSans-600-cyrillic", "PlexSans-700-cyrillic", "PTSerif-cyrillic"}
-        own = {"he": {"FrankRuhlLibre-latin-caps", "PlexSans-400-cyrillic-lang"},
-               "en": {"FrankRuhlLibre-latin", "PlexSans-400-cyrillic-lang"},
-               "ru": {"FrankRuhlLibre-latin"} | cyrillic}
+        own = {"he": {"FrankRuhlLibre-latin-caps", "PlexSans-400-cyrillic-lang"}
+               | {f"PlexSansHebrew-{w}-latin-he" for w in (400, 600, 700)},
+               "en": {"FrankRuhlLibre-latin", "PlexSans-400-cyrillic-lang"} | plex_latin,
+               "ru": {"FrankRuhlLibre-latin"} | cyrillic | plex_latin}
         self.assertEqual(set(own), set(LOCALES), "нова мова — додай її обличчя сюди і site/assets/fonts-<мова>.css")
         for loc, prefix in DIST_PREFIX.items():
             for rel in ("", "catalog/", f"p/{PRODUCTS[0]['slug']}/", "cart/", "privacy", "404.html"):
@@ -197,6 +200,12 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertNotIn('<link rel="stylesheet"', html, "стилі вбудовані, без блокуючого запиту")
                     if loc != "ru":
                         self.assertNotRegex(html, r"PlexSans-\d00-cyrillic\.|PTSerif-cyrillic")
+                    if loc == "he":
+                        self.assertNotRegex(html, r"PlexSansHebrew-\d00-latin\.", "he — лише latin-he")
+        slug = PRODUCTS[0]["slug"]
+        self.assertNotRegex(self.page(f"p/{slug}/"), r"PlexSansHebrew-(400|600)-latin\.[0-9a-f]{10}\.woff2")
+        self.assertRegex(self.page(f"en/p/{slug}/"), r"PlexSansHebrew-400-latin\.[0-9a-f]{10}\.woff2")
+        self.assertRegex(self.page(f"en/p/{slug}/"), r"PlexSansHebrew-600-latin\.[0-9a-f]{10}\.woff2")
 
     def test_locale_font_subsets_match_their_unicode_range(self):
         # unicode-range кожного вирізаного обличчя = список, з яким його вирізано; «Русский» — з i18n

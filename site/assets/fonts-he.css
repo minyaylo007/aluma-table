@@ -2,6 +2,28 @@
    Латиниця Frank Ruhl — тільки великі, цифри й пунктуація: на he заголовки латиницею — «ALUMA», «TAVOR».
    Кирилиця — лише літери «Русский» у перемикачі мов. Обидва вирізає tools/subset_locale_fonts.py,
    unicode-range = список, з яким вирізано. */
+/* IBM Plex Sans Hebrew: цифри й спільна пунктуація — num (tools/subset_numerals.py), як на en/ru; латиниця — лише latin-he: A–Z, a–z, Ø і лапки
+   («Meta Pixel», «WhatsApp», «English» у банері, перемикачі, nojs, privacy), 7 КБ замість 19–20 на вагу.
+   Діапазони latin-he і num не перетинаються — жоден знак не тягне двох файлів. 700 на he малює лише цифри,
+   його latin-he вантажиться тільки на вимогу. Вирізає tools/subset_locale_fonts.py, unicode-range = список вирізання. */
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-400-num.woff2) format("woff2");
+  unicode-range: U+0020-0021, U+0025, U+0028-0029, U+002B-002F, U+0030-0039, U+003A-003B, U+003F, U+00A0, U+00A9, U+00B7, U+00D7, U+2013-2014; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-600-num.woff2) format("woff2");
+  unicode-range: U+0020-0021, U+0025, U+0028-0029, U+002B-002F, U+0030-0039, U+003A-003B, U+003F, U+00A0, U+00A9, U+00B7, U+00D7, U+2013-2014; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-700-num.woff2) format("woff2");
+  unicode-range: U+0020-0021, U+0025, U+0028-0029, U+002B-002F, U+0030-0039, U+003A-003B, U+003F, U+00A0, U+00A9, U+00B7, U+00D7, U+2013-2014; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-400-latin-he.woff2) format("woff2");
+  unicode-range: U+0022, U+0026-0027, U+0041-005A, U+0061-007A, U+00D8, U+2018-201E, U+2026; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-600-latin-he.woff2) format("woff2");
+  unicode-range: U+0022, U+0026-0027, U+0041-005A, U+0061-007A, U+00D8, U+2018-201E, U+2026; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-700-latin-he.woff2) format("woff2");
+  unicode-range: U+0022, U+0026-0027, U+0041-005A, U+0061-007A, U+00D8, U+2018-201E, U+2026; }
 @font-face { font-family: "Frank Ruhl Libre"; font-style: normal; font-weight: 400 500; font-display: swap;
   src: url(/assets/fonts/FrankRuhlLibre-latin-caps.woff2) format("woff2");
   unicode-range: U+0020-005F, U+007C, U+00A0, U+00A9, U+00AB, U+00B7, U+00BB, U+00D7, U+2013-2014, U+2018-201E, U+2022, U+2026, U+20AC; }
