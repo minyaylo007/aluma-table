@@ -78,6 +78,18 @@ class BuiltSiteTests(unittest.TestCase):
                         self.assertIn(f'<div class="viewer3d" id="{vid}" hidden>', html)
                         self.assertEqual('data-state="open"' in html, any(sz.get("extended_cm") for sz in p["sizes"]))
 
+    def test_estimate_word_next_to_the_price(self):
+        # аудит 22.10 (г) 1: реклама обіцяє «מחיר משוער» — слово стоїть у рядку під ціною, до плиток розмірів
+        word = {"": "מחיר משוער", "en/": "estimate", "ru/": "ориентировочно"}
+        for p in PRODUCTS:
+            for prefix, w in word.items():
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    incl = re.search(r'<span class="price-incl">([^<]*)</span>', html)
+                    self.assertIsNotNone(incl)
+                    self.assertIn(w, incl.group(1))
+                    self.assertLess(incl.start(), html.index('name="size"'), "рядок під ціною — над плитками")
+
     def test_cart_thumbnail_is_the_smallest_frame(self):
         # аудит 22.10 (б) сев. 2: мініатюра 96×96 у кошику — 400w зі srcset, не home-1600; липка кнопка — так само
         for prefix in ("", "en/", "ru/"):

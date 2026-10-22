@@ -160,7 +160,8 @@ class RussianCreativeTests(unittest.TestCase):
         """Позначка, строк, що входить у ціну, і застереження — дослівно як на /ru/."""
         self.assertEqual(self.cfg["mark"], self.site["viz_tag"])
         self.assertEqual(self.cfg["cta_note"], self.site["lead_exact"])
-        self.assertEqual(self.cfg["includes"], self.site["price_incl"])
+        # 22.10 (г) 1: на сайті перед фразою — «ориентировочно · »; креативи кажуть «ориентировочно» у price_note
+        self.assertTrue(self.site["price_incl"].endswith(" · " + self.cfg["includes"]), self.site["price_incl"])
         self.assertTrue(self.site["cart_fine"].startswith(self.cfg["price_note"]), "застереження сайту змінилось")
         self.assertIn("не подтверждена", self.cfg["price_note"])
         self.assertIn("не подтверждены", self.cfg["price_note_many"])
