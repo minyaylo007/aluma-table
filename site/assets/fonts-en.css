@@ -1,0 +1,9 @@
+/* Обличчя лише для en: build.py вбудовує в сторінку файл її мови (fonts-<мова>.css) одразу після aluma.css.
+   Латиниця Frank Ruhl — повна: заголовки англійською цілком латинські.
+   Кирилиця — лише літери «Русский» у перемикачі мов (tools/subset_locale_fonts.py). */
+@font-face { font-family: "Frank Ruhl Libre"; font-style: normal; font-weight: 400 500; font-display: swap;
+  src: url(/assets/fonts/FrankRuhlLibre-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(/assets/fonts/PlexSans-400-cyrillic-lang.woff2) format("woff2");
+  unicode-range: U+0420, U+0438, U+0439, U+043A, U+0441, U+0443; }
