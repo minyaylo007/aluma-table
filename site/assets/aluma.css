@@ -538,7 +538,8 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .g-thumb { width: 64px; }
   .pdp-h1 { font-size: 2.2rem; }
   .pdp-tag { margin-block-start: 4px; font-size: 1rem; }
-  .pdp-price { margin-block: 12px 2px; padding-block-start: 12px; }
+  .pdp-price { margin-block: 12px 2px; padding-block-start: 12px; row-gap: 0; }
+  .pdp-price .price-incl { line-height: 1.3; } /* en/ru «estimate · incl.…» — окремим рядком, плитки не з'їжджають під банер */
   .price { font-size: 2rem; }
 }
 .price { font-size: 2.2rem; line-height: 1; }
@@ -568,8 +569,10 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); outline: 1px solid transparent; outline-offset: 3px; transition: outline-color .15s; }
 .swatch input:checked + .swatch-dot { outline: 1.5px solid var(--ink); }
 .swatch input:focus-visible + .swatch-dot { outline: 2px solid var(--oak-deep); }
-.pdp-lead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .92rem; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+/* точка не лишається сама на рядку (ru/en, аудит 22.10 (б) сев. 3): текст переноситься поруч, точка — на рівні першого рядка */
+.pdp-lead { display: flex; align-items: flex-start; gap: 8px; font-size: .92rem; }
+.dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.pdp-lead .dot { margin-block-start: calc(.825em - 4px); } /* 1.65 / 2 — середина першого рядка */
 .pdp-actions { display: grid; gap: 10px; margin-block: 20px; }
 .pdp-actions > *, .pdp-buy > * { min-width: 0; }
 /* «מה כלול במחיר» і «איך לבחור מידה» — під кнопкою кошика, до «מפרט» */

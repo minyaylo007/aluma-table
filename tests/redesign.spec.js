@@ -51,14 +51,16 @@ for (const [path, lang, dir] of [['/', 'he', 'rtl'], ['/en/', 'en', 'ltr']]) {
 }
 
 for (const p of PRODUCTS) {
-  test(`card /p/${p.slug}/ opens with a price, sizes and "add to cart", no weeks and no estimate mark next to the price`, async ({ page }) => {
+  test(`card /p/${p.slug}/ opens with a price, sizes and "add to cart", no weeks, the word "estimate" under the price`, async ({ page }) => {
     await mockApi(page);
     const errors = watchErrors(page);
     await page.goto(`/p/${p.slug}/`);
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('input[name="size"]')).toHaveCount(p.sizes.length);
     await expect(page.locator('.pdp-actions [data-add-cart]')).toHaveText('הוספה לסל');
-    await expect(page.locator('.pdp-price')).not.toContainText('משוער');
+    // 22.10, аудит (г) 1: реклама обіцяє «מחיר משוער» — слово під ціною; «טרם אושר» — лише в застереженні над кнопкою
+    await expect(page.locator('.pdp-price')).toContainText('מחיר משוער');
+    await expect(page.locator('.pdp-price')).not.toContainText('טרם אושר');
     await expect(page.locator('.pdp-buy')).not.toContainText('שבועות');
     if ((p.images || []).length) await expect(page.locator('.viz-tag').first()).toContainText('הדמיה');
     if (!p.model3d) await expect(page.locator('.js-3d')).toHaveCount(0);
@@ -574,10 +576,13 @@ for (const [prefix, lang] of [['', 'he'], ['/en', 'en'], ['/ru', 'ru']]) {
         const box = s => document.querySelector(s).getBoundingClientRect();
         return { y: scrollY, notice: box('#notice').top, h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
           incl: box('.pdp-price .price-incl'), chip: box('.g-3d'), img: box('.g-track'),
-          tile: box('label.pill:has(input[name="size"])') };
+          tile: box('label.pill:has(input[name="size"])'),
+          inclLH: parseFloat(getComputedStyle(document.querySelector('.pdp-price .price-incl')).lineHeight) };
       });
       expect(r.y).toBe(0);
       for (const b of [r.h1, r.tag, r.price, r.incl]) { expect(b.top).toBeGreaterThan(0); expect(b.bottom).toBeLessThanOrEqual(r.notice); }
+      // аудит 22.10 (г) 1: «מחיר משוער · כולל…» під ціною — один рядок, не переноситься
+      expect(r.incl.height).toBeLessThan(r.inclLH * 1.5);
       // перший ряд плиток читається над банером (розмір видно); ru-гасло довше — у sahar плитки на екрані, але під банером
       if (lang === 'ru') expect(r.tile.top).toBeLessThan(844);
       else expect(r.tile.top + 40).toBeLessThanOrEqual(r.notice);
