@@ -176,24 +176,24 @@
         "source": "render"
       },
       {
-        "src": "/assets/products/tavor/hero-1600.webp",
-        "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1200.webp 1200w, /assets/products/tavor/hero-1600.webp 1600w",
-        "srcset_avif": "/assets/products/tavor/hero-400.avif 400w, /assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1200.avif 1200w, /assets/products/tavor/hero-1600.avif 1600w",
-        "jpg": "/assets/products/tavor/hero-1600.jpg",
-        "width": 1600,
-        "height": 1068,
+        "src": "/assets/products/tavor/hero-1264.webp",
+        "srcset": "/assets/products/tavor/hero-400.webp 400w, /assets/products/tavor/hero-800.webp 800w, /assets/products/tavor/hero-1200.webp 1200w, /assets/products/tavor/hero-1264.webp 1264w",
+        "srcset_avif": "/assets/products/tavor/hero-400.avif 400w, /assets/products/tavor/hero-800.avif 800w, /assets/products/tavor/hero-1200.avif 1200w, /assets/products/tavor/hero-1264.avif 1264w",
+        "jpg": "/assets/products/tavor/hero-1264.jpg",
+        "width": 1264,
+        "height": 848,
         "view": "hero",
         "finish": "natural",
         "base": "oak",
         "state": "closed",
-        "size": "180×90",
+        "size": "200×100",
         "alt": {
-          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, בחלל מגורים באור יום",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a living room in daylight",
-          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», в гостиной при дневном свете"
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, בחלל מגורים ים־תיכוני באור יום: ענפי זית באגרטל, קערת לימונים, ריצוף טראצו ווילון פשתן",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, in a Mediterranean living room in daylight: olive branches in a vase, a bowl of lemons, terrazzo floor and a linen curtain",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», в средиземноморской гостиной при дневном свете: ветки оливы в вазе, миска с лимонами, пол из терраццо и льняная штора"
         },
         "kind": "visualization",
-        "source": "render"
+        "source": "ai"
       },
       {
         "src": "/assets/products/tavor/angle-1600.webp",
@@ -216,24 +216,24 @@
         "source": "render"
       },
       {
-        "src": "/assets/products/tavor/detail-1600.webp",
-        "srcset": "/assets/products/tavor/detail-800.webp 800w, /assets/products/tavor/detail-1600.webp 1600w",
-        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1600.avif 1600w",
-        "jpg": "/assets/products/tavor/detail-1600.jpg",
-        "width": 1600,
-        "height": 1200,
+        "src": "/assets/products/tavor/detail-1200.webp",
+        "srcset": "/assets/products/tavor/detail-800.webp 800w, /assets/products/tavor/detail-1200.webp 1200w",
+        "srcset_avif": "/assets/products/tavor/detail-800.avif 800w, /assets/products/tavor/detail-1200.avif 1200w",
+        "jpg": "/assets/products/tavor/detail-1200.jpg",
+        "width": 1200,
+        "height": 896,
         "view": "detail",
         "finish": "natural",
         "base": "oak",
         "state": "closed",
         "size": "180×90",
         "alt": {
-          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, תקריב של הקנט המשופע מלמטה ושל הרגל המתחדדת",
-          "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the edge bevelled underneath and the tapered leg",
-          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», крупный план: скошенная снизу кромка и сужающаяся ножка"
+          "he": "הדמיה: שולחן אוכל נפתח תבור, גוון אלון טבעי, תקריב של פינת המשטח: קנט ישר עם שיפוע מלמטה, המסגרת והרגל המתחדדת, וכוס קרמיקה על השולחן",
+          "en": "Visualization: TAVOR extendable dining table, natural oak finish, close-up of the top corner: a straight edge bevelled underneath, the apron and the tapered leg, with a ceramic cup on the table",
+          "ru": "Визуализация: раздвижной обеденный стол TAVOR, тон «натуральный дуб», крупный план угла столешницы: прямая кромка со скосом снизу, царга и сужающаяся ножка, на столе керамическая чашка"
         },
         "kind": "visualization",
-        "source": "render"
+        "source": "ai"
       },
       {
         "src": "/assets/products/tavor/open-1600.webp",

@@ -490,7 +490,8 @@ class PageKitTests(unittest.TestCase):
         keys = [self.cfg["cover"]["image"]] + [k for p in self.cfg["posts"] if p["images"] != "@tones" for k in p["images"]]
         for key in keys:
             pid, view = key.split("/")
-            self.assertIn(f"/assets/products/{pid}/{view}-1600.jpg", frames, key)
+            # ширина — рідна ширина майстра (AI-кадри 1264 / 1200, рендери 1600): pagekit.js catalogFrame()
+            self.assertTrue(any(re.fullmatch(rf"/assets/products/{pid}/{view}-\d+\.jpg", f) for f in frames), key)
         for post in self.cfg["posts"]:
             self.assertIn(post["product"], self.catalog, post["id"])
 
