@@ -31,11 +31,12 @@ function args(argv) {
   return out;
 }
 
-// «tavor/home» → site/assets/products/tavor/home-1600.jpg, лише якщо цей кадр є в каталозі (images[].jpg, візуалізація).
+// «tavor/home» → site/assets/products/tavor/home-<ширина>.jpg з images[].jpg (візуалізація), лише якщо кадр є в каталозі;
+// ширина — рідна ширина майстра (AI-кадри 1264 / 1200, рендери 1600).
 function catalogFrame(catalog, key) {
   const [pid, view] = key.split('/');
   const p = catalog.find((x) => x.id === pid);
-  const img = p && (p.images || []).find((i) => i.kind === 'visualization' && i.jpg && i.jpg.endsWith(`/${pid}/${view}-1600.jpg`));
+  const img = p && (p.images || []).find((i) => i.kind === 'visualization' && i.jpg && new RegExp(`/${pid}/${view}-\\d+\\.jpg$`).test(i.jpg));
   if (!img) throw new Error(`${key}: кадру нема в catalog/products.json`);
   const file = path.join(B.ROOT, 'site', img.jpg.replace(/^\//, ''));
   if (!fs.existsSync(file)) throw new Error(`${key}: нема файлу ${path.relative(B.ROOT, file)}`);
