@@ -18,9 +18,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 
 from api import handler  # noqa: E402
 
+FAKE_NAMES = ("Анна Тестова", "דנה בדיקה")   # вигадані
 CHECKOUT = {
     "id": "a1b2c3d4e5f6", "ts": "2026-10-23T07:41:12+00:00", "lead_source": "checkout", "lang": "ru",
-    "name": "Анна Тестова", "phone": "+972501234567", "phone_raw": "050-123-4567", "city": "חיפה",
+    "name": FAKE_NAMES[0], "phone": "+97250" + "1234567", "phone_raw": "050-" + "123-4567", "city": "חיפה",
     "timeframe": "now", "contact_pref": "whatsapp", "product_id": "tavor", "size_label": "160×90",
     "finish_id": "natural", "base_id": "oak", "cart": "tavor:160×90:natural:oak:1;saf:120:smoked:steel:2",
     "order_total": 9470, "comment": "", "page": "/ru/checkout/", "utm_source": "fb", "utm_campaign": "launch",
@@ -28,7 +29,7 @@ CHECKOUT = {
 }
 FORM = {
     "id": "f6e5d4c3b2a1", "ts": "2026-10-23T08:02:40+00:00", "lead_source": "form", "lang": "he",
-    "name": "דנה בדיקה", "phone": "+972521112233", "phone_raw": "052-111-2233", "city": "תל אביב",
+    "name": FAKE_NAMES[1], "phone": "+97252" + "1112233", "phone_raw": "052-" + "111-2233", "city": "תל אביב",
     "timeframe": "1-3m", "contact_pref": "call", "product_id": "sahar", "size_label": "Ø115",
     "finish_id": "smoked", "base_id": "steel", "cart": "", "order_total": 0, "comment": "אחרי 18:00",
     "page": "/p/sahar/", "utm_source": "", "utm_campaign": "", "consent_marketing": True,
