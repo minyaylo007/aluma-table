@@ -17,9 +17,9 @@ const { test, expect } = require('@playwright/test');
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:8007';
 const ORIGIN = new URL(BASE).origin;
 const IS_LOCAL = ['127.0.0.1', 'localhost'].includes(new URL(BASE).hostname);
-// вигадані облікові дані одноразового стеку (tools/serve-local-stack.py, prepare_environment)
-const ADMIN_USER = process.env.LOCAL_STACK_ADMIN_USER || 'local';
-const ADMIN_PASS = process.env.LOCAL_STACK_ADMIN_PASS || 'throwaway-local-stack';
+// вхід в адмінку стеку — випадковий на прогін, задає tests/playwright.smoke.config.js (у коді значення нема)
+const ADMIN_USER = process.env.SMOKE_ADMIN_USER;
+const ADMIN_KEY = process.env.SMOKE_ADMIN_KEY;
 
 const CATALOG = require('../catalog/products.json');
 const TAVOR = (CATALOG.products || CATALOG).find((p) => p.id === 'tavor');
@@ -29,6 +29,7 @@ const RU = require('../i18n/ru.json');
 const PHONE = ['05', '2-98', '7-6543'].join('');
 
 test.skip(!IS_LOCAL, `smoke пише заявки — лише проти локального стеку, а не ${ORIGIN}`);
+test.skip(!ADMIN_USER || !ADMIN_KEY, 'запуск лише з --config tests/playwright.smoke.config.js');
 
 // CSV без сторонніх бібліотек: лапки, коми й переноси всередині комірок
 function parseCsv(text) {
@@ -50,7 +51,7 @@ function parseCsv(text) {
 
 // вхід в адмінку стеку без переходів за редиректом (CLAUDE.md §6) — кука береться з відповіді 303
 async function adminCookie(request) {
-  const res = await request.post(`${ORIGIN}/admin/login`, { form: { user: ADMIN_USER, pass: ADMIN_PASS }, maxRedirects: 0 });
+  const res = await request.post(`${ORIGIN}/admin/login`, { form: { user: ADMIN_USER, pass: ADMIN_KEY }, maxRedirects: 0 });
   expect(res.status(), 'вхід в адмінку локального стеку').toBe(303);
   const set = res.headersArray().find((h) => h.name.toLowerCase() === 'set-cookie' && h.value.startsWith('fx_adm='));
   expect(set, 'кука fx_adm').toBeTruthy();
