@@ -92,11 +92,14 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       const size = TAVOR.sizes.find((s) => s.label === '180×90');
       const fin = 'smoked';
 
-      // 1. картка: ціна на виду, без «оцінки» поруч, строк — «на підтвердженні замовлення»
+      // 1. картка: ціна на виду, під нею «משוער / estimate / ориентировочно» (аудит 22.10 (г) 1), без «טרם אושר»;
+      //    строк — «на підтвердженні замовлення»
       await page.goto(`${ORIGIN}${pre}/p/tavor/`);
       await waitFb(page, 'ViewContent');
       await expect(page.locator('.pdp-price')).toBeVisible();
-      await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'משוער' : /estimat|ориентиров/i);
+      await expect(page.locator('.pdp-price .price-incl')).toHaveText(T.price_incl);
+      await expect(page.locator('.pdp-price')).toContainText(lang === 'he' ? 'מחיר משוער' : /estimate ·|ориентировочно ·/);
+      await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'טרם אושר' : /not yet confirmed|не подтвержден/i);
       await expect(page.locator('.pdp-buy')).not.toContainText(lang === 'he' ? 'שבועות' : /weeks|(^|[^а-яё])недел/i);
       await expect(page.locator('.pdp-lead')).toHaveText(T.lead_exact);
       await page.locator(`label:has(input[name="size"][value="${size.label}"])`).first().click();
