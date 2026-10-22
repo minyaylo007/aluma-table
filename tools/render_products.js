@@ -122,10 +122,10 @@ const LIGHT = {
 // Герой рендером моделі (а не Figma AI), де кадр AI не збігся з моделлю (docs/ASSETS.md): інтер'єр, ранкове сонце
 // з вікна ліворуч, м'яка тінь; 3:2, як герой Figma.
 const HERO_RENDER = {
-  tavor: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18 },
-  sahar: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 180, hdri_strength: 0.18 },
-  ofek:  { az: 28, eye: 1.2, margin: 0.22, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false },
-  saf:   { az: 30, eye: 1.2, margin: 0.22, sun: 7.0, window: 180, hdri_strength: 0.18, end_chair: false }
+  tavor: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 240, hdri_strength: 0.18, fstop: 2.8 },
+  sahar: { az: 30, eye: 1.25, margin: 0.2, sun: 7.0, window: 240, hdri_strength: 0.18, fstop: 2.8 },
+  ofek:  { az: 28, eye: 1.2, margin: 0.22, sun: 7.0, window: 240, hdri_strength: 0.18, fstop: 2.8, end_chair: false },
+  saf:   { az: 30, eye: 1.2, margin: 0.22, sun: 7.0, window: 240, hdri_strength: 0.18, fstop: 2.8, end_chair: false }
 };
 // Крупний план рендером, де деталь AI не збіглася з моделлю: fit — частка габариту (x, y, z), спереду y = 0.
 const DETAIL_RENDER = {
@@ -154,7 +154,7 @@ const AI_FRAMES = {
 };
 // Широкий кадр 16:9 рендером, де кадр AI не збігся з моделлю: та сама сцена, що в героя, камера далі.
 const WIDE_RENDER = {
-  sahar: { az: 26, eye: 1.3, lens: 85, margin: 0.5, sun: 7.0, window: 180, hdri_strength: 0.18 }
+  sahar: { az: 26, eye: 1.3, lens: 85, margin: 0.5, sun: 7.0, window: 240, hdri_strength: 0.18 }
 };
 // Тонування рендером (карусель Meta, сесія 4): той самий кадр, камера й світло, міняється лише матеріал стола —
 // справжній скан шпону цього тону (tools/oak_tones.py — ті самі файли, що зразок і 3D на сторінці), а не готовий кадр.
@@ -169,7 +169,7 @@ const VERTICAL_SHIFT = { eye: 1.9, margin: 0.12, shift_y: -0.34 };
 // Жилий кадр (власник 21.10: «у живому інтер'єрі»): та сама модель і матеріал, а кімната — ізраїльська квартира
 // (blender_scene.py room: home) — плитка-терацо, вікно в кадрі з алюмінієвою рамою й жалюзі, фіранка, рослини, килим.
 // Перший у images: він і обкладинка картки, і герой головної (content.json HERO_PRODUCT).
-const HOME_LIGHT = { room: 'home', sun: 7.0, window: 150, hdri_strength: 0.16, exposure: 1.5, end_chair: false };
+const HOME_LIGHT = { room: 'home', sun: 7.0, window: 150, hdri_strength: 0.16, exposure: 1.5, end_chair: false, fstop: 2.8 };
 const HOME = {
   tavor: { az: 30, eye: 1.3, margin: 0.2, ...HOME_LIGHT, end_chair: true },
   sahar: { az: 30, eye: 1.3, margin: 0.22, ...HOME_LIGHT, end_chair: true },
@@ -219,13 +219,14 @@ function framesFor(p) {
   return L;
 }
 
-// Рендер Blender — лише в рамці дирижера (systemd-run, ≤ 4 ГБ, ≤ 3 ядра), один процес за раз.
+// Рендер Blender — лише в рамці дирижера (systemd-run, ≤ 4 ГБ, ≤ 3 ядра, nice 15), один процес за раз.
+// Фотореальний прохід (22.10): 256–512 семплів + OIDN, кадр 1600 px — до ~40 хв на 3 потоках.
 const BLENDER = process.env.ALUMA_BLENDER || '/opt/ihor/aluma-table/tmp/blender/blender-4.5.14-linux-x64/blender';
 const SAMPLES = +(opt.samples || 48);
 function blender(geoFile, out, f, samples) {
-  const a = ['120m', 'nice', '-n', '19', 'systemd-run', '--user', '--scope', '-q', '--slice=app-ihor\\x2dconductor.slice',
-    '-p', 'MemoryMax=4G', '-p', 'CPUQuota=200%', BLENDER, '-b', '--factory-startup', '-P', path.join(__dirname, 'blender_scene.py'), '--',
-    '--geo', geoFile, '--out', out, '--shot', f.view, '--w', String(f.w), '--h', String(f.h), '--samples', String(samples || SAMPLES), '--threads', '2',
+  const a = ['180m', 'nice', '-n', '15', 'systemd-run', '--user', '--scope', '-q', '--slice=app-ihor\\x2dconductor.slice',
+    '-p', 'MemoryMax=4G', '-p', 'CPUQuota=300%', BLENDER, '-b', '--factory-startup', '-P', path.join(__dirname, 'blender_scene.py'), '--',
+    '--geo', geoFile, '--out', out, '--shot', f.view, '--w', String(f.w), '--h', String(f.h), '--samples', String(samples || SAMPLES), '--threads', '3',
     '--decor', f.decor, '--cam', JSON.stringify(f.cam || {}), '--finish', f.finish || 'natural'];
   if (f.albedo) a.push('--albedo', f.albedo);
   const r = spawnSync('timeout', a, { stdio: ['ignore', 'pipe', 'pipe'], env: Object.assign({}, process.env, { TMPDIR: '/tmp' }), cwd: ROOT });
@@ -393,15 +394,14 @@ async function openPage() {
       console.log(`${p.id}/${f.name} 1080×1920`);
     }
     if (add) {
-      // --add=<кадри>: нові кадри стають на своє місце за framesFor, старі записи images лишаються; wide не чіпаємо
+      // --add=<кадри>: нові кадри стають на своє місце за framesFor, старі записи images лишаються; wide — лише якщо названо
       const order = framesFor(p).map(f => f.name), nameOf = im => im.src.split('/').pop().replace(/-\d+\.webp$/, '');
       if (!opt.preview) {
         p.images = [...images, ...p.images.filter(im => !images.some(n => nameOf(n) === nameOf(im)))]
           .sort((a, b) => order.indexOf(nameOf(a)) - order.indexOf(nameOf(b)));
       }
-      continue;
-    }
-    if (!opt.preview) p.images = images;
+      if (!add.includes('wide')) continue;
+    } else if (!opt.preview) p.images = images;
     // широкий кадр 16:9 (Figma AI або рендер, WIDE_RENDER) — для шапки й обкладинок Meta; окреме поле, не в images: у галерею картки не йде
     let wide = path.join(FIGMA, `${p.id}-wide-v1.png`);
     if (WIDE_RENDER[p.id]) {
