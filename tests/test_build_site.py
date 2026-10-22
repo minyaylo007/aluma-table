@@ -178,7 +178,7 @@ class BuiltSiteTests(unittest.TestCase):
         # своєю мовою (ru — англійський з позначкою), опублікований у dist з хешем і справді PDF
         content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
         inside = [x.strip() for x in content["INSIDE_PRODUCTS"].split(",")]
-        pdf_lang = {"he": "he", "en": "en", "ru": "en"}
+        pdf_lang = {"he": "he", "en": "en", "ru": "ru"}  # ru-інструкція з 22.10 (до того ru вела на en)
         for lang, prefix in DIST_PREFIX.items():
             t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
             for p in PRODUCTS:
