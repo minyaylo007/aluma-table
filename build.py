@@ -373,6 +373,10 @@ def grid(products: list, loc: str, prefix: str, limit: int | None = None) -> str
 
 
 def size_dims(s: dict) -> str:
+    """Підпис плитки розміру; круглий стіл — як у кошику й рекламі: «Ø115», без висоти (аудит 22.10 (б) 5)."""
+    lab = str(s.get("label") or "")
+    if lab.startswith("Ø"):
+        return lab
     parts = [s.get("length_cm"), s.get("width_cm"), s.get("height_cm")]
     parts = [str(x) for x in parts if x]
     return "×".join(parts)
