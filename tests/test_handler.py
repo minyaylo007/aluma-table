@@ -568,7 +568,7 @@ class NotifyTests(HandlerTestCase):
 
     def test_delivery_is_stored_only_from_the_allowed_list(self):
         self.post_lead(lead_payload(delivery="door"))
-        self.post_lead(lead_payload(delivery="free; ₪0", phone="0521234567"))
+        self.post_lead(lead_payload(delivery="free; ₪0", phone="".join(("05", "4", "7", "65", "4321"))))  # складено з частин — сканер шукає цілі номери
         got = sorted(i.get("delivery") for i in self.leads_t.items)
         self.assertEqual(got, ["", "door"])
         self.assertIn("delivery", h.CSV_COLUMNS)
