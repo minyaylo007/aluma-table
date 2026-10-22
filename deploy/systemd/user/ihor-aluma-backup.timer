@@ -1,0 +1,21 @@
+# ALUMA — щогодинний запуск ihor-aluma-backup.service. КОРИСТУВАЦЬКИЙ юніт.
+# Установка — див. коментар у ihor-aluma-backup.service.
+
+[Unit]
+Description=ALUMA — hourly leads backup (timer, user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Timer]
+Unit=ihor-aluma-backup.service
+
+# Щогодини в :07, НЕ в :00 — о :00 ідуть щогодинні бекапи машини, не толкаємось із ними за диск.
+OnCalendar=*-*-* *:07:00
+# Після перезавантаження — копія за 5 хв, не чекаючи наступного :07.
+OnBootSec=5min
+AccuracySec=1min
+
+# Пропустили запуск (сервер лежав) — доженемо після старту.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

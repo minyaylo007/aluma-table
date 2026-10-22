@@ -28,6 +28,7 @@ gunicorn) і `api/store.py` (SQLite-двійник трьох таблиць Dyn
 | `caddy/aluma.Caddyfile` | блок сайту в `/etc/caddy/Caddyfile` — **кладе тільки власник** | варіант (в) Caddy → gunicorn і закоментований (б) Caddy → nginx; перевірений `caddy adapt`/`validate` |
 | `aluma.env.example` | зразок для `/etc/aluma/aluma.env` | перелік змінних, **без жодного реального значення** |
 | `../scripts/purge.py` | у репозиторії | чистка протухлих рядків + `VACUUM` |
+| `systemd/user/ihor-aluma-backup.{service,timer}` + `../scripts/backup_leads.py` | `~/.config/systemd/user/` — **встановлено руками 22.10** | почасовий бекап бази заявок у `backups/`, розділ «Бекап заявок» |
 
 ## Імена юнітів: префікс `ihor-`
 
@@ -147,7 +148,8 @@ sudo nginx -t && sudo systemctl reload nginx
 | статика для Caddy | `/srv/aluma` — копія `dist/` через `rsync`, див. «Публікація статики» (існує з 11.09) | `0755`, `ihor` |
 | відкат проду | `/opt/ihor/aluma-table/rollback/` — zip лямбди 0.3.0, **не чіпати** | — |
 | оточення | `~/.config/aluma/aluma.env` | файл `0600`, тека `0700` |
-| юніти | `~/.config/systemd/user/ihor-aluma-{api.service,purge.service,purge.timer}` | — |
+| юніти | `~/.config/systemd/user/ihor-aluma-{api.service,purge.service,purge.timer,backup.service,backup.timer}` | — |
+| бекапи бази | `/opt/ihor/aluma-table/backups/` — розділ «Бекап заявок» | тека `0700`, файли `0600` |
 
 Оточення не в `/etc/aluma` (нема прав) і не всередині `/opt/ihor/aluma-table`
 (секретам не місце в дереві коду, яке клонують і перезбирають). Написав його `scripts/box_env.py` — значення ніде не
@@ -336,6 +338,46 @@ CloudFront, який ще не встиг протухнути в кешах DNS
 `scripts/purge.py` кличе `purge_expired()` по трьох таблицях і робить `VACUUM`
 (без нього файл не зменшується). Заявки `fx_leads` не чіпаються: у них `ttl`
 не ставиться, вони живуть вічно за задумом.
+
+## Бекап заявок: `ihor-aluma-backup.timer`
+
+Заявки — єдиний результат тесту попиту, а `data/aluma.db` до 22.10 не копіювалася автоматично ніколи.
+Щогодинні бекапи машини — Дениса, нашої теки вони не покривають (і ми їх не чіпаємо).
+
+| Що | Де / як |
+|---|---|
+| скрипт | `scripts/backup_leads.py` — stdlib, `sqlite3 Connection.backup()` (консистентно під живим gunicorn у WAL) |
+| юніти | `systemd/user/ihor-aluma-backup.{service,timer}` → `~/.config/systemd/user/`, **ставляться руками** (`deploy-box.sh` юнітів не ставить) |
+| розклад | щогодини о `:07` (не `:00` — тоді бекапи машини), `OnBootSec=5min`, `Persistent=true`; `Nice=10`, `IOSchedulingClass=idle` |
+| копії | `/opt/ihor/aluma-table/backups/aluma-ГГГГММДД-ЧЧММ.db` (час UTC), тека `0700`, файл `0600`, один файл без `-wal` |
+| перевірка | кожна копія: `PRAGMA integrity_check` = ok і рядків `fx_leads` = в оригіналі (з одного знімка читання), інакше файлу нема |
+| ротація | 72 останні (3 доби почасово) + найсвіжіша за кожну добу за 30 діб; видаляє лише файли за шаблоном імені вище |
+| журнал | `journalctl --user -u ihor-aluma-backup -n 3` — один JSON-рядок: `backup_ok` з `rows`/`bytes`/`kept` або `backup_failed` з `reason` |
+
+Установка (один раз) і ручний запуск:
+
+```bash
+install -m 0644 deploy/systemd/user/ihor-aluma-backup.service \
+    deploy/systemd/user/ihor-aluma-backup.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now ihor-aluma-backup.timer
+systemctl --user start ihor-aluma-backup.service      # перша копія, не чекаючи :07
+systemctl --user list-timers | grep ihor-aluma
+```
+
+**Відновлення** з копії (заявки, що прийшли після неї, пропадуть — тому спершу знімок поточної бази):
+
+```bash
+systemctl --user start ihor-aluma-backup.service      # знімок поточного стану, навіть зламаного
+systemctl --user stop ihor-aluma-api
+cd /opt/ihor/aluma-table && umask 077
+rm -f data/aluma.db-wal data/aluma.db-shm             # -wal від старої бази зіпсував би відновлену
+cp backups/aluma-ГГГГММДД-ЧЧММ.db data/aluma.db && chmod 0600 data/aluma.db
+systemctl --user start ihor-aluma-api
+curl -s http://127.0.0.1:8005/api/fx/health           # {"ok": true, ...}
+```
+
+**Відкат юнітів** (копії лишаються): `systemctl --user disable --now ihor-aluma-backup.timer`.
 
 ## X-Forwarded-For: три топології і чому realip потрібен у двох із них
 

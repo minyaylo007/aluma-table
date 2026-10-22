@@ -16,6 +16,7 @@ tests.test_quality_pages    # як бачать Facebook, Google: meta, og ≥ 1
 tests.test_catalog            # каталог товарів: схема, ціни «משוער», лише візуалізації
 tests.test_oak_tones          # тони дуба: одна таблиця в 3D, Blender і генераторі; зразок і фото фабрики
 tests.test_user_units         # юніти прода
+tests.test_backup_leads       # почасовий бекап заявок: копія, integrity, ротація лише своїх імен
 tests.test_box_env            # оточення прода без друку значень
 tests.test_deploy_box             # викат на прод: лише свій юніт, rsync з --chmod, відкат
 tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy
