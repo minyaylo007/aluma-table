@@ -83,6 +83,16 @@ function altFor(p, view, fin, base, key) {
   };
 }
 
+// Підпис кадру AI_FRAMES: та сама схема, що в altFor, плюс ru (його altFor не дає — у каталозі ru дописано окремо).
+function aiAlt(p, fin, [vh, ve, vr]) {
+  const [kh, ke] = KIND[p.id], kr = { tavor: 'раздвижной обеденный стол' }[p.id];
+  return {
+    he: `הדמיה: ${kh} ${p.name.he}, גוון ${fin.he}, ${vh}`,
+    en: `Visualization: ${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}`,
+    ru: `Визуализация: ${kr} ${p.name.ru || p.name.en}, тон «${fin.ru.toLowerCase()}», ${vr}`
+  };
+}
+
 // Кадри товару: перший — герой (головна картинка картки), далі низький ракурс (Blender), крупний план,
 // розкладений (розсувні, Blender). cam — параметри камери tools/blender_scene.py (--cam).
 // Галерея (запит дирижера 21.10): angle — не той самий кадр, що герой, а низько і з другого боку; у sahar — крупно
@@ -127,6 +137,21 @@ const DETAIL_RENDER = {
   tal:   { az: 40, eye: 0.7, lens: 85, fstop: 2.8, margin: 0.03, fit: [[0.8, 0, 0.35], [1, 0.3, 1]], sun: 7.0, window: 180,
            end_chair: false }
 };
+// Кадри Figma AI другого заходу (22.10, docs/ASSETS.md): мають перевагу над HERO_RENDER / DETAIL_RENDER — запис
+// HERO_RENDER.tavor лишається камерою вертикалі hero-9x16 і запасним шляхом (прибрати рядок тут — повернеться рендер).
+// file — відносно $ALUMA_FIGMA; alt [he, en, ru] — сцена саме цього кадру (оливкова гілка, лимони, терацо, льон).
+const AI_FRAMES = {
+  tavor: {
+    hero: { file: 'v2/tavor-hero-2.png', size: '200×100',
+      alt: ['בחלל מגורים ים־תיכוני באור יום: ענפי זית באגרטל, קערת לימונים, ריצוף טראצו ווילון פשתן',
+            'in a Mediterranean living room in daylight: olive branches in a vase, a bowl of lemons, terrazzo floor and a linen curtain',
+            'в средиземноморской гостиной при дневном свете: ветки оливы в вазе, миска с лимонами, пол из терраццо и льняная штора'] },
+    detail: { file: 'v2/tavor-detail-1.png',
+      alt: ['תקריב של פינת המשטח: קנט ישר עם שיפוע מלמטה, המסגרת והרגל המתחדדת, וכוס קרמיקה על השולחן',
+            'close-up of the top corner: a straight edge bevelled underneath, the apron and the tapered leg, with a ceramic cup on the table',
+            'крупный план угла столешницы: прямая кромка со скосом снизу, царга и сужающаяся ножка, на столе керамическая чашка'] }
+  }
+};
 // Широкий кадр 16:9 рендером, де кадр AI не збігся з моделлю: та сама сцена, що в героя, камера далі.
 const WIDE_RENDER = {
   sahar: { az: 26, eye: 1.3, lens: 85, margin: 0.5, sun: 7.0, window: 180, hdri_strength: 0.18 }
@@ -157,12 +182,16 @@ function framesFor(p) {
   const decor = p.category === 'dining_table' ? 'dining' : 'top';
   const L = [
     { name: 'home', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HOME[p.id] },
-    HERO_RENDER[p.id]
+    AI_FRAMES[p.id]?.hero
+      ? { name: 'hero', view: 'hero', source: 'ai', finish: 'natural', base, ...AI_FRAMES[p.id].hero }
+      : HERO_RENDER[p.id]
       ? { name: 'hero', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HERO_RENDER[p.id] }
       : { name: 'hero', view: 'hero', source: 'ai', file: `${p.id}-hero-v1.png`, finish: 'natural', base },
     { name: 'angle', view: 'angle', source: 'render', finish: 'natural', base, w: 1600, h: 1200,
       decor: ANGLE_ALT[p.id] ? 'none' : decor, cam: ANGLE[p.id] },
-    DETAIL_RENDER[p.id]
+    AI_FRAMES[p.id]?.detail
+      ? { name: 'detail', view: 'detail', source: 'ai', finish: 'natural', base, ...AI_FRAMES[p.id].detail }
+      : DETAIL_RENDER[p.id]
       ? { name: 'detail', view: 'detail', source: 'render', finish: 'natural', base, w: 1600, h: 1200, decor: 'none', cam: DETAIL_RENDER[p.id] }
       : { name: 'detail', view: 'detail', source: 'ai', file: `${p.id}-detail-v1.png`, finish: 'natural', base }
   ];
@@ -287,7 +316,7 @@ async function openPage() {
       }
       let src;
       if (f.source === 'ai') {
-        src = path.join(FIGMA, f.file);
+        src = path.join(FIGMA, f.file);   // AI_FRAMES: v2/<кадр>.png; решта — <товар>-<кадр>-v1.png
         if (!fs.existsSync(src)) throw new Error('немає майстра ' + src + ' (docs/ASSETS.md)');
       } else {
         // геометрія з aluma3d.js (той самий код, що 3D-перегляд на сторінці) -> Blender -> майстер PNG
@@ -311,8 +340,8 @@ async function openPage() {
       const rel = `/assets/products/${p.id}/${f.name}`, set = ext => widths.map(x => `${rel}-${x}.${ext} ${x}w`).join(', ');
       images.push({
         src: `${rel}-${W}.webp`, srcset: set('webp'), srcset_avif: set('avif'), jpg: `${rel}-${W}.jpg`,
-        width: W, height: H, view: f.view, finish: f.finish, base: f.base, state: f.state || 'closed', size: size.label,
-        alt: altFor(p, f.view, fin, f.base, f.name), kind: 'visualization', source: f.source
+        width: W, height: H, view: f.view, finish: f.finish, base: f.base, state: f.state || 'closed', size: f.size || size.label,
+        alt: f.alt ? aiAlt(p, fin, f.alt) : altFor(p, f.view, fin, f.base, f.name), kind: 'visualization', source: f.source
       });
       if (f.light) images[images.length - 1].light = f.light;
       console.log(`${p.id}/${f.name} ${W}×${H}`);
@@ -344,7 +373,7 @@ async function openPage() {
     for (const name of VERTICAL[p.id] || []) {
       const base = framesFor(p).find(f => f.name === name);
       const f = Object.assign({}, base, { name: name + '-9x16', w: 1080, h: 1920,
-        cam: Object.assign({}, base.source === 'render' ? base.cam : VERTICAL_CAM, VERTICAL_SHIFT) });
+        cam: Object.assign({}, base.source === 'render' ? base.cam : (name === 'hero' && HERO_RENDER[p.id]) || VERTICAL_CAM, VERTICAL_SHIFT) });
       if (opt.preview && !(opt.frames || '').split(',').includes(f.name)) continue;
       if (add && !add.includes(f.name)) continue;
       const pdir = opt.preview ? path.join(MASTER, 'preview', p.id) : path.join(MASTER, p.id);
