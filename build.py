@@ -406,19 +406,35 @@ def size_dims(s: dict) -> str:
     return "×".join(parts)
 
 
+def first_frame(p: dict) -> dict | None:
+    """Перший кадр товару з src; без кадру — None."""
+    return next((i for i in p.get("images") or [] if i.get("src")), None)
+
+
+def smallest_src(img: dict) -> str:
+    """Найменший кадр зі srcset (400w), без srcset — src: мініатюрі 44–96 px не треба home-1600 (аудит 22.10 (б) сев. 2)."""
+    best = None
+    for part in (img.get("srcset") or "").split(","):
+        bits = part.split()
+        if len(bits) == 2 and bits[1].endswith("w") and bits[1][:-1].isdigit():
+            if best is None or int(bits[1][:-1]) < best[0]:
+                best = (int(bits[1][:-1]), bits[0])
+    return best[1] if best else img["src"]
+
+
 def thumb_src(p: dict) -> str:
-    """Перший кадр товару — мініатюра в кошику (shop.js); без кадру — порожньо."""
-    img = next((i for i in p.get("images") or [] if i.get("src")), None)
-    return img["src"] if img else ""
+    """Мініатюра в кошику (shop.js): найменший кадр першого зображення; без кадру — порожньо."""
+    img = first_frame(p)
+    return smallest_src(img) if img else ""
 
 
 def thumb(p: dict, loc: str) -> str:
     """Мініатюра обраного столу в липкій кнопці: найменший кадр героя; alt — «הדמיה: <назва>» (аудит 22.10, (а) 11)."""
-    img = next((i for i in p.get("images") or [] if i.get("src")), None)
+    img = first_frame(p)
     if not img:
         return ""
     srcset = f' srcset="{esc(img["srcset"])}" sizes="44px"' if img.get("srcset") else ""
-    return (f'<img class="sticky-thumb" src="{esc(img["src"])}"{srcset} alt="{{{{t.viz_tag}}}}: {esc(L(p.get("name"), loc))}"'
+    return (f'<img class="sticky-thumb" src="{esc(smallest_src(img))}"{srcset} alt="{{{{t.viz_tag}}}}: {esc(L(p.get("name"), loc))}"'
             ' width="44" height="44" loading="lazy" decoding="async">')
 
 
