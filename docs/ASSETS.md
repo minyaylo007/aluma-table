@@ -128,7 +128,8 @@ python3 -I tools/fetch_cc0.py            # раз: CC0 для Blender у /opt/ih
 ```
 Без власного порту: кадри three.js — сторінка `tools/render_products.html` з `file://`, three.js r160 з cdnjs. Запуск — у рамці
 CLAUDE.md §8. У дерево їдуть `<кадр>-{<ширина>,800}.{avif,webp}` (для hero і angle ще `-400`, для hero ще `-1200`) і `<кадр>-<ширина>.jpg` у рідній ширині майстра
-(без збільшення); герой AVIF ≤ 180 КБ. Зразки тонів — `site/assets/products/finishes/<id>.{webp,jpg}`, 240 px (`tools/oak_tones.py`).
+(без збільшення); герой AVIF ≤ 180 КБ; кожен AVIF легший за свій WebP — якість знижується кроками 62/68 → … → 45 до першого «легший»,
+не вийшло — набір цієї картинки йде WebP (`build.py` `avif_srcset()`; 22.10 так перекодовано 23 файли з `<кадр>-<ширина>.jpg`). Зразки тонів — `site/assets/products/finishes/<id>.{webp,jpg}`, 240 px (`tools/oak_tones.py`).
 
 Blender (портативний, `/opt/ihor/aluma-table/tmp/blender`, не в git) — лише в рамці дирижера, один процес за раз:
 `TMPDIR=/tmp timeout 120m nice -n 19 systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=4G -p CPUQuota=200% blender -b --factory-startup -P tools/blender_scene.py -- --geo <json> --out <png> --threads 2`

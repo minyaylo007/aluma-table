@@ -226,14 +226,18 @@ function widthsFor(view, W) {
 }
 function encode(src, dstBase, W, hero, widths, max800 = CARD_800_AVIF_MAX) {
   for (const width of widths) {
+    run('convert', [src, '-resize', width + 'x', '-strip', '-quality', '80', '-define', 'webp:method=6', `${dstBase}-${width}.webp`]);
+    // AVIF має бути легшим за свій WebP, інакше build.py picture() не віддає AVIF-набір картинки взагалі (22.10):
+    // якість знижується до першого «легший» (не нижче 45 — тоді лишається як є, і набір іде WebP)
+    const webp = fs.statSync(`${dstBase}-${width}.webp`).size;
     let q = hero && width === W ? 68 : 62;
     const max = !hero ? Infinity : width === W ? HERO_AVIF_MAX : width === 800 ? max800 : Infinity;
     for (;;) {
       run('convert', [src, '-resize', width + 'x', '-strip', '-quality', String(q), `${dstBase}-${width}.avif`]);
-      if (fs.statSync(`${dstBase}-${width}.avif`).size <= max || q <= 30) break;
-      q -= 4;
+      const size = fs.statSync(`${dstBase}-${width}.avif`).size;
+      if ((size <= max && (size < webp || q <= 45)) || q <= 30) break;
+      q -= size > max ? 4 : 5;
     }
-    run('convert', [src, '-resize', width + 'x', '-strip', '-quality', '80', '-define', 'webp:method=6', `${dstBase}-${width}.webp`]);
   }
   run('convert', [src, '-resize', W + 'x', '-strip', '-sampling-factor', '4:2:0', '-interlace', 'JPEG', '-quality', '82', `${dstBase}-${W}.jpg`]);
 }
