@@ -9,6 +9,9 @@
       <ul class="cart-list" role="list" data-cart-list></ul>
       <p class="cart-empty" data-cart-empty hidden>{{t.cart_empty}} <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a></p>
       <div class="cart-sum" data-cart-sum hidden>
+        {{SHIP_CHOICE}}
+        <p class="cart-row"><span>{{t.cart_goods}}</span> <bdi dir="ltr" data-sum-goods></bdi></p>
+        <p class="cart-row"><span>{{t.ship_h}}</span> <bdi dir="ltr" data-sum-ship></bdi></p>
         <p class="cart-total"><span>{{t.cart_total}}</span> <bdi dir="ltr" data-cart-total></bdi></p>
         <p class="price-incl">{{t.price_incl}}</p>
         <a class="btn btn--dark btn--block" href="{{PREFIX}}/checkout/" data-cart-pay data-cta="cart">{{t.cart_pay}}</a>

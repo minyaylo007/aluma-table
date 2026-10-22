@@ -51,15 +51,16 @@ for (const [path, lang, dir] of [['/', 'he', 'rtl'], ['/en/', 'en', 'ltr']]) {
 }
 
 for (const p of PRODUCTS) {
-  test(`card /p/${p.slug}/ opens with a price, sizes and "add to cart", no weeks, the word "estimate" under the price`, async ({ page }) => {
+  test(`card /p/${p.slug}/ opens with a price, sizes and "add to cart", no weeks, the launch-series caption under the price`, async ({ page }) => {
     await mockApi(page);
     const errors = watchErrors(page);
     await page.goto(`/p/${p.slug}/`);
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('input[name="size"]')).toHaveCount(p.sizes.length);
     await expect(page.locator('.pdp-actions [data-add-cart]')).toHaveText('הוספה לסל');
-    // 22.10, аудит (г) 1: реклама обіцяє «מחיר משוער» — слово під ціною; «טרם אושר» — лише в застереженні над кнопкою
-    await expect(page.locator('.pdp-price')).toContainText('מחיר משוער');
+    // хвиля 1 (22.10): ціна тверда — під нею «מחיר השקה לסדרה הראשונה», слова «משוער» біля ціни нема
+    await expect(page.locator('.pdp-price')).toContainText('מחיר השקה לסדרה הראשונה');
+    await expect(page.locator('.pdp-price')).not.toContainText('משוער');
     await expect(page.locator('.pdp-price')).not.toContainText('טרם אושר');
     await expect(page.locator('.pdp-buy')).not.toContainText('שבועות');
     if ((p.images || []).length) await expect(page.locator('.viz-tag').first()).toContainText('הדמיה');
@@ -565,7 +566,7 @@ test('first screen 390×844 of a card: no sticky bar with the notice open; after
 // аудит 22.10: смуги на першому екрані нема — під ціною видно плитки розмірів (перший ряд — над банером)
 for (const [prefix, lang] of [['', 'he'], ['/en', 'en'], ['/ru', 'ru']]) {
   for (const slug of ['tavor', 'sahar', 'tal']) {
-    test(`first screen 390×844 of ${prefix}/p/${slug}/ (${lang}): name, tagline, price with "incl." and the size tiles above the notice, no sticky bar`, async ({ page }) => {
+    test(`first screen 390×844 of ${prefix}/p/${slug}/ (${lang}): name, tagline, price with the series caption and "leave your details" above the notice, no sticky bar`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await mockApi(page);
       await page.goto(`${prefix}/p/${slug}/`);
@@ -576,16 +577,19 @@ for (const [prefix, lang] of [['', 'he'], ['/en', 'en'], ['/ru', 'ru']]) {
         const box = s => document.querySelector(s).getBoundingClientRect();
         return { y: scrollY, notice: box('#notice').top, h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
           incl: box('.pdp-price .price-incl'), chip: box('.g-3d'), img: box('.g-track'),
-          tile: box('label.pill:has(input[name="size"])'),
+          tile: box('label.pill:has(input[name="size"])'), ask: box('.pdp-ask'),
           inclLH: parseFloat(getComputedStyle(document.querySelector('.pdp-price .price-incl')).lineHeight) };
       });
       expect(r.y).toBe(0);
       for (const b of [r.h1, r.tag, r.price, r.incl]) { expect(b.top).toBeGreaterThan(0); expect(b.bottom).toBeLessThanOrEqual(r.notice); }
-      // аудит 22.10 (г) 1: «מחיר משוער · כולל…» під ціною — один рядок, не переноситься
+      // підпис серії під ціною — один рядок, не переноситься
       expect(r.incl.height).toBeLessThan(r.inclLH * 1.5);
-      // перший ряд плиток читається над банером (розмір видно); ru-гасло довше — у sahar плитки на екрані, але під банером
-      if (lang === 'ru') expect(r.tile.top).toBeLessThan(844);
-      else expect(r.tile.top + 40).toBeLessThanOrEqual(r.notice);
+      // хвиля 1, крок 5: «השאירו פרטים» видно без прокрутки — над банером; плитки розмірів одразу під нею
+      expect(r.ask.top).toBeGreaterThan(r.price.bottom);
+      // ru-гасло довше (два рядки): кнопка може торкатися банера, але її напис видно над ним
+      if (lang === 'ru') expect(r.ask.top + r.ask.height * 0.75).toBeLessThanOrEqual(r.notice);
+      else expect(r.ask.bottom).toBeLessThanOrEqual(r.notice);
+      expect(r.tile.top).toBeLessThan(844 + 120);
       // чип 3D лежить на кадрі
       expect(r.chip.top).toBeGreaterThanOrEqual(r.img.top);
       expect(r.chip.bottom).toBeLessThanOrEqual(r.img.bottom);

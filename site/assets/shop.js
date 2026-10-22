@@ -64,6 +64,33 @@
     try { localStorage.setItem(CART_KEY, JSON.stringify({ v: 1, items: items })); } catch (e) {}
     badge(lines);
   }
+  // спосіб отримання — sessionStorage fx_ship_v1: "door" (за замовчуванням) або "pickup"; ціни — DATA.ship (content.json)
+  var SHIP = DATA.ship || {}, SHIP_KEY = "fx_ship_v1", shipMem = "";
+  var shipWay = function () {
+    var v = shipMem;
+    try { v = sessionStorage.getItem(SHIP_KEY) || v; } catch (e) {}
+    return v === "pickup" ? "pickup" : "door";
+  };
+  var shipFee = function () { return Number(SHIP[shipWay()]) || 0; };
+  // радіо name="ship" у box: показати збережений вибір, на зміну — зберегти й перерахувати суми
+  function wireShip(box, redraw) {
+    qsa('input[name="ship"]', box).forEach(function (r) {
+      r.checked = r.value === shipWay();
+      r.addEventListener("change", function () {
+        if (!r.checked) return;
+        shipMem = r.value;
+        try { sessionStorage.setItem(SHIP_KEY, r.value); } catch (e) {}
+        redraw();
+      });
+    });
+  }
+  // «מוצרים / משלוח / סה״כ»: сума товарів, ціна доставки, разом
+  function sums(box, lines, totalSel) {
+    var g = qs("[data-sum-goods]", box), f = qs("[data-sum-ship]", box), t = qs(totalSel, box);
+    if (g) g.textContent = money(total(lines));
+    if (f) f.textContent = money(shipFee());
+    if (t) t.textContent = money(total(lines) + shipFee());
+  }
   var count = function (lines) { return lines.reduce(function (n, l) { return n + l.qty; }, 0); };
   var total = function (lines) { return lines.reduce(function (n, l) { return n + l.qty * l.price; }, 0); };
   var ids = function (lines) { var out = []; lines.forEach(function (l) { if (out.indexOf(l.id) < 0) out.push(l.id); }); return out; };
@@ -124,10 +151,11 @@
       lines.forEach(function (l, i) { list.appendChild(cartRow(l, i, L)); });
       qs("[data-cart-empty]", cartBox).hidden = !!lines.length;
       qs("[data-cart-sum]", cartBox).hidden = !lines.length;
-      var t = qs("[data-cart-total]", cartBox); if (t) t.textContent = money(total(lines));
+      sums(cartBox, lines, "[data-cart-total]");
       return lines;
     };
     var shown = render();
+    wireShip(cartBox, render);
     track("view_cart", cartParams(shown));
     list.addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest("button[data-act]");
@@ -187,7 +215,9 @@
       var mini = qs("[data-co-list]", co);
       var LS = function (k) { return k === "qty" ? "" : side.getAttribute("data-l-" + k) || ""; };
       lines.forEach(function (l, i) { mini.appendChild(cartRow(l, i, LS)); });
-      qs("[data-co-total]", co).textContent = money(total(lines));
+      var coSums = function () { sums(co, lines, "[data-co-total]"); };
+      coSums();
+      wireShip(ship, coSums);
       var saved = {};
       try { saved = JSON.parse(sessionStorage.getItem(CO_KEY) || "{}") || {}; } catch (e) { saved = {}; }
       var el = ship.elements;
@@ -292,7 +322,7 @@
         ads_consent: adsConsent(), consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
         product_id: first.id, size_label: first.size, finish_id: first.finish, base_id: first.base,
         timeframe: d.when || "", contact_pref: "whatsapp", lead_source: "checkout",
-        cart: cartString(lines), order_total: total(lines),
+        cart: cartString(lines), order_total: total(lines), delivery: shipWay(),
         session_id: sessionId(), page: location.pathname, referrer: D.referrer || "",
         device: W.matchMedia("(min-width: 900px)").matches ? "desktop" : "mobile", attributed_at: attr.at || ""
       };

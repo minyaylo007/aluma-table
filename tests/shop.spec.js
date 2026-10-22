@@ -11,6 +11,7 @@ const TAVOR = (CATALOG.products || CATALOG).find((p) => p.id === 'tavor');
 const HE = require('../i18n/he.json');
 const EN = require('../i18n/en.json');
 const RU = require('../i18n/ru.json');
+const CONTENT = require('../content.json');
 // вигаданий номер складено з частин — сканер секретів шукає цілі номери
 const PHONE = ['05', '2-98', '7-6543'].join('');
 const DIGITS = PHONE.replace(/-/g, '');
@@ -92,13 +93,13 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       const size = TAVOR.sizes.find((s) => s.label === '180×90');
       const fin = 'smoked';
 
-      // 1. картка: ціна на виду, під нею «משוער / estimate / ориентировочно» (аудит 22.10 (г) 1), без «טרם אושר»;
+      // 1. картка: ціна на виду, під нею ціна першої серії (хвиля 1, 22.10) — без «משוער / estimate» і «טרם אושר»;
       //    строк — «на підтвердженні замовлення»
       await page.goto(`${ORIGIN}${pre}/p/tavor/`);
       await waitFb(page, 'ViewContent');
       await expect(page.locator('.pdp-price')).toBeVisible();
-      await expect(page.locator('.pdp-price .price-incl')).toHaveText(T.price_incl);
-      await expect(page.locator('.pdp-price')).toContainText(lang === 'he' ? 'מחיר משוער' : /estimate ·|ориентировочно ·/);
+      await expect(page.locator('.pdp-price .price-incl')).toHaveText(T.series_price_n.replace('{{SERIES_SIZE}}', CONTENT.SERIES_SIZE));
+      await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'משוער' : /estimate|ориентировоч/i);
       await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'טרם אושר' : /not yet confirmed|не подтвержден/i);
       await expect(page.locator('.pdp-buy')).not.toContainText(lang === 'he' ? 'שבועות' : /weeks|(^|[^а-яё])недел/i);
       await expect(page.locator('.pdp-lead')).toHaveText(T.lead_exact);
@@ -128,8 +129,11 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       await expect(page.locator('.cart-meta')).toContainText(size.label);
       await page.locator('button[data-act="more"]').click();
       await expect(page.locator('.qty-n')).toHaveText('2');
-      const n = (2 * size.price_ils).toLocaleString('en-US');      // ru: «8 980 ₪» з нерозривними пробілами
-      const sum = lang === 'ru' ? n.replace(/,/g, '\u00a0') + '\u00a0₪' : '₪' + n;
+      // ru: «8 980 ₪» з нерозривними пробілами
+      const money = (v) => { const n = v.toLocaleString('en-US'); return lang === 'ru' ? n.replace(/,/g, '\u00a0') + '\u00a0₪' : '₪' + n; };
+      // хвиля 1: разом = товар + спосіб отримання; за замовчуванням до дверей (DELIVERY_ILS), самовивіз — PICKUP_ILS
+      const door = Number(CONTENT.DELIVERY_ILS), pickup = Number(CONTENT.PICKUP_ILS);
+      const sum = money(2 * size.price_ils + door);
       await expect(page.locator('[data-cart-total]')).toHaveText(sum);
       await expect(page.locator('[data-cart-sum]')).toContainText(T.price_incl);
       expect(await noOverflow(page)).toBeLessThanOrEqual(0);
@@ -146,6 +150,9 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       expect(ic[2]).toMatchObject({ content_ids: ['tavor'], value: 2 * size.price_ils, currency: 'ILS', num_items: 2 });
       expect(ic[3].eventID).toMatch(/^ic\./);
       await expect(page.locator('[data-co-total]')).toHaveText(sum);
+      // крок «משלוח»: самовивіз — разом перераховано без доставки
+      await page.locator('[data-co-ship] label:has(input[name="ship"][value="pickup"])').click();
+      await expect(page.locator('[data-co-total]')).toHaveText(money(2 * size.price_ils + pickup));
       await page.locator('[data-co-ship] button[type="submit"]').click();
       await expect(page.locator('#co-e-city')).toHaveText(T.js.e_city);
       await expect(page.locator('#co-e-when')).toHaveText(T.js.e_when);
@@ -194,7 +201,8 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       expect(net.leads).toHaveLength(1);
       const lead = net.leads[0];
       expect(lead).toMatchObject({ lead_source: 'checkout', product_id: 'tavor', size_label: size.label, finish_id: fin,
-        timeframe: 'now', city: city.name, order_total: 2 * size.price_ils, consent: true, ads_consent: true, lang, name: '' });
+        timeframe: 'now', city: city.name, order_total: 2 * size.price_ils, consent: true, ads_consent: true, lang, name: '',
+        delivery: 'pickup' });
       expect(lead.cart).toBe(`tavor:${size.label}:${fin}:${TAVOR.bases[0].id}:2`);
       const [ld] = await waitFb(page, 'Lead');
       expect(ld[3].eventID).toBe(lead.event_id);

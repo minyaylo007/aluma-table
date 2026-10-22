@@ -522,9 +522,12 @@ def specs(p: dict, loc: str) -> str:
         rows.append(("{{t.spec_finishes}}", esc(", ".join(L(f.get("name"), loc) for f in p["finishes"]))))
     if p.get("bases"):
         rows.append(("{{t.spec_bases}}", esc(", ".join(L(b.get("name"), loc) for b in p["bases"]))))
-    # строк із каталогу (lead_time_weeks) на сайт не виводимо — точний лише в підтвердженні замовлення
-    rows.append(("{{t.spec_lead}}", "{{t.lead_exact}}"))
+    # строк першої серії — оцінка з каталогу (lead_time_weeks); точна дата — лише в підтвердженні замовлення
+    rows.append(("{{t.spec_lead}}", "{{t.lead_series}}" if listed("SERIES_PRODUCTS", p) else "{{t.lead_exact}}"))
     rows.append(("{{t.spec_incl}}", "{{t.spec_incl_v}}"))
+    rows.append(("{{t.spec_ship}}", '{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi> · {{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'))
+    rows.append(("{{t.spec_warranty}}", "{{t.spec_warranty_v}}"))
+    rows.append(("{{t.spec_assembly}}", "{{t.ship_assembly_long}}" if listed("ASSEMBLY_PRODUCTS", p) else "{{t.assembly_other}}"))
     return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
 
 
@@ -536,6 +539,7 @@ INC_ICONS = {  # 20×20, штрих currentColor, декоративні
     "size": '<path d="M2 13l11-11 5 5-11 11z" /><path d="M6 9l2 2M9 6l2 2M12 3l2 2" />',
     "seats": '<circle cx="7" cy="7" r="2.5" /><circle cx="14" cy="8" r="2" /><path d="M2.5 17c.5-3 2.3-4.5 4.5-4.5s4 1.5 4.5 4.5M11.5 13.5c.7-.6 1.5-1 2.5-1 2 0 3.3 1.5 3.6 4" />',
     "incl": '<path d="M2 6h10v8H2zM12 9h3l3 3v2h-6" /><circle cx="5.5" cy="15" r="1.5" /><circle cx="14.5" cy="15" r="1.5" />',
+    "warranty": '<path d="M10 2l6 2.5v5c0 4-2.6 7-6 8.5-3.4-1.5-6-4.5-6-8.5v-5z" /><path d="M7 10l2 2 4-4" />',
     "own": '<path d="M3 17V8l5-3v3l5-3v3l4-2v11z" /><path d="M7 17v-4h3v4" />',
 }
 
@@ -564,10 +568,46 @@ def included(p: dict, loc: str) -> str:
         word = few("unfold_seats", seats["closed"][-1], loc)
         rows.append(("seats", f'<bdi dir="ltr">{seat_span(seats["closed"])}</bdi> {{{{t.{word}}}}} · '
                               f'{{{{t.inc_seats_open}}}} <bdi dir="ltr">{seat_span(seats["extended"])}</bdi>'))
-    rows += [("incl", "{{t.inc_vat}}"), ("own", "{{t.inc_own}}")]
+    rows += [("incl", "{{t.inc_vat}}"), ("warranty", "{{t.inc_warranty}}"), ("own", "{{t.inc_own}}")]
     lis = "".join(f'<li><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">{INC_ICONS[k]}</svg>'
                   f"<span>{v}</span></li>" for k, v in rows)
     return f'<section class="pdp-inc" aria-labelledby="inc-h"><h2 class="pdp-inc-h" id="inc-h">{{{{t.inc_h}}}}</h2><ul role="list">{lis}</ul></section>'
+
+
+def listed(key: str, p: dict) -> bool:
+    """Товар у списку content.json через кому (SERIES_PRODUCTS, ASSEMBLY_PRODUCTS) — факт стосується лише його."""
+    return p.get("slug") in [x.strip() for x in str(CONTENT.get(key) or "").split(",")]
+
+
+def ship_terms(p: dict, loc: str) -> str:
+    """Рядок під ціною: самовивіз, доставка до дверей, складання — числа лише з content.json (токени)."""
+    items = ['{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi>', '{{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>']
+    if listed("ASSEMBLY_PRODUCTS", p):
+        items.append("{{t.ship_assembly}}")
+    return '<ul class="pdp-terms" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+
+
+def ship_choice() -> str:
+    """Вибір «самовивіз / до дверей» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
+    opts = [("door", '{{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'), ("pickup", '{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi>')]
+    chips = "".join(f'<label class="chip"><input type="radio" name="ship" value="{v}"><span>{x}</span></label>' for v, x in opts)
+    return (f'<fieldset class="f f-choice ship-choice" data-ship-choice><legend>{{{{t.ship_legend}}}}</legend>'
+            f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
+
+
+def inside(p: dict, loc: str) -> str:
+    """«מה בפנים»: з чого зроблено (числа — content.json, специфікація 22.10) + інструкція збирання PDF своєю мовою.
+    Лише для товарів INSIDE_PRODUCTS; PDF шукаємо site/assets/docs/<slug>-assembly-<мова>.pdf, нема своєї мови — en."""
+    if not listed("INSIDE_PRODUCTS", p):
+        return ""
+    rows = ["top", "board", "edge", "legs", "mech", "finish", "origin"]
+    lis = "".join(f"<li>{{{{t.inside_{k}}}}}</li>" for k in rows)
+    pdf = next((f"/assets/docs/{p['slug']}-assembly-{lang}.pdf" for lang in (loc, "en")
+                if (SITE / "assets" / "docs" / f"{p['slug']}-assembly-{lang}.pdf").is_file()), "")
+    link = (f'<p><a class="pdp-pdf" href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">'
+            f'{{{{t.{"assembly_pdf" if pdf.endswith(f"-{loc}.pdf") else "assembly_pdf_en"}}}}}</a></p>') if pdf else ""
+    return (f'<div class="pdp-inside"><h3 class="h3">{{{{t.inside_h}}}}</h3><ul class="pdp-inside-list" role="list">{lis}</ul>'
+            f'<p class="muted small">{{{{t.inside_note}}}}</p>{link}</div>')
 
 
 SIZE_HELP = {"dining_table": ("{{t.size_clear}}", "{{t.size_seat}}"), "coffee_table": ("{{t.size_clear_pass}}",)}
@@ -760,7 +800,8 @@ def organization_jsonld(loc: str, url: str) -> str:
 
 def faq_jsonld(items: list) -> str:
     # відповідь у schema.org — чистий текст, без розмітки сторінки
-    plain = lambda h: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h))).strip()  # noqa: E731
+    # <bdi> — обгортка всередині речення (ціна в RTL), знімаємо без пробілу: «₪350.», а не «₪350 .»
+    plain = lambda h: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", re.sub(r"</?bdi[^>]*>", "", h)))).strip()  # noqa: E731
     return ld_script({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
         {"@type": "Question", "name": plain(it["q"]), "acceptedAnswer": {"@type": "Answer", "text": plain(it["a"])}}
         for it in items]})
@@ -872,12 +913,16 @@ def main() -> None:
             "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
             **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),
+            # доставка й самовивіз — числа з content.json, у форматі ціни мови (₪350 / 350 ₪)
+            "DELIVERY_PRICE": money(int(CONTENT["DELIVERY_ILS"]), loc), "PICKUP_PRICE": money(int(CONTENT["PICKUP_ILS"]), loc),
+            "SHIP_CHOICE": ship_choice(),
             "CITY_OPTIONS": "".join(f'<option value="{esc(c["id"])}">{esc(c["name"])}</option>' for c in s.get("cities", [])),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
             "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),
             "DATA": json.dumps({"lang": loc, "prefix": prefix, "consent": CONTENT.get("CONSENT_VERSION", "v1"),
                                 "s": s.get("js", {}), "products": product_data(products, loc),
-                                "cities": s.get("cities", [])},
+                                "cities": s.get("cities", []),
+                                "ship": {"pickup": int(CONTENT["PICKUP_ILS"]), "door": int(CONTENT["DELIVERY_ILS"])}},
                                ensure_ascii=False).replace("</", "<\\/"),
         }
         hero_p = next((p for p in products if p["slug"] == CONTENT.get("HERO_PRODUCT")), products[0])
@@ -951,8 +996,9 @@ def main() -> None:
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0, loc),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
-                "P_INC": included(p, loc), "P_SIZE_HELP": size_help(p, loc),
-                "P_SPECS": specs(p, loc), "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc),
+                "P_PRICE_NOTE": "{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}", "P_SIZE_HELP": size_help(p, loc),
+                "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }
@@ -976,7 +1022,7 @@ def main() -> None:
                 shutil.copyfile(src, d / name)
 
     # ---- ассети: лише ті, на які посилаються, з хешем у імені
-    REF = re.compile(r"/assets/[\w\-./]+?\.(?:avif|webp|png|jpg|jpeg|svg|woff2|css|js|glb|hdr)")
+    REF = re.compile(r"/assets/[\w\-./]+?\.(?:avif|webp|png|jpg|jpeg|svg|woff2|css|js|glb|hdr|pdf)")
     referenced, seen = set(), set()
     frontier = [f for f in DIST.rglob("*") if f.is_file()]
     while frontier:

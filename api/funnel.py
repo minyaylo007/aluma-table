@@ -9,6 +9,7 @@ tools/funnel_report.py і scripts/daily_report.py.
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -36,6 +37,19 @@ STEP_KEYS = tuple(s[0] for s in STEPS)
 STEP_OF_EVENT = {s[1]: s[0] for s in STEPS if s[1]}
 STEP_OF_EVENT["view_cart"] = "cart"   # корзина з минулого візиту — теж крок «корзина»
 LANGS = ("he", "en", "ru")             # мова сторінки (<html lang>); решта — «?»
+
+# Реклама Meta (хвиля 1, 22.10): після запуску кампанії 22.10 14:19 за годину прийшло 44 «сесії» з utm_source=facebook
+# без браузера застосунку — це перевірка оголошень роботами Meta, не люди. Людина з реклами приходить із fbclid
+# у посиланні (tracking.js шле fbclid_present 1/0 — сам ідентифікатор лише за згоди) або з браузера застосунку.
+AD_SOURCES = ("facebook", "instagram", "fb", "ig", "meta")
+APP_UA = re.compile(r"FBAN|FBAV|Instagram")
+# (ключ, підпис ru) — розріз рекламних сесій; «оцінка» — події до прапорця fbclid_present (до хвилі 1): лише за UA
+AUDIENCE = (
+    ("ads_people", "реклама: люди"),
+    ("ads_meta", "реклама: проверка Meta"),
+    ("ads_meta_est", "реклама: проверка Meta (оценка)"),
+)
+AUDIENCE_RU = dict(AUDIENCE)
 
 
 def lang_of(row: dict) -> str:
@@ -144,6 +158,34 @@ def _pct(a: int, b: int | None) -> int | None:
     return round(100.0 * a / b) if b else None
 
 
+def _flag(v) -> int | None:
+    """fbclid_present із події: 1 / 0, None — подія старша за прапорець (до хвилі 1)."""
+    if v is None or v == "":
+        return None
+    return 1 if v in (1, True, "1", "true") else 0
+
+
+def audience(events, leads=()) -> dict:
+    """Сесія рекламного джерела → ads_people / ads_meta / ads_meta_est. Інші сесії сюди не потрапляють.
+
+    Людина: fbclid у посиланні (fbclid_present=1 або збережений fbclid), браузер застосунку (FBAN/FBAV/Instagram)
+    або заявка. Решта — перевірка Meta; якщо жодна подія сесії не несла прапорця — це оцінка лише за UA."""
+    src, people, flagged = {}, set(), set()
+    for e in sorted(events, key=lambda e: str(e.get("sk") or e.get("ts") or "")):
+        sid = e.get("session_id") or ""
+        if not sid or sid == "anon":
+            continue
+        src.setdefault(sid, str(e.get("utm_source") or "").lower())
+        f = _flag(e.get("fbclid_present"))
+        if f is not None:
+            flagged.add(sid)
+        if f == 1 or e.get("fbclid") or APP_UA.search(str(e.get("user_agent") or "")) or e.get("event_name") == "Lead":
+            people.add(sid)
+    people |= {l.get("session_id") for l in leads if l.get("session_id")}
+    return {sid: "ads_people" if sid in people else "ads_meta" if sid in flagged else "ads_meta_est"
+            for sid, s in src.items() if s in AD_SOURCES}
+
+
 def compute(events, leads) -> dict:
     """Воронка за вже відібраними (вікно, без тестових) подіями й заявками. Лише лічильники."""
     events = sorted(events, key=lambda e: str(e.get("sk") or e.get("ts") or ""))
@@ -240,12 +282,20 @@ def compute(events, leads) -> dict:
     }
 
 
-def report(events, leads, days: int, *, include_test: bool = False, now: datetime | None = None) -> dict:
-    """Вікно + фільтр тестових + compute(). events/leads — сирі рядки з таблиць."""
+def report(events, leads, days: int, *, include_test: bool = False, now: datetime | None = None,
+           people_only: bool = False) -> dict:
+    """Вікно + фільтр тестових + compute(). events/leads — сирі рядки з таблиць.
+    people_only — кроки й розрізи лише людей: сесії перевірки Meta відкинуто, їх число лишається в by_audience."""
     if not include_test:
         events = [e for e in events if not e.get("is_test")]
         leads = [l for l in leads if not l.get("is_test")]
-    out = compute(events_in_window(events, days, now), leads_in_window(leads, days, now))
+    events, leads = events_in_window(events, days, now), leads_in_window(leads, days, now)
+    aud = audience(events, leads)
+    kept = [e for e in events if aud.get(e.get("session_id") or "") not in ("ads_meta", "ads_meta_est")] \
+        if people_only else events
+    out = compute(kept, leads)
+    out["by_audience"] = [{"key": k, "ru": ru, "n": sum(1 for v in aud.values() if v == k)} for k, ru in AUDIENCE]
+    out["people_only"] = people_only
     start = window_start(days, now)
     out["window"] = {"days": days, "tz": "Asia/Jerusalem",
                      "from": start.astimezone(TZ).isoformat(timespec="minutes") if start else "",
@@ -265,6 +315,10 @@ def text(rep: dict) -> str:
 
     lines.append("Всего:  " + steps_line(rep["steps"]))
     lines.append(f"Заявок в таблице: {rep['lead_rows']}")
+    lines.append("Реклама Meta, сессии: " + " · ".join(f"{a['ru']} {a['n']}" for a in rep.get("by_audience") or [])
+                 + (" (шаги выше — только люди)" if rep.get("people_only") else ""))
+    if any(a["key"] == "ads_meta_est" and a["n"] for a in rep.get("by_audience") or []):
+        lines.append("  (оценка — события до флага fbclid_present, только по UA; всплеск проверки Meta — 22.10 14:00–15:30)")
     for title, key in (("По товарам", "by_product"), ("По источнику", "by_source"), ("По языку", "by_lang"),
                        ("По дням", "by_day")):
         lines += ["", title + ":"]

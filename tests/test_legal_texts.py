@@ -114,23 +114,26 @@ class LegalTextsTests(unittest.TestCase):
         self.assertIn("{brand}", self.ru["marketing"]["label"])
         self.assertIn("Необязательно", self.ru["marketing"]["hint"])
 
-    def test_terms_advance_orders_no_payment_estimated_prices(self):
+    def test_terms_advance_orders_no_payment_launch_prices(self):
         # магазин (specs/003): сайт приймає попередні замовлення, оплати й поля карти на сайті немає,
-        # замовлення підтверджується окремо письмово; ціни — «משוער, טרם אושר»
+        # замовлення підтверджується окремо письмово; хвиля 1 (22.10): ціна першої серії тверда,
+        # доставка — окремо (самовивіз або до дверей), «משוער» про ціну — ніде
         he = text(self.he["terms"])
         for must in ("הזמנות מוקדמות", "לא מתבצע באתר תשלום", "כרטיס אשראי", "אישור הזמנה כתוב", "מע״מ",
-                     "מחיר משוער, טרם אושר", "חוק הגנת הצרכן", "{business_id}", "{phone}", "{email}", "{court_city}", "הדמיה"):
+                     "מחיר ההשקה לסדרה הראשונה", "איסוף עצמי", "אינו כלול במחיר", "חוק הגנת הצרכן", "{business_id}", "{phone}", "{email}", "{court_city}", "הדמיה"):
             self.assertIn(must, he)
         en = text(self.en["terms"])
         for must in ("advance orders", "No payment is made on the site", "card details", "VAT",
-                     "estimates, not yet confirmed", "written order confirmation"):
+                     "launch price of the first series", "pickup", "not included", "written order confirmation"):
             self.assertIn(must, en)
         ru = text(self.ru["terms"])
-        for must in ("предварительные заказы", "не производится", "карты", "НДС", "ещё не подтверждены",
+        for must in ("предварительные заказы", "не производится", "карты", "НДС", "цена первой серии", "самовывоз",
                      "письменном подтверждении заказа"):
             self.assertIn(must, ru)
-        for gone in ("הרשמה מוקדמת", "ללא תשלום וללא התחייבות", "שבועות"):
+        for gone in ("הרשמה מוקדמת", "ללא תשלום וללא התחייבות", "שבועות", "משוער", "משלוח והרכבה)"):
             self.assertNotIn(gone, he)
+        self.assertNotIn("estimate", en)
+        self.assertNotIn("ориентировоч", ru)
 
     def test_tracking_js_banner_copy_matches(self):
         js = (ROOT / "site/assets/tracking.js").read_text(encoding="utf-8")

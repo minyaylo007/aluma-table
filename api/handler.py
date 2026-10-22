@@ -123,6 +123,28 @@ def _load_catalog(paths=CATALOG_PATHS) -> dict:
 
 CATALOG = _load_catalog()
 
+# Спосіб отримання (content.json: PICKUP_ILS, DELIVERY_ILS) — ціна в сповіщенні береться тут, не з браузера.
+# Немає файлу — {} і в сповіщенні лишається сам спосіб, без суми.
+VALID_DELIVERY = ("pickup", "door")
+CONTENT_PATHS = (
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content.json"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "content.json"),
+)
+
+
+def _load_ship_fees(paths=CONTENT_PATHS) -> dict:
+    for path in paths:
+        try:
+            with open(path, encoding="utf-8") as f:
+                c = json.load(f)
+            return {"pickup": int(c["PICKUP_ILS"]), "door": int(c["DELIVERY_ILS"])}
+        except (OSError, ValueError, TypeError, KeyError):
+            continue
+    return {}
+
+
+SHIP_FEES = _load_ship_fees()
+
 BOT_UA = re.compile(
     r"bot|crawler|spider|crawling|facebookexternalhit|slurp|bingpreview|"
     r"headlesschrome|phantomjs|python-requests|curl/|wget|lighthouse|"
@@ -433,6 +455,9 @@ def put_events(event):
                     "utm_content": clip(ctx.get("utm_content"), 120),
                     "utm_term": clip(ctx.get("utm_term"), 120),
                     "fbclid": clip(ctx.get("fbclid"), 200),
+                    # хвиля 1: чи був fbclid у посиланні (1/0, без значення й без згоди) — людина з реклами
+                    # проти перевірки Meta (api/funnel.audience); None — старий клієнт без прапорця
+                    "fbclid_present": funnel._flag(ctx.get("fbclid_present")),
                     # when the UTM set above arrived, so a stored campaign is never a mix of visits
                     "attributed_at": clip(ctx.get("attributed_at"), 40),
                     "device": clip(ctx.get("device"), 20),
@@ -635,6 +660,7 @@ def lead_extras(data: dict, event) -> dict:
             "lead_source": _pick(data.get("lead_source"), 10, allowed=VALID_LEAD_SOURCES),
             "cart": _cart(data.get("cart")),
             "order_total": _order_total(data.get("order_total")),
+            "delivery": _pick(data.get("delivery"), 10, allowed=VALID_DELIVERY),
         },
         "fbp": fbp,
         "fbc": fbc if fbc.startswith("fb.") else "",
@@ -662,6 +688,7 @@ def _order_total(value) -> int:
 LANG_REPLY = {"he": "на иврите", "en": "по-английски", "ru": "по-русски"}
 TIMEFRAME_WORDS = {"now": "сейчас", "1-3m": "через 1–3 месяца", "later": "позже", "browsing": "просто смотрит"}
 CONTACT_WORDS = {"whatsapp": "WhatsApp", "call": "звонок"}
+DELIVERY_WORDS = {"pickup": "самовывоз", "door": "до двери"}
 TELEGRAM_TEXT_MAX = 4000   # ліміт Telegram — 4096 символів; запас на всяк випадок
 
 
@@ -745,7 +772,13 @@ def lead_message(item) -> str:
     elif item.get("size") or item.get("color"):
         lines.append("🪵 " + " · ".join(str(x) for x in (item.get("size"), item.get("color")) if x))
     total = item.get("order_total") or computed
-    if total:
+    way = item.get("delivery") or ""
+    fee = SHIP_FEES.get(way)
+    if way in DELIVERY_WORDS:
+        lines.append(f"🚚 Доставка: {DELIVERY_WORDS[way]}" + (f" — {_money(fee)}" if fee is not None else ""))
+    if total and fee:
+        lines.append(f"Итого: {_money(int(total) + fee)} (товары {_money(int(total))} + доставка {_money(fee)})")
+    elif total:
         lines.append(f"Итого: {_money(int(total))}")
     comment = str(item.get("comment") or "").strip()
     if comment:
@@ -1407,7 +1440,7 @@ TIMEFRAME_LABELS = {"now": "עכשיו", "1-3m": "1–3 חודשים", "later": 
 
 CSV_COLUMNS = (
     "ts", "id", "status", "name", "phone", "email", "city", "product_id", "size_label", "finish_id", "base_id",
-    "timeframe", "contact_pref", "cart", "order_total", "lead_source", "color", "size", "lang", "comment", "consent_marketing", "consent_marketing_at", "consent_ads",
+    "timeframe", "contact_pref", "cart", "order_total", "delivery", "lead_source", "color", "size", "lang", "comment", "consent_marketing", "consent_marketing_at", "consent_ads",
     "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "page", "device", "is_test",
 )
 

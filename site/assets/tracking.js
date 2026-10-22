@@ -42,6 +42,8 @@
     var p = (rec && rec.p) || {};
     ATTR_KEYS.forEach(function (k) { ctx[k] = p[k] || ""; });
     ctx.attributed_at = (rec && rec.at) || "";
+    // лише 1/0, не значення: людина з реклами проти перевірки Meta (api/funnel.audience); від згоди не залежить
+    ctx.fbclid_present = ctx.fbclid ? 1 : 0;
   })();
   var SID = (function () {
     var id = null; try { id = sessionStorage.getItem("fx_sid"); } catch (e) {}

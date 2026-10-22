@@ -462,6 +462,8 @@
       data.color = data.finish_id.slice(0, 40);
       data.size = data.size_label.replace(/[^0-9]/g, "").slice(0, 3);
       ATTR_KEYS.forEach(function (k) { data[k] = ap[k] || ""; });
+      // спосіб отримання, якщо вже вибрали в кошику (shop.js, fx_ship_v1); нового поля у формі нема
+      try { var way = sessionStorage.getItem("fx_ship_v1"); if (way === "pickup" || way === "door") data.delivery = way; } catch (x) {}
       var bad = [];
       setErr("name", ""); setErr("phone", ""); setErr("consent", "");
       if (data.name.length < 2) { setErr("name", S.e_name); bad.push("name"); }

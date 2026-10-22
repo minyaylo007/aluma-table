@@ -8,6 +8,7 @@
       <p class="cart-empty" data-co-empty hidden>{{t.co_empty}} <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a></p>
 
       <form class="lead-form co-form" data-co-ship novalidate hidden>
+        {{SHIP_CHOICE}}
         <div class="f"><label for="co-city">{{t.co_city}}</label>
           <select id="co-city" name="city" required aria-describedby="co-e-city"><option value="">{{t.co_city_pick}}</option>{{CITY_OPTIONS}}</select>
           <p class="f-err" id="co-e-city" hidden></p></div>
@@ -34,6 +35,7 @@
           <p>{{t.pay_closed_p}}</p>
         </div>
         <form class="lead-form" data-co-keep novalidate>
+          <p class="reg-promise">{{t.reg_promise}}</p>
           <p>{{t.pay_keep}}</p>
           <div class="f"><label for="pay-phone">{{t.pay_phone}}</label><input id="pay-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="pay-e-phone"><p class="f-err" id="pay-e-phone" hidden></p></div>
           <div class="f"><label for="pay-name">{{t.co_name}} <span class="opt-l">{{t.f_optional}}</span></label><input id="pay-name" name="name" autocomplete="name" maxlength="80"></div>
@@ -63,6 +65,8 @@
     <aside class="co-side" aria-labelledby="co-sum-h" data-co-side hidden data-l-size="{{t.f_size}}" data-l-finish="{{t.f_finish}}" data-l-base="{{t.f_base}}">
       <h2 class="h3" id="co-sum-h">{{t.co_summary}}</h2>
       <ul class="cart-list cart-list--mini" role="list" data-co-list></ul>
+      <p class="cart-row"><span>{{t.cart_goods}}</span> <bdi dir="ltr" data-sum-goods></bdi></p>
+      <p class="cart-row"><span>{{t.ship_h}}</span> <bdi dir="ltr" data-sum-ship></bdi></p>
       <p class="cart-total"><span>{{t.cart_total}}</span> <bdi dir="ltr" data-co-total></bdi></p>
       <p class="price-incl">{{t.price_incl}}</p>
     </aside>
