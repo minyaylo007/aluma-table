@@ -89,6 +89,15 @@ def digest_bytes(data: bytes, suffix: str) -> str:
     return hashlib.sha256(data).hexdigest()[:10]
 
 
+CSS_COMMENT = re.compile(r"/\*[\s\S]*?\*/")
+
+
+def strip_css_comments(css: str) -> str:
+    """CSS без коментарів /* … */ і без порожніх рядків, що лишилися після них; решта байт у байт."""
+    css = CSS_COMMENT.sub("", css)
+    return "\n".join(line.rstrip() for line in css.split("\n") if line.strip())
+
+
 def money(v: int, loc: str = "he") -> str:
     """Ціна: «₪4,490»; у ru — як пишуть російською, «4 490 ₪» з нерозривними пробілами (так само в aluma.js/shop.js)."""
     if loc == "ru":
@@ -987,11 +996,14 @@ def main() -> None:
 
     # стилі вбудовані <style> у head: без блокуючого запиту перед першим кадром (~10 КБ gzip, Lighthouse «render-blocking»);
     # aluma.css — спільний, fonts-<мова>.css — обличчя лише своєї мови (he не качає кирилицю й повну латиницю)
+    # коментарі /* … */ у вбудований стиль не їдуть: 12,9 КБ українських пояснень у кожній сторінці (замір 22.10);
+    # у наших CSS нема «/*» усередині рядків url(…) чи content: "…" — це стереже tests/test_build_css_comments.py
     styles = {}
     for old_url in ["/assets/aluma.css"] + [f"/assets/fonts-{loc}.css" for loc in LOCALES]:
         css_url = hashed.get(old_url)
         if css_url:
-            style = "<style>" + read_text(DIST / css_url.lstrip("/")).strip().replace("</", "<\\/") + "</style>"
+            css = strip_css_comments(read_text(DIST / css_url.lstrip("/")))
+            style = "<style>" + css.replace("</", "<\\/") + "</style>"
             styles[f'<link rel="stylesheet" href="{css_url}">'] = style
     if styles:
         for t in DIST.rglob("*.html"):
