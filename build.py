@@ -525,7 +525,7 @@ def specs(p: dict, loc: str) -> str:
     # строк першої серії — оцінка з каталогу (lead_time_weeks); точна дата — лише в підтвердженні замовлення
     rows.append(("{{t.spec_lead}}", "{{t.lead_series}}" if listed("SERIES_PRODUCTS", p) else "{{t.lead_exact}}"))
     rows.append(("{{t.spec_incl}}", "{{t.spec_incl_v}}"))
-    rows.append(("{{t.spec_ship}}", "{{t.ship_pickup}} — {{PICKUP_PRICE}} · {{t.ship_door}} — {{DELIVERY_PRICE}}"))
+    rows.append(("{{t.spec_ship}}", '{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi> · {{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'))
     rows.append(("{{t.spec_warranty}}", "{{t.spec_warranty_v}}"))
     rows.append(("{{t.spec_assembly}}", "{{t.ship_assembly_long}}" if listed("ASSEMBLY_PRODUCTS", p) else "{{t.assembly_other}}"))
     return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
@@ -581,7 +581,7 @@ def listed(key: str, p: dict) -> bool:
 
 def ship_terms(p: dict, loc: str) -> str:
     """Рядок під ціною: самовивіз, доставка до дверей, складання — числа лише з content.json (токени)."""
-    items = ["{{t.ship_pickup}} — {{PICKUP_PRICE}}", "{{t.ship_door}} — {{DELIVERY_PRICE}}"]
+    items = ['{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi>', '{{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>']
     if listed("ASSEMBLY_PRODUCTS", p):
         items.append("{{t.ship_assembly}}")
     return '<ul class="pdp-terms" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
@@ -589,7 +589,7 @@ def ship_terms(p: dict, loc: str) -> str:
 
 def ship_choice() -> str:
     """Вибір «самовивіз / до дверей» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
-    opts = [("door", "{{t.ship_door}} — {{DELIVERY_PRICE}}"), ("pickup", "{{t.ship_pickup}} — {{PICKUP_PRICE}}")]
+    opts = [("door", '{{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'), ("pickup", '{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi>')]
     chips = "".join(f'<label class="chip"><input type="radio" name="ship" value="{v}"><span>{x}</span></label>' for v, x in opts)
     return (f'<fieldset class="f f-choice ship-choice" data-ship-choice><legend>{{{{t.ship_legend}}}}</legend>'
             f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
@@ -800,7 +800,8 @@ def organization_jsonld(loc: str, url: str) -> str:
 
 def faq_jsonld(items: list) -> str:
     # відповідь у schema.org — чистий текст, без розмітки сторінки
-    plain = lambda h: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h))).strip()  # noqa: E731
+    # <bdi> — обгортка всередині речення (ціна в RTL), знімаємо без пробілу: «₪350.», а не «₪350 .»
+    plain = lambda h: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", re.sub(r"</?bdi[^>]*>", "", h)))).strip()  # noqa: E731
     return ld_script({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
         {"@type": "Question", "name": plain(it["q"]), "acceptedAnswer": {"@type": "Answer", "text": plain(it["a"])}}
         for it in items]})

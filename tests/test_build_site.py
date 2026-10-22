@@ -164,7 +164,8 @@ class BuiltSiteTests(unittest.TestCase):
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', buy, re.S).group(1)
                     self.assertIn(t["ship_pickup"], terms)
-                    self.assertIn(t["ship_door"] + " — " + fee[lang], terms)
+                    # ціна — у <bdi dir="ltr"> (в RTL «₪350» інакше читається навиворіт; tests/responsive.spec.js)
+                    self.assertIn(f'{t["ship_door"]} — <bdi dir="ltr">{fee[lang]}</bdi>', terms)
                     self.assertEqual(terms.count("<li>"), 3 if p["slug"] in assembly else 2)
                     ask = re.search(r'<a class="btn[^"]*pdp-ask" href="#register"[^>]*>([^<]+)</a>', buy)
                     self.assertEqual(ask.group(1), t["ask_cta"])
