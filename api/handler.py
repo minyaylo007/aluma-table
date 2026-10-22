@@ -571,7 +571,8 @@ def put_lead(event):
         "utm_campaign": clip(data.get("utm_campaign"), 120),
         "utm_content": clip(data.get("utm_content"), 120),
         "utm_term": clip(data.get("utm_term"), 120),
-        "fbclid": clip(data.get("fbclid"), 200),
+        # рекламний ідентифікатор — лише за згоди на cookies реклами (תיקון 13), як і в подіях
+        "fbclid": clip(data.get("fbclid"), 200) if extra["stored"]["consent_ads"] else "",
         "attributed_at": clip(data.get("attributed_at"), 40),
         "page": clip(data.get("page"), 300),
         "referrer": clip(data.get("referrer"), 300),

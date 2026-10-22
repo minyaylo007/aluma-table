@@ -110,8 +110,9 @@
     });
   }
 
-  // перехід після події: черга, якщо tracking.js ще не прийшов, переживе сторінку (pagehide нижче)
-  function go(href) { W.location.href = href; }
+  // перехід після події: спершу черга tracking.js маяком (pagehide лишається страховкою); якщо tracking.js
+  // ще не прийшов — черга alumaQ переживе сторінку (pagehide нижче)
+  function go(href) { try { if (W.alumaFlush) W.alumaFlush(); } catch (e) {} W.location.href = href; }
 
   // ---------------------------------------------------------------- сторінка кошика
   var cartBox = qs("[data-cart]");
@@ -150,6 +151,7 @@
       p.event_id = newId("ic");
       p.ads_consent = adsConsent();
       track("InitiateCheckout", p);
+      try { if (W.alumaFlush) W.alumaFlush(); } catch (e) {}   // посилання: маяк до переходу, як у go()
     });
   }
 

@@ -422,6 +422,18 @@ class PutLeadTests(HandlerTestCase):
         self.post_lead(payload)
         self.assertEqual(self.leads_t.items[0]["attributed_at"], "")
 
+    def test_fbclid_is_stored_only_with_ads_consent(self):
+        # תיקון 13: без згоди на cookies реклами рекламний ідентифікатор у заявку не потрапляє
+        self.post_lead(lead_payload(fbclid="IwAR0test"))
+        self.assertEqual(self.leads_t.items[0]["fbclid"], "")
+        self.leads_t.items.clear()
+        self.post_lead(lead_payload(fbclid="IwAR0test", ads_consent="false"))
+        self.assertEqual(self.leads_t.items[0]["fbclid"], "")
+        self.leads_t.items.clear()
+        self.post_lead(lead_payload(fbclid="IwAR0test", ads_consent=True))
+        self.assertEqual(self.leads_t.items[0]["fbclid"], "IwAR0test")
+        self.assertEqual(self.leads_t.items[0]["utm_source"], "fb")
+
     def test_unhandled_exception_is_a_json_500(self):
         self.leads_t.put_item = mock.Mock(side_effect=RuntimeError("boom"))
         r = self.post_lead(lead_payload())

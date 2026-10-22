@@ -117,6 +117,8 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
 
       // 2. кошик: позиція, бейдж, переживає перезавантаження, кількість, разом
       await page.waitForURL(`**${pre}/cart/`);
+      // маяк до переходу (go → alumaFlush), а не з pagehide: AddToCart доходить у перехоплений POST /api/fx/event
+      await expect.poll(() => firstParty(net, 'AddToCart').length, { timeout: 5000 }).toBe(1);
       const [atc] = await waitFb(page, 'AddToCart');
       expect(atc[2]).toMatchObject({ content_ids: ['tavor'], size: size.label, finish: fin, value: size.price_ils, currency: 'ILS', cta: 'pdp' });
       await expect(page.locator('.cart-line')).toHaveCount(1);
@@ -138,6 +140,7 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
 
       // 3. оформлення: місто зі списку, «коли», ім'я й телефон необов'язкові
       await page.waitForURL(`**${pre}/checkout/`);
+      await expect.poll(() => firstParty(net, 'InitiateCheckout').length, { timeout: 5000 }).toBe(1);
       const [ic] = await waitFb(page, 'InitiateCheckout');
       expect(ic[0]).toBe('track');
       expect(ic[2]).toMatchObject({ content_ids: ['tavor'], value: 2 * size.price_ils, currency: 'ILS', num_items: 2 });

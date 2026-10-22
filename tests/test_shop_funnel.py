@@ -329,6 +329,20 @@ class ComputeTests(unittest.TestCase):
         days = [r["key"] for r in self.rep["by_day"]]
         self.assertEqual(days, ["2026-10-20", "2026-10-21"])
 
+    def test_lead_row_counts_by_source_once(self):
+        # заявка без події Lead — у «По источнику»: за сесією (s2 → direct) або за utm самої заявки (s9);
+        # заявка s1 з подією Lead не рахується двічі
+        leads = [{"session_id": "s1", "ts": T, "utm_source": "fb", "utm_campaign": "c1"},
+                 {"session_id": "s2", "ts": T, "utm_source": "ig", "utm_campaign": "x"},
+                 {"session_id": "s9", "ts": T, "utm_source": "fb", "utm_campaign": "c2"}]
+        rep = funnel.compute(EVENTS, leads)
+        src = {r["key"]: {s["key"]: s["n"] for s in r["steps"]} for r in rep["by_source"]}
+        self.assertEqual((src["fb / c1"]["sessions"], src["fb / c1"]["lead"]), (2, 1))
+        self.assertEqual((src["direct / —"]["sessions"], src["direct / —"]["lead"]), (2, 1))
+        self.assertEqual((src["fb / c2"]["sessions"], src["fb / c2"]["lead"]), (1, 1))
+        self.assertNotIn("ig / x", src)
+        self.assertEqual(sum(r["lead"] for r in src.values()), 3)
+
     def test_by_lang_first_event_and_lead_fallback(self):
         # мова сесії — з першої її події; заявка без подій — з власного поля lang; невідоме — «?»
         events = [dict(e, lang="ru" if e["session_id"] == "s1" else "he") for e in EVENTS]
