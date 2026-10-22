@@ -53,8 +53,8 @@ Guide: `tests/README-python-tests.md`. Stdlib `unittest`, no network, no AWS: Te
 `FX_DB_PATH` forced to `:memory:`. Venv and `TMPDIR` **outside the tree** (`/opt/ihor/aluma-table/tmp/venv`; `/tmp` gets wiped).
 Three modes: `tools/run_tests.py` (quick, `tests/QUICK.txt`), `--pr` (`tests/CRITICAL.txt`: + build, secret scan, prod units),
 `--full` (everything — what a merge needs). Playwright: `tests/redesign.spec.js`, `tests/shop.spec.js` are fully mocked (preview on 8007);
-`tests/smoke.spec.js` **writes leads** — only against `tools/serve-local-stack.py`, never prod. Proving a test can fail: break
-the code in memory, not on disk.
+`tests/smoke.spec.js` (current funnel he+ru, lead → local SQLite) **writes leads**, not in CI: `--config tests/playwright.smoke.config.js`
+starts its own `tools/serve-local-stack.py` on a free 8007, never prod. Proving a test can fail: break the code in memory, not on disk.
 
 ## 6. Gotchas
 - `api/store.py` is a shim, not a DynamoDB emulator: unknown expressions raise `ValueError` on purpose — add one only

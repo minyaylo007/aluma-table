@@ -160,16 +160,26 @@ Fallback if the module path ever misbehaves: `python tests/test_handler.py`.
 
 ## Not covered (on purpose)
 
-`/admin*` HTML rendering in detail. That is exercised by the Playwright smoke suite
-(`tests/smoke.spec.js`) — those specs need a browser, so they are not part of
+`/admin*` HTML rendering in detail. The Playwright smoke suite (`tests/smoke.spec.js`)
+signs in and reads `/admin/leads.csv` on a local stack — it needs a browser, so it is not part of
 `python -m unittest discover -s tests -t .`. `tests/test_lambda_dynamodb.py` only walks
 the admin flow (login → dashboard shows the lead → status change) on moto.
 
 ## Browser suite against a full local stack (`tests/smoke.spec.js`)
 
-**Never against prod, never against `table-new`.** This suite WRITES to storage: an
-`is_test` lead via `route.fetch`, a `page_view` without `X-Test` on every `goto`, and
-events via `route.continue`. It is only safe against a throwaway stack.
+**Never against prod, never against `table-new`.** This suite WRITES to storage: a real
+`is_test` lead (header `X-Test: 1` on every request of the page, as in `scripts/smoke_local.py`)
+and events via `/api/fx/event`. It is only safe against a throwaway stack, and it skips
+itself for any host but `127.0.0.1` / `localhost`. Not in CI.
+
+What it walks (rewritten 2026-10-22 for the shop funnel, `specs/003-shop-funnel`), in Hebrew
+and in Russian (`/ru/`): product page `tavor` → size → `add_to_cart` → cart → `cart_pay` →
+step «משלוח» (city, «מתי צריך?») → `co_next` → step `co_step_pay` → phone + consent →
+`pay_submit` → `pay_thx_h`. Every label is read from `i18n/{he,ru}.json`. Then it signs in to
+the stack's `/admin` (no redirect following) and finds the lead **by its id** in
+`/admin/leads.csv?test=1`: `is_test = 1`, `lead_source = checkout`, the size, language and
+total from the catalog — and checks that the export without `?test=1` does not contain it.
+Plus page delivery: Hebrew RTL home, legal pages, 404, `/admin` closed without sign-in.
 
 `tools/serve-local-stack.py` is that stack: one process on `127.0.0.1:8007` that serves
 `dist/` exactly the way Caddy does (`deploy/caddy/aluma-site-body.caddyfile` — clean URLs,
@@ -177,18 +187,17 @@ events via `route.continue`. It is only safe against a throwaway stack.
 and `/admin*` into `api.wsgi:application` **in the same process**, on a one-off SQLite
 database in a 0700 temp dir. `TELEGRAM_*` are stripped, so nothing is ever notified, and
 `EDGE_SECRET` is left unset (with it the handler answers 403 to everything, admin included).
+`tests/playwright.smoke.config.js` starts and stops it itself (`reuseExistingServer: false`:
+if 8007 is already taken the run fails instead of writing into someone else's process).
 
 ```bash
 python3 build.py                                      # dist/ must exist
 ss -ltn | grep ':8007 '                               # must print nothing
-python3 tools/serve-local-stack.py &                  # prints its pid and the temp db path
-PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright BASE_URL=http://127.0.0.1:8007 \
-    npx playwright test tests/smoke.spec.js           # → 30 passed
-kill -TERM <pid>                                      # by PID only, never pkill
+TMPDIR=/tmp timeout 30m systemd-run --user --scope -q --slice='app-ihor\x2dconductor.slice' -p MemoryMax=2G \
+  heavy --label aluma -- env PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright \
+  npx playwright test --config tests/playwright.smoke.config.js    # → SMOKE_RESULT
 ss -ltn | grep ':8007 '                               # nothing again; the temp db is gone
 ```
-
-Measured 2026-09-12: **30 passed**, and the temp database directory is removed on exit.
 
 The tool itself is covered by `tests/test_serve_local_stack.py` (22 tests). All but one
 call the WSGI application directly — no sockets, no network:

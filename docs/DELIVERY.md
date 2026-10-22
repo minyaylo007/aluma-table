@@ -86,7 +86,9 @@
 архівної, — [`security/secret-scan-2026-09-13.md`](security/secret-scan-2026-09-13.md).
 
 **Що НЕ запускається і чому:** `tests/smoke.spec.js` — пише в сховище (тестова заявка, `page_view`), тому лише
-вручну й лише проти локального стеку з одноразовою базою (`CLAUDE.md` §6). Lighthouse — не в CI.
+вручну й лише проти локального стеку з одноразовою базою (`CLAUDE.md` §5). Актуальний (22.10): нинішня воронка he + ru до заявки
+`is_test` у SQLite стеку; запуск — `npx playwright test --config tests/playwright.smoke.config.js` (стек на 8007 піднімає сам,
+порт мусить бути вільним). Lighthouse — не в CI.
 
 **Версії actions (FR-035, для шаблону флоту):** `actions/checkout@v6`, `actions/setup-python@v6`,
 `actions/setup-node@v6` — працюють на Node 24, у журналі 0 попереджень про застарілість; `actions/setup-python@v6`
