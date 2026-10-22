@@ -411,6 +411,44 @@ journalctl --user -u ihor-aluma-digest -n 3
 
 **Відкат:** `systemctl --user disable --now ihor-aluma-digest.timer` (ні база, ні API не зачеплені).
 
+## Пости в Instagram: `scripts/ig_publish.py` і `ihor-aluma-ig-refresh.timer`
+
+Пости в @aluma.il (Business) публікуємо самі, за словом власника (через дирижера), без ручного копіювання в телефон.
+Застосунок Meta «ALUMA posts», Instagram API із входом через Instagram, хост `graph.instagram.com`, `v21.0`.
+
+| Що | Де / як |
+|---|---|
+| токен | `~/.config/aluma/ig.env`, права 600: `IG_USER_ID`, `IG_ACCESS_TOKEN` (60 днів). Значення не друкувати — наявність лише рахунком: `grep -c '^IG_' ~/.config/aluma/ig.env` → 2. Секрет застосунку Meta не потрібен і в нас його нема |
+| пост | `docs/ig/NN-слаг.jpg` (1080×1080, JPEG, без тексту, цін, кнопок, плашок) + `NN-слаг.txt` (підпис UTF-8, LF, «הדמיה» обовʼязково, цін нема). Картинку Meta бере з `raw.githubusercontent.com` — лише після злиття в `master`. У `/srv/aluma` не класти: rsync `--delete-after` зітре |
+| скрипт | `POST /media` → чекати `FINISHED` (`--wait`, типово 60 с) → `POST /media_publish` → `permalink`. `--dry-run`: перевірки локально + рівно один `GET /me`, нічого не створює. Помилка Meta — тіло з вирізаним `access_token`, код 1 |
+| оновлення | `ihor-aluma-ig-refresh.timer`: 1-го і 15-го о 04:00, `Persistent=true`; `--refresh` атомарно (тимчасовий файл + `os.replace`, 600) пише новий токен у той самий `ig.env`, у журнал — лише `expires_in_days` |
+| журнал | `journalctl --user -u ihor-aluma-ig-refresh -n 3` — `{"event": "ig_token_refreshed", "expires_in_days": N}` або `ig_publish: …` у stderr, код 1 |
+
+```bash
+cd /opt/ihor/aluma-table
+RAW=https://raw.githubusercontent.com/minyaylo007/aluma-table/master/docs/ig
+curl -sI $RAW/01-tavor.jpg | grep -iE '^HTTP|content-type'          # 200, image/jpeg
+.venv/bin/python scripts/ig_publish.py --image-url $RAW/01-tavor.jpg --caption-file docs/ig/01-tavor.txt --dry-run
+.venv/bin/python scripts/ig_publish.py --image-url $RAW/01-tavor.jpg --caption-file docs/ig/01-tavor.txt   # СПРАВЖНІЙ пост
+
+# таймер (один раз; scripts/deploy-box.sh юнітів не ставить)
+install -m 0644 deploy/systemd/user/ihor-aluma-ig-refresh.service \
+    deploy/systemd/user/ihor-aluma-ig-refresh.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now ihor-aluma-ig-refresh.timer
+systemctl --user list-timers | grep ihor-aluma-ig
+```
+
+Скрипт пости не видаляє і не редагує — це руками в застосунку Instagram. Тому справжній запуск — тільки
+після `--dry-run` і явного слова дирижера.
+
+**Токен протух** (`HTTP 400`, `OAuthException`, `code 190`; або таймер не спрацював 60 днів): власник у
+developers.facebook.com → застосунок «ALUMA posts» → «Настройка API для входа в Instagram» → «Создать токен» для
+@aluma.il → новий токен кладемо в `IG_ACCESS_TOKEN` у `~/.config/aluma/ig.env` (600), не в чат і не в git.
+Оновлювати можна не раніше ніж через 24 години після видачі — до того `--refresh` дістане відмову Meta, файл не зміниться.
+
+**Відкат:** `systemctl --user disable --now ihor-aluma-ig-refresh.timer` (сайт, база й API не зачеплені).
+
 ## X-Forwarded-For: три топології і чому realip потрібен у двох із них
 
 Уся ця морока — через один рядок у коді. `client_ip()` (`handler.py:147-151`)

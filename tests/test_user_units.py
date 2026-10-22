@@ -159,6 +159,29 @@ class DeployTimerTests(unittest.TestCase):
         self.assertEqual(one(self.NAME, "WantedBy"), "timers.target")
 
 
+class IgRefreshUnitTests(unittest.TestCase):
+    """Оновлення токена Instagram: лише --refresh (не публікація), без aluma.env, не частіше двох разів на місяць."""
+    NAME = "ihor-aluma-ig-refresh.service"
+    TIMER = "ihor-aluma-ig-refresh.timer"
+
+    def test_refresh_only_from_clone(self):
+        self.assertEqual(one(self.NAME, "Type"), "oneshot")
+        self.assertEqual(one(self.NAME, "WorkingDirectory"), BASE)
+        self.assertEqual(one(self.NAME, "ExecStart"), BASE + "/.venv/bin/python scripts/ig_publish.py --refresh")
+        self.assertEqual(values(self.NAME, "EnvironmentFile"), [])
+        self.assertEqual(one(self.NAME, "UMask"), "0077")
+        self.assertEqual(one(self.NAME, "NoNewPrivileges"), "true")
+
+    def test_timer_twice_a_month(self):
+        self.assertEqual(one(self.TIMER, "Unit"), self.NAME)
+        self.assertEqual(one(self.TIMER, "OnCalendar"), "*-*-01,15 04:00:00")
+        self.assertEqual(one(self.TIMER, "Persistent"), "true")
+        self.assertEqual(one(self.TIMER, "WantedBy"), "timers.target")
+        # OnBootSec оновлював би токен після кожного перезапуску — і раніше 24 годин від видачі.
+        for key in ("OnBootSec", "OnUnitActiveSec", "OnUnitInactiveSec"):
+            self.assertEqual(values(self.TIMER, key), [], key)
+
+
 class AllUnitsTests(unittest.TestCase):
     def test_no_sudo_no_caddy_no_foreign_paths(self):
         for path in sorted(UNITS.iterdir()):

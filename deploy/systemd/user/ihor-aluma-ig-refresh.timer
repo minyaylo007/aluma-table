@@ -1,0 +1,17 @@
+# ALUMA — оновлення токена Instagram 1-го і 15-го числа о 04:00. КОРИСТУВАЦЬКИЙ юніт.
+# Установка — див. коментар у ihor-aluma-ig-refresh.service.
+
+[Unit]
+Description=ALUMA — Instagram API token refresh on the 1st and 15th (timer, user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Timer]
+Unit=ihor-aluma-ig-refresh.service
+OnCalendar=*-*-01,15 04:00:00
+RandomizedDelaySec=10min
+
+# Сервер лежав у призначений час — оновлення відбудеться після старту, а не через два тижні.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
