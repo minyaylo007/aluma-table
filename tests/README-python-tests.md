@@ -199,6 +199,8 @@ TMPDIR=/tmp timeout 30m systemd-run --user --scope -q --slice='app-ihor\x2dcondu
 ss -ltn | grep ':8007 '                               # nothing again; the temp db is gone
 ```
 
+Measured 2026-10-22: **6 passed in ~11 s** (he + ru leads found in the stack's SQLite by id), 8007 free again after the run.
+
 The tool itself is covered by `tests/test_serve_local_stack.py` (22 tests). All but one
 call the WSGI application directly — no sockets, no network:
 
