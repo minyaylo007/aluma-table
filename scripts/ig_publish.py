@@ -8,6 +8,8 @@ raw.githubusercontent.com), підпис — з файлу UTF-8.
     python3 scripts/ig_publish.py --image-url https://…/docs/ig/01-tavor.jpg --caption-file docs/ig/01-tavor.txt --dry-run
     python3 scripts/ig_publish.py --image-url https://…/docs/ig/01-tavor.jpg --caption-file docs/ig/01-tavor.txt
     python3 scripts/ig_publish.py --refresh          # ihor-aluma-ig-refresh.timer, раз на ~2 тижні
+    python3 scripts/ig_publish.py --story --video-url https://…/docs/ig/stories/01-tavor.mp4 --dry-run
+    python3 scripts/ig_publish.py --story --image-url https://…/docs/ig/stories/03-tones.jpg
 
 Кроки Content Publishing API (graph.instagram.com):
     POST /{IG_USER_ID}/media (image_url, caption) → контейнер
@@ -17,6 +19,14 @@ raw.githubusercontent.com), підпис — з файлу UTF-8.
 
 --dry-run перевіряє все локально (підпис ≤ 2200 знаків, ≤ 30 хештегів, URL https на .jpg/.jpeg) і
 робить рівно один GET /me — токен живий; нічого не створює.
+
+Історія (--story): той самий шлях, але POST /media з media_type=STORIES і image_url (.jpg) або video_url (.mp4),
+без підпису — API історій не приймає ні підпису, ні стікерів, тож увесь текст і «קישור בביו» стоять на самому кадрі
+(docs/ig/stories/, генератор scripts/ig_stories.js). Ролик Meta обробляє довше: --wait типово 300 с замість 60.
+Після публікації — GET /{media_id}?fields=media_product_type,permalink: друкуємо, що це справді STORY.
+--dry-run для історії додатково робить HEAD на URL (200, тип і розмір файлу в межах Instagram) і, якщо URL указує
+на файл цього репозиторію (…/master/docs/…), перевіряє локальну копію: JPEG 9:16 (Pillow, якщо є), MP4 9:16 і
+≤ 60 с (ffprobe, якщо є). Чого нема — пропускаємо з позначкою в рядку dry-run, а не мовчки.
 
 Токен — з ~/.config/aluma/ig.env (IG_ENV або --env), KEY=VALUE без source. Його НІКОЛИ не друкуємо:
 у повідомленнях про помилку тіло відповіді Meta проходить через _redact(), як у api/handler.py.
@@ -30,6 +40,8 @@ import json
 import os
 import pathlib
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -45,6 +57,11 @@ POLL_SECONDS = 2.5
 CAPTION_MAX = 2200     # межа Instagram на підпис
 HASHTAGS_MAX = 30      # межа Instagram на хештеги в одному пості
 BODY_CLIP = 500
+STORY_WAIT_VIDEO = 300  # с: ролик історії Meta обробляє до кількох хвилин
+STORY_IMAGE_MAX = 8 * 1024 * 1024     # межа Instagram на JPEG
+STORY_VIDEO_MAX = 100 * 1024 * 1024   # межа Instagram на ролик історії
+STORY_VIDEO_SECONDS = 60
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 _TOKEN_IN_TEXT = re.compile(r"(access_token=)[^&\s\"']+")
 
@@ -87,6 +104,16 @@ def _http(method: str, url: str, data: bytes | None) -> tuple[int, bytes]:
             return resp.status, resp.read()
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read()
+
+
+def _head(url: str) -> tuple[int, dict]:
+    """HEAD на публічний URL кадру → (статус, заголовки в нижньому регістрі). Тести підміняють саме цю функцію."""
+    req = urllib.request.Request(url, method="HEAD")
+    try:
+        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:  # noqa: S310 — лише https (check_story_url)
+            return resp.status, {k.lower(): v for k, v in resp.headers.items()}
+    except urllib.error.HTTPError as exc:
+        return exc.code, {}
 
 
 class Client:
@@ -134,6 +161,76 @@ def check_image_url(url: str) -> None:
         raise IgError("image-url має закінчуватися на .jpg або .jpeg (Instagram приймає лише JPEG)")
 
 
+def check_story_url(url: str, video: bool) -> None:
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != "https" or not parts.netloc:
+        raise IgError("URL історії має бути https://…")
+    ext = (".mp4",) if video else (".jpg", ".jpeg")
+    if not parts.path.lower().endswith(ext):
+        raise IgError(f"URL історії має закінчуватися на {' або '.join(ext)}")
+
+
+def check_story_remote(url: str, video: bool) -> str:
+    """HEAD: файл доступний за URL (Meta забере саме його), розмір у межах Instagram. Повертає опис для dry-run."""
+    try:
+        status, headers = _head(url)
+    except Exception as exc:  # мережа: у URL кадру токена нема, але ріжемо за звичкою
+        raise IgError(f"HEAD {url}: {_redact(repr(exc))}") from None
+    if status != 200:
+        raise IgError(f"HEAD {url}: HTTP {status} — файл ще не в master або URL хибний")
+    size = int(headers.get("content-length") or 0)
+    limit = STORY_VIDEO_MAX if video else STORY_IMAGE_MAX
+    if size > limit:
+        raise IgError(f"{url}: {size} байт > {limit}")
+    return f"URL 200, {size // 1024} КБ"
+
+
+def _local_copy(url: str) -> pathlib.Path | None:
+    """…/master/docs/ig/stories/x.jpg → <репо>/docs/ig/stories/x.jpg, якщо такий файл є (лише docs/)."""
+    path = urllib.parse.urlsplit(url).path
+    if "/master/docs/" not in path:
+        return None
+    rel = "docs/" + path.split("/master/docs/", 1)[1]
+    file = (ROOT / rel).resolve()
+    return file if file.is_file() and (ROOT / "docs") in file.parents else None
+
+
+def check_story_local(file: pathlib.Path, video: bool, which=shutil.which) -> str:
+    """Формат локальної копії: 9:16 і (для ролика) ≤ 60 с. Без Pillow / ffprobe — позначка «не перевірено»."""
+    if video:
+        ffprobe = which("ffprobe")
+        if not ffprobe:
+            return "ffprobe нема — формат ролика не перевірено"
+        out = subprocess.run([ffprobe, "-v", "error", "-select_streams", "v:0", "-show_entries",
+                              "stream=codec_name,width,height:format=duration", "-of", "json", str(file)],
+                             capture_output=True, text=True, timeout=30, check=False)
+        try:
+            info = json.loads(out.stdout)
+            stream = info["streams"][0]
+            width, height = int(stream["width"]), int(stream["height"])
+            seconds = float(info["format"]["duration"])
+        except (ValueError, KeyError, IndexError):
+            raise IgError(f"{file.name}: ffprobe не прочитав ролик") from None
+        if stream.get("codec_name") != "h264":
+            raise IgError(f"{file.name}: кодек {stream.get('codec_name')}, потрібен h264")
+        if seconds > STORY_VIDEO_SECONDS:
+            raise IgError(f"{file.name}: {seconds:.1f} с > {STORY_VIDEO_SECONDS}")
+        kind = f"{width}×{height}, {seconds:.1f} с"
+    else:
+        try:
+            from PIL import Image
+        except ImportError:
+            return "Pillow нема — розмір кадру не перевірено"
+        with Image.open(file) as im:
+            if im.format != "JPEG":
+                raise IgError(f"{file.name}: {im.format}, потрібен JPEG")
+            width, height = im.size
+        kind = f"{width}×{height}"
+    if width * 16 != height * 9:
+        raise IgError(f"{file.name}: {width}×{height} — не 9:16")
+    return f"локально {kind}"
+
+
 def read_caption(path: pathlib.Path) -> str:
     try:
         text = path.read_text(encoding="utf-8")
@@ -169,6 +266,22 @@ def publish(client: Client, image_url: str, caption: str, wait: float, sleep=tim
         raise IgError("POST /media_publish: немає id поста")
     link = client.call("GET", media_id, {"fields": "permalink"}).get("permalink", "")
     return media_id, link
+
+
+def publish_story(client: Client, url: str, video: bool, wait: float, sleep=time.sleep) -> tuple[str, str, str]:
+    """Історія: контейнер STORIES → FINISHED → media_publish → (media_id, media_product_type, permalink)."""
+    params = {"media_type": "STORIES", ("video_url" if video else "image_url"): url}
+    container = client.call("POST", f"{client.user_id}/media", params)
+    container_id = container.get("id")
+    if not container_id:
+        raise IgError("POST /media: немає id контейнера")
+    wait_finished(client, container_id, wait, sleep=sleep)
+    story = client.call("POST", f"{client.user_id}/media_publish", {"creation_id": container_id})
+    media_id = story.get("id")
+    if not media_id:
+        raise IgError("POST /media_publish: немає id історії")
+    info = client.call("GET", media_id, {"fields": "media_product_type,permalink"})
+    return media_id, info.get("media_product_type", ""), info.get("permalink", "")
 
 
 def write_token(env_path: pathlib.Path, new_token: str) -> None:
@@ -214,8 +327,10 @@ def main(argv=None, sleep=time.sleep) -> int:
     ap.add_argument("--env", default=os.environ.get("IG_ENV", str(DEFAULT_ENV)), help="файл з IG_USER_ID і IG_ACCESS_TOKEN")
     ap.add_argument("--image-url")
     ap.add_argument("--caption-file")
+    ap.add_argument("--story", action="store_true", help="історія: --image-url (.jpg) або --video-url (.mp4), без підпису")
+    ap.add_argument("--video-url", help="лише з --story: ролик .mp4 9:16 ≤ 60 с")
     ap.add_argument("--dry-run", action="store_true", help="лише перевірки й один GET /me, нічого не створює")
-    ap.add_argument("--wait", type=float, default=60, help="скільки секунд чекати FINISHED (типово 60)")
+    ap.add_argument("--wait", type=float, default=None, help="скільки секунд чекати FINISHED (типово 60; ролик історії — 300)")
     ap.add_argument("--refresh", action="store_true", help="оновити токен і записати його назад у --env")
     args = ap.parse_args(argv)
 
@@ -235,8 +350,12 @@ def main(argv=None, sleep=time.sleep) -> int:
             print(json.dumps({"event": "ig_token_refreshed", "expires_in_days": days}))
             return 0
 
+        if args.story:
+            return story_main(client, args, sleep)
+        if args.video_url:
+            raise IgError("--video-url — лише з --story (ролики в стрічку цей скрипт не публікує)")
         if not args.image_url or not args.caption_file:
-            raise IgError("потрібні --image-url і --caption-file (або --refresh)")
+            raise IgError("потрібні --image-url і --caption-file (або --refresh, або --story)")
         check_image_url(args.image_url)
         caption = read_caption(pathlib.Path(args.caption_file))
         check_caption(caption)
@@ -248,13 +367,38 @@ def main(argv=None, sleep=time.sleep) -> int:
                   f"хештегів {tags}, нічого не створено")
             return 0
 
-        media_id, link = publish(client, args.image_url, caption, args.wait, sleep=sleep)
+        media_id, link = publish(client, args.image_url, caption, args.wait or 60, sleep=sleep)
         print(f"media_id={media_id}")
         print(f"permalink={link}")
         return 0
     except IgError as exc:
         print(f"ig_publish: {exc}", file=sys.stderr)
         return 1
+
+
+def story_main(client: Client, args, sleep) -> int:
+    if bool(args.image_url) == bool(args.video_url):
+        raise IgError("--story: потрібен рівно один із --image-url (.jpg) або --video-url (.mp4)")
+    if args.caption_file:
+        raise IgError("--story: підпису API історій не приймає — текст має бути на кадрі")
+    video = bool(args.video_url)
+    url = args.video_url or args.image_url
+    check_story_url(url, video)
+    if args.dry_run:
+        notes = [check_story_remote(url, video)]
+        local = _local_copy(url)
+        notes.append(check_story_local(local, video) if local else "локальної копії нема — формат не перевірено")
+        me = client.call("GET", "me", {"fields": "username"})
+        print(f"dry-run ok: @{me.get('username', '?')}, історія {'ролик' if video else 'кадр'}: {'; '.join(notes)}; нічого не створено")
+        return 0
+    wait = args.wait if args.wait is not None else (STORY_WAIT_VIDEO if video else 60)
+    media_id, product, link = publish_story(client, url, video, wait, sleep=sleep)
+    print(f"media_id={media_id}")
+    print(f"media_product_type={product}")
+    print(f"permalink={link}")
+    if product != "STORY":
+        raise IgError(f"media {media_id}: media_product_type={product or '—'}, а не STORY")
+    return 0
 
 
 if __name__ == "__main__":

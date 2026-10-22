@@ -22,13 +22,17 @@ TOKEN = "IGAAfakeTOKEN1234567890abc"
 NEW_TOKEN = "IGAAnewTOKEN0987654321xyz"
 USER = "17841400000000000"
 IMG = "https://raw.githubusercontent.com/minyaylo007/aluma-table/master/docs/ig/01-tavor.jpg"
+RAW = "https://raw.githubusercontent.com/minyaylo007/aluma-table/master/"
+STORY_JPG = RAW + "docs/ig/stories/03-tones.jpg"
+STORY_MP4 = RAW + "docs/ig/stories/01-tavor.mp4"
 
 
 class FakeGraph:
     """Відповіді за (метод, шлях); записує кожен виклик з розібраними параметрами."""
 
-    def __init__(self, statuses=("FINISHED",), refresh=None, fail=None):
+    def __init__(self, statuses=("FINISHED",), refresh=None, fail=None, product="FEED"):
         self.calls = []
+        self.product = product
         self.statuses = list(statuses)
         self.refresh = refresh or {"access_token": NEW_TOKEN, "token_type": "bearer", "expires_in": 5183944}
         self.fail = fail  # (метод, хвіст шляху, статус, тіло)
@@ -53,7 +57,8 @@ class FakeGraph:
             code = self.statuses.pop(0) if len(self.statuses) > 1 else self.statuses[0]
             return 200, json.dumps({"status_code": code, "status": f"{code}: details"}).encode()
         if method == "GET" and path.endswith("/M1"):
-            return 200, b'{"permalink": "https://www.instagram.com/p/XYZ/", "id": "M1"}'
+            return 200, json.dumps({"permalink": "https://www.instagram.com/p/XYZ/", "id": "M1",
+                                    "media_product_type": self.product}).encode()
         return 404, b'{"error": {"message": "unknown"}}'
 
 
@@ -232,6 +237,158 @@ class RefreshTests(Base):
         self.assertEqual(code, 1)
         self.assertEqual(self.env.read_text(encoding="utf-8"), before)
         self.assertNotIn(TOKEN, out + err)
+
+
+class StoryTests(Base):
+    """--story: media_type=STORIES, без підпису; ролик чекає довше; результат — саме STORY."""
+
+    def run_story(self, graph, *args, head=(200, {"content-type": "image/jpeg", "content-length": "200000"})):
+        heads = []
+
+        def fake_head(url):
+            heads.append(url)
+            return head
+
+        with mock.patch.object(ig_publish, "_head", fake_head):
+            res = self.run_main(graph, "--story", *args)
+        return (*res, heads)
+
+    def test_image_story_order_and_params(self):
+        g = FakeGraph(product="STORY")
+        code, out, err, _, heads = self.run_story(g, "--image-url", STORY_JPG)
+        self.assertEqual(code, 0, err)
+        seq = [(m, p.split("/", 2)[-1]) for m, p, _ in g.calls]
+        self.assertEqual(seq, [("POST", f"{USER}/media"), ("GET", "C1"),
+                               ("POST", f"{USER}/media_publish"), ("GET", "M1")])
+        media = g.calls[0][2]
+        self.assertEqual(media["media_type"], "STORIES")
+        self.assertEqual(media["image_url"], STORY_JPG)
+        self.assertNotIn("caption", media)
+        self.assertNotIn("video_url", media)
+        self.assertEqual(g.calls[3][2]["fields"], "media_product_type,permalink")
+        self.assertIn("media_product_type=STORY", out)
+        self.assertEqual(heads, [])  # HEAD — лише в dry-run
+        self.assertNotIn(TOKEN, out + err)
+
+    def test_video_story_waits_up_to_300s(self):
+        g = FakeGraph(statuses=("IN_PROGRESS",) * 40 + ("FINISHED",), product="STORY")
+        clock = iter(range(0, 10000, 5))
+        with mock.patch.object(ig_publish.time, "monotonic", lambda: next(clock)):
+            code, _, err, sleeps, _ = self.run_story(g, "--video-url", STORY_MP4)
+        self.assertEqual(code, 0, err)
+        media = g.calls[0][2]
+        self.assertEqual((media["media_type"], media["video_url"]), ("STORIES", STORY_MP4))
+        self.assertNotIn("image_url", media)
+        self.assertEqual(len(sleeps), 40)  # ~200 с очікування — за межею поста (60), у межі ролика (300)
+
+    def test_video_story_wait_limit(self):
+        g = FakeGraph(statuses=("IN_PROGRESS",), product="STORY")
+        clock = iter(range(0, 10000, 10))
+        with mock.patch.object(ig_publish.time, "monotonic", lambda: next(clock)):
+            code, _, err, _, _ = self.run_story(g, "--video-url", STORY_MP4)
+        self.assertEqual(code, 1)
+        self.assertIn("не FINISHED за 300", err)
+        self.assertFalse(any(p.endswith("media_publish") for _, p, _ in g.calls))
+
+    def test_not_a_story_is_error(self):
+        code, _, err, _, _ = self.run_story(FakeGraph(product="FEED"), "--image-url", STORY_JPG)
+        self.assertEqual(code, 1)
+        self.assertIn("не STORY", err)
+
+    def refused(self, *args, text):
+        g = FakeGraph(product="STORY")
+        code, _, err, _, _ = self.run_story(g, *args)
+        self.assertEqual(code, 1)
+        self.assertEqual(g.calls, [])
+        self.assertIn(text, err)
+
+    def test_story_refusals(self):
+        self.refused(text="рівно один")
+        self.refused("--image-url", STORY_JPG, "--video-url", STORY_MP4, text="рівно один")
+        self.refused("--image-url", STORY_JPG, "--caption-file", str(self.caption), text="підпису")
+        self.refused("--image-url", STORY_MP4, text=".jpg")
+        self.refused("--video-url", STORY_JPG, text=".mp4")
+        self.refused("--video-url", STORY_MP4.replace("https", "http"), text="https")
+
+    def test_video_url_without_story_refused(self):
+        g = FakeGraph()
+        code, _, _, _ = self.run_main(g, "--video-url", STORY_MP4, "--caption-file", str(self.caption))
+        self.assertEqual(code, 1)
+        self.assertEqual(g.calls, [])
+
+    def test_dry_run_head_and_local_copy(self):
+        g = FakeGraph()
+        code, out, err, _, heads = self.run_story(g, "--image-url", STORY_JPG, "--dry-run")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(heads, [STORY_JPG])
+        self.assertEqual([(m, p.rsplit("/", 1)[-1]) for m, p, _ in g.calls], [("GET", "me")])
+        self.assertIn("URL 200", out)
+        self.assertIn("нічого не створено", out)
+
+    def test_dry_run_not_in_master_yet(self):
+        g = FakeGraph()
+        code, _, err, _, _ = self.run_story(g, "--image-url", STORY_JPG, "--dry-run", head=(404, {}))
+        self.assertEqual(code, 1)
+        self.assertIn("HTTP 404", err)
+        self.assertEqual(g.calls, [])
+
+    def test_dry_run_too_big(self):
+        g = FakeGraph()
+        code, _, err, _, _ = self.run_story(g, "--image-url", STORY_JPG, "--dry-run",
+                                            head=(200, {"content-length": str(9 * 1024 * 1024)}))
+        self.assertEqual(code, 1)
+        self.assertIn("байт", err)
+
+    def test_local_copy_only_inside_docs(self):
+        self.assertIsNone(ig_publish._local_copy(RAW + "docs/../api/handler.py"))
+        self.assertIsNone(ig_publish._local_copy("https://example.com/x/docs/ig/stories/03-tones.jpg"))
+        self.assertEqual(ig_publish._local_copy(STORY_JPG), ig_publish.ROOT / "docs/ig/stories/03-tones.jpg")
+
+    def test_local_check_without_tools(self):
+        f = ig_publish.ROOT / "docs/ig/stories/01-tavor.mp4"
+        self.assertIn("не перевірено", ig_publish.check_story_local(f, True, which=lambda _: None))
+        with mock.patch.dict("sys.modules", {"PIL": None}):
+            self.assertIn("не перевірено", ig_publish.check_story_local(f.with_suffix(".jpg"), False))
+
+    def test_local_check_rejects_square(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow нема")
+        sq = self.dir / "sq.jpg"
+        Image.new("RGB", (1080, 1080)).save(sq, "JPEG")
+        with self.assertRaises(ig_publish.IgError):
+            ig_publish.check_story_local(sq, False)
+
+
+class StoryFilesTests(unittest.TestCase):
+    """docs/ig/stories/: кожна історія — NN-слаг.jpg (+ .mp4) + .txt; в описі «הדמיה» і дата виходу; без «знижок»."""
+    DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "stories"
+
+    def test_five_stories(self):
+        notes = sorted(self.DIR.glob("[0-9][0-9]-*.txt"))
+        self.assertEqual([t.name[:2] for t in notes], ["01", "02", "03", "04", "05"])
+        for txt in notes:
+            raw = txt.read_bytes()
+            self.assertNotIn(b"\r", raw, txt.name)
+            text = raw.decode("utf-8")
+            self.assertIn("הדמיה", text, txt.name)
+            self.assertRegex(text, r"2026-10-2\d", txt.name)
+            self.assertNotRegex(text, r"נותרו|הנחה|מבצע", txt.name)
+            jpg = txt.with_suffix(".jpg")
+            self.assertEqual(jpg.read_bytes()[:3], b"\xff\xd8\xff", jpg.name)
+            mp4 = txt.with_suffix(".mp4")
+            if mp4.exists():
+                self.assertEqual(mp4.read_bytes()[4:8], b"ftyp", mp4.name)
+                self.assertLessEqual(mp4.stat().st_size, 4 * 1024 * 1024, mp4.name)
+
+    def test_jpg_9x16(self):
+        try:
+            import PIL  # noqa: F401
+        except ImportError:
+            self.skipTest("Pillow нема")
+        for jpg in sorted(self.DIR.glob("[0-9][0-9]-*.jpg")):
+            self.assertIn("1080×1920", ig_publish.check_story_local(jpg, False), jpg.name)
 
 
 class PostFilesTests(unittest.TestCase):

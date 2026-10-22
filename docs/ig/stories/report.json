@@ -1,0 +1,50 @@
+{
+  "generated_by": "scripts/ig_stories.js",
+  "limits": {
+    "max_jpg_bytes": 512000,
+    "max_mp4_bytes": 4194304,
+    "min_contrast": 4.5,
+    "safe_top": 250,
+    "safe_bottom": 1620
+  },
+  "stories": [
+    {
+      "id": "01-tavor",
+      "jpg": "01-tavor.jpg",
+      "jpg_bytes": 152176,
+      "min_contrast": 5.88,
+      "mp4": "01-tavor.mp4",
+      "mp4_bytes": 651511,
+      "crf": 20,
+      "duration": 8
+    },
+    {
+      "id": "02-sahar",
+      "jpg": "02-sahar.jpg",
+      "jpg_bytes": 175504,
+      "min_contrast": 5.88,
+      "mp4": "02-sahar.mp4",
+      "mp4_bytes": 711871,
+      "crf": 20,
+      "duration": 8
+    },
+    {
+      "id": "03-tones",
+      "jpg": "03-tones.jpg",
+      "jpg_bytes": 211509,
+      "min_contrast": 6.49
+    },
+    {
+      "id": "04-detail",
+      "jpg": "04-detail.jpg",
+      "jpg_bytes": 111114,
+      "min_contrast": 5.88
+    },
+    {
+      "id": "05-collection",
+      "jpg": "05-collection.jpg",
+      "jpg_bytes": 237215,
+      "min_contrast": 5.88
+    }
+  ]
+}

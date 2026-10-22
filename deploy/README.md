@@ -442,6 +442,18 @@ systemctl --user list-timers | grep ihor-aluma-ig
 Скрипт пости не видаляє і не редагує — це руками в застосунку Instagram. Тому справжній запуск — тільки
 після `--dry-run` і явного слова дирижера.
 
+**Історії** (`--story`, `media_type=STORIES`): кадри 1080×1920 у `docs/ig/stories/NN-*.jpg|mp4` + `NN-*.txt` (навіщо, текст
+на кадрі, дата виходу), генератор `node scripts/ig_stories.js` (слова — `scripts/ig_stories.json`, цифри — з каталогу).
+Підпису API історій не приймає — `--caption-file` відхиляється; відео чекаємо до 5 хв (`--wait`). `--dry-run` робить
+HEAD на URL (200, розмір) і перевіряє локальну копію (`ffprobe`: h264, ≤ 60 с, 9:16; Pillow: JPEG 9:16). Після
+публікації скрипт читає `media_product_type` і падає, якщо це не `STORY`. Історія живе 24 год; видалити — руками в застосунку.
+
+```bash
+S=https://raw.githubusercontent.com/minyaylo007/aluma-table/master/docs/ig/stories
+python3 scripts/ig_publish.py --story --video-url $S/02-sahar.mp4 --dry-run
+python3 scripts/ig_publish.py --story --image-url $S/03-tones.jpg            # СПРАВЖНЯ історія
+```
+
 **Токен протух** (`HTTP 400`, `OAuthException`, `code 190`; або таймер не спрацював 60 днів): власник у
 developers.facebook.com → застосунок «ALUMA posts» → «Настройка API для входа в Instagram» → «Создать токен» для
 @aluma.il → новий токен кладемо в `IG_ACCESS_TOKEN` у `~/.config/aluma/ig.env` (600), не в чат і не в git.
