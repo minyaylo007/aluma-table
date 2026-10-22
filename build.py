@@ -595,6 +595,21 @@ def ship_choice() -> str:
             f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
 
 
+def inside(p: dict, loc: str) -> str:
+    """«מה בפנים»: з чого зроблено (числа — content.json, специфікація 22.10) + інструкція збирання PDF своєю мовою.
+    Лише для товарів INSIDE_PRODUCTS; PDF шукаємо site/assets/docs/<slug>-assembly-<мова>.pdf, нема своєї мови — en."""
+    if not listed("INSIDE_PRODUCTS", p):
+        return ""
+    rows = ["top", "board", "edge", "legs", "mech", "finish", "origin"]
+    lis = "".join(f"<li>{{{{t.inside_{k}}}}}</li>" for k in rows)
+    pdf = next((f"/assets/docs/{p['slug']}-assembly-{lang}.pdf" for lang in (loc, "en")
+                if (SITE / "assets" / "docs" / f"{p['slug']}-assembly-{lang}.pdf").is_file()), "")
+    link = (f'<p><a class="pdp-pdf" href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">'
+            f'{{{{t.{"assembly_pdf" if pdf.endswith(f"-{loc}.pdf") else "assembly_pdf_en"}}}}}</a></p>') if pdf else ""
+    return (f'<div class="pdp-inside"><h3 class="h3">{{{{t.inside_h}}}}</h3><ul class="pdp-inside-list" role="list">{lis}</ul>'
+            f'<p class="muted small">{{{{t.inside_note}}}}</p>{link}</div>')
+
+
 SIZE_HELP = {"dining_table": ("{{t.size_clear}}", "{{t.size_seat}}"), "coffee_table": ("{{t.size_clear_pass}}",)}
 
 
@@ -982,7 +997,7 @@ def main() -> None:
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
                 "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc),
                 "P_PRICE_NOTE": "{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}", "P_SIZE_HELP": size_help(p, loc),
-                "P_SPECS": specs(p, loc), "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }
@@ -1006,7 +1021,7 @@ def main() -> None:
                 shutil.copyfile(src, d / name)
 
     # ---- ассети: лише ті, на які посилаються, з хешем у імені
-    REF = re.compile(r"/assets/[\w\-./]+?\.(?:avif|webp|png|jpg|jpeg|svg|woff2|css|js|glb|hdr)")
+    REF = re.compile(r"/assets/[\w\-./]+?\.(?:avif|webp|png|jpg|jpeg|svg|woff2|css|js|glb|hdr|pdf)")
     referenced, seen = set(), set()
     frontier = [f for f in DIST.rglob("*") if f.is_file()]
     while frontier:

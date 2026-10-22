@@ -483,5 +483,16 @@
   "inc_warranty": "{{WARRANTY_MONTHS}}-month warranty",
   "spec_warranty": "Warranty",
   "spec_warranty_v": "{{WARRANTY_MONTHS}} months — manufacturing defects and the extension mechanism",
-  "series_price_n": "Launch price, first series of {{SERIES_SIZE}}"
+  "series_price_n": "Launch price, first series of {{SERIES_SIZE}}",
+  "inside_h": "What's inside",
+  "inside_top": "Top: natural oak veneer, {{P_VENEER}} mm, from one log for both halves and the leaf, so the grain runs across the joint",
+  "inside_board": "Core: moisture-resistant MDF, {{BOARD_MM}} mm, E1 emission class, veneered on both sides",
+  "inside_edge": "Edge: solid oak all round, top {{TOP_MM}} mm thick, bevelled underneath",
+  "inside_legs": "Legs: solid oak glued from lamellas, tapered, with levelling feet; or a black steel base",
+  "inside_mech": "Mechanism: two aluminium telescopic runners that move together; the {{INSERT_CM}} cm leaf rests on shelves under the top",
+  "inside_finish": "Finish: matt polyurethane lacquer on both sides of the top",
+  "inside_origin": "Made in Ukraine, Europe",
+  "inside_note": "The images on this page are renders.",
+  "assembly_pdf": "Assembly instructions (PDF)",
+  "assembly_pdf_en": "Assembly instructions (PDF)"
 }

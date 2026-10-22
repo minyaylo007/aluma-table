@@ -597,6 +597,12 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-detail > * { min-width: 0; }
 @media (min-width: 900px) { .pdp-detail { grid-template-columns: 5fr 7fr; gap: 80px; } }
 .pdp-desc { margin-block: 16px; max-width: 56ch; }
+/* «מה בפנים» (хвиля 1): з чого зроблено + посилання на інструкцію збирання PDF */
+.pdp-inside { margin-block-start: 32px; max-width: 56ch; }
+.pdp-inside-list { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.pdp-inside-list li { padding-inline-start: 16px; position: relative; }
+.pdp-inside-list li::before { content: ""; position: absolute; inset-inline-start: 0; top: .7em; width: 6px; height: 1px; background: currentColor; }
+.pdp-pdf { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .specs { border-block-start: 1px solid var(--ink); }
 .specs div { display: grid; grid-template-columns: minmax(min(110px, 38%), 38%) minmax(0, 1fr); gap: 16px; padding-block: 14px; border-block-end: 1px solid var(--line); }
 .specs dt { color: var(--muted); font-size: .92rem; min-width: 0; overflow-wrap: anywhere; }

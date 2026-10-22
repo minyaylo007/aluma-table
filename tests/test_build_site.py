@@ -172,6 +172,32 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertIsNone(re.search(r"מחיר משוער|[Ee]stimated price|[Оо]риентировочная цена", buy))
                     self.assertIn(f'<p class="pdp-est muted small">{t["price_est"]}</p>', buy)
 
+    def test_inside_block_and_assembly_pdf_only_where_confirmed(self):
+        # хвиля 1 (22.10): «מה בפנים» — лише в INSIDE_PRODUCTS, числа з content.json, «הדמיה» поруч; PDF збирання
+        # своєю мовою (ru — англійський з позначкою), опублікований у dist з хешем і справді PDF
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        inside = [x.strip() for x in content["INSIDE_PRODUCTS"].split(",")]
+        pdf_lang = {"he": "he", "en": "en", "ru": "en"}
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for p in PRODUCTS:
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                block = re.search(r'<div class="pdp-inside">.*?</div>', html, re.S)
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    if p["slug"] not in inside:
+                        self.assertIsNone(block)
+                        continue
+                    b = block.group(0)
+                    self.assertIn(t["inside_h"], b)
+                    self.assertEqual(b.count("<li>"), 7)
+                    for k in ("BOARD_MM", "TOP_MM", "INSERT_CM"):
+                        self.assertIn(f"{content[k]} ", b)
+                    self.assertIn(content["VENEER_MM"].replace(".", "," if lang == "ru" else "."), b)
+                    self.assertIn(t["inside_note"], b)
+                    href = re.search(r'<a class="pdp-pdf" href="(/assets/docs/[^"]+\.pdf)"', b).group(1)
+                    self.assertRegex(href, rf"/{p['slug']}-assembly-{pdf_lang[lang]}\.[0-9a-f]{{10}}\.pdf$")
+                    self.assertEqual((self.dist / href.lstrip("/")).read_bytes()[:5], b"%PDF-")
+
     def test_round_table_tile_reads_like_the_cart(self):
         # аудит 22.10 (б) 5: розмір із підписом «Ø…» на плитці — той самий «Ø115», що в кошику й рекламі, без висоти
         for lang, prefix in DIST_PREFIX.items():
