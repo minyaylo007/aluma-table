@@ -3,6 +3,30 @@
    Кирилиця: у Plex Sans Hebrew і Frank Ruhl Libre її немає. Plex Sans — той самий дизайн, що латиниця Plex Hebrew;
    PT Serif (ParaType, OFL) — найближчий до латиниці Frank Ruhl за очком і контрастом. Лише кириличні гліфи (сабсет
    Google Fonts через @fontsource), цифри й латиниця лишаються з облич вище. Ліцензії — fonts/OFL-*.txt. */
+/* IBM Plex Sans Hebrew, латиниця — повна (з aluma.css, як і раніше), потім цифри: той самий порядок облич,
+   що й до винесення, тож на сторінці вантажаться ті самі файли. */
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-400-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-600-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-700-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+/* Numerals and shared punctuation, declared last: the Hebrew page is Hebrew apart from its numbers, and digits live only in the Latin
+   subset. Declared after the Latin faces for the same family/weight, so for these codepoints the last
+   matching @font-face wins and a Hebrew visitor downloads ~2 KB instead of a 19 KB Latin face.
+   Cut from the Latin faces by tools/subset_numerals.py. */
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-400-num.woff2) format("woff2");
+  unicode-range: U+0020-0021, U+0025, U+0028-0029, U+002B-002F, U+0030-0039, U+003A-003B, U+003F, U+00A0, U+00A9, U+00B7, U+00D7, U+2013-2014; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-600-num.woff2) format("woff2");
+  unicode-range: U+0020-0021, U+0025, U+0028-0029, U+002B-002F, U+0030-0039, U+003A-003B, U+003F, U+00A0, U+00A9, U+00B7, U+00D7, U+2013-2014; }
+@font-face { font-family: "IBM Plex Sans Hebrew"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(/assets/fonts/PlexSansHebrew-700-num.woff2) format("woff2");
+  unicode-range: U+0020-0021, U+0025, U+0028-0029, U+002B-002F, U+0030-0039, U+003A-003B, U+003F, U+00A0, U+00A9, U+00B7, U+00D7, U+2013-2014; }
 @font-face { font-family: "Frank Ruhl Libre"; font-style: normal; font-weight: 400 500; font-display: swap;
   src: url(/assets/fonts/FrankRuhlLibre-latin.woff2) format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }

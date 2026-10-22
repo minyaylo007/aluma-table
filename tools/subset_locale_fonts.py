@@ -9,11 +9,16 @@
   (заміряно по всіх сторінках sitemap). На /ru/ є малі латинські в заголовках, на /en/ — усі, там повний latin.
 * PlexSans-400-cyrillic-lang.woff2 — лише літери назви мови i18n/ru.json → lang_name («Русский»),
   для he і en: слово малюється тим самим Plex Sans, що й раніше, вигляд не змінюється.
+* PlexSansHebrew-{400,600,700}-latin-he.woff2 — латиниця Plex Sans Hebrew для he: A–Z, a–z і кілька знаків, яких нема
+  в PlexSansHebrew-*-num (цифри й спільна пунктуація вже там, aluma.css). На he латиницею пишуться лише слова
+  на кшталт «Meta Pixel», «WhatsApp», «English», «Ø» (банер згоди, перемикач мов, nojs, privacy) — 19–20 КБ
+  повного latin заради них (замір 22.10). Діапазони не перетинаються з num, тож жоден знак не тягне двох файлів.
+  700 на he сьогодні малює лише цифри (num), його latin-he вантажиться тільки якщо колись знадобиться.
 
 unicode-range кожного обличчя у fonts-*.css дорівнює списку, з яким його вирізано (перевіряє
 tests/test_build_site.py). Джерела — вже наявні OFL-файли в site/assets/fonts, нових шрифтів немає.
 
-    python tools/subset_locale_fonts.py      # переписує обидва файли; потрібен fontTools (+ brotli) у venv
+    python tools/subset_locale_fonts.py      # переписує всі мовні файли; потрібен fontTools (+ brotli) у venv
 """
 import json
 import pathlib
@@ -26,6 +31,10 @@ FONTS = ROOT / "site" / "assets" / "fonts"
 # Без a–z і літер U+00C0–00FF. ₪ у латинському файлі немає — його, як і раніше, малює івритське обличчя.
 CAPS_UNICODES = ("U+0020-005F, U+007C, U+00A0, U+00A9, U+00AB, U+00B7, U+00BB, U+00D7, U+2013-2014, U+2018-201E, "
                  "U+2022, U+2026, U+20AC")
+# Латиниця Plex для he: A–Z, a–z, Ø (Ø115 на плитці), " & ' ‘ ’ “ ” „ … — що на he малює Plex поза num (замір усіх
+# he-сторінок sitemap з JS і без, 390 px). Решта ASCII в i18n/he.json — розмітка й {плейсхолдери}, не текст; що жоден
+# видимий знак he не лишився без обличчя, стереже tests/test_build_site.py. Цифри й спільна пунктуація — у num.
+PLEX_HE_LATIN_UNICODES = "U+0022, U+0026-0027, U+0041-005A, U+0061-007A, U+00D8, U+2018-201E, U+2026"
 
 
 def lang_unicodes() -> str:
@@ -36,7 +45,9 @@ def lang_unicodes() -> str:
 
 def jobs() -> list:
     return [("FrankRuhlLibre-latin.woff2", "FrankRuhlLibre-latin-caps.woff2", CAPS_UNICODES),
-            ("PlexSans-400-cyrillic.woff2", "PlexSans-400-cyrillic-lang.woff2", lang_unicodes())]
+            ("PlexSans-400-cyrillic.woff2", "PlexSans-400-cyrillic-lang.woff2", lang_unicodes())] + [
+            (f"PlexSansHebrew-{w}-latin.woff2", f"PlexSansHebrew-{w}-latin-he.woff2", PLEX_HE_LATIN_UNICODES)
+            for w in (400, 600, 700)]
 
 
 def main() -> None:
