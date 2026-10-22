@@ -101,6 +101,28 @@ CART_MAX = 300
 ORDER_TOTAL_MAX = 200_000
 VALID_LEAD_SOURCES = ("checkout", "form", "quick")
 
+# Каталог товарів (catalog/products.json) — лише для людських імен у сповіщенні власнику.
+# Шукаємо в корені репозиторію і поруч із файлом (бандл лямбди — це api/ без catalog/).
+# Немає файлу або він битий — {} і сповіщення лишається з id, а не падає.
+CATALOG_PATHS = (
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "catalog", "products.json"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalog", "products.json"),
+)
+
+
+def _load_catalog(paths=CATALOG_PATHS) -> dict:
+    for path in paths:
+        try:
+            with open(path, encoding="utf-8") as f:
+                items = json.load(f)
+            return {p["id"]: p for p in items if isinstance(p, dict) and isinstance(p.get("id"), str)}
+        except (OSError, ValueError, TypeError):
+            continue
+    return {}
+
+
+CATALOG = _load_catalog()
+
 BOT_UA = re.compile(
     r"bot|crawler|spider|crawling|facebookexternalhit|slurp|bingpreview|"
     r"headlesschrome|phantomjs|python-requests|curl/|wget|lighthouse|"
@@ -343,6 +365,16 @@ def normalize_phone(raw: str) -> tuple[str, bool]:
     else:
         return "+" + digits, False
     return "+972" + national, PHONE_NATIONAL.fullmatch(national) is not None
+
+
+def wa_number(raw) -> str | None:
+    """Номер для wa.me: лише цифри в міжнародному форматі (050-… → 97250…, +972… → як є).
+
+    Те саме правило, що й normalize_phone; не ізраїльський або неповний номер — None,
+    тоді посилання не робимо, а показуємо номер текстом.
+    """
+    e164, plausible = normalize_phone(raw)
+    return e164[1:] if plausible else None
 
 
 # --------------------------------------------------------------------------- events
@@ -625,6 +657,106 @@ def _order_total(value) -> int:
     return n if 0 < n <= ORDER_TOTAL_MAX else 0
 
 
+# Мова сторінки заявки → якою мовою відповідати (рядок під заголовком сповіщення)
+LANG_REPLY = {"he": "на иврите", "en": "по-английски", "ru": "по-русски"}
+TIMEFRAME_WORDS = {"now": "сейчас", "1-3m": "через 1–3 месяца", "later": "позже", "browsing": "просто смотрит"}
+CONTACT_WORDS = {"whatsapp": "WhatsApp", "call": "звонок"}
+TELEGRAM_TEXT_MAX = 4000   # ліміт Telegram — 4096 символів; запас на всяк випадок
+
+
+def _line(value) -> str:
+    """Однорядкове поле користувача: без переносів і зайвих пробілів — щоб не ламати розкладку."""
+    return " ".join(str(value if value is not None else "").split())
+
+
+def _money(n: int) -> str:
+    return f"₪{n:,}"
+
+
+def _catalog_name(options, wanted: str) -> str:
+    """Ім'я тону/основи з каталогу (іврит, як на сайті); нема в каталозі — сам id."""
+    for o in options or ():
+        if isinstance(o, dict) and o.get("id") == wanted and isinstance(o.get("name"), dict):
+            return o["name"].get("he") or wanted
+    return wanted
+
+
+def describe_item(slug: str, size: str, finish: str = "", base: str = "", qty: int = 0) -> tuple[str, int]:
+    """«TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490» і сума рядка (0 — невідома)."""
+    p = CATALOG.get(slug) or {}
+    name = p["name"].get("en") if isinstance(p.get("name"), dict) else ""
+    sz = next((x for x in p.get("sizes") or () if isinstance(x, dict) and x.get("label") == size), None) or {}
+    size_txt = size + (f" → {sz['extended_cm']}" if sz.get("extended_cm") else "")
+    parts = [f"{name or slug} {size_txt}".strip()]
+    if finish:
+        parts.append(_catalog_name(p.get("finishes"), finish))
+    if base:
+        parts.append(_catalog_name(p.get("bases"), base))
+    text = " · ".join(x for x in parts if x)
+    if qty:
+        text += f" × {qty}"
+    price = sz.get("price_ils")
+    amount = price * (qty or 1) if isinstance(price, int) and price > 0 else 0
+    return (text + " — " + _money(amount) if amount else text), amount
+
+
+def lead_message(item) -> str:
+    """Текст заявки для Telegram, без розмітки: parse_mode не ставимо — нема чого екранувати й ламати.
+
+    Порядок — щоб з першого екрана телефона: хто, якою мовою відповідати, що хоче, і одним дотиком
+    відповісти: Telegram сам робить посилання з https://wa.me/… і номера +972….
+    """
+    head = "בקשה לאישור הזמנה" if item.get("lead_source") == "checkout" else "ליד חדש"
+    lang = item.get("lang") or ""
+    lines = [f"{head} — {SITE_DOMAIN}",
+             f"Ответить: {LANG_REPLY[lang]}" if lang in LANG_REPLY else "Ответить: язык не указан", ""]
+
+    lines.append(f"👤 {_line(item.get('name')) or '(без имени)'}")
+    phone = item.get("phone") or ""
+    wa = wa_number(phone)
+    lines.append(f"📞 {phone if wa else _line(item.get('phone_raw') or phone)}")
+    if wa:
+        lines.append(f"💬 WhatsApp: https://wa.me/{wa}")
+    if _line(item.get("city")):
+        lines.append(f"📍 {_line(item.get('city'))}")
+    when = TIMEFRAME_WORDS.get(item.get("timeframe") or "", "")
+    via = CONTACT_WORDS.get(item.get("contact_pref") or "", "")
+    if when or via:
+        lines.append(" · ".join(x for x in (f"Когда: {when}" if when else "", f"Связь: {via}" if via else "") if x))
+    lines.append("")
+
+    computed = 0
+    cart = item.get("cart") or ""
+    if cart:
+        for part in cart.split(";"):
+            slug, size, finish, base, qty = (part.split(":") + ["", "", "", "", ""])[:5]
+            text, amount = describe_item(slug, size, finish, base, int(qty) if qty.isdigit() else 1)
+            computed += amount
+            lines.append(f"🛒 {text}")
+    elif item.get("product_id"):
+        text, _ = describe_item(item["product_id"], item.get("size_label") or "",
+                                item.get("finish_id") or "", item.get("base_id") or "")
+        lines.append(f"🪵 {text}")
+    elif item.get("size") or item.get("color"):
+        lines.append("🪵 " + " · ".join(str(x) for x in (item.get("size"), item.get("color")) if x))
+    total = item.get("order_total") or computed
+    if total:
+        lines.append(f"Итого: {_money(int(total))}")
+    comment = str(item.get("comment") or "").strip()
+    if comment:
+        lines.append(f"✏️ {comment}")
+
+    lines += [
+        "",
+        f"Страница: {_line(item.get('page'))} · источник: {item.get('lead_source') or '—'}",
+        f"utm_source={_line(item.get('utm_source'))} utm_campaign={_line(item.get('utm_campaign'))}",
+        f"consent_marketing={'yes' if item.get('consent_marketing') else 'no'}",
+        f"time={item.get('ts', '')}  id={item.get('id', '')}",
+    ]
+    text = "\n".join(lines)
+    return text if len(text) <= TELEGRAM_TEXT_MAX else text[:TELEGRAM_TEXT_MAX - 1] + "…"
+
+
 def notify(item):
     """Сповіщення власнику в Telegram. Було SES — мінус один сервіс Amazon.
 
@@ -634,29 +766,8 @@ def notify(item):
     """
     if not (TELEGRAM_BOT_TOKEN and OWNER_TELEGRAM_CHAT_ID):
         return
-    # з кроку «תשלום» — не просто лід, а прохання підтвердити замовлення: видно з першого рядка
-    head = "בקשה לאישור הזמנה" if item.get("lead_source") == "checkout" else "ליד חדש"
-    text = (
-        f"{head} — {SITE_DOMAIN}\n\n"
-        f"Name:    {item['name']}\n"
-        f"Phone:   {item['phone']}\n"
-        f"City:    {item['city']}\n"
-        f"Colour:  {item['color']}\n"
-        f"Size:    {item.get('size', '')}\n"
-        f"Lang:    {item.get('lang', '')}\n"
-        f"Page:    {item.get('page', '')}\n"
-        f"Product: {item.get('product_id', '')}\n"
-        f"Size:    {item.get('size_label', '')}\n"
-        f"Finish:  {item.get('finish_id', '')}  Base: {item.get('base_id', '')}\n"
-        f"When:    {item.get('timeframe', '')}  Via: {item.get('contact_pref', '')}\n"
-        f"Cart:    {item.get('cart', '')}\n"
-        f"Total:   {item.get('order_total') or ''}  From: {item.get('lead_source', '')}\n"
-        f"Comment: {item['comment']}\n\n"
-        f"consent_marketing={'yes' if item.get('consent_marketing') else 'no'}\n"
-        f"utm_source={item['utm_source']} utm_campaign={item['utm_campaign']}\n"
-        f"time={item['ts']}  id={item['id']}\n"
-    )
     try:
+        text = lead_message(item)
         r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
             json={
@@ -1089,11 +1200,15 @@ def admin_page(event):
             f"<option value='{s}'{' selected' if l.get('status') == s else ''}>{s}</option>"
             for s in VALID_STATUSES
         )
+        wa = wa_number(l.get("phone"))
+        wa_link = f" · <a href='https://wa.me/{wa}' target='_blank' rel='noopener'>WhatsApp</a>" if wa else ""
+        lang = l.get("lang") if l.get("lang") in VALID_LANGS else ""
         lead_rows.append(
             "<tr>"
             f"<td class='mono'>{esc((l.get('ts') or '')[:16].replace('T',' '))}</td>"
             f"<td>{esc(l.get('name'))}</td>"
-            f"<td class='mono' dir='ltr'><a href='tel:{esc(l.get('phone'))}'>{esc(l.get('phone'))}</a></td>"
+            f"<td>{f'<span class=lang>{lang.upper()}</span>' if lang else '—'}</td>"
+            f"<td class='mono' dir='ltr'><a href='tel:{esc(l.get('phone'))}'>{esc(l.get('phone'))}</a>{wa_link}</td>"
             f"<td>{esc(l.get('city'))}</td>"
             f"<td>{esc(l.get('product_id'))}<br><span class='muted'>{esc(l.get('size_label') or l.get('size'))}"
             f" · {esc(l.get('finish_id') or l.get('color'))}{' · ' + esc(l.get('base_id')) if l.get('base_id') else ''}"
@@ -1112,7 +1227,7 @@ def admin_page(event):
             "</tr>"
         )
     if not lead_rows:
-        lead_rows.append("<tr><td colspan='9' class='muted'>אין לידים בטווח הזה</td></tr>")
+        lead_rows.append("<tr><td colspan='10' class='muted'>אין לידים בטווח הזה</td></tr>")
 
     status_counts = {}
     for l in leads:
@@ -1151,6 +1266,7 @@ def admin_page(event):
  select,button{{background:#241f1a;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font:inherit;font-size:12px}}
  button{{cursor:pointer;margin-inline-start:4px}}
  form{{display:flex;gap:2px}}
+ .lang{{display:inline-block;padding:0 6px;border-radius:6px;background:#3a2f22;color:var(--acc);font:700 12px/1.6 ui-monospace,Menlo,monospace}}
 </style></head><body>
 <header>
   <h1>fx-table · לוח בקרה</h1>
@@ -1179,7 +1295,7 @@ def admin_page(event):
   <section class="card wide"><h2>לידים ({len(leads_in_range)})
     · <a href="/admin/leads.csv?{keep}&amp;product={esc(product)}">CSV</a></h2>
     <p>{product_nav}</p>
-    <table><thead><tr><th>מתי</th><th>שם</th><th>טלפון</th><th>עיר</th><th>מוצר · מידה · גוון</th><th>מתי לקנות · ערוץ</th><th>הערה</th><th>מקור</th><th>סטטוס</th></tr></thead>
+    <table><thead><tr><th>מתי</th><th>שם</th><th>שפה</th><th>טלפון</th><th>עיר</th><th>מוצר · מידה · גוון</th><th>מתי לקנות · ערוץ</th><th>הערה</th><th>מקור</th><th>סטטוס</th></tr></thead>
     <tbody>{''.join(lead_rows)}</tbody></table>
   </section>
 </main></body></html>"""

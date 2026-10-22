@@ -327,7 +327,8 @@ class LeadFieldsTests(Base):
             self.post(product_id="console", size_label="130", finish_id="walnut", base_id="wood",
                       timeframe="now", contact_pref="call")
         text = self.rec.calls[0]["json"]["text"]
-        for part in ("console", "130", "walnut", "wood", "now", "call"):
+        # невідомий каталогу товар — сирими id, терміни й канал — словами
+        for part in ("console 130 · walnut · wood", "Когда: сейчас", "Связь: звонок"):
             self.assertIn(part, text)
 
 
@@ -451,7 +452,7 @@ class CapiTests(Base):
 class AdminLeadsTests(Base):
     LEADS = [
         {"pk": "LEAD", "sk": "b", "ts": "2026-10-21T05:00:00+00:00", "id": "b1", "name": "=HYPERLINK(1)",
-         "phone": E164, "product_id": "console", "size_label": "130", "timeframe": "now",
+         "phone": E164, "product_id": "console", "size_label": "130", "timeframe": "now", "lang": "ru",
          "status": "new", "is_test": False},
         {"pk": "LEAD", "sk": "a", "ts": "2026-10-21T04:00:00+00:00", "id": "a1", "name": "דנה",
          "phone": E164_B, "product_id": "round-table", "status": "new", "is_test": False},
@@ -474,6 +475,14 @@ class AdminLeadsTests(Base):
         body = self.admin("GET", "/admin", query={"range": "all", "product": "console"})["body"]
         self.assertIn(E164, body)
         self.assertNotIn(E164_B, body)
+
+    def test_dashboard_has_whatsapp_link_and_language_badge(self):
+        body = self.admin("GET", "/admin", query={"range": "all"})["body"]
+        self.assertIn(f"href='tel:{E164}'", body)
+        self.assertIn("href='https://wa.me/" + E164[1:] + "'", body)
+        self.assertIn("href='https://wa.me/" + E164_B[1:] + "'", body)
+        self.assertIn("<th>שפה</th>", body)
+        self.assertIn("<span class=lang>RU</span>", body)
 
     def test_csv_export(self):
         r = self.admin("GET", "/admin/leads.csv", query={"range": "all", "product": "console"})

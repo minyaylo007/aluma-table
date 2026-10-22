@@ -250,7 +250,9 @@ class CheckoutLeadTests(Base):
             self.post(checkout_lead())
         text = self.rec.calls[0]["json"]["text"]
         self.assertTrue(text.startswith("בקשה לאישור הזמנה — "))
-        for part in ("tavor:160×90:natural:oak:1", "9470", "checkout", "browsing"):
+        for part in ("🛒 TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490",
+                     "🛒 SAF 120 · אלון מעושן × 2 — ₪4,980", "Итого: ₪9,470", "источник: checkout",
+                     "Когда: просто смотрит", "(без имени)"):
             self.assertIn(part, text)
         for col in ("cart", "order_total", "lead_source"):
             self.assertIn(col, h.CSV_COLUMNS)
