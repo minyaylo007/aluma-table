@@ -662,6 +662,8 @@ html:has(.chapters) { scroll-padding-top: 160px; } /* без JS; з JS — то�
   transform: translateY(calc(100% + 24px)); }
 .sticky-cta--pdp .sticky-price { min-width: 0; }
 .sticky-cta--pdp .btn { flex: 0 1 auto; min-width: 0; margin-inline-start: auto; min-height: 44px; padding-inline: 20px; border-radius: 999px; }
+/* <picture> навколо мініатюри — сам елемент ряду; display: contents не годиться: <source> тоді стає порожнім елементом ряду (+12 px gap) */
+.sticky-pic { flex: none; }
 .sticky-thumb { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--sand); }
 .sticky-cta--pdp .sticky-price { font-size: 1.1rem; }
 .pill-pop { justify-self: start; margin-block-start: 4px; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 600;
@@ -685,7 +687,7 @@ html:has(.chapters) { scroll-padding-top: 160px; } /* без JS; з JS — то�
 /* ---------------------------------------------------------------- повідомлення про cookies */
 .notice { position: fixed; z-index: 50; inset-inline: 0; bottom: 0; display: grid; gap: 10px;
   padding: 12px var(--gut) calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--cream);
-  border-start-start-radius: var(--r-lg); border-start-end-radius: var(--r-lg); font-size: .8rem; line-height: 1.45;
+  border-start-start-radius: var(--r-lg); border-start-end-radius: var(--r-lg); font-size: .875rem; line-height: 1.45;
   box-shadow: 0 -8px 30px rgba(0, 0, 0, .2); }
 .notice p { margin: 0; }
 .notice a { color: var(--oak-light); }
@@ -693,9 +695,10 @@ html:has(.chapters) { scroll-padding-top: 160px; } /* без JS; з JS — то�
 .notice-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5em), 1fr)); gap: 8px; }
 /* відмова така ж доступна, як згода: обидві кнопки завжди в межах екрана, довгий текст переноситься */
 .notice-btns .btn { min-height: 44px; min-width: 0; padding-inline: 12px; white-space: normal; text-align: center; }
-/* телефон: ≤ ~80 px — два рядки тексту й дві невеликі кнопки в ряд (22.10: було 111 px, третина першого екрана) */
+/* телефон: ≤ ~80 px — два рядки тексту й дві невеликі кнопки в ряд (22.10: було 111 px, третина першого екрана);
+   12 px — поріг Lighthouse «font-size» (11,5 px давали BP 96 на /cart/), крок рядка 15 px — як був */
 @media (max-width: 599px) {
-  .notice { gap: 5px; padding: 6px var(--gut) calc(6px + env(safe-area-inset-bottom, 0px)); font-size: .72rem; line-height: 1.3; }
+  .notice { gap: 5px; padding: 6px var(--gut) calc(6px + env(safe-area-inset-bottom, 0px)); font-size: .75rem; line-height: 1.25; }
   .notice-btns { grid-template-columns: 1fr 1fr; }
   .notice-btns .btn { min-height: 32px; padding-block: 2px; font-size: .85rem; }
 }

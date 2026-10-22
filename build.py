@@ -434,8 +434,13 @@ def thumb(p: dict, loc: str) -> str:
     if not img:
         return ""
     srcset = f' srcset="{esc(img["srcset"])}" sizes="44px"' if img.get("srcset") else ""
-    return (f'<img class="sticky-thumb" src="{esc(smallest_src(img))}"{srcset} alt="{{{{t.viz_tag}}}}: {esc(L(p.get("name"), loc))}"'
-            ' width="44" height="44" loading="lazy" decoding="async">')
+    tag = (f'<img class="sticky-thumb" src="{esc(smallest_src(img))}"{srcset} alt="{{{{t.viz_tag}}}}: {esc(L(p.get("name"), loc))}"'
+           ' width="44" height="44" loading="lazy" decoding="async">')
+    # той самий AVIF-набір, що в мініатюрі галереї: браузер бере вже закешований 400w AVIF, а не окремий WebP (Lighthouse 22.10, п. 3)
+    avset = avif_srcset(img, str(img.get("src") or ""))
+    if not avset:
+        return tag
+    return f'<picture class="sticky-pic"><source type="image/avif" srcset="{esc(avset)}" sizes="44px">{tag}</picture>'
 
 
 def configurator(p: dict, loc: str) -> str:

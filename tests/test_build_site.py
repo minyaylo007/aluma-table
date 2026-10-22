@@ -272,6 +272,34 @@ class BuiltSiteTests(unittest.TestCase):
                     if i["view"] in ("mechanism", "light"):
                         self.assertNotIn(f"/{p['id']}/{stem}-", track)
 
+    def test_gallery_only_first_frame_is_eager(self):
+        # Lighthouse 22.10, п. 4: кадр -0 — LCP (eager + fetchpriority=high), решта кадрів ленти — loading=lazy без пріоритету
+        for prefix in DIST_PREFIX.values():
+            for p in PRODUCTS:
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                if '<ul class="g-track"' not in html:
+                    continue
+                start = html.index('<ul class="g-track"')
+                imgs = re.findall(r"<img\b[^>]*>", html[start:html.index("</ul>", start)])
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    self.assertEqual(html.count('fetchpriority="high"'), 1)
+                    self.assertIn('loading="eager" fetchpriority="high"', imgs[0])
+                    for img in imgs[1:]:
+                        self.assertIn('loading="lazy"', img)
+                        self.assertNotIn("fetchpriority", img)
+
+    def test_sticky_thumb_reuses_gallery_avif(self):
+        # Lighthouse 22.10, п. 3: липка мініатюра — той самий AVIF-набір, що мініатюра галереї (кадр уже в кеші), без окремого WebP
+        for p in PRODUCTS:
+            html = self.page(f"p/{p['slug']}/")
+            sticky = re.search(r'<picture class="sticky-pic"><source type="image/avif" srcset="([^"]+)"', html)
+            thumb0 = re.search(r'<a class="g-thumb"[^>]*><picture class=""><source type="image/avif" srcset="([^"]+)"', html)
+            if not thumb0:
+                continue
+            with self.subTest(product=p["id"]):
+                self.assertIsNotNone(sticky)
+                self.assertEqual(sticky.group(1), thumb0.group(1))
+
     def test_every_catalog_product_has_a_card_in_every_language(self):
         self.assertTrue(PRODUCTS)
         for p in PRODUCTS:
