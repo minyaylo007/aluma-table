@@ -151,6 +151,46 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertEqual([i for i in re.findall(r"<img\b[^>]*>", html) if not re.search(r'\balt="[^"]+"', i)], [])
                     self.assertRegex(html, r'<img class="sticky-thumb"[^>]*alt="' + re.escape(viz) + r': [^"]+"')
 
+    def test_each_language_embeds_only_its_own_font_faces(self):
+        # he-картка качала 44 КБ латинського Frank Ruhl і 15 КБ кирилиці (аудит 22.10): обличчя мови —
+        # у fonts-<мова>.css, вбудованому лише в її сторінки; he — без кирилиці, крім літер «Русский»
+        common = {"FrankRuhlLibre-hebrew"} | {f"PlexSansHebrew-{w}-{s}" for w in (400, 600, 700)
+                                              for s in ("hebrew", "latin", "num")}
+        cyrillic = {"PlexSans-400-cyrillic", "PlexSans-600-cyrillic", "PlexSans-700-cyrillic", "PTSerif-cyrillic"}
+        own = {"he": {"FrankRuhlLibre-latin-caps", "PlexSans-400-cyrillic-lang"},
+               "en": {"FrankRuhlLibre-latin", "PlexSans-400-cyrillic-lang"},
+               "ru": {"FrankRuhlLibre-latin"} | cyrillic}
+        self.assertEqual(set(own), set(LOCALES), "нова мова — додай її обличчя сюди і site/assets/fonts-<мова>.css")
+        for loc, prefix in DIST_PREFIX.items():
+            for rel in ("", "catalog/", f"p/{PRODUCTS[0]['slug']}/", "cart/", "privacy", "404.html"):
+                html = self.page(prefix + rel)
+                faces = {re.sub(r"\.[0-9a-f]{10}$", "", m)
+                         for m in re.findall(r"url\(/assets/fonts/([\w\-.]+?)\.woff2\)", html)}
+                with self.subTest(page=prefix + rel):
+                    self.assertEqual(faces, common | own[loc])
+                    self.assertNotIn('<link rel="stylesheet"', html, "стилі вбудовані, без блокуючого запиту")
+                    if loc != "ru":
+                        self.assertNotRegex(html, r"PlexSans-\d00-cyrillic\.|PTSerif-cyrillic")
+
+    def test_locale_font_subsets_match_their_unicode_range(self):
+        # unicode-range кожного вирізаного обличчя = список, з яким його вирізано; «Русский» — з i18n
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("subset_locale_fonts", PROJECT / "tools" / "subset_locale_fonts.py")
+        tool = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(tool)
+        fonts = PROJECT / "site" / "assets"
+        for loc in LOCALES:
+            css = (fonts / f"fonts-{loc}.css").read_text(encoding="utf-8")
+            faces = dict(re.findall(r"url\(/assets/fonts/([\w\-.]+)\)[^}]*?unicode-range: ([^;]+);", css))
+            for src, dst, unicodes in tool.jobs():
+                if dst in faces:
+                    with self.subTest(loc=loc, face=dst):
+                        self.assertEqual(faces[dst], unicodes)
+                        self.assertTrue((fonts / "fonts" / dst).is_file())
+        ru_name = json.loads((PROJECT / "i18n" / "ru.json").read_text(encoding="utf-8"))["lang_name"]
+        self.assertEqual(tool.lang_unicodes(), ", ".join(f"U+{ord(c):04X}" for c in sorted(set(ru_name))))
+        self.assertNotRegex(tool.CAPS_UNICODES, r"U\+006[1-9A-F]|U\+007[0-9A]\b", "без малих a–z")
+
     def test_no_cdn_for_3d(self):
         # three.js — свій файл: при відкритті 3D жодного зовнішнього запиту (приватність)
         for f in (self.dist / "assets").rglob("*.js"):

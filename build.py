@@ -981,15 +981,22 @@ def main() -> None:
             if old_url in body:
                 write_text_lf(t, pat.sub(new_url, body))
 
-    # стилі одним <style> у head: без блокуючого запиту перед першим кадром (~10 КБ gzip, Lighthouse «render-blocking»)
-    css_url = hashed.get("/assets/aluma.css")
-    if css_url:
-        style = "<style>" + read_text(DIST / css_url.lstrip("/")).strip().replace("</", "<\\/") + "</style>"
-        link = f'<link rel="stylesheet" href="{css_url}">'
+    # стилі вбудовані <style> у head: без блокуючого запиту перед першим кадром (~10 КБ gzip, Lighthouse «render-blocking»);
+    # aluma.css — спільний, fonts-<мова>.css — обличчя лише своєї мови (he не качає кирилицю й повну латиницю)
+    styles = {}
+    for old_url in ["/assets/aluma.css"] + [f"/assets/fonts-{loc}.css" for loc in LOCALES]:
+        css_url = hashed.get(old_url)
+        if css_url:
+            style = "<style>" + read_text(DIST / css_url.lstrip("/")).strip().replace("</", "<\\/") + "</style>"
+            styles[f'<link rel="stylesheet" href="{css_url}">'] = style
+    if styles:
         for t in DIST.rglob("*.html"):
             body = read_text(t)
-            if link in body:
-                write_text_lf(t, body.replace(link, style))
+            new_body = body
+            for link, style in styles.items():
+                new_body = new_body.replace(link, style)
+            if new_body != body:
+                write_text_lf(t, new_body)
         for d in locale_dirs():                # копії без розширення (privacy, 404…) — з уже вбудованих
             for name in ("privacy", "terms", "accessibility", "404"):
                 if (d / f"{name}.html").exists():

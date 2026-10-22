@@ -112,8 +112,8 @@ class CreativeConfigTests(unittest.TestCase):
         for name in ("template.html", "tones.html", "video.html"):
             html = (ROOT / "tools" / "creatives" / name).read_text(encoding="utf-8")
             self.assertIn('<html lang="{{LANG}}" dir="{{DIR}}">', html, name)
-        # кирилиця — ті самі файли й unicode-range, що на сайті (site/assets/aluma.css)
-        css = (ROOT / "site" / "assets" / "aluma.css").read_text(encoding="utf-8")
+        # кирилиця — ті самі файли й unicode-range, що на сайті (site/assets/fonts-ru.css)
+        css = (ROOT / "site" / "assets" / "fonts-ru.css").read_text(encoding="utf-8")
         self.assertIn("unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;", css)
         self.assertIn("unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;", js)
         for f in ("PlexSans-400-cyrillic.woff2", "PlexSans-600-cyrillic.woff2", "PlexSans-700-cyrillic.woff2", "PTSerif-cyrillic.woff2"):
