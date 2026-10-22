@@ -5,8 +5,8 @@
 
 Prelaunch storefront for the five pieces of `catalog/products.json`: Hebrew (RTL) at `/`, English at `/en/`, Russian at `/ru/`; lead form →
 owner on Telegram → leads worked in `/admin`. **Prod is this box:** gunicorn + SQLite behind Caddy, user units
-`ihor-aluma-{api.service,purge.timer,backup.timer}` (leads never purged; hourly copy :07 → `backups/`) run from the clone
-`/opt/ihor/aluma-table` (env `~/.config/aluma/aluma.env`, 127.0.0.1:8005), static `/srv/aluma`, health `GET /api/fx/health`.
+`ihor-aluma-{api.service,purge.timer,backup.timer,digest.timer}` (leads never purged; copy :07 → `backups/`; funnel digest
+→ Telegram 09:00/20:00 Jerusalem, `scripts/funnel_digest.py`) run from the clone `/opt/ihor/aluma-table` (env `~/.config/aluma/aluma.env`, 127.0.0.1:8005), static `/srv/aluma`, health `GET /api/fx/health`.
 
 ## 1. Small-change path (text, number, small API fix)
 1. Branch from `master`; edit `content.json` / `i18n/*.json` / `site/` / `api/`. No plan mode, no SDD, no subagents.

@@ -10,6 +10,7 @@ tests.test_store_sqlite       # цілісність бази заявок
 tests.test_health_version     # версія і здоров'я прода
 tests.test_user_units         # юніти прода
 tests.test_backup_leads       # почасовий бекап заявок: копія, integrity, ротація лише своїх імен
+tests.test_funnel_digest      # дайджест воронки в Telegram: лише числа, без імен і токена, --dry-run не шле
 tests.test_box_env            # оточення прода без друку значень
 tests.test_lambda_no_fx_storage  # пастка «тиха втрата заявки»
 tests.test_catalog            # каталог товарів: схема, ціни «משוער», лише візуалізації

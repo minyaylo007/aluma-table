@@ -102,6 +102,35 @@ class BackupUnitTests(unittest.TestCase):
         self.assertEqual(one(self.TIMER, "WantedBy"), "timers.target")
 
 
+class DigestUnitTests(unittest.TestCase):
+    """Дайджест воронки: ті самі інваріанти, що в бекапу; розклад — за Єрусалимом, не за зоною машини."""
+    NAME = "ihor-aluma-digest.service"
+    TIMER = "ihor-aluma-digest.timer"
+
+    def test_runs_from_clone_with_api_venv_and_env(self):
+        self.assertEqual(one(self.NAME, "Type"), "oneshot")
+        self.assertEqual(one(self.NAME, "WorkingDirectory"), BASE)
+        self.assertEqual(one(self.NAME, "ExecStart"), BASE + "/.venv/bin/python scripts/funnel_digest.py")
+        self.assertEqual(values(self.NAME, "EnvironmentFile"), ["%h/.config/aluma/aluma.env"])
+        self.assertNotIn("--dry-run", one(self.NAME, "ExecStart"))
+
+    def test_background_and_private(self):
+        self.assertEqual(one(self.NAME, "Nice"), "10")
+        self.assertEqual(one(self.NAME, "UMask"), "0077")
+        self.assertEqual(one(self.NAME, "NoNewPrivileges"), "true")
+        for key in ("User", "PrivateTmp", "ProtectSystem", "ProtectHome", "ReadWritePaths"):
+            self.assertEqual(values(self.NAME, key), [], key)
+
+    def test_timer_09_and_20_jerusalem(self):
+        self.assertEqual(one(self.TIMER, "Unit"), self.NAME)
+        self.assertEqual(one(self.TIMER, "OnCalendar"), "*-*-* 09,20:00:00 Asia/Jerusalem")
+        self.assertEqual(one(self.TIMER, "Persistent"), "true")
+        self.assertEqual(one(self.TIMER, "WantedBy"), "timers.target")
+        # Не частіше: OnBootSec/OnUnitActiveSec слали б зайві повідомлення власнику.
+        for key in ("OnBootSec", "OnUnitActiveSec", "OnUnitInactiveSec"):
+            self.assertEqual(values(self.TIMER, key), [], key)
+
+
 class DeployUnitTests(unittest.TestCase):
     NAME = "ihor-aluma-deploy.service"
 

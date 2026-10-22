@@ -1,0 +1,20 @@
+# ALUMA — дайджест воронки о 09:00 і 20:00 за Єрусалимом. КОРИСТУВАЦЬКИЙ юніт.
+# Установка — див. коментар у ihor-aluma-digest.service.
+
+[Unit]
+Description=ALUMA — funnel digest at 09:00 and 20:00 Asia/Jerusalem (timer, user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Timer]
+Unit=ihor-aluma-digest.service
+
+# Зона в самому розкладі: машина живе в Europe/Kyiv, а власник і реклама — за Єрусалимом;
+# переходи на зимовий час у двох країнах не обовʼязково збігаються (systemd-analyze calendar).
+OnCalendar=*-*-* 09,20:00:00 Asia/Jerusalem
+AccuracySec=1min
+
+# Сервер лежав о 09:00 — дайджест прийде після старту, а не пропаде.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

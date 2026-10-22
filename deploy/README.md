@@ -379,6 +379,38 @@ curl -s http://127.0.0.1:8005/api/fx/health           # {"ok": true, ...}
 
 **Відкат юнітів** (копії лишаються): `systemctl --user disable --now ihor-aluma-backup.timer`.
 
+## Дайджест воронки: `ihor-aluma-digest.timer`
+
+Власник дивиться результат реклами з телефона, а воронку досі видно лише в `/admin/funnel` або `tools/funnel_report.py`
+на сервері. Двічі на день той самий бот і той самий чат, що для заявок, надсилає коротку зведену воронку.
+
+| Що | Де / як |
+|---|---|
+| скрипт | `scripts/funnel_digest.py` — stdlib + `requests`; цифри з `api/funnel.report()` (кроки `funnel.STEPS`, як `/admin/funnel`), база через `scripts/daily_report.open_tables/load` |
+| текст | plain text без `parse_mode`, ≤ 1500 символів, рос.: «сьогодні» і «7 днів» кроками визиты → карточка → корзина → доставка → подтверждение → заявок, по товарах (заявки/картки), по джерелу (`utm_source`), де пішли сьогодні. Лише числа: ні імен, ні телефонів; рядки `x-test` не рахуються. Нуль візитів — однаково шле «Сегодня: визитов 0» (видно, що зведення живе) |
+| розклад | `OnCalendar=*-*-* 09,20:00:00 Asia/Jerusalem` — зона в самому розкладі, машина живе в Europe/Kyiv; `Persistent=true`, `Nice=10` |
+| оточення | `%h/.config/aluma/aluma.env`: `FX_DB_PATH`, `TELEGRAM_BOT_TOKEN`, `OWNER_TELEGRAM_CHAT_ID` (значення не друкуються) |
+| журнал | `journalctl --user -u ihor-aluma-digest -n 3` — один JSON-рядок: `digest_sent` з `chars` або `digest_failed` з `reason` (без тексту, даних і токена); бази нема — `no_db`, код 2 |
+
+Установка (один раз), перевірка розкладу і ручний запуск:
+
+```bash
+install -m 0644 deploy/systemd/user/ihor-aluma-digest.service \
+    deploy/systemd/user/ihor-aluma-digest.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now ihor-aluma-digest.timer
+systemd-analyze calendar '*-*-* 09,20:00:00 Asia/Jerusalem'     # наступні 09:00 / 20:00 за Єрусалимом
+systemctl --user list-timers | grep ihor-aluma
+
+# текст без відправки — на екран (лише агрегати, але в чати цілком не пересилати)
+FX_DB_PATH=/opt/ihor/aluma-table/data/aluma.db /opt/ihor/aluma-table/.venv/bin/python scripts/funnel_digest.py --dry-run
+
+systemctl --user start ihor-aluma-digest.service      # СПРАВЖНЄ повідомлення власнику
+journalctl --user -u ihor-aluma-digest -n 3
+```
+
+**Відкат:** `systemctl --user disable --now ihor-aluma-digest.timer` (ні база, ні API не зачеплені).
+
 ## X-Forwarded-For: три топології і чому realip потрібен у двох із них
 
 Уся ця морока — через один рядок у коді. `client_ip()` (`handler.py:147-151`)

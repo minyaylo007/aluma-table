@@ -90,6 +90,20 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertIn(w, incl.group(1))
                     self.assertLess(incl.start(), html.index('name="size"'), "рядок під ціною — над плитками")
 
+    def test_cart_thumbnail_is_the_smallest_frame(self):
+        # аудит 22.10 (б) сев. 2: мініатюра 96×96 у кошику — 400w зі srcset, не home-1600; липка кнопка — так само
+        for prefix in ("", "en/", "ru/"):
+            html = self.page(f"{prefix}cart/")
+            imgs = re.findall(r'"img": ?"([^"]*)"', html)
+            with self.subTest(page=f"{prefix}cart/"):
+                self.assertEqual(len(imgs), len(PRODUCTS))
+                for src in imgs:
+                    self.assertRegex(src, r"-400\.[0-9a-f]+\.webp$")
+        for p in PRODUCTS:
+            sticky = re.search(r'<img class="sticky-thumb" src="([^"]+)"', self.page(f"p/{p['slug']}/"))
+            if sticky:
+                self.assertRegex(sticky.group(1), r"-400\.[0-9a-f]+\.webp$", p["slug"])
+
     def test_price_includes_and_size_help_from_catalog(self):
         # 22.10: «מה כלול במחיר» на кожній картці; місця — з seats каталогу; «איך לבחור מידה» — лише на столах,
         # відстань — з content.json (CLEARANCE_CM), місце на людину — SEAT_CM плану
