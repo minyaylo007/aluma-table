@@ -212,6 +212,20 @@ class NormalizePhoneTests(unittest.TestCase):
         self.assertEqual(h.normalize_phone(501234567), ("+501234567", False))
 
 
+class WaNumberTests(unittest.TestCase):
+    """Номер для https://wa.me/<цифри>: міжнародний формат без «+», або None — тоді лише текст."""
+
+    def test_israeli_formats_become_digits_only(self):
+        for raw in ("050-123-4567", "0501234567", "+972501234567", "972501234567", "+972 50 123 4567",
+                    "+972-050-1234567", "00972501234567", " 050 123-45-67 "):
+            self.assertEqual(h.wa_number(raw), "972501234567", raw)
+        self.assertEqual(h.wa_number("03-1234567"), "97231234567")
+
+    def test_garbage_is_none(self):
+        for raw in ("", None, "abc", "12345", "+1 212 555 0100", "05012345678", "501234567", "1" * 30):
+            self.assertIsNone(h.wa_number(raw), raw)
+
+
 # --------------------------------------------------------------------------- handler
 
 
@@ -463,36 +477,93 @@ class NotifyTests(HandlerTestCase):
         text = rec.texts[0]
         self.assertIn("דנה לוי", text)
         self.assertIn("+972501234567", text)
-        self.assertRegex(text, r"(?m)^Size:\s+220$")
-        self.assertRegex(text, r"(?m)^Lang:\s+he$")
-        self.assertRegex(text, r"(?m)^Page:\s+/$")
+        self.assertRegex(text, r"(?m)^🪵 220 · smoked$")     # стара заявка без product_id — розмір і колір як є
+        self.assertEqual(text.splitlines()[1], "Ответить: на иврите")
+        self.assertRegex(text, r"(?m)^Страница: / · ")
         self.assertIn("consent_marketing=yes", text)
         self.assertIn("abc123def456", text)
         self.assertIn(h.SITE_DOMAIN, text)
+        self.assertNotIn("parse_mode", rec.calls[0]["json"])  # без розмітки: нема чого ламати екрануванням
 
     def test_checkout_lead_is_marked_as_an_order_confirmation_request(self):
         """Крок «תשלום»: власник з першого рядка бачить, що це прохання підтвердити замовлення."""
         rec = TelegramRecorder()
-        self.notify_once(rec, self.sample_item(lead_source="checkout", product_id="tavor", size_label="220×95",
-                                               finish_id="natural", cart="tavor:220×95:natural:black:1",
-                                               order_total=12900, timeframe="now"))
+        self.notify_once(rec, self.sample_item(lead_source="checkout", product_id="tavor", size_label="160×90",
+                                               finish_id="natural", base_id="oak", cart="tavor:160×90:natural:oak:1",
+                                               order_total=4490, timeframe="now", contact_pref="whatsapp", lang="ru"))
         text = rec.texts[0]
         self.assertTrue(text.startswith("בקשה לאישור הזמנה — "))
-        self.assertRegex(text, r"(?m)^Product:\s+tavor$")
-        self.assertRegex(text, r"(?m)^Total:\s+12900\s+From: checkout$")
-        self.assertRegex(text, r"(?m)^When:\s+now\b")
-        self.assertRegex(text, r"(?m)^City:\s+חיפה$")
+        self.assertEqual(text.splitlines()[1], "Ответить: по-русски")
+        self.assertIn("🛒 TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490", text)
+        self.assertRegex(text, r"(?m)^Итого: ₪4,490$")
+        self.assertRegex(text, r"(?m)^Когда: сейчас · Связь: WhatsApp$")
+        self.assertRegex(text, r"(?m)^📍 חיפה$")
+        self.assertRegex(text, r"(?m)^💬 WhatsApp: https://wa\.me/972501234567$")
+        self.assertRegex(text, r"(?m)^✏️ אחרי 18:00$")
         rec = TelegramRecorder()
         self.notify_once(rec, self.sample_item(lead_source="form"))
         self.assertTrue(rec.texts[0].startswith("ליד חדש — "))
+
+    def test_first_screen_order_who_language_what_reply(self):
+        """Телефон показує ~12 рядків: мова, ім'я, номер і wa.me — до товару й службових рядків."""
+        text = h.lead_message(self.sample_item(product_id="sahar", size_label="Ø115", finish_id="smoked"))
+        lines = text.splitlines()
+        self.assertEqual(lines[1], "Ответить: на иврите")
+        self.assertEqual(lines[3], "👤 דנה לוי")
+        self.assertEqual(lines[4], "📞 +972501234567")
+        self.assertEqual(lines[5], "💬 WhatsApp: https://wa.me/972501234567")
+        self.assertIn("🪵 SAHAR Ø115 → 155 · אלון מעושן — ₪5,490", lines)
+        self.assertLess(text.index("SAHAR"), text.index("utm_source="))
+
+    def test_language_line_for_every_page_language(self):
+        for lang, words in (("he", "на иврите"), ("en", "по-английски"), ("ru", "по-русски"), ("", "язык не указан")):
+            self.assertEqual(h.lead_message(self.sample_item(lang=lang)).splitlines()[1], f"Ответить: {words}")
+
+    def test_unknown_product_falls_back_to_ids_not_an_exception(self):
+        text = h.lead_message(self.sample_item(product_id="console", size_label="130", finish_id="walnut",
+                                               base_id="wood", cart="console:130:walnut:wood:2"))
+        self.assertIn("🛒 console 130 · walnut · wood × 2", text)
+        self.assertNotIn("Итого", text)   # ціни нема в каталозі — суми не вигадуємо
+
+    def test_missing_catalog_degrades_to_ids(self):
+        self.assertEqual(h._load_catalog(("/nonexistent/products.json",)), {})
+        with mock.patch.object(h, "CATALOG", {}):
+            text = h.lead_message(self.sample_item(cart="tavor:160×90:natural:oak:1", order_total=4490))
+        self.assertIn("🛒 tavor 160×90 · natural · oak × 1", text)
+        self.assertIn("Итого: ₪4,490", text)
+
+    def test_catalog_is_read_from_the_repo(self):
+        self.assertIn("tavor", h.CATALOG)
+        self.assertEqual(h.describe_item("tavor", "160×90", "natural", "oak", 1),
+                         ("TAVOR 160×90 → 240 · אלון טבעי · רגלי אלון × 1 — ₪4,490", 4490))
+
+    def test_unparseable_phone_is_shown_as_text_without_wa_link(self):
+        text = h.lead_message(self.sample_item(phone="+12125550100", phone_raw="+1 212 555 0100"))
+        self.assertIn("📞 +1 212 555 0100", text)
+        self.assertNotIn("wa.me", text)
+
+    def test_user_text_cannot_break_the_layout(self):
+        """Переноси в однорядкових полях зливаються в пробіл — ніхто не підробить рядок «💬 WhatsApp»."""
+        text = h.lead_message(self.sample_item(name="Іван\n💬 WhatsApp: https://wa.me/1", city="a\r\nb"))
+        self.assertIn("👤 Іван 💬 WhatsApp: https://wa.me/1", text)
+        self.assertEqual(sum(1 for x in text.splitlines() if x.startswith("💬 WhatsApp")), 1)
+        self.assertIn("📍 a b", text)
+
+    def test_longest_possible_lead_fits_one_telegram_message(self):
+        cart = ";".join(["tavor:200×100:smoked:steel:9"] * 10)
+        item = self.sample_item(name="ש" * 80, city="ת" * 80, comment="x\n" * 500, cart=cart, order_total=200000,
+                                page="/" * 300, utm_source="u" * 100, utm_campaign="c" * 120)
+        self.assertLess(len(h.lead_message(item)), 4096)
+        huge = h.lead_message(self.sample_item(comment="y" * 10000))
+        self.assertLessEqual(len(huge), h.TELEGRAM_TEXT_MAX)
 
     def test_marketing_flag_no(self):
         rec = TelegramRecorder()
         self.notify_once(rec, self.sample_item(consent_marketing=False, lang="en", page="/en/"))
         text = rec.texts[0]
         self.assertIn("consent_marketing=no", text)
-        self.assertRegex(text, r"(?m)^Lang:\s+en$")
-        self.assertRegex(text, r"(?m)^Page:\s+/en/$")
+        self.assertEqual(text.splitlines()[1], "Ответить: по-английски")
+        self.assertRegex(text, r"(?m)^Страница: /en/ · ")
 
     def test_never_raises_when_telegram_is_down(self):
         self.assertIsNone(self.notify_once(TelegramRecorder(fail=True), self.sample_item()))
@@ -582,8 +653,8 @@ class NotifyTests(HandlerTestCase):
             self.assertEqual(self.post_lead(lead_payload(size="160", lang="en"))["statusCode"], 200)
             self.assertEqual(len(rec.calls), 1)
             text = rec.texts[0]
-            self.assertRegex(text, r"(?m)^Size:\s+160$")
-            self.assertRegex(text, r"(?m)^Lang:\s+en$")
+            self.assertEqual(text.splitlines()[1], "Ответить: по-английски")
+            self.assertIn("wa.me/972", text)
 
             self.assertEqual(self.post_lead(lead_payload(), headers={"x-test": "1"})["statusCode"], 200)
             self.assertEqual(len(rec.calls), 1)  # тестовий трафік власника не турбує
