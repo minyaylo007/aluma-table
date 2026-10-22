@@ -384,14 +384,14 @@ def thumb_src(p: dict) -> str:
     return img["src"] if img else ""
 
 
-def thumb(p: dict) -> str:
-    """Мініатюра обраного столу в липкій кнопці: найменший кадр героя, декоративна (alt порожній — поруч ціна й кнопка)."""
+def thumb(p: dict, loc: str) -> str:
+    """Мініатюра обраного столу в липкій кнопці: найменший кадр героя; alt — «הדמיה: <назва>» (аудит 22.10, (а) 11)."""
     img = next((i for i in p.get("images") or [] if i.get("src")), None)
     if not img:
         return ""
     srcset = f' srcset="{esc(img["srcset"])}" sizes="44px"' if img.get("srcset") else ""
-    return (f'<img class="sticky-thumb" src="{esc(img["src"])}"{srcset} alt="" width="44" height="44"'
-            ' loading="lazy" decoding="async">')
+    return (f'<img class="sticky-thumb" src="{esc(img["src"])}"{srcset} alt="{{{{t.viz_tag}}}}: {esc(L(p.get("name"), loc))}"'
+            ' width="44" height="44" loading="lazy" decoding="async">')
 
 
 def configurator(p: dict, loc: str) -> str:
@@ -878,6 +878,9 @@ def main() -> None:
             toks = {"BODY_CLASS": f"page-{name}"}
             if name in NOINDEX:
                 toks["ROBOTS"] = '<meta name="robots" content="noindex">\n'
+            if name == "about":
+                # слот «תמונות מבית המלאכה יעלו בקרוב» — прихований, доки немає фото (content.json WORKSHOP_PHOTOS, аудит 22.10)
+                toks["PHOTO_SLOT_HIDDEN"] = "" if CONTENT.get("WORKSHOP_PHOTOS") == "1" else " hidden"
             if name == "home":
                 toks["JSONLD"] = organization_jsonld(loc, CONTENT["SITE_URL"] + prefix + "/")
             elif name == "faq" and s.get("faq"):
@@ -898,7 +901,7 @@ def main() -> None:
                 "P_BADGES": badges(p, loc),
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0, loc),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
-                "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p), "P_CONFIG": configurator(p, loc),
+                "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
                 "P_INC": included(p, loc), "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
