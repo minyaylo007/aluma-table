@@ -73,7 +73,7 @@ def products_line(rep: dict) -> str:
 
 def sources_line(rep: dict) -> str:
     # by_source — «<utm_source> / <utm_campaign>»; власнику досить джерела, кампанії складаємо.
-    # Заявки тут — з браузерної події Lead: рядок fx_leads funnel.compute() до джерела не відносить.
+    # Заявки тут — і з події Lead, і з рядка fx_leads: funnel.compute() відносить заявку до джерела сесії або її utm.
     visits, leads = Counter(), Counter()
     for r in rep["by_source"]:
         src = r["key"].split(" / ", 1)[0]

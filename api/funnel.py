@@ -202,7 +202,9 @@ def compute(events, leads) -> dict:
         if not sid:
             continue
         lang = lang_by_sid.get(sid) or lang_of(l)
-        for bucket in (total, by_lang[lang]):
+        # джерело — сесії, якщо її події є; інакше utm самої заявки. Множини sid: з подією Lead — не двічі
+        src = source_of.get(sid) or f"{l.get('utm_source') or 'direct'} / {l.get('utm_campaign') or '—'}"
+        for bucket in (total, by_lang[lang], by_source[src]):
             bucket["lead"].add(sid)
             bucket["sessions"].add(sid)
         last_step[sid] = "lead"
