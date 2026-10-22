@@ -126,6 +126,17 @@ class StepEventsTests(Base):
             self.send([ev("scroll", depth=50)])
         self.assertEqual(self.send([ev("scroll")])["statusCode"], 429)
 
+    def test_fbclid_present_is_stored_as_a_flag_without_the_value(self):
+        # хвиля 1: 1/0 від tracking.js; старий клієнт без прапорця — None (звіт тоді оцінює лише за UA)
+        base = {"page": "/", "utm_source": "facebook", "utm_campaign": "c1"}
+        for sid, extra, want in (("p1", {"fbclid_present": 1}, 1), ("p0", {"fbclid_present": 0}, 0),
+                                 ("ps", {"fbclid_present": "1"}, 1), ("old", {}, None)):
+            self.send([ev("PageView")], session=sid, ctx=dict(base, **extra))
+        got = {e["session_id"]: e for e in self.all_events()}
+        self.assertEqual({s: e.get("fbclid_present") for s, e in got.items()},
+                         {"p1": 1, "p0": 0, "ps": 1, "old": None})
+        self.assertFalse(any(e.get("fbclid") for e in got.values()), "без згоди значення fbclid не зберігається")
+
     def test_bots_and_owner_are_still_skipped(self):
         r = self.send([ev("AddToCart")], headers={"user-agent": "Googlebot/2.1"})
         self.assertEqual(body_json(r)["skipped"], "bot_ua")
@@ -308,6 +319,47 @@ EVENTS = [
 ]
 
 
+def ad(name, session, when, ua="Mozilla/5.0 (iPhone)", flag=None, utm="facebook"):
+    return dict(row(name, session, when, utm), user_agent=ua, fbclid_present=flag)
+
+
+APP = "Mozilla/5.0 (iPhone) [FBAN/FBIOS;FBAV/450.0]"
+
+
+class AudienceTests(unittest.TestCase):
+    """Реклама Meta: люди проти перевірки Meta (хвиля 1, 22.10)."""
+
+    def test_flagged_sessions_people_and_meta_check(self):
+        aud = funnel.audience([ad("PageView", "f1", T, flag=1), ad("PageView", "f0", T, flag=0),
+                               ad("PageView", "own", T, utm="")])
+        self.assertEqual(aud, {"f1": "ads_people", "f0": "ads_meta"}, "не реклама — поза розрізом")
+
+    def test_old_events_without_flag_fall_back_to_user_agent(self):
+        aud = funnel.audience([ad("PageView", "app", T, ua=APP), ad("PageView", "ig", T, ua="Instagram 300.0"),
+                               ad("PageView", "web", T), ad("PageView", "lead", T), ad("Lead", "lead", T),
+                               ad("PageView", "row", T)],
+                              [{"session_id": "row"}])
+        self.assertEqual(aud, {"app": "ads_people", "ig": "ads_people", "web": "ads_meta_est",
+                               "lead": "ads_people", "row": "ads_people"})
+
+    def test_people_only_report_drops_meta_check_from_steps_but_counts_it(self):
+        now = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
+        events = [ad("PageView", "f1", T, flag=1), ad("ViewContent", "f1", T, flag=1),
+                  ad("PageView", "b1", T, flag=0), ad("ViewContent", "b1", T, flag=0),
+                  ad("PageView", "b2", T), row("PageView", "own", T)]
+        full = funnel.report(events, [], 1, now=now)
+        people = funnel.report(events, [], 1, now=now, people_only=True)
+        self.assertEqual(full["steps"][0]["n"], 4)
+        self.assertEqual(people["steps"][0]["n"], 2)
+        aud = {a["key"]: a["n"] for a in people["by_audience"]}
+        self.assertEqual(aud, {"ads_people": 1, "ads_meta": 1, "ads_meta_est": 1})
+        text = funnel.text(people)
+        self.assertIn("Реклама Meta, сессии: реклама: люди 1 · реклама: проверка Meta 1", text)
+        self.assertIn("22.10 14:00–15:30", text, "оцінка позначена")
+        self.assertNotIn("22.10 14:00", funnel.text(funnel.report(events[:4], [], 1, now=now)),
+                         "з прапорцем — без позначки оцінки")
+
+
 class ComputeTests(unittest.TestCase):
     def setUp(self):
         self.rep = funnel.compute(EVENTS, [{"session_id": "s4", "product_id": "tal", "ts": T, "name": "Dana",
@@ -416,6 +468,7 @@ class FunnelReportScriptTests(unittest.TestCase):
             text = out.getvalue()
             self.assertIn("Всего:  сессии 1 → карточка 1 (100%)", text)
             self.assertIn("tavor 160×90 ₪4490", text)
+            self.assertIn("Реклама Meta, сессии: реклама: люди 1 · реклама: проверка Meta 0", text)
             self.assertNotIn("Dana", text)
             self.assertNotIn("501234567", text)
             with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", os.path.join(tmp, "nope.db")), \

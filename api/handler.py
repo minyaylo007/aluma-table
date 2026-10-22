@@ -455,6 +455,9 @@ def put_events(event):
                     "utm_content": clip(ctx.get("utm_content"), 120),
                     "utm_term": clip(ctx.get("utm_term"), 120),
                     "fbclid": clip(ctx.get("fbclid"), 200),
+                    # хвиля 1: чи був fbclid у посиланні (1/0, без значення й без згоди) — людина з реклами
+                    # проти перевірки Meta (api/funnel.audience); None — старий клієнт без прапорця
+                    "fbclid_present": funnel._flag(ctx.get("fbclid_present")),
                     # when the UTM set above arrived, so a stored campaign is never a mix of visits
                     "attributed_at": clip(ctx.get("attributed_at"), 40),
                     "device": clip(ctx.get("device"), 20),

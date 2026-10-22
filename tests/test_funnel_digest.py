@@ -37,11 +37,13 @@ class Box:
         self.events, self.leads, _ = store.tables(path)
         self.n = 0
 
-    def event(self, name, when, session, is_test=False, utm_source="", **props):
+    def event(self, name, when, session, is_test=False, utm_source="", user_agent="", fbclid_present=None,
+              **props):
         self.n += 1
         item = {"pk": "D#" + when.strftime("%Y-%m-%d"), "sk": f"{when.isoformat()}#{self.n:010d}",
                 "session_id": session, "ts": when.isoformat(), "event_name": name,
-                "props_json": json.dumps(props), "utm_source": utm_source, "utm_campaign": "c1"}
+                "props_json": json.dumps(props), "utm_source": utm_source, "utm_campaign": "c1",
+                "user_agent": user_agent, "fbclid_present": fbclid_present}
         if is_test:
             item["is_test"] = True
         self.events.put_item(Item=item)
@@ -110,6 +112,25 @@ class DigestTests(unittest.TestCase):
         for word in (NAME, "Testname", PHONE, "PHONEMARK"):
             self.assertNotIn(word, text)
         self.assertLessEqual(len(text), fd.TEXT_MAX)
+
+    def test_meta_check_is_a_separate_line_not_in_steps(self):
+        # хвиля 1: 3 «сесії» перевірки Meta (одна з прапорцем 0, дві старі без прапорця) — не в кроках і не в джерелах
+        self.fill()
+        b, t = self.box, self.t
+        b.event("page_view", t, "m0", utm_source="facebook", user_agent="Mozilla/5.0 (X11)", fbclid_present=0)
+        for sid in ("m1", "m2"):
+            b.event("page_view", t, sid, utm_source="facebook", user_agent="Mozilla/5.0 (X11)")
+        b.event("page_view", t, "p1", utm_source="facebook", user_agent="Mozilla/5.0 [FBAN/FBIOS;FBAV/450.0]")
+        text = self.text()
+        lines = text.splitlines()
+        self.assertTrue(lines[1].startswith("Сегодня: визиты 3 → "), lines[1])
+        self.assertIn("facebook 1", text)
+        self.assertIn("Реклама Meta (7 дн.): люди 2 · проверка Meta, не люди: 3, из них 2 оценка по UA", text)
+        self.assertLessEqual(len(text), fd.TEXT_MAX)
+
+    def test_no_ads_no_ads_line(self):
+        self.box.event("page_view", self.t, "b")
+        self.assertNotIn("Реклама Meta", self.text())
 
     def test_empty_base_still_says_zero(self):
         text = self.text()

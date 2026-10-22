@@ -87,6 +87,16 @@ def sources_line(rep: dict) -> str:
     return " · ".join(head) + (" · …" if len(order) > MAX_SOURCES else "")
 
 
+def ads_line(rep: dict) -> str:
+    """Реклама Meta за 7 днів: люди і окремо роботи перевірки Meta (не в кроках вище). Нема реклами — порожньо."""
+    n = {a["key"]: a["n"] for a in rep.get("by_audience") or []}
+    if not any(n.values()):
+        return ""
+    bots = n.get("ads_meta", 0) + n.get("ads_meta_est", 0)
+    est = f", из них {n['ads_meta_est']} оценка по UA" if n.get("ads_meta_est") else ""
+    return f"Реклама Meta (7 дн.): люди {n.get('ads_people', 0)} · проверка Meta, не люди: {bots}{est}"
+
+
 def dropped_line(rep: dict) -> str:
     parts = [f"после «{LABEL[d['step']]}» {d['n']}" for d in rep["dropped_after"] if d["n"]]
     return ", ".join(parts) or "никто"
@@ -95,15 +105,19 @@ def dropped_line(rep: dict) -> str:
 def digest_text(events, leads, now: datetime | None = None) -> str:
     """Текст дайджесту за «сьогодні» і «7 днів» із сирих рядків таблиць (тестові відкидає funnel.report)."""
     now = now or datetime.now(timezone.utc)
-    today = funnel.report(events, leads, 1, now=now)
-    week = funnel.report(events, leads, 7, now=now)
+    # кроки й джерела — лише люди; перевірка Meta (роботи після запуску кампанії) — окремим рядком
+    today = funnel.report(events, leads, 1, now=now, people_only=True)
+    week = funnel.report(events, leads, 7, now=now, people_only=True)
     lines = [
         f"ALUMA · воронка · {now.astimezone(funnel.TZ).strftime('%d.%m %H:%M')}",
         "Сегодня: " + steps_line(today),
         "7 дней: " + steps_line(week),
         "По товарам (7 дн., заявки/карточки): " + products_line(week),
-        "По источнику (7 дн., визиты): " + sources_line(week),
+        "По источнику (7 дн., визиты людей): " + sources_line(week),
     ]
+    ads = ads_line(week)
+    if ads:
+        lines.append(ads)
     if _n(today["steps"], "sessions"):
         lines.append("Где ушли сегодня: " + dropped_line(today))
     text = "\n".join(lines)
