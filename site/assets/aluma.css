@@ -205,6 +205,8 @@ bdi { unicode-bidi: isolate; }
 html[lang="ru"] body { hyphens: auto; overflow-wrap: anywhere; }
 /* короткі мітки сводки (размер · тон · основание) переносимо лише між словами: «На-туральный» читається гірше */
 html[lang="ru"] .cart-meta { hyphens: manual; overflow-wrap: break-word; }
+/* ru: у заголовках і коротких рядках перенос «са-дятся» виглядає дешево (аудит 22.10 (б) 4) */
+html[lang="ru"] :is(h1, h2, .pdp-tag, .pdp-lead, .pdp-inc li, .foot p) { hyphens: manual; }
 
 /* ---------------------------------------------------------------- секції */
 .sec { padding-block: var(--sec); }
@@ -557,6 +559,8 @@ html[lang="ru"] .cart-meta { hyphens: manual; overflow-wrap: break-word; }
 }
 .price { font-size: 2.2rem; line-height: 1; }
 .price-incl { font-size: .88rem; color: var(--muted); }
+/* «מחיר משוער, טרם אושר» — як у рекламі; над «זמן אספקה מדויק» і кнопкою: під ціною на 390 витісняв плитки під банер (аудит 22.10 (в) 1) */
+.pdp-est { margin-block: 0 8px; line-height: 1.4; }
 .pdp-config { display: grid; gap: 22px; margin-block: 24px; }
 .opt { border: 0; padding: 0; margin: 0; min-width: 0; }
 .opt legend { font-weight: 600; font-size: .9rem; margin-block-end: 10px; padding: 0; }
@@ -793,6 +797,8 @@ html.a11y-still::view-transition-new(*) { animation: none !important; }
 .co-steps li + li { padding-inline-start: 8px; border-inline-start: 1px solid var(--line); }
 .co-steps [aria-current="step"] { color: var(--ink); font-weight: 600; }
 .co-steps [aria-current="step"]::before { background: var(--esp); border-color: var(--esp); color: var(--cream); }
+/* ru на 390: «1 Корзина · 2 Доставка · 3 Подтверждение» в один рядок (аудит 22.10 (б) 3) */
+@media (max-width: 420px) { html[lang="ru"] .co-steps { font-size: .8rem; gap: 8px 10px; } html[lang="ru"] .co-steps li + li { padding-inline-start: 6px; } }
 .cart-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; border-block-start: 1px solid var(--line); }
 .cart-line { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: start; padding-block: 18px; border-block-end: 1px solid var(--line); }
 .cart-img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--r); background: var(--sand); }

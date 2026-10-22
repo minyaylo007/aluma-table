@@ -116,6 +116,32 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertEqual(inc.count(only), int(p["category"] == "dining_table"))
                     self.assertIn(own, inc)
 
+    def test_card_says_price_is_estimated_like_the_ads(self):
+        # аудит 22.10 (в) 1: реклама обіцяє «מחיר משוער (טרם אושר)» — картка каже те саме рядком price_est над кнопкою
+        word = {"he": "משוער", "en": "Estimated", "ru": "Ориентировочная"}
+        for lang, prefix in DIST_PREFIX.items():
+            est = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))["price_est"]
+            self.assertIn(word[lang], est)
+            for p in PRODUCTS:
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                buy = re.search(r'<div class="pdp-buy">.*?<div class="pdp-actions">', html, re.S).group(0)
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    self.assertGreaterEqual(buy.count(word[lang]), 1)
+                    self.assertIn(f'<p class="pdp-est muted small">{est}</p>', buy)
+
+    def test_round_table_tile_reads_like_the_cart(self):
+        # аудит 22.10 (б) 5: розмір із підписом «Ø…» на плитці — той самий «Ø115», що в кошику й рекламі, без висоти
+        for lang, prefix in DIST_PREFIX.items():
+            for p in PRODUCTS:
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                tiles = re.findall(r'<span class="pill-main"><bdi dir="ltr">([^<]*)</bdi>', html)
+                for s in p.get("sizes") or []:
+                    with self.subTest(page=f"{prefix}p/{p['slug']}/", size=s["label"]):
+                        if s["label"].startswith("Ø"):
+                            self.assertIn(s["label"], tiles)
+                        else:
+                            self.assertIn("×".join(str(s[k]) for k in ("length_cm", "width_cm", "height_cm") if s.get(k)), tiles)
+
     def test_funnel_steps_and_buttons_never_promise_payment(self):
         # 22.10, аудит (б) №1: оплати на сайті немає — у кроках і кнопках кошика/оформлення ні слова «оплата»;
         # рамка «התשלום לא מתבצע באתר» лишається (вона — пояснення, а не обіцянка)
@@ -229,7 +255,8 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertNotIn(banned, json.dumps(ld), f"{p['slug']}: вигаданий рейтинг у schema.org")
 
     def test_preliminary_prices_carry_the_estimate_mark_in_cart_and_payment(self):
-        # specs/003: на картці — ціна без позначки на виду; чесна дрібна примітка — у кошику й на екрані оплати
+        # specs/003: чесна дрібна примітка — у кошику й на екрані оплати; з аудиту 22.10 (в) 1 — і на картці
+        # (не в самій .pdp-price, а рядком над кнопкою — test_card_says_price_is_estimated_like_the_ads)
         if not any(p.get("preliminary") for p in PRODUCTS):
             self.skipTest("усі ціни підтверджені")
         for rel in ("cart/", "checkout/"):
@@ -237,7 +264,8 @@ class BuiltSiteTests(unittest.TestCase):
             self.assertIn("not yet confirmed", self.page("en/" + rel).lower(), rel)
             self.assertIn("ещё не подтверждена", self.page("ru/" + rel), rel)
         for p in PRODUCTS:
-            self.assertNotIn("טרם אושר", re.sub(r"<[^>]+>", " ", self.page(f"p/{p['slug']}/")).split("pdp-points")[0], p["slug"])
+            price = re.search(r'<div class="pdp-price">.*?</div>', self.page(f"p/{p['slug']}/"), re.S).group(0)
+            self.assertNotIn("טרם אושר", price, p["slug"])
 
     def test_no_lead_weeks_early_registration_or_free_promise(self):
         # specs/003: «10–12 שבועות» → «זמן אספקה מדויק — באישור ההזמנה»; без «הרשמה מוקדמת» і «ללא תשלום וללא התחייבות»
