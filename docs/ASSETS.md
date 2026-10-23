@@ -15,11 +15,12 @@
 | Світлий тон | Poly Haven «Washed Grey Oak Veneer», https://polyhaven.com/a/washed_grey_oak_veneer | CC0 |
 | Копчений і чорний тон | Poly Haven «Black Oak Veneer», https://polyhaven.com/a/black_oak_veneer | CC0 |
 | Олійний шар поверх скану (тон) | `tools/oak_tones.py`, розділ «Тони дуба» нижче | наш код |
-| Інтер'єр Blender: стіна, підлога, льон | Poly Haven: https://polyhaven.com/a/plastered_wall_04 · https://polyhaven.com/a/smooth_concrete_floor · https://polyhaven.com/a/rough_linen | CC0 |
+| Інтер'єр Blender: стіна, підлога, льон | Poly Haven: https://polyhaven.com/a/plastered_wall_04 · https://polyhaven.com/a/smooth_concrete_floor (кадри до 22.10) · https://polyhaven.com/a/rough_linen | CC0 |
+| Фотореальний прохід (22.10): кам'яна підлога студії, деревце в теракоті, лимони, плетіння стільців | Poly Haven: https://polyhaven.com/a/large_floor_tiles_02 (перефарбовано у вапняк) · https://polyhaven.com/a/potted_plant_01 · https://polyhaven.com/a/lemon · плетіння сидінь — текстура https://polyhaven.com/a/wicker_basket_02; стільці, фіранки — наша процедурна модель | CC0 / наш код |
 | Денне світло Blender (HDRI) | Poly Haven: https://polyhaven.com/a/photo_studio_loft_hall · https://polyhaven.com/a/lebombo | CC0 |
 | Жилий кадр: плитка-терацо, вид за вікном, джутовий килим | ambientCG «Tiles110», https://ambientcg.com/view?id=Tiles110 · Poly Haven: https://polyhaven.com/a/bloem_olive_house (лише в прорізі вікна, світла не дає) · https://polyhaven.com/a/hessian_380 | CC0 |
 | Жилий кадр: рослини, кошик | Poly Haven: https://polyhaven.com/a/potted_plant_02 · https://polyhaven.com/a/potted_plant_04 · https://polyhaven.com/a/wicker_basket_02; вікно (рама, підвіконня, жалюзі-«тріс») і фіранка — наша процедурна модель | CC0 / наш код |
-| Декор Blender | Poly Haven: https://polyhaven.com/a/ceramic_vase_01 · https://polyhaven.com/a/ceramic_vase_02 · https://polyhaven.com/a/dry_branches_medium_01 · https://polyhaven.com/a/wooden_cutting_board · https://polyhaven.com/a/food_pears_asian_01 · https://polyhaven.com/a/wooden_bowl_02; стільці — наша процедурна модель | CC0 / наш код |
+| Декор Blender | Poly Haven: https://polyhaven.com/a/ceramic_vase_02 · https://polyhaven.com/a/wooden_bowl_02 (з 22.10: глиняна ваза й миска з лимонами); у кадрах до 22.10 ще https://polyhaven.com/a/ceramic_vase_01 · https://polyhaven.com/a/dry_branches_medium_01 · https://polyhaven.com/a/wooden_cutting_board · https://polyhaven.com/a/food_pears_asian_01; стільці — наша процедурна модель | CC0 / наш код |
 
 Шрифтів, логотипів, людей і чужих брендів у кадрах немає.
 
@@ -115,6 +116,16 @@ Figma AI — **лише фон чи атмосфера без нашого ви�
 | sahar `wide` | круглий, 4 круглі дубові ніжки, царга, 4 стільці | — | — |
 
 ## Кадри Blender: що показують
+- **Фотореальний прохід** (22.10, власник: «як живі фотографії», «продажно, елітно»): міняються лише сцена, матеріали,
+  світло й камера — геометрія з `aluma3d.js` і п'ять тонів `oak_tones.py` ті самі. Дуб: пори (bump від альбедо),
+  шорсткість 0,35–0,47 за картою з плямами, анізотропія вздовж волокна, фаска кромки 1,8 мм з відблиском. Студія: підлога з
+  великих кам'яних плит, штукатурка з плямами й нерівностями, деревце в теракоті (тінь листя на стіні), лляна фіранка
+  біля ближнього краю бічного вікна. Стільці — наша модель: круглі ніжки, що звужуються, перекладини, вигнута спинка,
+  плетене сидіння. Камера: f/2.8, AgX, тепле світло, віньєтка, зерно 0,8 %, ледь помітна хроматична аберація
+  (`camera_post` у `blender_scene.py`). Семпли: 256 + OIDN (512 — 62 хв на кадр на 3 потоках, понад межу 40 хв);
+  tavor home — 512. Перезнято: tavor home, angle, open, mechanism, light; sahar hero, wide, detail, home, angle, open;
+  ofek і saf home + hero; tal home. Герой і крупний план tavor — кадри Figma AI (#128), не рендер. Кадри
+  `finish-*` і `*-9x16` (Meta/IG, на сайті не показуються) — ще зі старої сцени.
 - **home** (усі п'ять, 21.10, власник: «у живому інтер'єрі»): той самий виріб, матеріал і світло, що в героя, але кімната —
   ізраїльська квартира (`room: "home"` у `blender_scene.py`): підлога — плитка-терацо 31 см, у задній стіні вікно в кадрі
   (розсувна алюмінієва рама, мармурове підвіконня, опущені на 30 см ламелі «тріс»), лляна фіранка, рослина в горщику,
