@@ -29,6 +29,7 @@ gunicorn) і `api/store.py` (SQLite-двійник трьох таблиць Dyn
 | `aluma.env.example` | зразок для `/etc/aluma/aluma.env` | перелік змінних, **без жодного реального значення** |
 | `../scripts/purge.py` | у репозиторії | чистка протухлих рядків + `VACUUM` |
 | `systemd/user/ihor-aluma-backup.{service,timer}` + `../scripts/backup_leads.py` | `~/.config/systemd/user/` — **встановлено руками 22.10** | почасовий бекап бази заявок у `backups/`, розділ «Бекап заявок» |
+| `systemd/user/ihor-aluma-journal-watch.{service,timer}` + `../scripts/journal_watch.py` | `~/.config/systemd/user/` — **встановлено руками 23.10** | сторож журналів → дирижеру кожні 10 хв, розділ «Сторож журналів» |
 
 ## Імена юнітів: префікс `ihor-`
 
@@ -410,6 +411,29 @@ journalctl --user -u ihor-aluma-digest -n 3
 ```
 
 **Відкат:** `systemctl --user disable --now ihor-aluma-digest.timer` (ні база, ні API не зачеплені).
+
+## Сторож журналів: `ihor-aluma-journal-watch.timer`
+
+OWNER-RULES п.42 (23.10): error чи warning у журналі свого проєкту — одразу сесія й фікс. Сторож без моделі
+помічає й пише дирижеру одним рядком (`~/bin/lead-say.sh aluma`): тип, лічильник, юніт або шлях, команда для логу.
+
+| Що | Де / як |
+|---|---|
+| скрипт | `scripts/journal_watch.py` — stdlib, один прогін; `--dry-run` друкує замість відправки й не рухає курсор/стан, `--since '7 days ago'` — перший прохід |
+| джерела | журнал `ihor-aluma-*` (крім себе) від курсора; упалі юніти; таймери backup > 2 год, purge > 26 год, digest > 13,5 год; `GET 127.0.0.1:8005/api/fx/health` (5 с); база read-only: `NotFound` одного шляху ≥ 3 за годину; `admin_login_failed` у журналі API ≥ 5 за годину; нічний `ci.yml` = failure (`gh` недоступний — пропуск) |
+| тривога | PRIORITY ≤ 4, `error/warning/traceback/exception/critical/failed`, gunicorn `[ERROR]/[WARNING]/[CRITICAL]`, JSON `event` = `*_failed`/`unhandled`/`wsgi_unhandled`/`settings_unavailable`/`purge_skipped`; шум (рестарти gunicorn при викаті, `Starting/Finished` systemd) — явний перелік `NOISE` у скрипті |
+| дедуп | `data/journal-watch-state.json` (`0600`, ключ — хеш відбитка, без тексту журналу): один відбиток — раз на годину, з накопиченою кількістю; курсор `data/journal-watch.cursor` |
+| журнал | `journalctl --user -u ihor-aluma-journal-watch -n 3` — JSON `journal_watch` з `findings`/`sent`/`entries` |
+
+```bash
+install -m 0644 deploy/systemd/user/ihor-aluma-journal-watch.service \
+    deploy/systemd/user/ihor-aluma-journal-watch.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+FX_DB_PATH=/opt/ihor/aluma-table/data/aluma.db /opt/ihor/aluma-table/.venv/bin/python scripts/journal_watch.py --since '7 days ago' --dry-run
+systemctl --user enable --now ihor-aluma-journal-watch.timer
+```
+
+**Відкат:** `systemctl --user disable --now ihor-aluma-journal-watch.timer`.
 
 ## Пости в Instagram: `scripts/ig_publish.py` і `ihor-aluma-ig-refresh.timer`
 
