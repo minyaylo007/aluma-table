@@ -168,7 +168,7 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertIn(f'{t["ship_door"]} — <bdi dir="ltr">{fee[lang]}</bdi>', terms)
                     self.assertEqual(terms.count("<li>"), 3 if p["slug"] in assembly else 2)
                     ask = re.search(r'<a class="btn[^"]*pdp-ask" href="#register"[^>]*>([^<]+)</a>', buy)
-                    self.assertEqual(ask.group(1), t["ask_cta"])
+                    self.assertEqual(ask.group(1), t["lead_cta"])
                     self.assertLess(ask.start(), buy.index('name="size"'))
                     self.assertIsNone(re.search(r"מחיר משוער|[Ee]stimated price|[Оо]риентировочная цена", buy))
                     self.assertIn(f'<p class="pdp-est muted small">{t["price_est"]}</p>', buy)
@@ -410,6 +410,28 @@ class BuiltSiteTests(unittest.TestCase):
                 html = self.page(rel)
                 self.assertEqual(len(re.findall(r'data-add-cart data-cta="(pdp|sticky)">' + label + "<", html)), 2, rel)
                 self.assertNotIn("data-quick", html, rel)
+
+    def test_soft_ask_next_to_cart_three_languages(self):
+        # 23.10: «שאלה? נחזור אליכם» поруч із «הוספה לסל» (+ рядок «בלי התחייבות…») і коротка «שאלה?» у липкій
+        # панелі — без рядка; рівно дві [data-ask] на картці, форма #register на сторінці є
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for p in PRODUCTS:
+                rel = f"{prefix}p/{p['slug']}/"
+                html = self.page(rel)
+                with self.subTest(page=rel):
+                    self.assertEqual(html.count("data-ask"), 2)
+                    self.assertIn('id="register"', html)
+                    actions = re.search(r'<div class="pdp-actions">.*?</div>\s*<p class="pdp-ask-hint[^"]*">([^<]+)</p>',
+                                        html, re.S)
+                    self.assertIsNotNone(actions)
+                    self.assertEqual(actions.group(1), t["ask_hint"])
+                    self.assertRegex(actions.group(0), r'data-add-cart data-cta="pdp">[^<]+</button>\s*<button class="btn '
+                                     r'btn--line" type="button" data-ask data-cta="pdp">' + re.escape(t["ask_cta"]) + "<")
+                    sticky = re.search(r'<div class="sticky-cta[^"]*" data-sticky hidden>.*?</div>', html, re.S).group(0)
+                    self.assertRegex(sticky, r'data-ask data-cta="sticky">' + re.escape(t["ask_cta_short"]) + "<")
+                    self.assertNotIn(t["ask_hint"], sticky)
+                    self.assertEqual(html.count(t["ask_hint"]), 1)
 
     def test_no_placeholders_buy_buttons_or_solid_oak_claims(self):
         for rel, html in self.all_html():

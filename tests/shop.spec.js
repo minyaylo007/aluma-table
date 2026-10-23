@@ -240,6 +240,52 @@ test('порожній кошик: оформлення не показує фо
   await expect(page.locator('[data-cart-sum]')).toBeHidden();
 });
 
+// 23.10: м'який крок поруч із кошиком — «שאלה? נחזור אליכם» веде до форми з цим столом; cta_ask — лише наша аналітика
+for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
+  test(`«${t.ask_cta}» на картці ${prefix}/p/tavor/: форма з TAVOR, фокус на імені, cta_ask без Meta`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    const ask = page.locator('.pdp-actions [data-ask]');
+    await expect(ask).toHaveText(t.ask_cta);
+    await expect(page.locator('.pdp-ask-hint')).toHaveText(t.ask_hint);
+    // десктоп: обидві кнопки в один ряд
+    const [cart, a] = await Promise.all([page.locator('.pdp-actions [data-add-cart]').boundingBox(), ask.boundingBox()]);
+    expect(Math.abs(cart.y - a.y)).toBeLessThan(2);
+    await page.evaluate(() => { document.querySelector('#f-product').value = ''; });
+    await ask.click();
+    await expect(page.locator('#register')).toBeInViewport();
+    await expect(page.locator('#f-name')).toBeFocused();
+    await expect(page.locator('#f-product')).toHaveValue('tavor');
+    await expect.poll(() => firstParty(net, 'cta_ask').length, { timeout: 8000 }).toBe(1);
+    const [ev] = firstParty(net, 'cta_ask');
+    expect(ev.props).toMatchObject({ content_ids: ['tavor'], content_type: 'product', cta: 'pdp' });
+    expect(await fbNamed(page, 'cta_ask')).toHaveLength(0);
+  });
+}
+
+test('телефон 390: «שאלה?» у липкій панелі — висота та сама, клік веде до форми; основні кнопки — стовпчиком', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const net = await setup(page);
+  await page.goto(`${ORIGIN}/p/tavor/`);
+  const [cart, a] = await Promise.all([page.locator('.pdp-actions [data-add-cart]').boundingBox(),
+    page.locator('.pdp-actions [data-ask]').boundingBox()]);
+  expect(a.y).toBeGreaterThan(cart.y + cart.height - 1);
+  await page.evaluate(() => scrollTo(0, document.querySelector('#spec').getBoundingClientRect().top + scrollY));
+  const sticky = page.locator('[data-sticky]');
+  await expect(sticky).toHaveClass(/is-on/);
+  const s = sticky.locator('[data-ask]');
+  await expect(s).toHaveText(HE.ask_cta_short);
+  const [bar, btn, atc] = await Promise.all([sticky.boundingBox(), s.boundingBox(), sticky.locator('[data-add-cart]').boundingBox()]);
+  expect(btn.height).toBeLessThanOrEqual(44.5);
+  expect(bar.height).toBeLessThanOrEqual(58);
+  expect(Math.abs(btn.y - atc.y)).toBeLessThan(2);
+  expect(await noOverflow(page)).toBe(0);
+  await s.click();
+  await expect(page.locator('#register')).toBeInViewport();
+  await expect.poll(() => firstParty(net, 'cta_ask').map((e) => e.props.cta), { timeout: 8000 }).toEqual(['sticky']);
+});
+
 test('липка смуга на телефоні кладе в кошик вибраний розмір', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);

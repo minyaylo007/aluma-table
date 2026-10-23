@@ -586,6 +586,11 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-lead .dot { margin-block-start: calc(.825em - 4px); } /* 1.65 / 2 — середина першого рядка */
 .pdp-actions { display: grid; gap: 10px; margin-block: 20px; }
 .pdp-actions > *, .pdp-buy > * { min-width: 0; }
+/* «הוספה לסל» і м'який крок «שאלה? נחזור אליכם» — в один ряд; вузька колонка — переноситься, ≤ 480 px — стовпчик */
+.pdp-pair { display: flex; flex-wrap: wrap; gap: 10px; }
+.pdp-pair .btn { flex: 1 1 12rem; min-width: 0; }
+@media (max-width: 480px) { .pdp-pair { flex-direction: column; } .pdp-pair .btn { flex: none; width: 100%; } }
+.pdp-ask-hint { margin: -2px 0 0; line-height: 1.4; }
 /* «מה כלול במחיר» і «איך לבחור מידה» — під кнопкою кошика, до «מפרט» */
 .pdp-inc, .pdp-size { margin-block-start: 22px; padding-block-start: 16px; border-top: 1px solid var(--line); }
 .pdp-inc-h { font-size: 1rem; font-weight: 700; margin: 0 0 10px; }
@@ -679,6 +684,9 @@ html:has(.chapters) { scroll-padding-top: 160px; } /* без JS; з JS — то�
   transform: translateY(calc(100% + 24px)); }
 .sticky-cta--pdp .sticky-price { min-width: 0; }
 .sticky-cta--pdp .btn { flex: 0 1 auto; min-width: 0; margin-inline-start: auto; min-height: 44px; padding-inline: 20px; border-radius: 999px; }
+/* «שאלה?» — коротка, поруч із кошиком; висота пігулки та сама (44 px), одна автовідстань — перед нею */
+.sticky-cta--pdp .sticky-ask { flex: none; padding-inline: 14px; white-space: nowrap; }
+.sticky-cta--pdp .sticky-ask + .btn { margin-inline-start: 0; }
 /* <picture> навколо мініатюри — сам елемент ряду; display: contents не годиться: <source> тоді стає порожнім елементом ряду (+12 px gap) */
 .sticky-pic { flex: none; }
 .sticky-thumb { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--sand); }
