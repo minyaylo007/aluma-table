@@ -116,7 +116,8 @@ jobs:
 
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 30, а не 20: самі spec ідуть ~10 хв, і 23.10 повільне дзеркало apt на промаху кешу додало ще ~10.
+    timeout-minutes: 30
     env:
       PREVIEW_PORT: '8007'
       PYTHON: python
@@ -131,8 +132,43 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      # Кеш Chromium (docs/DELIVERY.md §3). 23.10 крок Chromium двічі йшов ~10 хв: сам браузер — 8 с, а системні
+      # пакети (--with-deps) apt тягнув із дзеркала Azure на 45 kB/s (25.9 MB за 9 хв 36 с). Тому кешуються обидва:
+      # браузери в ~/.cache/ms-playwright і завантажені .deb. Ключ — образ раннера + версія @playwright/test із
+      # package-lock.json: нова версія Playwright = новий кеш сам собою. «Зіпсований» кеш — змінити суфікс -v1.
+      - name: Playwright version
+        id: pw
+        run: |
+          echo "image=$ImageOS" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Chromium
+        id: pw-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.pw.outputs.image }}-${{ steps.pw.outputs.version }}-chromium-v1
+      - name: Cache apt packages for Chromium
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/playwright-apt
+          key: playwright-apt-${{ steps.pw.outputs.image }}-${{ steps.pw.outputs.version }}-v1
       - name: Chromium
-        run: npx playwright install --with-deps chromium
+        # Кеш не зберігає встановлених системних пакетів — install-deps іде завжди, але .deb бере з кешу.
+        # Застарілий .deb (оновлення в Ubuntu) apt просто докачає, решту візьме локально.
+        env:
+          BROWSERS_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          mkdir -p ~/.cache/playwright-apt
+          if ls ~/.cache/playwright-apt/*.deb > /dev/null 2>&1; then
+            sudo cp ~/.cache/playwright-apt/*.deb /var/cache/apt/archives/
+          fi
+          if [ "$BROWSERS_HIT" = 'true' ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
+          cp /var/cache/apt/archives/*.deb ~/.cache/playwright-apt/ 2> /dev/null || true
+          echo "browsers cache hit: ${BROWSERS_HIT:-false}; .deb in cache: $(ls ~/.cache/playwright-apt | wc -l)"
       - name: Build (preview)
         run: python build.py
       - name: redesign.spec.js (fully mocked)

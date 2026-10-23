@@ -22,7 +22,7 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 RULESETS = ROOT / ".github" / "rulesets"
 DELIVERY = ROOT / "docs" / "DELIVERY.md"
 
-ALLOWED_ACTIONS = {"actions/checkout@v6", "actions/setup-node@v6", "actions/setup-python@v6"}
+ALLOWED_ACTIONS = {"actions/cache@v6", "actions/checkout@v6", "actions/setup-node@v6", "actions/setup-python@v6"}
 LOCAL_WORKFLOWS = {"./.github/workflows/ci.yml", "./.github/workflows/deploy.yml"}
 REQUIRED_CHECKS = ["browser", "build", "lint", "secret-scan", "test (3.12)", "test (3.13)"]
 
@@ -162,6 +162,33 @@ class CiTests(unittest.TestCase):
         cfg = (ROOT / "playwright.tracking.config.js").read_text(encoding="utf-8")
         self.assertIn("tracking-events.spec.js", cfg)
         self.assertIn("shop.spec.js", cfg)   # воронка магазину — той самий крок CI
+
+
+    def test_browser_caches_chromium_by_playwright_version(self):
+        """23.10.2026: browser двічі зрізано на 20 хв — apt тягнув пакети Chromium ~10 хв. Браузери й .deb
+        у кеші з ключем від версії @playwright/test із package-lock.json (не вписаної руками); на влучанні —
+        лише install-deps; тільки chromium; ліміт 30 хв."""
+        body = code(self.jobs["browser"])
+        self.assertRegex(body, r"(?m)^    timeout-minutes:\s*30\s*$")
+        self.assertEqual(body.count("uses: actions/cache@v6"), 2)
+        self.assertRegex(body, r"path:\s*~/\.cache/ms-playwright")
+        self.assertIn("require('./package-lock.json').packages['node_modules/@playwright/test'].version", body)
+        keys = re.findall(r"key:\s*(.+)$", body, re.M)
+        self.assertEqual(len(keys), 2, keys)
+        for key in keys:
+            self.assertIn("${{ steps.pw.outputs.version }}", key)
+            self.assertIn("${{ steps.pw.outputs.image }}", key)
+            self.assertNotRegex(key, r"\d+\.\d+\.\d+", "версія Playwright у ключі вписана руками")
+        self.assertIn("steps.pw-cache.outputs.cache-hit", body)
+        self.assertIn("npx playwright install-deps chromium", body)
+        self.assertIn("npx playwright install --with-deps chromium", body)
+        self.assertNotRegex(body, r"playwright install(?:-deps)?(?: --with-deps)?\s*(?:$|firefox|webkit)", re.M)
+        self.assertLess(body.index("install --with-deps chromium"), body.index("playwright.local.config.js"))
+
+    def test_stale_pr_runs_are_cancelled_but_master_never(self):
+        conc = top_block(self.ci, "concurrency")
+        self.assertIn("${{ github.ref }}", conc)
+        self.assertIn("cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}", conc)
 
 
 class WorkflowSafetyTests(unittest.TestCase):
