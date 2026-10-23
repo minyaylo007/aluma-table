@@ -263,7 +263,7 @@ function previewHtml(rows, formats, cfg) {
 h1{font-size:22px;margin:0 0 16px}h2{font-size:17px;margin:24px 0 8px}.row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 figure{margin:0}img{display:block;height:auto;max-width:100%;box-shadow:0 1px 4px rgba(0,0,0,.18)}figcaption{font-size:13px;color:#5E554C;margin-top:6px}</style>
 </head><body><h1>ALUMA — креативи для тесту Meta (візуалізації, «${esc(cfg.mark)}»)</h1>
-<p>Згенеровано: node tools/creatives/build.js${cfg.lang === 'he' ? '' : ` --lang ${cfg.lang}`}. Ціни — орієнтир, «${esc(cfg.price_note)}».</p>
+<p>Згенеровано: node tools/creatives/build.js${cfg.lang === 'he' ? '' : ` --lang ${cfg.lang}`}. Ціни — «${esc(cfg.price_note)}», з каталогу.</p>
 ${cells}
 </body></html>
 `;

@@ -59,11 +59,16 @@ class CreativeConfigTests(unittest.TestCase):
                 self.assertIn(pid, self.catalog, v["id"])
 
     def test_honest_text(self):
-        """Позначка візуалізації, ціна — орієнтир із «טרם אושר», жодної обіцянки, якої нема."""
+        """Позначка візуалізації; ціна — як на сайті з хвилі 1 (faq «מחיר ההשקה לסדרה הראשונה», 23.10):
+        з ПДВ, доставка чи самовивіз окремо, складання своє; суми доставки нема (вона в власника на перегляді)."""
         self.assertEqual(self.cfg["mark"], "הדמיה")
-        self.assertIn("משוער", self.cfg["price_note"])
-        self.assertIn("טרם אושר", self.cfg["price_note"])
-        self.assertIn("טרם אושרו", self.cfg["price_note_many"])
+        self.assertEqual(self.cfg["price_note"], "מחיר השקה לסדרה הראשונה")
+        self.assertEqual(self.cfg["price_note_many"], "מחירי השקה לסדרה הראשונה")
+        for fact in ("כולל מע״מ", "משלוח", "איסוף", "בנפרד", "הרכבה עצמית"):
+            self.assertIn(fact, self.cfg["includes"].replace("\u00a0", " "))
+        for t in texts(self.cfg):
+            for old in ("משוער", "טרם אושר", "משלוח והרכבה", "350"):
+                self.assertNotIn(old, t)
         # магазин (specs/003-shop-funnel): ні «реєстрації», ні тижнів — лише те, що каже картка товару
         self.assertEqual(self.cfg["cta_note"], "זמן אספקה מדויק — באישור ההזמנה")
         for t in texts(self.cfg):
@@ -160,10 +165,14 @@ class RussianCreativeTests(unittest.TestCase):
         """Позначка, строк, що входить у ціну, і застереження — дослівно як на /ru/."""
         self.assertEqual(self.cfg["mark"], self.site["viz_tag"])
         self.assertEqual(self.cfg["cta_note"], self.site["lead_exact"])
-        # хвиля 1 (22.10): сайт — «цена с НДС», доставка окремо; креативи кампанії, що крутиться, — старими
-        # словами, їх змінює лише слово власника. Тому «includes» і застереження з сайтом більше не звіряємо.
-        self.assertIn("не подтверждена", self.cfg["price_note"])
-        self.assertIn("не подтверждены", self.cfg["price_note_many"])
+        # з 23.10 — як на сайті після хвилі 1 (faq «Это цена первой серии, с НДС; доставка — отдельно»)
+        self.assertEqual(self.cfg["price_note"], self.site["series_price"])
+        self.assertEqual(self.cfg["price_note_many"], "Цены первой серии")
+        for fact in ("с НДС", "доставка", "самовывоз", "отдельно", "сборка"):
+            self.assertIn(fact, self.cfg["includes"].replace("\u00a0", " "))
+        for t in texts(self.cfg):
+            for old in ("ориентировоч", "не подтвержд", "доставкой и сборкой", "350"):
+                self.assertNotIn(old, t.lower())
 
     def test_honest_text(self):
         taglines = [self.catalog[p]["tagline"]["ru"] for v in self.root["variants"] for p in v["products"]]
@@ -374,15 +383,15 @@ class MetaTestPlanTests(unittest.TestCase):
             self.assertNotIn("מקבלים מחיר השקה", t, "знижку раннім ніхто не підтвердив")
 
     def test_every_ad_says_what_the_price_includes(self):
-        """В описі кожного оголошення — фраза launch-bar сайту дослівно; ні «реєстрації», ні «без оплати», ні тижнів."""
+        """В описі кожного оголошення — ПДВ у ціні, доставка чи самовивіз окремо, складання своє (23.10, як на сайті);
+        ні «реєстрації», ні «без оплати», ні тижнів, ні суми доставки."""
         section = self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0]
         descs = re.findall(r"^- \*\*Описание:\*\* (.+)$", section, re.M)
         self.assertEqual(len(descs), 4, descs)  # три креативи + карусель тонів
-        phrase = "המחיר כולל מע״מ, משלוח והרכבה"
+        phrase = "כולל מע״מ · משלוח או איסוף עצמי בנפרד · הרכבה עצמית"
         for d in descs:
             self.assertIn(phrase, d)
-        # з 22.10 (хвиля 1) сайт каже інше: доставка окремо (₪350 / самовивіз ₪0), ціна тверда. Документ —
-        # запис кампанії, що вже крутиться; зміна оголошень — лише словом власника (Meta не чіпаємо)
+        self.assertNotRegex(section, r"משוער|טרם אושר|משלוח והרכבה|₪\s*350|350\s*₪")
         for bad in ("הרשמה", "ללא תשלום", "שבועות"):
             self.assertNotIn(bad, self.doc.split("## 3.", 1)[1].split("## 4.", 1)[0])
 
@@ -429,9 +438,10 @@ class MetaTestGroupCTests(unittest.TestCase):
     def test_every_ad_says_what_the_price_includes(self):
         descs = re.findall(r"^- \*\*Описание:\*\* (.+)$", self.section, re.M)
         self.assertEqual(len(descs), 4, descs)
-        phrase = "в цену входят НДС, доставка и сборка"   # запис кампанії 22.10; сайт з хвилі 1 — інакше
+        phrase = "Цена первой серии · с НДС · доставка или самовывоз отдельно · сборка своими руками"
         for d in descs:
             self.assertIn(phrase, d)
+        self.assertNotRegex(self.section, r"(?i)ориентировоч|не подтвержд|доставка и сборка|₪\s*350|350\s*₪")
 
 
 PAGEKIT = ROOT / "tools" / "creatives" / "pagekit.json"
