@@ -1063,6 +1063,9 @@ def admin_login(event):
         and hmac.compare_digest(form.get("pass", ""), ADMIN_PASS)
     )
     if not ok:
+        # Без користувача, IP і хешу: сторож журналу (scripts/journal_watch.py) рахує лише кількість —
+        # ≥ 5 за годину = підбір пароля.
+        print(json.dumps({"event": "admin_login_failed"}))
         # Slow down credential stuffing without holding the request open long.
         time.sleep(0.6)
         return resp(401, LOGIN_PAGE.format(err='<p class="e">משתמש או סיסמה לא נכונים.</p>'), is_json=False)

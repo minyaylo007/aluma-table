@@ -12,10 +12,12 @@
   var PRODUCTS = DATA.products || [];
   var reduced = W.matchMedia && W.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // tracking.js вантажиться після load: подію до нього (ViewContent при старті) кладемо в чергу alumaQ, він її програє
-  var track = function (name, params) {
-    try { if (W.alumaTrack) return W.alumaTrack(name, params || {}); (W.alumaQ = W.alumaQ || []).push([name, params || {}]); } catch (e) {}
+  var track = function (name, params, opts) {
+    try { if (W.alumaTrack) return W.alumaTrack(name, params || {}, opts); (W.alumaQ = W.alumaQ || []).push([name, params || {}, opts]); } catch (e) {}
     return "";
   };
+  // сторінка 404: шлях без query — у нашу аналітику (сторож журналу рахує повтори), Meta не потрібна
+  if (qs("[data-not-found]")) track("NotFound", { path: location.pathname.slice(0, 200) }, { pixel: false });
   var byId = function (id) { for (var i = 0; i < PRODUCTS.length; i++) if (PRODUCTS[i].id === id) return PRODUCTS[i]; return null; };
   // ціна як у build.py money(): «₪4,490»; у ru — «4 490 ₪» з нерозривними пробілами
   var money = function (n) {

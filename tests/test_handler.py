@@ -18,7 +18,9 @@ The SQLite store behind ``_tables()`` has its own file: tests/test_store_sqlite.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import pathlib
@@ -762,6 +764,32 @@ class DailyReportShapeTests(unittest.TestCase):
         self.assertEqual(legacy["lang"], "")
         self.assertEqual(legacy["size"], "")
         self.assertEqual(legacy["source"], "direct")
+
+
+class AdminLoginLogTests(HandlerTestCase):
+    """Невдалий вхід — один JSON-рядок без користувача, пароля й IP (його рахує scripts/journal_watch.py)."""
+
+    def login(self, user, pw):
+        ev = {"requestContext": {"http": {"method": "POST", "sourceIp": "203.0.113.9"}},
+              "headers": {"x-forwarded-for": "203.0.113.9"}, "body": f"user={user}&pass={pw}"}
+        out = io.StringIO()
+        with mock.patch.object(h, "ADMIN_USER", "owner"), mock.patch.object(h, "ADMIN_PASS", "s3cret-pass"), \
+                mock.patch.object(h.time, "sleep"), contextlib.redirect_stdout(out):
+            r = h.admin_login(ev)
+        return r, out.getvalue()
+
+    def test_failed_login_logs_event_only(self):
+        r, log = self.login("intruder", "guess-pass")
+        self.assertEqual(r["statusCode"], 401)
+        lines = [json.loads(x) for x in log.splitlines() if x.strip()]
+        self.assertEqual(lines, [{"event": "admin_login_failed"}])
+        for leak in ("intruder", "guess-pass", "203.0.113.9", "s3cret-pass"):
+            self.assertNotIn(leak, log)
+
+    def test_good_login_logs_nothing(self):
+        r, log = self.login("owner", "s3cret-pass")
+        self.assertEqual(r["statusCode"], 303)
+        self.assertEqual(log, "")
 
 
 if __name__ == "__main__":

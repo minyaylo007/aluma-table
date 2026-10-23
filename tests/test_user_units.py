@@ -102,6 +102,25 @@ class BackupUnitTests(unittest.TestCase):
         self.assertEqual(one(self.TIMER, "WantedBy"), "timers.target")
 
 
+class JournalWatchUnitTests(unittest.TestCase):
+    """Сторож журналів (OWNER-RULES п.42): з клону, кожні 10 хв, фоном."""
+    NAME = "ihor-aluma-journal-watch.service"
+    TIMER = "ihor-aluma-journal-watch.timer"
+
+    def test_runs_from_clone(self):
+        self.assertEqual(one(self.NAME, "Type"), "oneshot")
+        self.assertEqual(one(self.NAME, "WorkingDirectory"), BASE)
+        self.assertEqual(one(self.NAME, "ExecStart"), BASE + "/.venv/bin/python scripts/journal_watch.py")
+        self.assertEqual(values(self.NAME, "EnvironmentFile"), ["%h/.config/aluma/aluma.env"])
+        self.assertEqual(one(self.NAME, "Nice"), "10")
+        self.assertEqual(one(self.NAME, "UMask"), "0077")
+
+    def test_timer_every_ten_minutes(self):
+        self.assertEqual(one(self.TIMER, "Unit"), self.NAME)
+        self.assertEqual(one(self.TIMER, "OnCalendar"), "*:0/10")
+        self.assertEqual(one(self.TIMER, "WantedBy"), "timers.target")
+
+
 class DigestUnitTests(unittest.TestCase):
     """Дайджест воронки: ті самі інваріанти, що в бекапу; розклад — за Єрусалимом, не за зоною машини."""
     NAME = "ihor-aluma-digest.service"

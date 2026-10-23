@@ -1,0 +1,39 @@
+# ALUMA — сторож журналів (одноразовий прогін, кличе ihor-aluma-journal-watch.timer кожні 10 хв).
+# КОРИСТУВАЦЬКИЙ юніт (systemctl --user), образець — ihor-aluma-backup.service. OWNER-RULES п.42.
+#
+# Установка руками (scripts/deploy-box.sh юнітів не ставить), один раз:
+#   install -m 0644 deploy/systemd/user/ihor-aluma-journal-watch.service \
+#       deploy/systemd/user/ihor-aluma-journal-watch.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now ihor-aluma-journal-watch.timer
+# Перевірити, нічого не надсилаючи:
+#   /opt/ihor/aluma-table/.venv/bin/python scripts/journal_watch.py --since '-1h' --dry-run
+#   journalctl --user -u ihor-aluma-journal-watch -n 3     # один JSON-рядок journal_watch з лічильниками
+# Відкат: systemctl --user disable --now ihor-aluma-journal-watch.timer (стан і курсор у data/ лишаються).
+#
+# Що він робить і чого не робить — шапка scripts/journal_watch.py і deploy/README.md, «Сторож журналів».
+# Свого журналу сторож не читає (інакше тривога про тривогу); його власний збій видно як юніт failed.
+
+[Unit]
+Description=ALUMA — journal watch: errors and warnings of ihor-aluma-* to the conductor (user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ihor/aluma-table
+
+# Потрібен лише FX_DB_PATH (404 з бази, читання read-only). Значення не друкуються.
+EnvironmentFile=%h/.config/aluma/aluma.env
+
+ExecStart=/opt/ihor/aluma-table/.venv/bin/python scripts/journal_watch.py
+
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=3min
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aluma-journal-watch
+
+NoNewPrivileges=true
+UMask=0077

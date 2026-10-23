@@ -1,0 +1,17 @@
+# ALUMA — запуск ihor-aluma-journal-watch.service кожні 10 хв. КОРИСТУВАЦЬКИЙ юніт.
+# Установка — див. коментар у ihor-aluma-journal-watch.service.
+
+[Unit]
+Description=ALUMA — journal watch every 10 minutes (timer, user unit)
+Documentation=file:///opt/ihor/aluma-table/deploy/README.md
+
+[Timer]
+Unit=ihor-aluma-journal-watch.service
+
+OnCalendar=*:0/10
+AccuracySec=1min
+# Пропуск (сервер лежав) — один прогін після старту: курсор журналу збережений, нічого не загубиться.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
