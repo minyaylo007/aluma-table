@@ -73,7 +73,7 @@
 | `lint` | `ruff check .` (E9 + F, `ruff.toml`); `node --check` зібраного `dist/assets/*.js` і `tests/*.js` | `requirements-lint.txt` |
 | `test (3.12)`, `test (3.13)` | `python -m unittest discover -s tests -t . -v` — увесь набір; 3.12 — як на машині, 3.13 — як у Lambda | `api/requirements.txt`, `tests/requirements.txt` |
 | `build` | `python build.py` (preview, без Pillow) двічі — суми `dist/` однакові | — |
-| `browser` | `tests/redesign.spec.js` (повністю мокнутий) на `PREVIEW_PORT=8007`, Chromium | `package-lock.json` |
+| `browser` | `tests/redesign.spec.js` (повністю мокнутий) на `PREVIEW_PORT=8007`, a11y, responsive, tracking; Chromium з кешу | `package-lock.json` |
 
 **`secret-scan` іде завжди** — без умов і без фільтрів шляхів, зокрема й на коміті в один `.md`: правило флоту
 13.09.2026. Саме такий скан знайшов в іншому проєкті коди від дверей і пароль WiFi — **у документах**, не в коді.
@@ -90,7 +90,17 @@
 `is_test` у SQLite стеку; запуск — `npx playwright test --config tests/playwright.smoke.config.js` (стек на 8007 піднімає сам,
 порт мусить бути вільним). Lighthouse — не в CI.
 
-**Версії actions (FR-035, для шаблону флоту):** `actions/checkout@v6`, `actions/setup-python@v6`,
+**Кеш Chromium у `browser` (23.10.2026).** Два прогони зрізало на `timeout-minutes: 20`: крок `Chromium` ішов ~10 хв,
+з них сам браузер — 8 с, а системні пакети (`--with-deps`) apt тягнув із дзеркала на 45 kB/s. Тепер через
+`actions/cache@v6` кешуються обидва: браузери в `~/.cache/ms-playwright` і завантажені `.deb` у `~/.cache/playwright-apt`
+(кеш GitHub Actions репозиторію, вкладка Actions → Caches). Ключ — `playwright-<ImageOS>-<версія @playwright/test із
+package-lock.json>-chromium-v1` (і `playwright-apt-…-v1`): оновлення Playwright чи образу раннера саме дає новий кеш.
+На влучанні йде лише `npx playwright install-deps chromium` (встановлених системних пакетів кеш не зберігає, але `.deb`
+бере локально), на промаху — `npx playwright install --with-deps chromium`. Ліміт `browser` — 30 хв. **Кеш «зіпсувався»**
+(Chromium не стартує, бракує бібліотек): змінити суфікс `-v1` → `-v2` в обох ключах у `ci.yml` через PR, або видалити
+записи `playwright-*` у Actions → Caches (`gh cache delete <ключ>`); наступний прогін збере кеш наново.
+
+**Версії actions (FR-035, для шаблону флоту):** `actions/cache@v6`, `actions/checkout@v6`, `actions/setup-python@v6`,
 `actions/setup-node@v6` — працюють на Node 24, у журналі 0 попереджень про застарілість; `actions/setup-python@v6`
 підтверджено прогоном [34608006392](https://github.com/minyaylo007/aluma-table-archive-2026-09/actions/runs/34608006392).
 
