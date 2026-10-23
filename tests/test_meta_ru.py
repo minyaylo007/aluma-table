@@ -1,5 +1,5 @@
-"""docs/META-TEST.md §4а «Группа C — русский»: ціни в текстах — з каталогу, у кожному основному тексті — що ціна
-орієнтовна і як влаштована оплата (не на сайті, спершу дзвінок і письмове підтвердження). Посилання, назви й заборони
+"""docs/META-TEST.md §4а «Группа C — русский»: ціни в текстах — з каталогу, у кожному основному тексті — що це ціна
+першої серії з ПДВ (з 23.10, як на сайті), ні «орієнтовної», і як влаштована оплата (не на сайті, спершу дзвінок і письмове підтвердження). Посилання, назви й заборони
 перевіряє tests/test_quality_creatives.py — тут їх не дублюємо."""
 
 from __future__ import annotations
@@ -32,7 +32,9 @@ class MetaRussianGroupTests(unittest.TestCase):
     def test_every_text_says_how_payment_works(self):
         self.assertEqual(len(self.blocks), 4)
         for b in self.blocks:
-            self.assertIn("ориентировочн", b.lower(), b)
+            self.assertIn("первой серии", b, b)
+            self.assertIn("с НДС", b, b)
+            self.assertNotIn("ориентировочн", b.lower(), b)
             self.assertRegex(b, r"Оплата[^\n]*(не на сайте|только после)", b)
 
     def test_funnel_by_language_is_mentioned(self):
