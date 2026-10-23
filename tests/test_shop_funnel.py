@@ -419,6 +419,17 @@ class ComputeTests(unittest.TestCase):
             {"product": "tavor", "size": "160×90", "price": 4490, "cart": 1, "checkout": 1, "payment": 1,
              "lead": 1}])
 
+    def test_ask_from_card_counted_next_to_cart_not_as_a_step(self):
+        # 23.10: «שאלה? נחזור אליכם» (cta_ask) — сесії за кнопкою; кроки воронки й «де пішли» не змінюються
+        events = EVENTS + [row("cta_ask", "s3", T, content_ids=["saf"], cta="pdp"),
+                           row("cta_ask", "s3", T, content_ids=["saf"], cta="sticky"),
+                           row("cta_ask", "s2", T, content_ids=["tavor"], cta="pdp")]
+        rep = funnel.compute(events, [])
+        self.assertEqual(rep["ask"], {"sessions": 2, "by_cta": {"pdp": 2, "sticky": 1}})
+        self.assertEqual(rep["steps"], funnel.compute(EVENTS, [])["steps"])
+        self.assertEqual(funnel.compute(EVENTS, [])["ask"], {"sessions": 0, "by_cta": {}})
+        self.assertIn("Вопрос с карточки: 2 (корзина 2) · pdp 2, sticky 1", funnel.text(funnel.report(events, [], 0)))
+
     def test_no_personal_data_in_the_report(self):
         blob = json.dumps(self.rep, ensure_ascii=False) + funnel.text(
             funnel.report(EVENTS, [], 0))
@@ -433,7 +444,8 @@ class AdminFunnelTests(Base):
 
     def test_page_shows_counts_and_no_personal_data(self):
         self.send([ev("PageView"), ev("ViewContent", content_ids=["tavor"]),
-                   ev("AddToCart", content_ids=["tavor"], size="160×90", price=4490)], session="sx")
+                   ev("AddToCart", content_ids=["tavor"], size="160×90", price=4490),
+                   ev("cta_ask", content_ids=["tavor"], content_type="product", cta="sticky")], session="sx")
         h.lambda_handler(request("POST", "/api/fx/lead", checkout_lead(name="דנה לוי", session_id="sx"),
                                  {"user-agent": UA}), None)
         self.send([ev("PageView")], session="test-s", headers={"x-test": "1"})
@@ -443,6 +455,8 @@ class AdminFunnelTests(Base):
         self.assertIn("משפך קנייה", page)
         self.assertIn("tavor", page)
         self.assertIn("₪4490", page)
+        self.assertRegex(page, r"вопрос с карточки \(cta_ask\)</h2><table><tr><td>сессии</td><td class='n'>1</td></tr>"
+                               r"<tr><td class='mono'>sticky</td><td class='n'>1</td></tr>")
         for pii in ("דנה", "050", "501234567", "sx"):
             self.assertNotIn(pii, page)
         main = self.admin("/admin", {"range": "7"})["body"]

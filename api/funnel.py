@@ -199,6 +199,7 @@ def compute(events, leads) -> dict:
     cart_price = {}                                          # сесія → (slug, size, ₪) останнього AddToCart
     leaves = Counter()
     seconds = defaultdict(list)
+    asks = defaultdict(set)                                  # м'який крок картки: cta → сесії з cta_ask
 
     for e in events:
         sid = e.get("session_id") or ""
@@ -220,6 +221,8 @@ def compute(events, leads) -> dict:
             s = _num(p.get("seconds"))
             if s is not None:
                 seconds[str(p.get("step") or "other")[:20]].append(s)
+        if name == "cta_ask":
+            asks[str(p.get("cta") or "other")[:20]].add(sid)
         if not step:
             continue
         for bucket in (total, by_source[src], by_day[day], by_lang[lang]):
@@ -273,6 +276,9 @@ def compute(events, leads) -> dict:
         "by_lang": table(by_lang, order=[k for k in (*LANGS, "?") if k in by_lang]),
         "dropped_after": [{"step": k, "n": dropped.get(k, 0)} for k in STEP_KEYS[1:-1]],
         "leave_by_step": dict(leaves.most_common()),
+        # «вопрос с карточки» поруч із кошиком: не крок воронки (шлях не обов'язковий), а окремий лічильник сесій
+        "ask": {"sessions": len(set().union(*asks.values())) if asks else 0,
+                "by_cta": {k: len(v) for k, v in sorted(asks.items(), key=lambda kv: (-len(kv[1]), kv[0]))}},
         "median_seconds": {k: sorted(v)[len(v) // 2] for k, v in seconds.items() if v},
         "price_points": [
             {"product": k[0], "size": k[1], "price": k[2],
@@ -315,6 +321,10 @@ def text(rep: dict) -> str:
 
     lines.append("Всего:  " + steps_line(rep["steps"]))
     lines.append(f"Заявок в таблице: {rep['lead_rows']}")
+    ask = rep.get("ask") or {}
+    cart = next((s["n"] for s in rep["steps"] if s["key"] == "cart"), 0)
+    lines.append(f"Вопрос с карточки: {ask.get('sessions', 0)} (корзина {cart})"
+                 + (" · " + ", ".join(f"{k} {v}" for k, v in ask["by_cta"].items()) if ask.get("by_cta") else ""))
     lines.append("Реклама Meta, сессии: " + " · ".join(f"{a['ru']} {a['n']}" for a in rep.get("by_audience") or [])
                  + (" (шаги выше — только люди)" if rep.get("people_only") else ""))
     if any(a["key"] == "ads_meta_est" and a["n"] for a in rep.get("by_audience") or []):

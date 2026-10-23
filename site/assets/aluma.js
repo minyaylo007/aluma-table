@@ -289,6 +289,21 @@
       track("ViewContent", { content_ids: [P.id], content_type: "product", content_name: P.name, value: first ? first.price : P.from, currency: "ILS" });
     }
   }
+  // ---------------------------------------------------------------- картка: м'який крок «שאלה? נחזור אליכם»
+  // [data-ask] біля «הוספה לסל» і в липкій панелі + «השאירו פרטים» під ціною → форма #register з цим столом.
+  // cta_ask — лише в нашу аналітику (воронка: «вопрос с карточки»), Meta не потрібна. Форми нема — кнопок теж.
+  var asks = qsa("[data-ask], .pdp-ask"), reg0 = qs("#register"), fName = form && qs("#f-name", form);
+  if (asks.length && !(reg0 && form)) asks.forEach(function (b) { b.hidden = true; });
+  else asks.forEach(function (b) {
+    b.addEventListener("click", function (e) {
+      e.preventDefault();
+      var cur = pdp && currentProduct();
+      if (cur && fProduct && !fProduct.value) syncFormProduct(cur.id);
+      if (cur) track("cta_ask", { content_ids: [cur.id], content_type: "product", cta: b.getAttribute("data-cta") || "" }, { pixel: false });
+      reg0.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+      setTimeout(function () { if (fName) { try { fName.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
+    });
+  });
   // «Інший розмір» → коментар у формі
   qsa(".js-custom").forEach(function (a) {
     a.addEventListener("click", function () {

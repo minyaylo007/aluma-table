@@ -1385,6 +1385,9 @@ def admin_funnel(event):
         f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td>"
         f"<td class='n'>{esc(rep['median_seconds'].get(k, '—'))}</td></tr>" for k, v in rep["leave_by_step"].items()
     ) or "<tr><td colspan='3' class='muted'>אין נתונים · нет данных</td></tr>"
+    ask_rep = rep.get("ask") or {}
+    ask = f"<tr><td>сессии</td><td class='n'>{ask_rep.get('sessions', 0)}</td></tr>" + "".join(
+        f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td></tr>" for k, v in (ask_rep.get("by_cta") or {}).items())
     keep_test = "&amp;test=1" if show_test else ""
     nav = " ".join(
         f"<a href='?range={r}{keep_test}' class='{'on' if rng == r else ''}'>{label}</a>"
@@ -1431,6 +1434,7 @@ def admin_funnel(event):
   <section class="card wide"><h2>לפי שפה · по языку (he / en / ru)</h2>{grid(rep['by_lang'], 'שפה')}</section>
   <section class="card wide"><h2>לפי יום · по дням</h2>{grid(rep['by_day'], 'יום')}</section>
   <section class="card"><h2>איפה עזבו · последний шаг сессии</h2><table>{dropped}</table></section>
+  <section class="card"><h2>שאלה מכרטיס המוצר · вопрос с карточки (cta_ask)</h2><table>{ask}</table></section>
   <section class="card"><h2>יציאה מהדף · уход со страницы (шаг · медиана сек.)</h2><table>{leave}</table></section>
   <section class="card wide"><h2>באיזה מחיר · цена в корзине → дошли</h2>
     <table><thead><tr><th>מוצר</th><th>₪</th><th>корзина</th><th>«לתשלום»</th><th>оплата</th><th>Lead</th></tr></thead>
