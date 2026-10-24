@@ -2,7 +2,7 @@
 
 Файл читає build.py вітрини; тут перевіряється контракт ночі 20→21.10.2026: поля кожного товару,
 ціни (price_from_ils — найменша з сітки, preliminary: true, поки фабрика не підтвердила), строк 10–12
-тижнів, тонування 4–6, і що кожна картинка — візуалізація з підписом «הדמיה» / «visualization», а файл
+тижнів, тонування 4–6, і що кожна картинка — візуалізація (kind; з 24.10 без «הדמיה» в alt), а файл
 існує. Окремо — слова: «עץ אלון מלא» / «solid oak» лише про кромки й фасади (решта — шпон), і жодних
 «купити»: грошей не беремо.
 """
@@ -160,9 +160,10 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertEqual(image["kind"], "visualization")
                     self.assertTrue(image["src"].startswith("/assets/products/"), image["src"])
                     self.assertTrue((ASSETS / image["src"].lstrip("/")).is_file(), image["src"])
-                    self.assertIn("הדמיה", image["alt"]["he"])
-                    self.assertIn("visualization", image["alt"]["en"].lower())
-                    self.assertIn("визуализация", image["alt"]["ru"].lower())
+                    # з 24.10 (слово власника) alt — назва, тон, ракурс, без «הדמיה»; застереження — terms_html «תמונות»
+                    self.assertIn(p["name"]["en"], image["alt"]["en"])
+                    for word, loc in (("הדמיה", "he"), ("visuali", "en"), ("визуализ", "ru")):
+                        self.assertNotIn(word, image["alt"][loc].lower())
                     self.assertIn(image["source"], {"ai", "render"})
 
     def test_image_variants_exist_and_hero_is_light(self):
@@ -211,8 +212,10 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertIn(image["view"], views)
                     self.assertEqual("light" in image, image["view"] == "light")
                 order = [i["view"] for i in imgs]
-                if "texture" in order:
-                    self.assertEqual(order.index("texture"), 1)
+                if "texture" in order:  # одразу за кадрами-героями (з 24.10: life → герой → дуб)
+                    lead = next(i for i, v in enumerate(order) if v != "hero")
+                    self.assertEqual(order.index("texture"), lead)
+                    self.assertLessEqual(lead, 2)
                 mech = sorted(i["state"] for i in imgs if i["view"] == "mechanism")
                 self.assertIn(mech, ([], ["closed", "half"]))
                 light = [i for i in imgs if i["view"] == "light"]
@@ -221,7 +224,7 @@ class CatalogSchemaTest(unittest.TestCase):
                     self.assertEqual(len({(i["width"], i["height"]) for i in light}), 1)
 
     def test_wide_frame_outside_gallery(self):
-        # Широкий кадр 16:9 (шапка, Meta) — окреме поле wide, не в images; той самий контракт: «הדמיה», файли є, 16:9.
+        # Широкий кадр 16:9 (шапка, Meta) — окреме поле wide, не в images; alt без «הדמיה» (з 24.10), файли є, 16:9.
         for p in self.products:
             if "wide" not in p:
                 continue
@@ -229,8 +232,8 @@ class CatalogSchemaTest(unittest.TestCase):
             with self.subTest(product=p["id"]):
                 self.assertNotIn("wide", [i["view"] for i in p["images"]])
                 self.assertEqual((w["view"], w["kind"]), ("wide", "visualization"))
-                self.assertTrue(w["alt"]["he"].startswith("הדמיה"))
-                self.assertIn("visualization", w["alt"]["en"].lower())
+                self.assertNotIn("הדמיה", w["alt"]["he"])
+                self.assertIn(p["name"]["en"], w["alt"]["en"])
                 self.assertAlmostEqual(w["width"] / w["height"], 16 / 9, delta=0.05)
                 for key in ("srcset", "srcset_avif"):
                     for entry in w[key].split(", "):
