@@ -63,6 +63,7 @@ async function waitFb(page, name, n = 1) {
 test.describe('без згоди на рекламу', () => {
   test('/ — банер є, fbq немає, до Meta нічого не йде', async ({ page }) => {
     const net = await open(page, '/?fbclid=FBCLIDTEST&utm_source=facebook');
+    await page.evaluate(() => dispatchEvent(new Event('scroll')));   // на телефоні банер — після першої прокрутки (24.10)
     await expect(page.locator('#notice')).toBeVisible();
     await page.waitForTimeout(3200);                    // довше за чергу першої сторони (2,5 с)
     expect(net.fbevents, 'fbevents.js завантажено без згоди').toBe(0);
@@ -76,6 +77,7 @@ test.describe('без згоди на рекламу', () => {
 
   test('«лише необхідні» — і після перезавантаження нічого', async ({ page }) => {
     const net = await open(page, '/');
+    await page.evaluate(() => dispatchEvent(new Event('scroll')));
     await page.locator('[data-notice-no]').click();
     await expect(page.locator('#notice')).toBeHidden();
     await page.reload();
@@ -101,6 +103,7 @@ test.describe('без згоди на рекламу', () => {
 test.describe('після згоди', () => {
   test('/ — натиснув «אישור»: піксель вантажиться, PageView з тим самим event_id, що в першої сторони', async ({ page }) => {
     const net = await open(page, '/');
+    await page.evaluate(() => dispatchEvent(new Event('scroll')));
     await page.locator('[data-notice-ok]').click();
     const [pv] = await waitFb(page, 'PageView');
     expect(net.fbevents).toBe(1);

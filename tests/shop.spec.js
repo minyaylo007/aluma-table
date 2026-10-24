@@ -302,6 +302,25 @@ test('липка смуга на телефоні кладе в кошик ви�
   expect(atc[2].cta).toBe('sticky');
 });
 
+// 24.10: leave.scroll був 0 у 45 із 49 мобільних сесій — замір прокрутки: % і px, екран і висота сторінки, лише перша сторона
+test('телефон 390: прокрутка на екран → leave зі scroll > 0, scroll_px, vh, ph; у Meta не йде', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const net = await setup(page);
+  await page.goto(`${ORIGIN}/p/tavor/`);
+  await page.mouse.wheel(0, 844);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(400);
+  await page.goto(`${ORIGIN}/catalog/`);
+  await page.waitForLoadState('load');
+  await pullBeacons(page, net);
+  const leave = firstParty(net, 'leave').find((e) => e.props.step === 'pdp');
+  expect(leave).toBeTruthy();
+  expect(leave.props.scroll).toBeGreaterThan(0);
+  expect(leave.props.scroll_px).toBeGreaterThan(400);
+  expect(leave.props.vh).toBe(844);
+  expect(leave.props.ph).toBeGreaterThan(leave.props.scroll_px);
+  expect(await fbNamed(page, 'leave')).toEqual([]);
+});
+
 test('сервер не прийняв заявку (429) — текст помилки, форма лишається, Lead не йде', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const net = await setup(page, { lead: { ok: false, error: 'rate_limited' } });

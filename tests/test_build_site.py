@@ -172,6 +172,15 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertLess(ask.start(), buy.index('name="size"'))
                     self.assertIsNone(re.search(r"מחיר משוער|[Ee]stimated price|[Оо]риентировочная цена", buy))
                     self.assertIn(f'<p class="pdp-est muted small">{t["price_est"]}</p>', buy)
+                    # 24.10: рядок довіри одразу під умовами — шпон, гарантія (з content.json), підтвердження до
+                    # оплати, своя фабрика; лише наявні факти, без відгуків, лічильників і знижок
+                    trust_m = re.search(r'<ul class="pdp-trust" role="list">(.*?)</ul>', buy, re.S)
+                    self.assertLess(buy.index('class="pdp-terms"'), trust_m.start())
+                    self.assertLess(trust_m.start(), ask.start())
+                    trust = trust_m.group(1)
+                    warranty = t["inc_warranty"].replace("{{WARRANTY_MONTHS}}", str(content["WARRANTY_MONTHS"]))
+                    self.assertEqual(re.findall(r"<li>(.*?)</li>", trust),
+                                     [t["trust_veneer"], warranty, t["pt_2"], t["trust_own"]])
 
     def test_inside_block_and_assembly_pdf_only_where_confirmed(self):
         # хвиля 1 (22.10): «מה בפנים» — лише в INSIDE_PRODUCTS, числа з content.json, «הדמיה» поруч; PDF збирання

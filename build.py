@@ -587,6 +587,13 @@ def ship_terms(p: dict, loc: str) -> str:
     return '<ul class="pdp-terms" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
+def trust_row() -> str:
+    """Рядок довіри під умовами доставки: шпон, гарантія, письмове підтвердження до оплати, своя фабрика.
+    Лише наявні факти (гарантія — WARRANTY_MONTHS із content.json); без відгуків, лічильників і знижок."""
+    items = ["{{t.trust_veneer}}", "{{t.inc_warranty}}", "{{t.pt_2}}", "{{t.trust_own}}"]
+    return '<ul class="pdp-trust" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+
+
 def ship_choice() -> str:
     """Вибір «самовивіз / до дверей» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
     # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—350 ₪»), тому &nbsp;
@@ -998,7 +1005,7 @@ def main() -> None:
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0, loc),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
-                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc),
+                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc), "P_TRUST": trust_row(),
                 "P_PRICE_NOTE": "{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}", "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",

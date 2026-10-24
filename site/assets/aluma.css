@@ -355,6 +355,24 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 /* зразки тонів — шматочки шпону (скан або фото з фабрики, --i), колір каталогу — підкладка (--c) */
 .card-dot { width: 18px; height: 18px; border-radius: 3px; background: var(--i, none) center / cover, var(--c);
   box-shadow: inset 0 0 0 1px rgba(33, 28, 23, .18); }
+/* каталог на телефоні (24.10): реклама «collection» веде сюди — дві колонки, фото 1:1, під ним назва й «מ־₪…»;
+   на 390×844 після заголовка видно чотири картки з цінами. Головна й «עוד מהסדרה» — як були */
+@media (max-width: 599px) {
+  .page-catalog .sec--top { padding-block-start: 20px; }
+  .page-catalog .sec-head { margin-block-end: 16px; }
+  .page-catalog .sec-head .eyebrow { display: none; } /* «סדרת השקה» — і в смузі, і в заголовку */
+  .page-catalog .sec-lede { margin-block-start: 6px; font-size: .95rem; line-height: 1.45; }
+  .page-catalog .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
+  .page-catalog .card-link { gap: 6px; }
+  .page-catalog .card .media { aspect-ratio: 1; }
+  .page-catalog .card .viz-tag { inset-block-end: 6px; inset-inline-start: 6px; font-size: .68rem; padding: 2px 7px; }
+  .page-catalog .card-body { gap: 4px; }
+  .page-catalog .card-row { display: grid; gap: 0; }
+  .page-catalog .card-name { font-size: 1.15rem; }
+  .page-catalog .card-price { font-size: .9rem; }
+  .page-catalog .card-dots { gap: 4px; }
+  .page-catalog .card-dot { width: 12px; height: 12px; border-radius: 2px; }
+}
 
 /* ---------------------------------------------------------------- розміри */
 .split-grid { display: grid; gap: clamp(32px, 5vw, 80px); align-items: center; }
@@ -530,27 +548,42 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-kicker .eyebrow, .pdp-kicker .badges { margin: 0; }
 .badge { font-size: .78rem; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
 .pdp-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-block: 24px 4px; padding-block-start: 20px; border-block-start: 1px solid var(--line); }
-/* телефон 390×844: назва, гасло й ціна — у першому екрані, під кадром і мініатюрами (22.10) */
-@media (max-width: 599px) {
-  .page-product .crumbs { padding-block: 12px 6px; }
-  .pdp { gap: 16px; }
-  .gallery { gap: 8px; }
-  .g-thumb { width: 64px; }
-  .pdp-h1 { font-size: 2.2rem; }
-  .pdp-tag { margin-block-start: 4px; font-size: 1rem; }
-  .pdp-price { margin-block: 12px 2px; padding-block-start: 12px; row-gap: 0; }
-  .pdp-price .price-incl { line-height: 1.3; } /* «מחיר השקה לסדרה הראשונה · 12 שולחנות» — окремим рядком, плитки не з'їжджають під банер */
-  .price { font-size: 2rem; }
-  /* умови й «השאירו פרטים» щільніше: у TAVOR кнопка над банером cookies (хвиля 1, крок 5) */
-  .pdp-terms { line-height: 1.35; }
-  .pdp-buy .pdp-ask { margin-block-start: 8px; }
-}
 .price { font-size: 2.2rem; line-height: 1; }
 /* «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 · הרכבה» — один рядок через «·», на вузькому переноситься по пунктах */
 .pdp-terms { display: flex; flex-wrap: wrap; gap: 2px 0; margin: 4px 0 0; padding: 0; list-style: none; font-size: .88rem; color: var(--muted); }
 .pdp-terms li:not(:last-child)::after { content: "·"; margin-inline: 8px; }
-/* «השאירו פרטים» — у першому екрані телефона, одразу під ціною (хвиля 1, 22.10) */
+/* рядок довіри — ті самі факти, що в «מה כלול», коротко й одразу під умовами (24.10) */
+.pdp-trust { display: flex; flex-wrap: wrap; gap: 2px 0; margin: 6px 0 0; padding: 0; list-style: none; font-size: .82rem; line-height: 1.4; color: var(--muted); }
+.pdp-trust li:not(:last-child)::after { content: "·"; margin-inline: 6px; }
+/* «השאירו פרטים» — десктоп: одразу під ціною (22.10); телефон — під парою кнопок (24.10) */
 .pdp-ask { margin-block-start: 12px; }
+/* телефон, 24.10: на 390×844 і 360×780 без прокрутки — кадр, назва, ціна, умови, рядок довіри й ОБИДВІ кнопки (.pdp-pair).
+   Кадр 16:10 замість 4:3, мініатюри 44 px; «סדרת השקה · נפתח» — у смузі над шапкою й у гаслі, тут не дублюємо.
+   Дії стоять одразу під рядком довіри (візуальний порядок), конфігуратор, «השאירו פרטים» і решта — під ними:
+   кошик бере вибране за замовчуванням, змінити тон/розмір — нижче, тоді вже з липкою смугою. */
+@media (max-width: 599px) {
+  .price { font-size: 1.9rem; }
+  .pdp-terms { line-height: 1.35; }
+  .pdp-trust { font-size: .78rem; line-height: 1.35; margin-block-start: 4px; }
+  .page-product .crumbs { padding-block: 8px 4px; }
+  .pdp { gap: 12px; }
+  .gallery { gap: 6px; }
+  .g-slide .media, .gallery .media--hero { aspect-ratio: 16 / 10; }
+  .g-thumbs { gap: 6px; padding-block-end: 0; }
+  .g-thumb { width: 44px; }
+  .pdp-buy { display: flex; flex-direction: column; }
+  .pdp-buy > * { order: 2; }
+  .pdp-buy > :is(.pdp-h1, .pdp-tag, .pdp-price, .pdp-terms, .pdp-trust) { order: 0; }
+  .pdp-buy > .pdp-kicker { display: none; }
+  .pdp-buy > .pdp-actions { order: 1; margin-block: 10px 4px; gap: 6px; }
+  .pdp-h1 { font-size: 2rem; }
+  .pdp-tag { margin-block-start: 2px; font-size: .95rem; line-height: 1.4; }
+  .pdp-price { margin-block: 8px 0; padding-block-start: 8px; row-gap: 0; }
+  .pdp-price .price-incl { line-height: 1.3; } /* «מחיר השקה לסדרה הראשונה · 12 שולחנות» — окремим рядком */
+  .pdp-pair { gap: 8px; }
+  .pdp-pair .btn { min-height: 46px; }
+  .pdp-buy .pdp-ask { align-self: flex-start; margin-block-start: 8px; }
+}
 .reg-promise { font-weight: 600; }
 .cart-row { display: flex; justify-content: space-between; gap: 12px; margin: 0; color: var(--muted); }
 .ship-choice .f-hint { margin-block-start: 8px; }
