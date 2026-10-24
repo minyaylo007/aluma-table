@@ -259,6 +259,8 @@
   if (pdp) {
     var P = currentProduct();
     var priceEl = qs(".price[data-price] bdi"), mini = qs("[data-price-mini]"), finishName = qs("[data-finish-name]");
+    // розстрочка (24.10): «≈ ₪375/חודש» — ціна розміру / INSTALLMENTS, вгору до шекеля, як build.py P_MONTHLY
+    var monthly = qs("[data-monthly]"), payN = parseInt((qs("[data-installments]") || { getAttribute: function () { return ""; } }).getAttribute("data-installments"), 10);
     var val = function (n) { var el = qs('input[name="' + n + '"]:checked', config || D); return el ? el.value : ""; };
     var syncAll = function () {
       if (P) syncFormProduct(P.id, val("size"), val("finish"), val("base"));
@@ -275,6 +277,7 @@
         var m = money(sz.getAttribute("data-price"));
         if (priceEl) priceEl.textContent = m;
         if (mini) mini.textContent = m;
+        if (monthly && payN > 0) monthly.textContent = "≈\u00a0" + money(Math.ceil(Number(sz.getAttribute("data-price")) / payN));
       }
     };
     if (config) config.addEventListener("change", function (e) {
@@ -307,6 +310,27 @@
       if (cur) track("cta_ask", { content_ids: [cur.id], content_type: "product", cta: b.getAttribute("data-cta") || "" }, { pixel: false });
       reg0.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
       setTimeout(function () { if (fName) { try { fName.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
+    });
+  });
+  // ---------------------------------------------------------------- картка: «התקשרו אלינו» — номера нема, є зворотний дзвінок
+  // [data-call] під парою кнопок і іконка в липкій смузі → міні-форма #callback (телефон + згода, lead_source=callback).
+  // cta_call — лише в нашу аналітику (воронка: «позвоните нам»), Meta не потрібна.
+  var calls = qsa("[data-call]"), cbForm = qs("#callback"), cbMain = qs('.pdp-call[data-call]');
+  if (calls.length && !cbForm) calls.forEach(function (b) { b.hidden = true; });
+  else calls.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var cur = pdp && currentProduct();
+      if (cur && fProduct && !fProduct.value) syncFormProduct(cur.id);
+      if (cur) track("cta_call", { content_ids: [cur.id], cta: b.getAttribute("data-cta") || "" }, { pixel: false });
+      var done = qs("[data-callback-thanks]");
+      if (done && !done.hidden) { done.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }); return; }
+      var open = b !== cbMain || cbForm.hidden;           // кнопка картки — перемикач; іконка смуги лише відкриває
+      cbForm.hidden = !open;
+      if (cbMain) cbMain.setAttribute("aria-expanded", String(open));
+      if (!open) return;
+      cbForm.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+      var ph = cbForm.elements.phone;
+      setTimeout(function () { if (ph) { try { ph.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
     });
   });
   // «Інший розмір» → коментар у формі
@@ -453,7 +477,8 @@
   // повна форма (#lead-form): питання про розмір або тон
   function wireForm(form) {
     var status = qs(".f-status", form), btn = qs('button[type="submit"]', form), busy = false;
-    var thanks = form.id === "lead-form" ? qs("[data-thanks]") : qs(".thanks", form.parentNode);
+    var callback = form.getAttribute("data-source") === "callback", main = qs("#lead-form");
+    var thanks = form.id === "lead-form" ? qs("[data-thanks]") : callback ? qs("[data-callback-thanks]") : qs(".thanks", form.parentNode);
     var pre = form.getAttribute("data-err") || "";
     var setErr = function (name, msg) {
       var input = form.elements[name], err = qs("#" + pre + "e-" + name, form);
@@ -470,12 +495,14 @@
       if (busy) return;
       var el = form.elements, attr = attribution(), ap = attr.p || {};
       var fv = function (n) { var x = el[n]; return x && x.value ? String(x.value).trim() : ""; };
+      // дзвінок з картки: який стіл і розмір — з основної форми, яку синхронізує конфігуратор
+      var pv = function (n) { var x = callback && main ? main.elements[n] : el[n]; return x && x.value ? String(x.value).trim() : ""; };
       var data = {
         name: fv("name"), phone: fv("phone"), city: fv("city"), comment: fv("comment"), website: el.website ? el.website.value : "",
         consent: !!el.consent.checked, consent_marketing: !!(el.consent_marketing && el.consent_marketing.checked),
         marketing_consent: !!(el.consent_marketing && el.consent_marketing.checked), ads_consent: adsConsent(),
         consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
-        product_id: fv("product_id"), size_label: fv("size_label"), finish_id: fv("finish_id"), base_id: fv("base_id"),
+        product_id: pv("product_id"), size_label: pv("size_label"), finish_id: pv("finish_id"), base_id: pv("base_id"),
         timeframe: radio("timeframe"), contact_pref: radio("contact_pref"),
         session_id: sessionId(), page: location.pathname, referrer: D.referrer || "",
         device: W.matchMedia("(min-width: 900px)").matches ? "desktop" : "mobile",
@@ -484,11 +511,12 @@
       data.color = data.finish_id.slice(0, 40);
       data.size = data.size_label.replace(/[^0-9]/g, "").slice(0, 3);
       ATTR_KEYS.forEach(function (k) { data[k] = ap[k] || ""; });
+      if (callback) data.lead_source = "callback";
       // спосіб отримання, якщо вже вибрали в кошику (shop.js, fx_ship_v1); нового поля у формі нема
       try { var way = sessionStorage.getItem("fx_ship_v1"); if (way === "pickup" || way === "door") data.delivery = way; } catch (x) {}
       var bad = [];
       setErr("name", ""); setErr("phone", ""); setErr("consent", "");
-      if (data.name.length < 2) { setErr("name", S.e_name); bad.push("name"); }
+      if (!callback && data.name.length < 2) { setErr("name", S.e_name); bad.push("name"); }
       if (!phoneOk(data.phone)) { setErr("phone", S.e_phone); bad.push("phone"); }
       if (!data.consent) { setErr("consent", S.e_consent); bad.push("consent"); }
       if (bad.length) {
@@ -513,8 +541,9 @@
               track("Lead", lp);
             }
             form.hidden = true;
+            if (callback && cbMain) cbMain.setAttribute("aria-expanded", "false");
             if (thanks) { thanks.hidden = false; try { thanks.focus({ preventScroll: true }); } catch (x) {} thanks.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }); }
-            D.body.classList.add("is-registered");
+            if (!callback) D.body.classList.add("is-registered");
             return;
           }
           unlock(); status.className = "f-status is-err";
@@ -528,6 +557,7 @@
     });
   }
   if (form) wireForm(form);
+  if (cbForm) wireForm(cbForm);
 
   // ---------------------------------------------------------------- липка кнопка: після якоря, не над формою, не з банером
   // Положення рахуємо на scroll (пасивно, раз на кадр): IntersectionObserver пропускає якір, якщо

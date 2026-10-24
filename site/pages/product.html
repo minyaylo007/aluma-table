@@ -9,6 +9,7 @@
     <p class="pdp-tag">{{P_TAGLINE}}</p>
     <div class="pdp-price">
       <span class="price" data-price><bdi dir="ltr">{{P_PRICE}}</bdi></span>
+      <span class="pdp-pay" data-installments="{{INSTALLMENTS}}">{{t.installments}} · <bdi dir="ltr" data-monthly>≈&nbsp;{{P_MONTHLY}}</bdi>{{t.per_month}}</span>
       <span class="price-incl">{{P_PRICE_NOTE}}</span>
     </div>
     {{P_TERMS}}
@@ -23,6 +24,17 @@
         <button class="btn btn--line" type="button" data-ask data-cta="pdp">{{t.ask_cta}}</button>
       </div>
       <p class="pdp-ask-hint muted small">{{t.ask_hint}}</p>
+      <button class="btn btn--line btn--block pdp-call" type="button" data-call data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg>{{t.call_cta}}</button>
+      <form class="callback" id="callback" data-source="callback" data-err="cb-" novalidate hidden>
+        <div class="f"><label for="cb-phone">{{t.f_phone}}</label><input id="cb-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="cb-e-phone"><p class="f-err" id="cb-e-phone" hidden></p></div>
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <label class="check"><input type="checkbox" name="consent" required aria-describedby="cb-e-consent"><span>{{t.f_consent}}</span></label>
+        <p class="f-err" id="cb-e-consent" hidden></p>
+        <button class="btn btn--dark btn--block" type="submit">{{t.callback_send}}</button>
+        <p class="muted small">{{t.callback_hours}}</p>
+        <p class="f-status" role="status" aria-live="polite"></p>
+      </form>
+      <p class="thanks callback-thanks" data-callback-thanks hidden tabindex="-1">{{t.callback_thanks}}</p>
       <a class="btn btn--wa btn--block js-wa" data-wa="pdp" href="#" hidden>{{t.whatsapp_ask}}</a>
     </div>
     {{P_INC}}
@@ -63,6 +75,7 @@
 {{PART_FORM}}
 <div class="sticky-cta sticky-cta--pdp" data-sticky hidden>
   {{P_THUMB}}<span class="sticky-price"><bdi dir="ltr" data-price-mini>{{P_PRICE}}</bdi></span>
+  <button class="btn btn--line sticky-call" type="button" data-call data-cta="sticky" aria-label="{{t.call_cta}}" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg></button>
   <button class="btn btn--line sticky-ask" type="button" data-ask data-cta="sticky">{{t.ask_cta_short}}</button>
   <button class="btn btn--dark" type="button" data-add-cart data-cta="sticky">{{t.add_to_cart}}</button>
 </div>
