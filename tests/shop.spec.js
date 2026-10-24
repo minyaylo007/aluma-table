@@ -286,6 +286,87 @@ test('телефон 390: «שאלה?» у липкій панелі — вис�
   await expect.poll(() => firstParty(net, 'cta_ask').map((e) => e.props.cta), { timeout: 8000 }).toEqual(['sticky']);
 });
 
+// 24.10 (слово власника): «עד 12 תשלומים» під ціною, сума платежу йде за розміром; «התקשרו אלינו» → міні-форма
+// з телефоном → заявка lead_source=callback; cta_call — лише наша аналітика
+for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
+  test(`${prefix || '/'} 390: תשלומים під ціною, «${t.call_cta}» → зворотний дзвінок, cta_call без Meta`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    const pay = page.locator('.pdp-pay');
+    await expect(pay).toContainText(t.installments.replace('{{INSTALLMENTS}}', CONTENT.INSTALLMENTS));
+    const monthly = (n) => Math.ceil(n / Number(CONTENT.INSTALLMENTS)).toLocaleString('en-US');
+    await expect(pay.locator('[data-monthly]')).toContainText(monthly(TAVOR.sizes[0].price_ils));
+    const last = TAVOR.sizes[TAVOR.sizes.length - 1];
+    await page.locator(`label:has(input[name="size"][value="${last.label}"])`).first().click();
+    await expect(pay.locator('[data-monthly]')).toContainText(monthly(last.price_ils).replace(/,/g, prefix === '/ru' ? ' ' : ','));
+
+    const call = page.locator('.pdp-actions [data-call]');
+    await expect(call).toHaveText(t.call_cta);
+    const [ask, c] = await Promise.all([page.locator('.pdp-actions [data-ask]').boundingBox(), call.boundingBox()]);
+    expect(c.y).toBeGreaterThan(ask.y + ask.height - 1);
+    const form = page.locator('#callback');
+    await expect(form).toBeHidden();
+    await call.click();
+    await expect(form).toBeVisible();
+    await expect(call).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#cb-phone')).toBeFocused();
+    await expect(form).toContainText(t.callback_hours);
+    await expect.poll(() => firstParty(net, 'cta_call').length, { timeout: 8000 }).toBe(1);
+    expect(firstParty(net, 'cta_call')[0].props).toMatchObject({ content_ids: ['tavor'], cta: 'pdp' });
+    expect(await fbNamed(page, 'cta_call')).toHaveLength(0);
+    expect(await noOverflow(page)).toBe(0);
+
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('#cb-e-phone')).toBeVisible();
+    expect(net.leads).toHaveLength(0);
+    await page.locator('#cb-phone').fill(PHONE);
+    await form.locator('input[name="consent"]').check();
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('[data-callback-thanks]')).toBeVisible();
+    await expect(form).toBeHidden();
+    expect(net.leads).toHaveLength(1);
+    expect(net.leads[0]).toMatchObject({ lead_source: 'callback', name: '', phone: PHONE, consent: true, product_id: 'tavor',
+      size_label: last.label });
+    await waitFb(page, 'Lead');
+    await expect(page.locator('body')).not.toHaveClass(/is-registered/);
+  });
+}
+
+for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
+  test(`${prefix || '/'} 390: іконка дзвінка 44×44 у липкій смузі поруч із «${t.ask_cta_short}», смуга не ламається`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    await page.evaluate(() => scrollTo(0, document.querySelector('#spec').getBoundingClientRect().top + scrollY));
+    const sticky = page.locator('[data-sticky]');
+    await expect(sticky).toHaveClass(/is-on/);
+    const icon = sticky.locator('[data-call]');
+    await expect(icon).toHaveAttribute('aria-label', t.call_cta);
+    const [bar, ask, ic, atc, price] = await Promise.all([sticky.boundingBox(), sticky.locator('[data-ask]').boundingBox(),
+      icon.boundingBox(), sticky.locator('[data-add-cart]').boundingBox(), sticky.locator('.sticky-price').boundingBox()]);
+    expect(Math.round(ic.width)).toBe(44);
+    expect(Math.round(ic.height)).toBe(44);
+    expect(bar.height).toBeLessThanOrEqual(58);
+    for (const b of [ask, ic, atc, price]) {
+      expect(b.x).toBeGreaterThanOrEqual(bar.x - 0.5);
+      expect(b.x + b.width).toBeLessThanOrEqual(bar.x + bar.width + 0.5);
+      expect(Math.abs(b.y + b.height / 2 - (ic.y + ic.height / 2))).toBeLessThan(2);
+    }
+    // на івриті — праворуч від «שאלה?»; en/ru (LTR) — та сама розмітка, тож ліворуч від неї
+    if (prefix === '') expect(ic.x).toBeGreaterThanOrEqual(ask.x + ask.width - 0.5);
+    else expect(ic.x + ic.width).toBeLessThanOrEqual(ask.x + 0.5);
+    // текст кнопок не обрізано
+    const clipped = await sticky.evaluate((el) => [...el.querySelectorAll('.btn')].filter((b) => b.scrollWidth > b.clientWidth + 1).length);
+    expect(clipped).toBe(0);
+    expect(await noOverflow(page)).toBe(0);
+    await icon.click();
+    await expect(page.locator('#callback')).toBeVisible();
+    await expect(page.locator('#callback')).toBeInViewport();
+    await expect.poll(() => firstParty(net, 'cta_call').map((e) => e.props.cta), { timeout: 8000 }).toEqual(['sticky']);
+  });
+}
+
 test('липка смуга на телефоні кладе в кошик вибраний розмір', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);

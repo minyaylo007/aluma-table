@@ -6,7 +6,7 @@
   },
   "cookies": {
     "label": "Cookie notice",
-    "text": "Essential cookies always on; Meta Pixel and Microsoft Clarity (ad and site stats) only if you accept. Changeable.",
+    "text": "Meta Pixel and Microsoft Clarity run here (ad and site stats). “Essential only” stops them. Changeable.",
     "accept": "Accept",
     "decline": "Essential only",
     "more": "Privacy policy",
@@ -107,14 +107,14 @@
           "To get back to you about your request or order, and to confirm the order with you before any payment;",
           "To tell you about the launch date, availability and price;",
           "To send advertising — only if you ticked the separate consent box;",
-          "To measure advertising and site use and improve the site — third-party tools only after you accept cookies."
+          "To measure advertising and site use and improve the site — third-party tools, unless you choose “Essential only”."
         ]
       },
       {
         "h": "Who receives it",
         "li": [
-          "Meta Platforms (Facebook and Instagram) — only if you accept cookies: browsing events through Meta Pixel and, when you send the form, through the Conversions API. Phone, name, city and e-mail are one-way hashed (SHA-256) before sending; your IP address, browser type and Meta cookie ids are sent too. Meta also uses the data under its own privacy policy;",
-          "Microsoft Clarity — only if you accept cookies: clicks, scrolling and mouse movement, to analyse use. Form fields are masked;",
+          "Meta Platforms (Facebook and Instagram) — unless you choose “Essential only”: browsing events through Meta Pixel and, when you send the form, through the Conversions API. Phone, name, city and e-mail are one-way hashed (SHA-256) before sending; your IP address, browser type and Meta cookie ids are sent too. Meta also uses the data under its own privacy policy;",
+          "Microsoft Clarity — unless you choose “Essential only”: clicks, scrolling and mouse movement, to analyse use. Form fields are masked;",
           "Telegram — your request is sent as a notification to our account so we can get back to you quickly;",
           "Meta, Microsoft and Telegram also process data outside Israel, including in the United States;",
           "We do not sell, rent or trade your data. We disclose it to an authority only when the law requires."
@@ -132,7 +132,7 @@
       {
         "h": "Cookies",
         "p": [
-          "Essential: your cookie choice, a temporary visit id and your product choices and cart. Measurement and advertising cookies (Meta Pixel, Microsoft Clarity) load only after “Accept”. You can change your choice at any time with “Cookie settings” at the bottom of the page, or clear cookies in your browser."
+          "Essential: your cookie choice, a temporary visit id and your product choices and cart. Measurement and advertising cookies (Meta Pixel, Microsoft Clarity) load when you arrive, and the cookie notice says so. Choosing “Essential only” stops them at once: no further events go to Meta or Microsoft, and on later pages they do not load at all. You can change your choice at any time with “Cookie settings” at the bottom of every page, this one included, or clear cookies in your browser."
         ]
       },
       {

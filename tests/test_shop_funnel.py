@@ -270,6 +270,48 @@ class CheckoutLeadTests(Base):
         self.assertEqual(h.TIMEFRAME_LABELS["browsing"], "רק בודק/ת")
 
 
+def callback_lead(**over):
+    data = lead_payload(name="", lead_source="callback", product_id="tavor", size_label="160×90",
+                        event_id="lead.k1.callme01")
+    data.update(over)
+    return data
+
+
+class CallbackLeadTests(Base):
+    """«התקשרו אלינו» на картці (24.10): міні-форма лише з телефоном → lead_source=callback."""
+
+    post = CheckoutLeadTests.post
+
+    def test_phone_only_is_enough_and_source_kept(self):
+        r = self.post(callback_lead())
+        self.assertEqual(r["statusCode"], 200, r["body"])
+        item = self.all_leads()[0]
+        self.assertEqual((item["lead_source"], item["name"], item["product_id"]), ("callback", "", "tavor"))
+
+    def test_phone_and_consent_still_validated(self):
+        r = self.post(callback_lead(phone="123", consent=False))
+        self.assertEqual(set(body_json(r)["errors"]), {"phone", "consent"})
+        self.assertEqual(self.all_leads(), [])
+
+    def test_telegram_starts_with_callback_line(self):
+        with mock.patch.object(h, "TELEGRAM_BOT_TOKEN", "123:abc"), \
+                mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", "42"):
+            self.post(callback_lead())
+            self.post(checkout_lead(phone=FAKE_LOCAL[:-1] + "9", event_id="lead.k1.other002"))
+        texts = [c["json"]["text"] for c in self.rec.calls]
+        self.assertTrue(texts[0].startswith("📞 Обратный звонок — позвонить\nליד חדש — "), texts[0][:60])
+        self.assertIn("источник: callback", texts[0])
+        self.assertNotIn("Обратный звонок", texts[1], "інші заявки — без рядка дзвінка")
+
+    def test_x_test_stored_as_test_and_sends_nothing(self):
+        with mock.patch.object(h, "TELEGRAM_BOT_TOKEN", "123:abc"), \
+                mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", "42"):
+            r = self.post(callback_lead(), {"x-test": "1"})
+        self.assertEqual(r["statusCode"], 200, r["body"])
+        self.assertTrue(self.all_leads()[0].get("is_test"))
+        self.assertEqual(self.rec.calls, [])
+
+
 # --------------------------------------------------------------------------- вікно Asia/Jerusalem
 
 
@@ -430,6 +472,19 @@ class ComputeTests(unittest.TestCase):
         self.assertEqual(funnel.compute(EVENTS, [])["ask"], {"sessions": 0, "by_cta": {}})
         self.assertIn("Вопрос с карточки: 2 (корзина 2) · pdp 2, sticky 1", funnel.text(funnel.report(events, [], 0)))
 
+    def test_call_button_and_callback_leads_counted_aside(self):
+        # 24.10: «התקשרו אלינו» (cta_call) — сесії за кнопкою + заявки lead_source=callback; кроки не змінюються
+        events = EVENTS + [row("cta_call", "s3", T, content_ids=["saf"], cta="pdp"),
+                           row("cta_call", "s3", T, content_ids=["saf"], cta="sticky"),
+                           row("cta_call", "s1", T, content_ids=["tavor"], cta="pdp")]
+        leads = [{"session_id": "s3", "ts": T, "lead_source": "callback"}, {"session_id": "s1", "ts": T}]
+        rep = funnel.compute(events, leads)
+        self.assertEqual(rep["call"], {"sessions": 2, "by_cta": {"pdp": 2, "sticky": 1}, "leads": 1})
+        self.assertEqual(rep["ask"], funnel.compute(EVENTS, leads)["ask"])
+        self.assertEqual(funnel.compute(EVENTS, [])["call"], {"sessions": 0, "by_cta": {}, "leads": 0})
+        self.assertIn("«Позвоните нам»: 2, заявок на звонок 1 · pdp 2, sticky 1",
+                      funnel.text(funnel.report(events, leads, 0)))
+
     def test_no_personal_data_in_the_report(self):
         blob = json.dumps(self.rep, ensure_ascii=False) + funnel.text(
             funnel.report(EVENTS, [], 0))
@@ -459,6 +514,17 @@ class AdminFunnelTests(Base):
                                r"<tr><td class='mono'>sticky</td><td class='n'>1</td></tr>")
         for pii in ("דנה", "050", "501234567", "sx"):
             self.assertNotIn(pii, page)
+        self.assertRegex(page, r"\(cta_call\)</h2><table><tr><td>сессии</td><td class='n'>0</td></tr>"
+                               r"<tr><td>заявки callback</td><td class='n'>0</td></tr>")
+
+    def test_page_shows_call_button_and_callback_leads(self):
+        self.send([ev("PageView"), ev("cta_call", content_ids=["tavor"], content_type="product", cta="pdp")],
+                  session="sc")
+        h.lambda_handler(request("POST", "/api/fx/lead", callback_lead(session_id="sc"), {"user-agent": UA}), None)
+        page = self.admin("/admin/funnel", {"range": "1"})["body"]
+        self.assertRegex(page, r"\(cta_call\)</h2><table><tr><td>сессии</td><td class='n'>1</td></tr>"
+                               r"<tr><td class='mono'>pdp</td><td class='n'>1</td></tr>"
+                               r"<tr><td>заявки callback</td><td class='n'>1</td></tr>")
         main = self.admin("/admin", {"range": "7"})["body"]
         self.assertIn("/admin/funnel", main)
 

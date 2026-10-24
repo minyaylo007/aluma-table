@@ -1004,6 +1004,9 @@ def main() -> None:
                 "P_BADGES": badges(p, loc),
                 "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0, loc),
                 "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
+                # платіж розстрочки (24.10): мінімальна конфігурація / INSTALLMENTS, вгору до шекеля — не менше реального
+                "P_MONTHLY": money(math.ceil((p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0)
+                                             / int(CONTENT["INSTALLMENTS"])), loc),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
                 "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc), "P_TRUST": trust_row(),
                 "P_PRICE_NOTE": "{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}", "P_SIZE_HELP": size_help(p, loc),

@@ -99,7 +99,7 @@ LEAD_EVENT_ID = re.compile(r"[A-Za-z0-9_.\-]{8,64}")
 CART_ITEM = re.compile(r"[a-z0-9-]{1,40}:[\w ×x*.,/\-–]{1,40}:[a-z0-9-]{0,30}:[a-z0-9-]{0,30}:[1-9]")
 CART_MAX = 300
 ORDER_TOTAL_MAX = 200_000
-VALID_LEAD_SOURCES = ("checkout", "form", "quick")
+VALID_LEAD_SOURCES = ("callback", "checkout", "form", "quick")
 
 # Каталог товарів (catalog/products.json) — лише для людських імен у сповіщенні власнику.
 # Шукаємо в корені репозиторію і поруч із файлом (бандл лямбди — це api/ без catalog/).
@@ -550,8 +550,9 @@ def put_lead(event):
 
     source = _pick(data.get("lead_source"), 10, allowed=VALID_LEAD_SOURCES)
     errors = {}
-    # на екрані оплати ім'я необов'язкове (specs/003): там просимо лише телефон, щоб зберегти ціну
-    if len(name) < 2 and not (source == "checkout" and not name):
+    # на екрані оплати ім'я необов'язкове (specs/003): там просимо лише телефон, щоб зберегти ціну;
+    # так само «התקשרו אלינו» на картці (24.10): міні-форма лише з телефоном — зворотний дзвінок
+    if len(name) < 2 and not (source in ("checkout", "callback") and not name):
         errors["name"] = "required"
     phone, plausible = normalize_phone(phone_raw)
     if not plausible:
@@ -738,10 +739,13 @@ def lead_message(item) -> str:
     Порядок — щоб з першого екрана телефона: хто, якою мовою відповідати, що хоче, і одним дотиком
     відповісти: Telegram сам робить посилання з https://wa.me/… і номера +972….
     """
-    head = "בקשה לאישור הזמנה" if item.get("lead_source") == "checkout" else "ליד חדש"
+    source = item.get("lead_source")
+    head = "בקשה לאישור הזמנה" if source == "checkout" else "ליד חדש"
     lang = item.get("lang") or ""
     lines = [f"{head} — {SITE_DOMAIN}",
              f"Ответить: {LANG_REPLY[lang]}" if lang in LANG_REPLY else "Ответить: язык не указан", ""]
+    if source == "callback":                         # кнопка «התקשרו אלינו»: людина чекає дзвінка, не повідомлення
+        lines = ["📞 Обратный звонок — позвонить", *lines]
 
     lines.append(f"👤 {_line(item.get('name')) or '(без имени)'}")
     phone = item.get("phone") or ""
@@ -1388,6 +1392,10 @@ def admin_funnel(event):
     ask_rep = rep.get("ask") or {}
     ask = f"<tr><td>сессии</td><td class='n'>{ask_rep.get('sessions', 0)}</td></tr>" + "".join(
         f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td></tr>" for k, v in (ask_rep.get("by_cta") or {}).items())
+    call_rep = rep.get("call") or {}
+    call = f"<tr><td>сессии</td><td class='n'>{call_rep.get('sessions', 0)}</td></tr>" + "".join(
+        f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td></tr>" for k, v in (call_rep.get("by_cta") or {}).items()
+    ) + f"<tr><td>заявки callback</td><td class='n'>{call_rep.get('leads', 0)}</td></tr>"
     keep_test = "&amp;test=1" if show_test else ""
     nav = " ".join(
         f"<a href='?range={r}{keep_test}' class='{'on' if rng == r else ''}'>{label}</a>"
@@ -1435,6 +1443,7 @@ def admin_funnel(event):
   <section class="card wide"><h2>לפי יום · по дням</h2>{grid(rep['by_day'], 'יום')}</section>
   <section class="card"><h2>איפה עזבו · последний шаг сессии</h2><table>{dropped}</table></section>
   <section class="card"><h2>שאלה מכרטיס המוצר · вопрос с карточки (cta_ask)</h2><table>{ask}</table></section>
+  <section class="card"><h2>התקשרו אלינו · «позвоните нам» (cta_call)</h2><table>{call}</table></section>
   <section class="card"><h2>יציאה מהדף · уход со страницы (шаг · медиана сек.)</h2><table>{leave}</table></section>
   <section class="card wide"><h2>באיזה מחיר · цена в корзине → дошли</h2>
     <table><thead><tr><th>מוצר</th><th>₪</th><th>корзина</th><th>«לתשלום»</th><th>оплата</th><th>Lead</th></tr></thead>

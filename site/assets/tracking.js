@@ -1,7 +1,8 @@
 /* ALUMA tracking.js — піксель Meta, Clarity і перша сторона (/api/fx/event) з налаштувань власника.
  * Контракт: specs/002-meta-settings/contracts/tracking.md. Конфіг — GET /api/fx/config (без збірки сайту).
- * Правила: немає pixel_id — жодного запиту до Meta; немає clarity_id — до Clarity; сторонній код —
- * лише після згоди (localStorage fx_notice_v1 = "1"; "0" — «лише необхідні», більше не питаємо);
+ * Правила: немає pixel_id — жодного запиту до Meta; немає clarity_id — до Clarity. Згода — opt-out (рішення
+ * власника 24.10, docs/COMPLIANCE-IL.md §3): без вибору сторонній код вантажиться, банер чесно про це каже;
+ * localStorage fx_notice_v1 = "1" — «אישור»; "0" — «רק הכרחיות»: одразу revoke, далі нічого, більше не питаємо;
  * ?me=1 / cookie fx_me=1 — нічого не пишемо;
  * будь-яка помилка — тихо, сайт не ламається. Самодостатній файл, без залежностей. */
 (function () {
@@ -63,7 +64,7 @@
   function send(beacon) {
     if (!queue.length) return;
     var c = ctx;
-    if (ctx.fbclid && !consented()) {                  // без згоди — жодного рекламного ідентифікатора
+    if (ctx.fbclid && !consented()) {                  // після «רק הכרחיות» — жодного рекламного ідентифікатора
       c = {}; for (var k in ctx) c[k] = ctx[k];
       c.fbclid = "";
     }
@@ -96,10 +97,11 @@
     return configPromise;
   }
 
-  // ------------------------------------------------------------ сторонній код після згоди
+  // ------------------------------------------------------------ сторонній код, якщо не відмовились
   var pending = [], pixelOn = false, clarityOn = false;
+  // стан вибору: null — ще не обрав (банер показуємо), але для opt-out це те саме, що granted
   function consentState() { var v = store(NOTICE_KEY); return v === "1" ? "granted" : v === "0" ? "denied" : null; }
-  function consented() { return consentState() === "granted"; }
+  function consented() { return consentState() !== "denied"; }
   function wantsThirdParty() { return !!(config && (config.pixel_id || config.clarity_id)); }
 
   function loadPixel(id) {
@@ -122,22 +124,28 @@
     /* eslint-enable */
   }
   function toPixel(ev) {
-    if (!pixelOn || !window.fbq) return;
+    if (!pixelOn || !window.fbq || !consented()) return;
     try { window.fbq(STANDARD.indexOf(ev.name) >= 0 ? "track" : "trackCustom", ev.name, ev.params, { eventID: ev.id }); } catch (e) {}
   }
   function loadThirdParty() {
     if (isMe || !config || !consented()) return;
-    if (config.pixel_id) loadPixel(config.pixel_id);
-    if (config.clarity_id) loadClarity(config.clarity_id);
+    if (config.pixel_id) {
+      if (pixelOn && window.fbq) try { window.fbq("consent", "grant"); } catch (e) {}   // передумав після revoke
+      loadPixel(config.pixel_id);
+    }
+    if (config.clarity_id) {
+      if (clarityOn && window.clarity) try { window.clarity("consent"); } catch (e) {}
+      loadClarity(config.clarity_id);
+    }
     var list = pending; pending = [];
     list.forEach(toPixel);
   }
 
   // Тексти — i18n/legal.<lang>.json → cookies (вітрина може передати свої через data-атрибути тега <script>).
   var TEXT = {
-    he: {"label": "הודעת עוגיות", "text": "עוגיות הכרחיות פועלות תמיד. Meta Pixel ו־Microsoft Clarity רק באישור, למדידת פרסום ולשיפור האתר. ניתן לשנות.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
-    en: {"label": "Cookie notice", "text": "Essential cookies always on; Meta Pixel and Microsoft Clarity (ad and site stats) only if you accept. Changeable.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"},
-    ru: {"label": "Уведомление о cookie", "text": "Необходимые cookie — всегда; Meta Pixel, Microsoft Clarity — по согласию. Можно изменить.", "accept": "Принять", "decline": "Только необходимые", "more": "Политика конфиденциальности"}
+    he: {"label": "הודעת עוגיות", "text": "Meta Pixel ו־Microsoft Clarity פועלים באתר למדידת פרסום ולשיפורו. „רק הכרחיות” עוצר אותם. ניתן לשנות.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
+    en: {"label": "Cookie notice", "text": "Meta Pixel and Microsoft Clarity run here (ad and site stats). “Essential only” stops them. Changeable.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"},
+    ru: {"label": "Уведомление о cookie", "text": "Meta Pixel и Microsoft Clarity уже работают (реклама). «Только необходимые» их отключит.", "accept": "Принять", "decline": "Только необходимые", "more": "Политика конфиденциальности"}
   };
   function attr(name) { return (SCRIPT && SCRIPT.getAttribute(name)) || ""; }
   function hideNotice() { var b = doc.getElementById("aluma-notice"); if (b && b.parentNode) b.parentNode.removeChild(b); }
@@ -180,8 +188,9 @@
   function start() {
     if (isMe) return;
     if (!wantsThirdParty()) { pending = []; return; }  // без пікселя й Clarity — тиша
-    if (consented()) { loadThirdParty(); return; }
-    if (consentState() === "denied") { pending = []; return; }   // «лише необхідні» — не питаємо знову
+    if (consentState() === "denied") { pending = []; return; }   // «лише необхідні» — нічого і не питаємо знову
+    loadThirdParty();                                  // opt-out: без вибору — вантажимо, банер про це каже
+    if (consentState() === "granted") return;
     if (!doc.getElementById("notice")) {                // #notice веде вітрина й сама викликає alumaConsent()
       if (doc.body) showNotice(); else doc.addEventListener("DOMContentLoaded", showNotice);
     }
@@ -190,13 +199,19 @@
   // ------------------------------------------------------------ публічне API
   window.alumaEventId = eventId;
   window.alumaConfig = loadConfig;
-  // alumaConsent() / alumaConsent(true) — згода; alumaConsent(false) — «лише необхідні» або відкликання
-  // (уже завантажений піксель живе до кінця сторінки, з наступної — нічого); alumaConsentReset() — спитати знову.
+  // alumaConsent() / alumaConsent(true) — згода; alumaConsent(false) — «лише необхідні» або відкликання:
+  // одразу fbq('consent','revoke') і Clarity consent(false)+stop, подій у треті сторони більше немає,
+  // з наступної сторінки — ні скриптів, ні запитів; alumaConsentReset() — спитати знову.
   window.alumaConsent = function (choice) {
     var yes = choice === undefined || choice === true || choice === "granted";
     store(NOTICE_KEY, yes ? "1" : "0");
     hideNotice();
-    if (yes) loadThirdParty(); else pending = [];
+    if (yes) loadThirdParty();
+    else {
+      pending = [];
+      if (pixelOn && window.fbq) try { window.fbq("consent", "revoke"); } catch (e) {}
+      if (clarityOn && window.clarity) try { window.clarity("consent", false); window.clarity("stop"); } catch (e) {}
+    }
     try { doc.dispatchEvent(new CustomEvent("aluma:consent", { detail: consentState() })); } catch (e) {}
   };
   window.alumaConsentState = consentState;
@@ -222,7 +237,7 @@
     var ev = { name: name, params: p, id: id };
     if (opts && opts.pixel === false) return id;
     if (pixelOn) toPixel(ev);
-    else if ((!config || wantsThirdParty()) && pending.length < 50) pending.push(ev);   // до конфігу/згоди — черга для пікселя
+    else if ((!config || wantsThirdParty()) && consented() && pending.length < 50) pending.push(ev);   // до конфігу — черга для пікселя
     return id;
   };
 
