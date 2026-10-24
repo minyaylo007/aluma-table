@@ -60,33 +60,41 @@ async function waitFb(page, name, n = 1) {
   return tracked(page, name);
 }
 
-test.describe('без згоди на рекламу', () => {
-  test('/ — банер є, fbq немає, до Meta нічого не йде', async ({ page }) => {
+test.describe('opt-out (власник 24.10): до вибору піксель працює, «רק הכרחיות» його зупиняє', () => {
+  test('/ — перший візит: банер є, піксель і PageView без кліку, fbclid іде', async ({ page }) => {
     const net = await open(page, '/?fbclid=FBCLIDTEST&utm_source=facebook');
     await page.evaluate(() => dispatchEvent(new Event('scroll')));   // на телефоні банер — після першої прокрутки (24.10)
     await expect(page.locator('#notice')).toBeVisible();
-    await page.waitForTimeout(3200);                    // довше за чергу першої сторони (2,5 с)
-    expect(net.fbevents, 'fbevents.js завантажено без згоди').toBe(0);
-    expect(await page.evaluate(() => typeof window.fbq)).toBe('undefined');
+    await expect(page.locator('#notice')).toContainText('Meta Pixel');
+    const [pv] = await waitFb(page, 'PageView');
+    expect(net.fbevents).toBe(1);
     expect(net.outside, 'запит назовні').toEqual([]);
-    // перша сторона пише PageView, але без рекламного ідентифікатора
-    const pv = firstParty(net, 'PageView');
-    expect(pv.length).toBe(1);
-    for (const b of net.events) expect(b.ctx.fbclid, 'fbclid без згоди').toBe('');
+    await expect.poll(() => firstParty(net, 'PageView').length, { timeout: 8000 }).toBe(1);
+    expect(firstParty(net, 'PageView')[0].props.event_id).toBe(pv[3].eventID);
+    for (const b of net.events) expect(b.ctx.fbclid).toBe('FBCLIDTEST');
   });
 
-  test('«лише необхідні» — і після перезавантаження нічого', async ({ page }) => {
+  test('«רק הכרחיות» — одразу revoke, і після перезавантаження нічого', async ({ page }) => {
     const net = await open(page, '/');
     await page.evaluate(() => dispatchEvent(new Event('scroll')));
+    await waitFb(page, 'PageView');
     await page.locator('[data-notice-no]').click();
     await expect(page.locator('#notice')).toBeHidden();
+    expect((await fbCalls(page)).some((c) => c[0] === 'consent' && c[1] === 'revoke'), 'revoke').toBe(true);
     await page.reload();
     await page.waitForLoadState('load');
     await page.waitForTimeout(1500);
     await expect(page.locator('#notice')).toBeHidden();
-    expect(net.fbevents).toBe(0);
+    expect(net.fbevents, 'fbevents.js лише з першого завантаження').toBe(1);
     expect(await page.evaluate(() => typeof window.fbq)).toBe('undefined');
     expect(net.outside).toEqual([]);
+  });
+
+  test('заявка без вибору: ads_consent = true', async ({ page }) => {
+    const net = await open(page, '/p/tavor/');
+    await fillAndSend(page);
+    await expect.poll(() => net.leads.length).toBe(1);
+    expect(net.leads[0].ads_consent).toBe(true);
   });
 
   test('заявка без згоди: ads_consent = false, Lead у Meta не йде', async ({ page }) => {

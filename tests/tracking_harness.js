@@ -8,7 +8,7 @@ const path = require("path");
 const vm = require("vm");
 
 const sc = JSON.parse(process.argv[2] || "{}");
-const src = fs.readFileSync(path.join(__dirname, "..", "site", "assets", "tracking.js"), "utf8");
+const src = fs.readFileSync(process.env.TRACKING_JS || path.join(__dirname, "..", "site", "assets", "tracking.js"), "utf8");   // TRACKING_JS — довести, що тест падає на старій версії
 const out = { fetches: [], posts: [], scripts: [], fbq: [], notice: null, noticeText: null, noticeDir: null, ids: [], events: [] };
 
 const stored = sc.stored !== undefined ? sc.stored : sc.consent ? "1" : null;
@@ -76,6 +76,7 @@ setImmediate(() => setImmediate(() => {
   for (const name of sc.callsAfter || []) out.ids.push(win.alumaTrack(name, {}));
   out.buttons = out.notice && out.notice.children ? out.notice.children.slice(1).map((c) => c.textContent) : null;
   out.fbq = win.fbq && win.fbq.queue ? win.fbq.queue.map((a) => Array.from(a)) : [];
+  out.clarity = win.clarity && win.clarity.q ? win.clarity.q.map((a) => Array.from(a)) : [];
   out.events = out.posts.flatMap((p) => p.events.map((e) => ({ name: e.name, id: e.props.event_id })));
   out.notice = out.notice ? (out.notice === "removed" ? "removed" : "shown") : null;
   out.consent = ls.get("fx_notice_v1") || null;

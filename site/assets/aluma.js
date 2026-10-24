@@ -41,7 +41,8 @@
   qsa(".nav a").forEach(function (a) { if (a.getAttribute("href") === here) a.setAttribute("aria-current", "page"); });
 
   // ---------------------------------------------------------------- згода на cookies
-  // "1" — згода (tracking.js вантажить Pixel/Clarity), "0" — лише необхідне; без запису — питаємо.
+  // opt-out (docs/COMPLIANCE-IL.md §3): без запису Pixel/Clarity працюють, банер про це каже й питає;
+  // "1" — «אישור», "0" — «רק הכרחיות»: tracking.js одразу відкликає згоду в Meta/Clarity, без перезавантаження.
   var notice = qs("#notice");
   var NOTICE_KEY = "fx_notice_v1";
   var choice = null;
@@ -78,14 +79,11 @@
     dock();
     // вибір пише tracking.js (alumaConsent); без нього — сам ключ, щоб банер не питав знову
     var choose = function (yes) {
-      var was = null;
-      try { was = localStorage.getItem(NOTICE_KEY); } catch (e) {}
       shown = true;
       notice.hidden = true;
       dock();
       if (W.alumaConsent) { try { W.alumaConsent(yes); } catch (e) {} }
       else { try { localStorage.setItem(NOTICE_KEY, yes ? "1" : "0"); } catch (e) {} }
-      if (!yes && was === "1") location.reload();     // відкликання: сторонній код уже на сторінці — перезавантажуємо без нього
     };
     var okBtn = qs("[data-notice-ok]", notice), noBtn = qs("[data-notice-no]", notice);
     if (okBtn) okBtn.addEventListener("click", function () { choose(true); });
@@ -106,8 +104,8 @@
     showNotice();
   }); });
   var adsConsent = function () {
-    try { if (W.alumaConsentState) return W.alumaConsentState() === "granted"; } catch (e) {}
-    try { return localStorage.getItem(NOTICE_KEY) === "1"; } catch (e) { return false; }
+    try { if (W.alumaConsentState) return W.alumaConsentState() !== "denied"; } catch (e) {}   // opt-out: без вибору = згода
+    try { return localStorage.getItem(NOTICE_KEY) !== "0"; } catch (e) { return false; }
   };
 
   // ---------------------------------------------------------------- меню נגישות

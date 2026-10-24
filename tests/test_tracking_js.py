@@ -1,8 +1,9 @@
 """site/assets/tracking.js за контрактом specs/002-meta-settings/contracts/tracking.md.
 
 Скрипт виконується в node:vm із фальшивим DOM (tests/tracking_harness.js): без браузера, мережі й порту.
-Доводиться головне для реклами й приватності: без pixel_id — жодного запиту до Meta, без згоди — жодного
-стороннього коду, ?me=1 — нічого, а Lead несе той самий event_id, що й заявка (дедуплікація з CAPI).
+Доводиться головне для реклами й приватності: без pixel_id — жодного запиту до Meta; модель згоди opt-out
+(власник 24.10, docs/COMPLIANCE-IL.md §3) — без вибору піксель працює й банер про це каже, «רק הכרחיות» — одразу
+revoke і більше нічого, і на наступних сторінках теж; ?me=1 — нічого, а Lead несе той самий event_id, що й заявка.
 """
 
 from __future__ import annotations
@@ -46,25 +47,30 @@ class TrackingJsTests(unittest.TestCase):
             self.assertIsNone(r["notice"])
             self.assertIn("Lead", [e["name"] for e in r["events"]])   # перша сторона працює й без пікселя
 
-    def test_without_consent_nothing_loads_until_ok(self):
+    def test_opt_out_loads_without_choice_and_shows_notice(self):
+        """Ще не обрав: піксель і Clarity вантажаться одразу, банер чесно показано, вибір не записано."""
         r = run(config={"pixel_id": PIXEL, "clarity_id": "abcdef1234"}, calls=[["ViewContent", {"content_ids": ["x"]}]])
-        self.assertEqual(meta_urls(r), [])
+        self.assertIn("https://www.clarity.ms/tag/abcdef1234", r["scripts"])
+        self.assertEqual(r["fbq"][0], ["init", PIXEL])
+        self.assertEqual([c[1] for c in r["fbq"] if c[0] == "track"], ["PageView", "ViewContent"])
         self.assertEqual(r["notice"], "shown")
         self.assertIsNone(r["consent"])
+        self.assertIsNone(r["state"])
         r = run(config={"pixel_id": PIXEL, "clarity_id": "abcdef1234"}, clickNotice=True,
                 calls=[["ViewContent", {"content_ids": ["x"]}]])
         self.assertEqual(r["consent"], "1")
         self.assertEqual(r["notice"], "removed")
         self.assertIn("https://www.clarity.ms/tag/abcdef1234", r["scripts"])
         names = [c[1] for c in r["fbq"] if c[0] == "track"]
-        self.assertEqual(names, ["PageView", "ViewContent"])         # черга до згоди не губиться
+        self.assertEqual(names, ["PageView", "ViewContent"])         # «אישור» не дублює вже надіслане
 
     def test_storefront_notice_is_respected(self):
         r = run(config={"pixel_id": PIXEL}, hasNotice=True)
-        self.assertIsNone(r["notice"])
-        self.assertEqual(meta_urls(r), [])
+        self.assertIsNone(r["notice"])                                 # свого банера поруч із #notice не малюємо
+        self.assertEqual(r["fbq"][0], ["init", PIXEL])                 # opt-out: піксель і без вибору
         r = run(config={"pixel_id": PIXEL}, hasNotice=True, consentAfter=True)
         self.assertEqual(r["fbq"][0], ["init", PIXEL])
+        self.assertEqual(r["state"], "granted")
 
     def test_notice_language_direction_and_choice(self):
         """Тексти банера — з i18n/legal.<lang>.json (cookies), дві рівноцінні кнопки вибору й посилання."""
@@ -83,17 +89,22 @@ class TrackingJsTests(unittest.TestCase):
         self.assertEqual(r["buttons"], [ru["accept"], ru["decline"], ru["more"]])
         self.assertEqual(r["posts"][0]["ctx"]["lang"], "ru")
 
-    def test_decline_loads_nothing_and_is_not_asked_again(self):
+    def test_decline_revokes_at_once_and_is_not_asked_again(self):
+        """«רק הכרחיות» на сторінці, де піксель уже працює: revoke у Meta, consent(false)+stop у Clarity,
+        після цього жодної події в треті сторони; наступна сторінка — ні скриптів, ні банера."""
         cfg = {"pixel_id": PIXEL, "clarity_id": "abcdef1234"}
         r = run(config=cfg, clickDecline=True, calls=[["ViewContent", {}]], callsAfter=["Lead"])
         self.assertEqual((r["consent"], r["state"], r["notice"]), ("0", "denied", "removed"))
-        self.assertEqual(meta_urls(r), [])
-        self.assertEqual(r["fbq"], [])
+        revoke = r["fbq"].index(["consent", "revoke"])
+        self.assertEqual([c[1] for c in r["fbq"][revoke + 1:] if c[0] in ("track", "trackCustom")], [])
+        self.assertNotIn("Lead", [c[1] for c in r["fbq"] if c[0] in ("track", "trackCustom")])
+        self.assertEqual(r["clarity"][-2:], [["consent", False], ["stop"]])
         self.assertEqual(r["consentEvents"], ["denied"])
         self.assertIn("Lead", [e["name"] for e in r["events"]])     # перша сторона без ідентифікаторів реклами
-        r = run(config=cfg, stored="0", consentAfter=False)
+        r = run(config=cfg, stored="0", consentAfter=False, calls=[["ViewContent", {}]])
         self.assertIsNone(r["notice"])                                 # наступна сторінка — не питаємо знову
         self.assertEqual(meta_urls(r), [])
+        self.assertEqual((r["fbq"], r["clarity"]), ([], []))
 
     def test_storefront_banner_decline_false_means_refusal(self):
         """Банер вітрини (#notice): «רק הכרחיות» викликає alumaConsent(false) — це відмова, не згода."""
@@ -101,8 +112,8 @@ class TrackingJsTests(unittest.TestCase):
         r = run(config=cfg, hasNotice=True, declineAfter=True, callsAfter=["Lead"])
         self.assertIsNone(r["notice"])                                 # свого банера поруч із #notice не малюємо
         self.assertEqual((r["consent"], r["state"]), ("0", "denied"))
-        self.assertEqual(meta_urls(r), [])
-        self.assertEqual(r["fbq"], [])
+        self.assertIn(["consent", "revoke"], r["fbq"])
+        self.assertNotIn("Lead", [c[1] for c in r["fbq"] if c[0] in ("track", "trackCustom")])
         self.assertEqual(r["consentEvents"], ["denied"])
         r = run(config=cfg, hasNotice=True, stored="0", consentAfter=True)   # alumaConsent() без аргументу = згода
         self.assertEqual(r["state"], "granted")
@@ -114,7 +125,7 @@ class TrackingJsTests(unittest.TestCase):
         self.assertEqual(r["state"], "denied")
         r = run(config=cfg, stored="0", resetAfter=True)
         self.assertEqual((r["notice"], r["state"]), ("shown", None))
-        self.assertEqual(meta_urls(r), [])
+        self.assertEqual(r["fbq"][0], ["init", PIXEL])                 # скинув вибір — знову opt-out за замовчуванням
         r = run(config=cfg, stored="garbage")
         self.assertEqual((r["notice"], r["state"]), ("shown", None))
 
@@ -145,9 +156,10 @@ class TrackingJsTests(unittest.TestCase):
         ctx = r["posts"][0]["ctx"]
         self.assertEqual((ctx["utm_source"], ctx["utm_campaign"]), ("fb", "goren-test"))
         self.assertTrue(ctx["attributed_at"])
-        self.assertEqual(ctx["fbclid"], "")                 # без згоди рекламний ідентифікатор не йде
-        r = run(config={}, consent=True, search="?utm_source=fb&fbclid=AbC")
-        self.assertEqual(r["posts"][0]["ctx"]["fbclid"], "AbC")
+        self.assertEqual(ctx["fbclid"], "AbC")              # opt-out: без вибору — як за згоди
+        r = run(config={}, stored="0", search="?utm_source=fb&fbclid=AbC")
+        self.assertEqual(r["posts"][0]["ctx"]["fbclid"], "")   # після «רק הכרחיות» рекламний ідентифікатор не йде
+        self.assertEqual(r["posts"][0]["ctx"]["fbclid_present"], 1)
 
     def test_bad_ids_from_config_are_ignored(self):
         r = run(config={"pixel_id": "12ab<script>", "clarity_id": "x\"onload"}, consent=True)
