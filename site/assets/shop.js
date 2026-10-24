@@ -367,22 +367,33 @@
   // ---------------------------------------------------------------- глибина прокрутки і догляд зі сторінки
   // лише в нашу аналітику (pixel:false): Meta ці події не потрібні
   var step = pdp ? "pdp" : cartBox ? "cart" : co ? "checkout" : "other";
-  var t0 = Date.now(), maxDepth = 0, marks = { 50: false, 90: false };
-  var depth = function () {
+  var t0 = Date.now(), maxDepth = 0, maxPx = 0, marks = { 50: false, 90: false };
+  // 24.10: scroll був 0 у 45 із 49 мобільних сесій, зокрема в тих, що вибирали тон нижче згину. Позицію беремо
+  // з усіх трьох джерел (вбудовані браузери Instagram/Facebook не завжди ведуть W.scrollY), px — окремо від %
+  var top = function () {
+    var se = D.scrollingElement, de = D.documentElement;
+    return Math.max(W.scrollY || W.pageYOffset || 0, se ? se.scrollTop : 0, de ? de.scrollTop : 0, D.body ? D.body.scrollTop : 0);
+  };
+  var depth = function (y) {
     var h = D.documentElement.scrollHeight - W.innerHeight;
-    return h > 0 ? Math.min(100, Math.round(W.scrollY / h * 100)) : 100;
+    return h > 0 ? Math.min(100, Math.round(y / h * 100)) : 100;
   };
   var onScroll = function () {
-    var d = depth();
+    var y = Math.round(top()), d = depth(y);
+    if (y > maxPx) maxPx = y;
     if (d > maxDepth) maxDepth = d;
     [50, 90].forEach(function (m) { if (!marks[m] && d >= m) { marks[m] = true; track("scroll", { depth: m, step: step }, { pixel: false }); } });
   };
   W.addEventListener("scroll", onScroll, { passive: true });
+  D.addEventListener("scroll", onScroll, { passive: true, capture: true });   // прокрутка не вікна, а кореня/body
   var left = false;
   W.addEventListener("pagehide", function () {
     if (!left) {
       left = true;
+      onScroll();   // остання позиція — навіть якщо подія scroll так і не прийшла
+      // scroll_px — найглибша позиція в px, vh — висота екрана, ph — висота сторінки: лише числа, без ПД
       track("leave", { step: payShown ? "payment" : step, seconds: Math.round((Date.now() - t0) / 1000), scroll: maxDepth,
+                       scroll_px: maxPx, vh: W.innerHeight, ph: D.documentElement.scrollHeight,
                        product: pdp ? pdp.getAttribute("data-product") : "" }, { pixel: false });
     }
     // tracking.js не встиг завантажитися — черга їде на наступну сторінку
