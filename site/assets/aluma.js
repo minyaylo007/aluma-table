@@ -66,7 +66,14 @@
     // переносила рядки тексту — зсув рахувався в CLS (0,046 на проді). Поява нового елемента — не зсув.
     if (choice !== "1" && choice !== "0") {
       var reveal = function () { if (!shown) { shown = true; notice.hidden = false; dock(); } };
-      if (D.fonts && D.fonts.ready) { D.fonts.ready.then(reveal, reveal); setTimeout(reveal, 1500); } else reveal();
+      var whenFonts = function () { if (D.fonts && D.fonts.ready) { D.fonts.ready.then(reveal, reveal); setTimeout(reveal, 1500); } else reveal(); };
+      // телефон і планшет (банер на всю ширину, < 900 px): перший екран картки — кадр, ціна й кнопки, а не банер.
+      // Показ — після першої прокрутки або через 6 с, що раніше (24.10). Згода не змінюється: без «אישור» пікселя нема.
+      if (W.matchMedia && W.matchMedia("(max-width: 899px)").matches) {
+        var later = function () { W.removeEventListener("scroll", later); clearTimeout(timer); whenFonts(); };
+        var timer = setTimeout(later, 6000);
+        W.addEventListener("scroll", later, { passive: true });
+      } else whenFonts();
     }
     dock();
     // вибір пише tracking.js (alumaConsent); без нього — сам ключ, щоб банер не питав знову
