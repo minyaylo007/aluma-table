@@ -570,6 +570,22 @@ def jug_on(x, y, z, yaw=2.2):
     centre_on(root, objs, x, y)
 
 
+def book_on(x, y, z, yaw=0.3, size=(0.155, 0.235, 0.024), cover=(0.36, 0.17, 0.1)):
+    """Книжка, покладена на стіл (24.10, «як живе фото»): наша модель — палітурка і блок сторінок, чужих видань нема."""
+    w, h, t = size
+    cov = pbr("book-cover", color=cover, rough=0.78)[0]
+    pages = pbr("book-pages", color=(0.86, 0.83, 0.76), rough=0.9)[0]
+    c, s = math.cos(yaw), math.sin(yaw)
+
+    def at(dx, dz):                                   # зсув від центру книжки вздовж її ширини, повернутий на yaw
+        return (x + dx * c, y + dx * s, z + dz)
+    rot = (0, 0, yaw)
+    cube("book-pages", (w - 0.006, h - 0.008, t - 0.004), at(0.002, t / 2), pages, bevel=0.0015, rot=rot)
+    cube("book-cover-top", (w, h, 0.0022), at(0, t - 0.0011), cov, bevel=0.0008, rot=rot)
+    cube("book-cover-bot", (w, h, 0.0022), at(0, 0.0011), cov, bevel=0.0008, rot=rot)
+    cube("book-spine", (0.0026, h, t), at(-w / 2 + 0.0013, t / 2), cov, bevel=0.001, rot=rot)
+
+
 def dining_decor():
     """Стільці, лляна доріжка, ваза з гілкою, дошка з грушами — для обідніх столів."""
     L, D = SIZE.x, SIZE.y
@@ -591,6 +607,8 @@ def dining_decor():
     # 22.10: глечик і миска з лимонами (як живе фото), замість вази з сухою гілкою й дошки з грушами
     jug_on(-min(L * 0.18, 0.3) - (0.04 if round_ else 0), cy + 0.07, TOP + 0.003)
     lemons_in_bowl(min(L * 0.14, 0.2), cy - 0.03, TOP + 0.003)
+    if CAM.get("book"):                                # кадр life: розгорнута на столі книжка ближче до камери
+        book_on(min(L * 0.3, 0.5), cy - D * 0.22, TOP + 0.003, yaw=0.35)
 
 
 def top_decor():
@@ -598,6 +616,8 @@ def top_decor():
     L, cy = SIZE.x, (LO.y + HI.y) / 2
     jug_on(LO.x + min(0.26, L * 0.22), cy + 0.02, TOP + 0.0005)
     lemons_in_bowl(HI.x - min(0.3, L * 0.26), cy - 0.01, TOP + 0.0005, n=4)
+    if CAM.get("book"):
+        book_on((LO.x + HI.x) / 2 + L * 0.06, cy + 0.005, TOP + 0.0005, yaw=-0.18)
 
 
 if A.decor == "dining":

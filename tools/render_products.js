@@ -6,7 +6,7 @@
 //   --add=home,finish,home-9x16  лише ці кадри (finish — карусель тонів): решта файлів і images товару лишається
 //   --reuse        не рендерити Blender, якщо майстер PNG уже є    --samples=48   семпли Cycles (+ OIDN)
 //
-// Джерела кадрів (усі — візуалізації, підпис «הדמיה» / «visualization», kind: "visualization"):
+// Джерела кадрів (усі — візуалізації, kind: "visualization"; з 24.10 у підписі без «הדמיה», слово власника):
 //   source "ai"     — кадри Figma AI (герой, крупний план), майстри PNG у $ALUMA_FIGMA
 //                     (типово /opt/ihor/aluma-table/tmp/figma-ai, не в git): <товар>-<кадр>-v1.png;
 //                     кожен звірено з моделлю (ніжки, опори, форма, пропорції) — docs/ASSETS.md;
@@ -42,8 +42,8 @@ const opt = Object.fromEntries(argv.filter(a => a.startsWith('--')).map(a => { c
 // Розмір для кадрів — типовий у сітці (середній), щоб пропорції на фото відповідали найходовішому.
 const MAIN_SIZE = { tavor: '180×90', sahar: null, ofek: '180', saf: '130', tal: '100×60' };
 
-// Підписи кадрів (alt): he/en, за змістом, з «הדמיה» / «visualization» — контракт ночі, закон про захист
-// споживача і доступність (ת"י 5568): що за річ, тонування, ракурс.
+// Підписи кадрів (alt): he/en, за змістом — доступність (ת"י 5568): що за річ, тонування, ракурс. Без «הדמיה» /
+// «visualization» (власник 24.10: «не пиши, що це візуалізація»); застереження про кадри — у terms_html, розділ «תמונות».
 const KIND = {
   tavor: ['שולחן אוכל נפתח', 'extendable dining table'],
   sahar: ['שולחן אוכל עגול נפתח', 'round extendable dining table'],
@@ -54,6 +54,7 @@ const KIND = {
 const VIEW_ALT = {
   hero:   ['בחלל מגורים באור יום', 'in a living room in daylight'],
   home:   ['בבית, ליד חלון באור יום, על ריצוף טראצו', 'at home by a window in daylight, on a terrazzo floor'],
+  life:   ['בבית, באור יום מהחלון, ועליו ספר, כד וקערת לימונים', 'at home in daylight from the window, with a book, a jug and a bowl of lemons on it'],
   angle:  ['במבט נמוך מהצד', 'low three-quarter view'],
   open:   ['פתוח עם התוספת', 'extended with the leaf'],
   round:  ['בגרסה העגולה Ø80', 'round version, Ø80'],
@@ -78,8 +79,8 @@ function altFor(p, view, fin, base, key) {
     : view === 'angle' && ANGLE_ALT[p.id] ? ANGLE_ALT[p.id] : VIEW_ALT[key || view];
   const bh = base === 'steel' && view !== 'steel' ? ', בסיס פלדה' : '', be = base === 'steel' && view !== 'steel' ? ', steel base' : '';
   return {
-    he: `הדמיה: ${kh} ${p.name.he}, גוון ${fin.he}, ${vh}${bh}`,
-    en: `Visualization: ${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}${be}`
+    he: `${kh} ${p.name.he}, גוון ${fin.he}, ${vh}${bh}`,
+    en: `${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}${be}`
   };
 }
 
@@ -87,9 +88,9 @@ function altFor(p, view, fin, base, key) {
 function aiAlt(p, fin, [vh, ve, vr]) {
   const [kh, ke] = KIND[p.id], kr = { tavor: 'раздвижной обеденный стол' }[p.id];
   return {
-    he: `הדמיה: ${kh} ${p.name.he}, גוון ${fin.he}, ${vh}`,
-    en: `Visualization: ${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}`,
-    ru: `Визуализация: ${kr} ${p.name.ru || p.name.en}, тон «${fin.ru.toLowerCase()}», ${vr}`
+    he: `${kh} ${p.name.he}, גוון ${fin.he}, ${vh}`,
+    en: `${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}`,
+    ru: `${kr ? kr[0].toUpperCase() + kr.slice(1) : ''} ${p.name.ru || p.name.en}, тон «${fin.ru.toLowerCase()}», ${vr}`.trim()
   };
 }
 
@@ -177,16 +178,27 @@ const HOME = {
   saf:   { az: 26, eye: 1.15, margin: 0.32, ...HOME_LIGHT, plant: 'right' },
   tal:   { az: 28, eye: 1.1, margin: 0.4, ...HOME_LIGHT, rug: [1.9, 1.3, 0] }
 };
+// Кадр «як фото» (власник 24.10: «реальних фото не буде — зроби, щоб виглядало як фото»): та сама квартира, що в home,
+// але камера на висоті очей (1,55 м, 40 мм), мала глибина різкості (f/2.2) і книжка на столі поруч із глечиком і
+// лимонами — як знімає людина, що зайшла в кімнату. Перший у images: обкладинка картки й герой головної.
+const LIFE = {
+  tavor: { ...HOME.tavor, eye: 1.55, lens: 45, fstop: 2.2, margin: 0.03, az: 32, target_z: 0.55, book: true },
+  sahar: { ...HOME.sahar, eye: 1.5, lens: 50, fstop: 2.2, margin: 0.02, az: 30, target_z: 0.5, book: true },
+  ofek:  { ...HOME.ofek, eye: 1.5, lens: 45, fstop: 2.2, margin: 0.22, target_z: 0.6, book: true },
+  saf:   { ...HOME.saf, eye: 1.5, lens: 45, fstop: 2.2, margin: 0.14, book: true },
+  tal:   { ...HOME.tal, eye: 1.35, lens: 45, fstop: 2.2, margin: 0.16, rug: [1.6, 1.1, 0], book: true }
+};
 function framesFor(p) {
   const base = p.bases.length ? 'oak' : 'none', ext = p.badges.some(b => b.id === 'extendable');
   const decor = p.category === 'dining_table' ? 'dining' : 'top';
   const L = [
-    { name: 'home', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HOME[p.id] },
+    { name: 'life', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: LIFE[p.id] },
     AI_FRAMES[p.id]?.hero
       ? { name: 'hero', view: 'hero', source: 'ai', finish: 'natural', base, ...AI_FRAMES[p.id].hero }
       : HERO_RENDER[p.id]
       ? { name: 'hero', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HERO_RENDER[p.id] }
       : { name: 'hero', view: 'hero', source: 'ai', file: `${p.id}-hero-v1.png`, finish: 'natural', base },
+    { name: 'home', view: 'hero', source: 'render', finish: 'natural', base, w: 1600, h: 1068, decor, cam: HOME[p.id] },
     { name: 'angle', view: 'angle', source: 'render', finish: 'natural', base, w: 1600, h: 1200,
       decor: ANGLE_ALT[p.id] ? 'none' : decor, cam: ANGLE[p.id] },
     AI_FRAMES[p.id]?.detail
@@ -197,8 +209,8 @@ function framesFor(p) {
   ];
   if (ext) L.push({ name: 'open', view: 'open', source: 'render', finish: 'natural', base, state: 'open', w: 1600, h: 1000, decor,
     cam: { az: 30, eye: 2.1, margin: 0.1 } });   // згори: видно всю розкладену стільницю
-  // крупний план дуба (торець і шпон) без інтер'єру — одразу після героя: картка тумби й консолі
-  if (TEXTURE[p.id]) L.splice(1, 0, { name: 'texture', view: 'texture', source: 'render', finish: 'natural', base, w: 1600, h: 1200,
+  // порядок галереї (24.10): life (інтер'єр «як фото») → hero (чистий кадр) → крупний план дуба (тумба, консоль) → home → решта
+  if (TEXTURE[p.id]) L.splice(2, 0, { name: 'texture', view: 'texture', source: 'render', finish: 'natural', base, w: 1600, h: 1200,
     decor: 'none', cam: TEXTURE[p.id] });
   if (p.id === 'tavor') {
     // механізм: та сама камера над центром стола, вікно кадру — ±0,42 м від шва в обох станах
