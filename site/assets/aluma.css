@@ -361,7 +361,6 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .page-catalog .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
   .page-catalog .card-link { gap: 6px; }
   .page-catalog .card .media { aspect-ratio: 1; }
-  .page-catalog .card .viz-tag { inset-block-end: 6px; inset-inline-start: 6px; font-size: .68rem; padding: 2px 7px; }
   .page-catalog .card-body { gap: 4px; }
   .page-catalog .card-row { display: grid; gap: 0; }
   .page-catalog .card-name { font-size: 1.15rem; }
