@@ -32,8 +32,8 @@
     return prefix + "." + Date.now().toString(36) + "." + Math.random().toString(36).slice(2, 14);
   };
   var adsConsent = function () {
-    try { if (W.alumaConsentState) return W.alumaConsentState() === "granted"; } catch (e) {}
-    try { return localStorage.getItem("fx_notice_v1") === "1"; } catch (e) { return false; }
+    try { if (W.alumaConsentState) return W.alumaConsentState() !== "denied"; } catch (e) {}   // opt-out: без вибору = згода
+    try { return localStorage.getItem("fx_notice_v1") !== "0"; } catch (e) { return false; }
   };
 
   // ---------------------------------------------------------------- кошик
