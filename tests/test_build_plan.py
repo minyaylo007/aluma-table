@@ -63,7 +63,7 @@ class PlanTests(unittest.TestCase):
             has_frames = sum(1 for i in p.get("images") or [] if i.get("view") == "mechanism") >= 2
             if has_frames:
                 self.assertIn("how-steps", html, p["slug"])
-                self.assertIn("{{t.viz_tag}}", html)
+                self.assertNotIn("{{t.viz_tag}}", html)  # з 24.10 без позначки (слово власника)
             else:
                 self.assertNotIn("how-steps", html, p["slug"])
             if not has_frames and not build.plan(p, "he"):

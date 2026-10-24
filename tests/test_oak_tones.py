@@ -83,7 +83,6 @@ class FinishChips(unittest.TestCase):
         style, photo = self.build.finish_chip({"id": "honey", "hex": "#956D3E"})
         self.assertIn("--i:url(/assets/products/finishes/honey.webp)", style)
         self.assertFalse(photo)
-        self.assertTrue(self.build.finishes_viz([{"id": "honey", "hex": "#956D3E"}]))
 
     def test_factory_photo_replaces_the_scan(self):
         (self.tmp / "honey.jpg").write_bytes(b"\xff\xd8" + b"0" * 100)
@@ -91,9 +90,6 @@ class FinishChips(unittest.TestCase):
             style, photo = self.build.finish_chip({"id": "honey", "hex": "#956D3E"})
             self.assertIn("/assets/products/finishes/photo/honey.jpg", style)
             self.assertTrue(photo)
-            self.assertFalse(self.build.finishes_viz([{"id": "honey", "hex": "#956D3E"}]))
-            # фото є не для всіх тонів — група лишається «הדמיה»
-            self.assertTrue(self.build.finishes_viz([{"id": "honey"}, {"id": "black"}]))
 
     def test_oversized_factory_photo_stops_the_build(self):
         (self.tmp / "black.jpg").write_bytes(b"0" * (self.build.FINISH_PHOTO_MAX + 1))

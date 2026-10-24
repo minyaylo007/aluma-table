@@ -213,7 +213,6 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .hero-copy { max-width: 640px; }
 .hero .lede { margin-block-start: 20px; }
 .hero-note { margin-block-start: 18px; font-size: .9rem; color: var(--muted); }
-.hero-media .viz-tag { inset-block: 14px auto; }
 /* телефон: кнопки — у першому екрані 390×844 навіть із банером cookies; абзац іде під ними.
    Лише візуальний порядок: у DOM і для читача екрана абзац, як і був, перед кнопками, а фокусованих у ньому немає */
 @media (max-width: 719px) {
@@ -250,7 +249,6 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 /* ---------------------------------------------------------------- «подих»: крупний план на всю ширину */
 .band { position: relative; margin: 0; height: clamp(320px, 62vw, 720px); overflow: hidden; background: var(--sand); }
 .band picture, .band img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.band .viz-tag { inset-block: 14px auto; }
 .band-cap { position: absolute; inset-inline: 0; bottom: 0; padding-block: 64px 28px; color: var(--cream);
   background: linear-gradient(to top, rgba(22, 17, 12, .7), rgba(22, 17, 12, 0)); font-family: var(--serif);
   font-size: clamp(1.25rem, 2.6vw, 2rem); line-height: 1.25; }
@@ -261,7 +259,7 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
     .band { view-timeline: --band; }
     .band img { animation: band-pan linear both; animation-timeline: --band; transform-origin: center; }
     @keyframes band-pan { from { transform: scale(1.12) translateY(-3%); } to { transform: scale(1.12) translateY(3%); } }
-    /* «арочне вікно»: кадр входить аркою і розкривається на всю ширину; підпис і плашка «הדמיה» поза кліпом */
+    /* «арочне вікно»: кадр входить аркою і розкривається на всю ширину; підпис поза кліпом */
     .band { background: var(--paper); }
     .band picture { animation: band-arch linear both; animation-timeline: --band; animation-range: entry 0% cover 45%; }
     @keyframes band-arch { from { clip-path: inset(0 16% round 50vw 50vw 0 0); } to { clip-path: inset(0 0 round 0 0 0 0); } }
@@ -307,8 +305,6 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
     repeating-linear-gradient(91deg, rgba(255, 255, 255, .18) 0 1px, transparent 1px 23px),
     linear-gradient(160deg, #E9DCC6 0%, #DCC7A6 55%, #CDB28B 100%); }
 .media--tile .sil { width: 82%; height: auto; }
-.viz-tag { position: absolute; inset-block-end: 10px; inset-inline-start: 10px; font-size: .74rem; padding: 3px 9px;
-  background: rgba(31, 26, 21, .72); color: var(--cream); border-radius: 999px; letter-spacing: .02em; }
 .sil-top, .sil-leg, .sil-body { fill: var(--esp); }
 .sil-body { fill: var(--esp-2); }
 .sil-line { stroke: var(--oak-light); stroke-width: 1.2; opacity: .55; }
@@ -386,15 +382,13 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .mat-facts > li { counter-increment: mat; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; }
 .mat-facts > li::before { content: counter(mat); grid-row: span 3; display: inline-grid; place-items: center; width: 28px; height: 28px;
   border: 1px solid var(--ink); border-radius: 50%; font-size: .85rem; font-variant-numeric: tabular-nums; }
-/* усе, що в пункті, — у колонці тексту: інакше 4-й елемент (позначка «הדמיה») стає в колонку номера й звужує текст */
+/* усе, що в пункті, — у колонці тексту: інакше 4-й елемент (список тонів) стає в колонку номера й звужує текст */
 .mat-facts > li > * { grid-column: 2; }
 .mat-h { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; line-height: 1.3; }
 .mat-facts p { margin-block-start: 6px; }
 .mat-tones { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-block-start: 12px; font-size: .9rem; }
 .mat-tones li { display: flex; align-items: center; gap: 8px; }
 .mat-tones .swatch-dot { width: 28px; height: 28px; border-radius: 4px; }
-.swatch-viz { font-size: .74rem; color: var(--muted); letter-spacing: .02em; }
-.opt .swatch-viz, .mat-viz { display: block; margin-block-start: 6px; }
 .grain-panel { display: grid; gap: 22px; padding: clamp(24px, 4vw, 48px); background: var(--paper); border-radius: var(--r-lg); border: 1px solid var(--line); }
 .gp-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 14px; font-size: .9rem; }
 /* цифри розкладки — табличні, однакової ширини, як на кресленні */
@@ -519,7 +513,7 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .g-thumb picture { display: block; height: 100%; }
 .g-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .g-thumb[aria-current="true"] { border-color: var(--ink); }
-/* 3D — чип на кадрі, у верхньому куті навпроти «הדמיה»; ціль ≥ 40 px для пальця */
+/* 3D — чип на кадрі, у верхньому куті; ціль ≥ 40 px для пальця */
 .g-3d { position: absolute; inset-block-start: 10px; inset-inline-end: 10px; z-index: 2; display: inline-flex; align-items: center;
   gap: 6px; min-height: 40px; padding: 0 14px; font: inherit; font-size: .85rem; font-weight: 600; color: var(--ink);
   background: rgba(255, 253, 249, .92); border: 1px solid rgba(31, 26, 21, .14); border-radius: 999px; cursor: pointer;
@@ -533,7 +527,6 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .v3d-stage:focus-visible { outline-offset: -3px; }
 .v3d-msg { position: absolute; inset-inline: 0; inset-block-start: 0; aspect-ratio: 4 / 3; padding: 16px; display: grid; place-items: center; text-align: center; color: var(--muted); font-size: .95rem; pointer-events: none; }
 .v3d-msg:empty, .v3d-msg[hidden] { display: none; }
-.viewer3d .viz-tag { inset-block: 10px auto; }
 .v3d-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border-block-start: 1px solid var(--line); background: var(--paper); }
 .v3d-states { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .v3d-st, .v3d-close { min-height: 44px; padding: 0 16px; font: inherit; font-size: .9rem; color: var(--ink); background: transparent; border: 0; cursor: pointer; }
