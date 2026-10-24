@@ -297,7 +297,7 @@ class CallbackLeadTests(Base):
         with mock.patch.object(h, "TELEGRAM_BOT_TOKEN", "123:abc"), \
                 mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", "42"):
             self.post(callback_lead())
-            self.post(checkout_lead(phone="+972 50-765-4321", event_id="lead.k1.other002"))
+            self.post(checkout_lead(phone=FAKE_LOCAL[:-1] + "9", event_id="lead.k1.other002"))
         texts = [c["json"]["text"] for c in self.rec.calls]
         self.assertTrue(texts[0].startswith("📞 Обратный звонок — позвонить\nליד חדש — "), texts[0][:60])
         self.assertIn("источник: callback", texts[0])

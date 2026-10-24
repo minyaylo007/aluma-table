@@ -529,21 +529,25 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-block-end: 8px; }
 .pdp-kicker .eyebrow, .pdp-kicker .badges { margin: 0; }
 .badge { font-size: .78rem; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+/* «עד 12 תשלומים · ≈ ₪375/חודש» — поруч із ціною, підпис серії рядком нижче: на 390 «השאירו פרטים» лишається над банером */
+.pdp-pay { flex: 1 1 0; align-self: center; font-size: .88rem; line-height: 1.25; color: var(--muted); }
+.pdp-pay bdi { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.pdp-price .price-incl { order: 3; flex-basis: 100%; }
 .pdp-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-block: 24px 4px; padding-block-start: 20px; border-block-start: 1px solid var(--line); }
 /* телефон 390×844: назва, гасло й ціна — у першому екрані, під кадром і мініатюрами (22.10) */
 @media (max-width: 599px) {
-  .page-product .crumbs { padding-block: 12px 6px; }
+  .page-product .crumbs { padding-block: 8px 4px; }
   .pdp { gap: 16px; }
   .gallery { gap: 8px; }
   .g-thumb { width: 64px; }
   .pdp-h1 { font-size: 2.2rem; }
-  .pdp-tag { margin-block-start: 4px; font-size: 1rem; }
-  .pdp-price { margin-block: 12px 2px; padding-block-start: 12px; row-gap: 0; }
+  .pdp-tag { margin-block-start: 2px; font-size: 1rem; }
+  .pdp-price { margin-block: 8px 2px; padding-block-start: 8px; row-gap: 0; } /* + рядок תשלומים поруч із ціною (24.10) — щільніше */
   .pdp-price .price-incl { line-height: 1.3; } /* «מחיר השקה לסדרה הראשונה · 12 שולחנות» — окремим рядком, плитки не з'їжджають під банер */
   .price { font-size: 2rem; }
   /* умови й «השאירו פרטים» щільніше: у TAVOR кнопка над банером cookies (хвиля 1, крок 5) */
   .pdp-terms { line-height: 1.35; }
-  .pdp-buy .pdp-ask { margin-block-start: 8px; }
+  .pdp-buy .pdp-ask { margin-block-start: 6px; }
 }
 .price { font-size: 2.2rem; line-height: 1; }
 /* «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 · הרכבה» — один рядок через «·», на вузькому переноситься по пунктах */
@@ -591,6 +595,12 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-pair .btn { flex: 1 1 12rem; min-width: 0; }
 @media (max-width: 480px) { .pdp-pair { flex-direction: column; } .pdp-pair .btn { flex: none; width: 100%; } }
 .pdp-ask-hint { margin: -2px 0 0; line-height: 1.4; }
+/* «התקשרו אלינו» (24.10): третя кнопка на всю ширину + міні-форма з телефоном під нею */
+.pdp-call svg, .sticky-call svg { flex: none; }
+.callback { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+.callback .muted { margin: 0; }
+.callback-thanks { margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); }
+.callback-thanks:focus { outline: none; }
 /* «מה כלול במחיר» і «איך לבחור מידה» — під кнопкою кошика, до «מפרט» */
 .pdp-inc, .pdp-size { margin-block-start: 22px; padding-block-start: 16px; border-top: 1px solid var(--line); }
 .pdp-inc-h { font-size: 1rem; font-weight: 700; margin: 0 0 10px; }
@@ -687,6 +697,19 @@ html:has(.chapters) { scroll-padding-top: 160px; } /* без JS; з JS — то�
 /* «שאלה?» — коротка, поруч із кошиком; висота пігулки та сама (44 px), одна автовідстань — перед нею */
 .sticky-cta--pdp .sticky-ask { flex: none; padding-inline: 14px; white-space: nowrap; }
 .sticky-cta--pdp .sticky-ask + .btn { margin-inline-start: 0; }
+/* «התקשרו אלינו» у смузі — лише іконка 44×44 праворуч від «שאלה?» (у RTL — перед нею в розмітці); автовідстань — перед іконкою */
+.sticky-cta--pdp .sticky-call { flex: none; width: 44px; padding: 0; }
+.sticky-cta--pdp .sticky-call + .sticky-ask { margin-inline-start: 0; }
+/* з іконкою п'ять елементів: на 390 px бракувало ~30 px (en/ru) — щільніше; вужче 380 px іконки нема (кнопка — на картці) */
+.sticky-cta--pdp:has(.sticky-call) { gap: 6px; }
+.sticky-cta--pdp:has(.sticky-call) .btn { padding-inline: 12px; font-size: .92rem; white-space: nowrap; }
+.sticky-cta--pdp:has(.sticky-call) .sticky-ask { padding-inline: 10px; }
+.sticky-cta--pdp:has(.sticky-call) .sticky-call { padding: 0; }
+.sticky-cta--pdp:has(.sticky-call) .sticky-price { font-size: 1rem; white-space: nowrap; }
+@media (max-width: 379px) {
+  .sticky-cta--pdp .sticky-call { display: none; }
+  .sticky-cta--pdp .sticky-call + .sticky-ask { margin-inline-start: auto; }
+}
 /* <picture> навколо мініатюри — сам елемент ряду; display: contents не годиться: <source> тоді стає порожнім елементом ряду (+12 px gap) */
 .sticky-pic { flex: none; }
 .sticky-thumb { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--sand); }

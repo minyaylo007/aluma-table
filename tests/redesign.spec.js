@@ -238,7 +238,7 @@ test('a valid lead from a card sends product, size, finish and lands on the than
   expect(lead.consent).toBe(true);
   expect(lead.consent_marketing).toBe(false);              // חוק התקשורת 30א: не відмічено за замовчуванням
   expect(lead.marketing_consent).toBe(false);
-  expect(lead.ads_consent).toBe(false);                     // без згоди на cookies Lead у CAPI не йде
+  expect(lead.ads_consent).toBe(true);                      // opt-out (власник 24.10): без вибору — не відмова, Lead у CAPI йде
   expect(lead.utm_source).toBe('test');
   expect(lead.lang).toBe('he');
   expect(lead.website).toBe('');
@@ -353,9 +353,12 @@ test('cookie notice: "essential only" is remembered and nothing third-party load
   const sent = await mockApi(page, { config: { ...EMPTY_CONFIG, pixel_id: '123456789012345' } });
   await page.goto('/');
   await expect(page.locator('#notice')).toBeVisible();
+  // opt-out (власник 24.10): до вибору піксель уже вантажиться, банер про це каже
+  await expect.poll(() => sent.thirdParty || '').toContain('connect.facebook.net');
   await page.locator('[data-notice-no]').click();
   await expect(page.locator('#notice')).toBeHidden();
   expect(await page.evaluate(() => localStorage.getItem('fx_notice_v1'))).toBe('0');
+  delete sent.thirdParty;
   await page.reload();
   await expect(page.locator('#notice')).toBeHidden();
   expect(sent.thirdParty).toBeUndefined();

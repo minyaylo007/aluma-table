@@ -6,7 +6,7 @@
   },
   "cookies": {
     "label": "Cookie notice",
-    "text": "This site uses cookies, including Meta Pixel and Microsoft Clarity, to measure advertising and improve the site. Continuing to browse means you agree; you can choose “Essential only” here or at any time on the privacy page.",
+    "text": "Meta Pixel and Microsoft Clarity run here (ad and site stats). “Essential only” stops them. Changeable.",
     "accept": "Accept",
     "decline": "Essential only",
     "more": "Privacy policy",

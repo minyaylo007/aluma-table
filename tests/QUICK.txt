@@ -25,6 +25,7 @@ tests.test_build_avif_source  # <source> AVIF лише повним наборо
 tests.test_fonts_he_latin     # he — латиниця Plex лише latin-he (−39 КБ), en/ru — повна; обличчя не перетинаються
 tests.test_i18n_parity        # he/en/ru: ті самі ключі й токени — без чужої мови посеред сторінки
 tests.test_pdp_ask            # картка: «שאלה? נחזור אליכם» біля кошика й у липкій панелі, рядки 3 мовами, cta_ask лише в нашу аналітику
+tests.test_pdp_call           # картка: «עד 12 תשלומים» під ціною (+ кошик/оформлення), «התקשרו אלינו» → міні-форма callback, cta_call лише в нашу аналітику
 tests.test_i18n_material      # блок матеріалу: фанера — фанера, «אלון מלא» лише про крайки
 tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy
 tests.test_ig_publish         # пости в Instagram: порядок викликів, FINISHED/ERROR, dry-run без POST, токен не друкується, refresh 0600

@@ -143,9 +143,9 @@
 
   // Тексти — i18n/legal.<lang>.json → cookies (вітрина може передати свої через data-атрибути тега <script>).
   var TEXT = {
-    he: {"label": "הודעת עוגיות", "text": "האתר משתמש בעוגיות, כולל Meta Pixel ו־Microsoft Clarity, למדידת הפרסום ולשיפור האתר. המשך הגלישה מהווה הסכמה; אפשר לבחור „רק הכרחיות” כאן או בכל עת בעמוד הפרטיות.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
-    en: {"label": "Cookie notice", "text": "This site uses cookies, including Meta Pixel and Microsoft Clarity, to measure advertising and improve the site. Continuing to browse means you agree; you can choose “Essential only” here or at any time on the privacy page.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"},
-    ru: {"label": "Уведомление о cookie", "text": "Сайт использует cookie, в том числе Meta Pixel и Microsoft Clarity, — чтобы измерять рекламу и улучшать сайт. Продолжая просмотр, вы соглашаетесь; выбрать «Только необходимые» можно здесь или в любой момент на странице конфиденциальности.", "accept": "Принять", "decline": "Только необходимые", "more": "Политика конфиденциальности"}
+    he: {"label": "הודעת עוגיות", "text": "Meta Pixel ו־Microsoft Clarity פועלים באתר למדידת פרסום ולשיפורו. „רק הכרחיות” עוצר אותם. ניתן לשנות.", "accept": "אישור", "decline": "רק הכרחיות", "more": "מדיניות הפרטיות"},
+    en: {"label": "Cookie notice", "text": "Meta Pixel and Microsoft Clarity run here (ad and site stats). “Essential only” stops them. Changeable.", "accept": "Accept", "decline": "Essential only", "more": "Privacy policy"},
+    ru: {"label": "Уведомление о cookie", "text": "Meta Pixel и Microsoft Clarity уже работают (реклама). «Только необходимые» их отключит.", "accept": "Принять", "decline": "Только необходимые", "more": "Политика конфиденциальности"}
   };
   function attr(name) { return (SCRIPT && SCRIPT.getAttribute(name)) || ""; }
   function hideNotice() { var b = doc.getElementById("aluma-notice"); if (b && b.parentNode) b.parentNode.removeChild(b); }

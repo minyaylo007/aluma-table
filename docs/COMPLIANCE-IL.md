@@ -50,7 +50,7 @@
 
 | Требование | Состояние | Где |
 |---|---|---|
-| Баннер честно говорит, что Meta Pixel и Microsoft Clarity работают и что продолжение = согласие | ✅ `cookies.text` трёх языков | `i18n/legal.*.json`, `tracking.js`, `tests/test_legal_texts.py` |
+| Баннер честно говорит, что Meta Pixel и Microsoft Clarity уже работают, и как их выключить («„רק הכרחיות” עוצר אותם»); две строки на 390 px, ссылка на политику | ✅ `cookies.text` трёх языков | `i18n/legal.*.json`, `tracking.js`, `tests/test_legal_texts.py`, `tests/redesign.spec.js` |
 | До выбора (`fx_notice_v1` пусто) — Pixel и Clarity грузятся, баннер показан | ✅ | `tracking.js`, `tests/test_tracking_js.py`, `tests/tracking-events.spec.js` |
 | Выбор, а не «понятно»: «אישור» / «רק הכרחיות», равноценные кнопки | ✅ | там же |
 | «רק הכרחיות» — сразу `fbq('consent','revoke')`, Clarity `consent(false)` + `stop`, больше ни одного события третьим сторонам; со следующей страницы скрипты не грузятся | ✅ `fx_notice_v1 = "0"` | там же |
