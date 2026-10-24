@@ -483,6 +483,8 @@
   "ask_cta": "Have a question? We’ll call you back",
   "ask_cta_short": "Question?",
   "ask_hint": "No commitment — reply within one business day",
+  "trust_veneer": "Natural oak veneer",
+  "trust_own": "Our own factory in Chernivtsi",
   "inc_warranty": "{{WARRANTY_MONTHS}}-month warranty",
   "spec_warranty": "Warranty",
   "spec_warranty_v": "{{WARRANTY_MONTHS}} months — manufacturing defects and the extension mechanism",
