@@ -485,6 +485,27 @@ class ComputeTests(unittest.TestCase):
         self.assertIn("«Позвоните нам»: 2, заявок на звонок 1 · pdp 2, sticky 1",
                       funnel.text(funnel.report(events, leads, 0)))
 
+    def test_pdp_scroll_depth_in_screens_by_device(self):
+        # №15: leave на картці несе scroll_px і vh → глибина в екранах; медіана й q75 окремо mobile/desktop,
+        # лише де обидва > 0; інші кроки й події без полів — поза рахунком
+        def leave(sid, px, vh, dev="mobile", step="pdp"):
+            return dict(row("leave", sid, T, step=step, seconds=9, scroll_px=px, vh=vh, ph=5000), device=dev)
+        events = EVENTS + [leave("m1", 844, 844), leave("m2", 1688, 844), leave("m3", 2532, 844),
+                           leave("m4", 4220, 844), leave("m5", 0, 844), leave("m6", 900, 0),
+                           leave("m7", 3000, 844, step="cart"), row("leave", "m8", T, step="pdp", seconds=3),
+                           leave("d1", 400, 800, "desktop"), leave("d2", 1200, 800, "desktop")]
+        rep = funnel.compute(events, [])
+        self.assertEqual(rep["pdp_depth"], {"mobile": {"median": 3.0, "q75": 5.0, "n": 4},
+                                            "desktop": {"median": 1.5, "q75": 1.5, "n": 2}})
+        self.assertEqual(funnel.compute(EVENTS, [])["pdp_depth"], {"mobile": None, "desktop": None})
+        txt = funnel.text(funnel.report(events, [], 0))
+        self.assertIn("Глубина на карточке (экранов): моб. мед. 3.0 · q75 5.0 (n=4) · деск. мед. 1.5 · q75 1.5 (n=2)",
+                      txt)
+        self.assertNotIn("Глубина на карточке", funnel.text(funnel.report(EVENTS, [], 0)))
+        only_mobile = funnel.text(funnel.report(events[:-2], [], 0))
+        self.assertIn("(n=4) · деск. нет данных", only_mobile)
+        self.assertNotIn("m1", json.dumps(rep["pdp_depth"]))
+
     def test_no_personal_data_in_the_report(self):
         blob = json.dumps(self.rep, ensure_ascii=False) + funnel.text(
             funnel.report(EVENTS, [], 0))
@@ -516,6 +537,15 @@ class AdminFunnelTests(Base):
             self.assertNotIn(pii, page)
         self.assertRegex(page, r"\(cta_call\)</h2><table><tr><td>сессии</td><td class='n'>0</td></tr>"
                                r"<tr><td>заявки callback</td><td class='n'>0</td></tr>")
+
+    def test_page_shows_pdp_depth_by_device(self):
+        self.send([ev("PageView"), ev("leave", step="pdp", seconds=12, scroll=60, scroll_px=1688, vh=844, ph=6000)],
+                  session="sd", ctx={"page": "/p/tavor/", "device": "mobile"})
+        page = self.admin("/admin/funnel", {"range": "1"})["body"]
+        self.assertRegex(page, r"(?s)глубина на карточке.*?<tr><td>mobile</td><td class='n'>2\.0</td><td class='n'>2\.0</td>"
+                               r"<td class='n'>1</td></tr><tr><td>desktop</td><td colspan='3' class='muted'>")
+        block = page.split("глубина на карточке")[1].split("</section>")[0]
+        self.assertNotIn("sd", block)
 
     def test_page_shows_call_button_and_callback_leads(self):
         self.send([ev("PageView"), ev("cta_call", content_ids=["tavor"], content_type="product", cta="pdp")],

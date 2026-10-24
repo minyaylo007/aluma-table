@@ -151,7 +151,8 @@ class BuiltSiteTests(unittest.TestCase):
 
     def test_card_shows_delivery_terms_and_lead_cta_under_the_price(self):
         # хвиля 1 (22.10): під ціною — «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 (· הרכבה עצמית)», ціни — з
-        # content.json; кнопка «השאירו פרטים» → #register ще до плиток (перший екран телефона); «משוער» про ціну — ні
+        # content.json; кнопка «השאירו פרטים» → #register ще до плиток (перший екран телефона); «משוער» про ціну — ні.
+        # №15: DOM = екран — рядок довіри → дії (кошик, «שאלה?», «התקשרו») → «השאירו פרטים» → плитки; без CSS order
         content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
         assembly = [x.strip() for x in content["ASSEMBLY_PRODUCTS"].split(",")]
         fee = {"he": f"₪{int(content['DELIVERY_ILS']):,}", "en": f"₪{int(content['DELIVERY_ILS']):,}",
@@ -160,7 +161,7 @@ class BuiltSiteTests(unittest.TestCase):
             t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
             for p in PRODUCTS:
                 html = self.page(f"{prefix}p/{p['slug']}/")
-                buy = re.search(r'<div class="pdp-buy">.*?<div class="pdp-actions">', html, re.S).group(0)
+                buy = re.search(r'<div class="pdp-buy">.*?<ul class="pdp-points"', html, re.S).group(0)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', buy, re.S).group(1)
                     self.assertIn(t["ship_pickup"], terms)
@@ -176,7 +177,8 @@ class BuiltSiteTests(unittest.TestCase):
                     # оплати, своя фабрика; лише наявні факти, без відгуків, лічильників і знижок
                     trust_m = re.search(r'<ul class="pdp-trust" role="list">(.*?)</ul>', buy, re.S)
                     self.assertLess(buy.index('class="pdp-terms"'), trust_m.start())
-                    self.assertLess(trust_m.start(), ask.start())
+                    self.assertLess(trust_m.end(), buy.index('<div class="pdp-actions">'))
+                    self.assertLess(buy.index('data-call data-cta="pdp"'), ask.start())
                     trust = trust_m.group(1)
                     warranty = t["inc_warranty"].replace("{{WARRANTY_MONTHS}}", str(content["WARRANTY_MONTHS"]))
                     self.assertEqual(re.findall(r"<li>(.*?)</li>", trust),
