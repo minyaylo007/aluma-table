@@ -102,7 +102,7 @@ LEAD_EVENT_ID = re.compile(r"[A-Za-z0-9_.\-]{8,64}")
 CART_ITEM = re.compile(r"[a-z0-9-]{1,40}:[\w ×x*.,/\-–]{1,40}:[a-z0-9-]{0,30}:[a-z0-9-]{0,30}:[1-9]")
 CART_MAX = 300
 ORDER_TOTAL_MAX = 200_000
-VALID_LEAD_SOURCES = ("callback", "checkout", "form", "quick")
+VALID_LEAD_SOURCES = ("callback", "checkout", "form", "quick", "vote")
 
 # Каталог товарів (catalog/products.json) — лише для людських імен у сповіщенні власнику.
 # Шукаємо в корені репозиторію і поруч із файлом (бандл лямбди — це api/ без catalog/).
@@ -125,6 +125,23 @@ def _load_catalog(paths=CATALOG_PATHS) -> dict:
 
 
 CATALOG = _load_catalog()
+
+# «Наступне видання» (№22, catalog/next.json): варіанти на перевірку попиту. Не товари — лише імена для «Голос за: …».
+NEXT_PATHS = tuple(p.replace("products.json", "next.json") for p in CATALOG_PATHS)
+
+
+def _load_next(paths=NEXT_PATHS) -> dict:
+    for path in paths:
+        try:
+            with open(path, encoding="utf-8") as f:
+                items = json.load(f).get("items") or []
+            return {n["id"]: n for n in items if isinstance(n, dict) and isinstance(n.get("id"), str)}
+        except (OSError, ValueError, TypeError, AttributeError):
+            continue
+    return {}
+
+
+NEXT = _load_next()
 
 # Спосіб отримання (content.json: PICKUP_ILS, DELIVERY_ILS, ASSEMBLY_ILS) — ціна в сповіщенні береться тут, не з браузера.
 # «assembled» = доставка + складання, рахується як build.py:ship_fees. Немає файлу — {} і в сповіщенні лишається сам спосіб.
@@ -556,10 +573,13 @@ def put_lead(event):
     errors = {}
     # на екрані оплати ім'я необов'язкове (specs/003): там просимо лише телефон, щоб зберегти ціну;
     # так само «התקשרו אלינו» на картці (24.10): міні-форма лише з телефоном — зворотний дзвінок
-    if len(name) < 2 and not (source in ("checkout", "callback") and not name):
+    # голос «אני רוצה כזה» за варіант наступного видання (№22): лише телефон або e-mail
+    if len(name) < 2 and not (source in ("checkout", "callback", "vote") and not name):
         errors["name"] = "required"
     phone, plausible = normalize_phone(phone_raw)
     pref = (_pick(data.get("contact_pref"), 10, allowed=CALLBACK_PREFS) or "call") if source == "callback" else ""
+    if source == "vote":
+        pref = "info"       # той самий вибір контакту, що «надішліть деталі»: телефон або e-mail
     email_raw = clip(data.get("email"), 120).strip()
     if pref == "info" and not phone_raw:
         # «надішліть деталі»: досить e-mail — тоді телефон не потрібен, але хоч один контакт мусить бути
@@ -763,7 +783,7 @@ def lead_message(item) -> str:
     відповісти: Telegram сам робить посилання з https://wa.me/… і номера +972….
     """
     source = item.get("lead_source")
-    head = "בקשה לאישור הזמנה" if source == "checkout" else "ליד חדש"
+    head = "בקשה לאישור הזמנה" if source == "checkout" else "הצבעה — מהדורה הבאה" if source == "vote" else "ליד חדש"
     lang = item.get("lang") or ""
     lines = [f"{head} — {SITE_DOMAIN}",
              f"Ответить: {LANG_REPLY[lang]}" if lang in LANG_REPLY else "Ответить: язык не указан", ""]
@@ -802,6 +822,12 @@ def lead_message(item) -> str:
             text, amount = describe_item(slug, size, finish, base, int(qty) if qty.isdigit() else 1, lang)
             computed += amount
             lines.append(f"🛒 {text}")
+    elif source == "vote":
+        # не замовлення: людина хоче, щоб варіант пішов у виробництво — ціни й кошика тут нема
+        pid = item.get("product_id") or ""
+        nm = (NEXT.get(pid) or {}).get("name") or {}
+        label = (nm.get("ru") or nm.get("en") or "") if isinstance(nm, dict) else ""
+        lines.append(f"🗳 Голос за: {label} ({pid})" if label else f"🗳 Голос за: {pid or '—'}")
     elif item.get("product_id"):
         text, _ = describe_item(item["product_id"], item.get("size_label") or "",
                                 item.get("finish_id") or "", item.get("base_id") or "", lang=lang)
@@ -1437,6 +1463,13 @@ def admin_funnel(event):
     ) + f"<tr><td>заявки callback</td><td class='n'>{call_rep.get('leads', 0)}</td></tr>" + "".join(
         f"<tr><td>· {CALLBACK_WORDS_HE[k]} ({k})</td><td class='n'>{v}</td></tr>"
         for k, v in (call_rep.get("by_pref") or {}).items() if k in CALLBACK_WORDS_HE)
+    vote_rep = rep.get("vote") or {}
+    vote = f"<tr><td>голоса (lead_source=vote)</td><td class='n'>{vote_rep.get('leads', 0)}</td></tr>" + "".join(
+        f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td></tr>" for k, v in (vote_rep.get("by_product") or {}).items())
+    card_s = "".join(
+        f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v['median']}</td><td class='n'>{v['n']}</td></tr>"
+        for k, v in (rep.get("card_seconds") or {}).items()
+    ) or "<tr><td colspan='3' class='muted'>אין נתונים · нет данных</td></tr>"
     keep_test = "&amp;test=1" if show_test else ""
     nav = " ".join(
         f"<a href='?range={r}{keep_test}' class='{'on' if rng == r else ''}'>{label}</a>"
@@ -1485,6 +1518,9 @@ def admin_funnel(event):
   <section class="card"><h2>איפה עזבו · последний шаг сессии</h2><table>{dropped}</table></section>
   <section class="card"><h2>שאלה מכרטיס המוצר · вопрос с карточки (cta_ask)</h2><table>{ask}</table></section>
   <section class="card"><h2>התקשרו אלינו · «позвоните нам» (cta_call)</h2><table>{call}</table></section>
+  <section class="card"><h2>מהדורה הבאה · голоса «אני רוצה כזה»</h2><table>{vote}</table></section>
+  <section class="card"><h2>זמן בכרטיס · секунд на карточке</h2>
+    <table><thead><tr><th>מוצר</th><th>медиана</th><th>n</th></tr></thead><tbody>{card_s}</tbody></table></section>
   <section class="card"><h2>יציאה מהדף · уход со страницы (шаг · медиана сек.)</h2><table>{leave}</table></section>
   <section class="card"><h2>עומק בכרטיס · глубина на карточке (экранов: scroll_px / vh)</h2>
     <table><thead><tr><th></th><th>медиана</th><th>q75</th><th>n</th></tr></thead><tbody>{depth_rows}</tbody></table></section>

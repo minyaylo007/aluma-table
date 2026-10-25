@@ -19,7 +19,8 @@ CC0 = os.environ.get("ALUMA_CC0", "/opt/ihor/aluma-table/tmp/cc0")
 TEX = os.path.join(ROOT, "renders-master", "textures")
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--geo", required=True)
+ap.add_argument("--geo", default="")
+ap.add_argument("--next", default="")             # fluted | oval — «наступне видання» (№22), без --geo
 ap.add_argument("--out", required=True)
 ap.add_argument("--shot", default="hero")            # hero | angle | open
 ap.add_argument("--finish", default="natural")
@@ -227,7 +228,127 @@ def product(path):
     return obs, lo, hi, d.get("info", {})
 
 
-OBS, LO, HI, INFO = product(A.geo)
+# ---- «наступне видання» (№22): два трендові варіанти TAVOR на перевірку попиту, лише рендером --------------
+# Геометрії в aluma3d.js у них немає (на сайт 3D не йде) — будуємо тут, у метрах, Z угору, перед столу до -Y.
+# Стільниця та сама, що в TAVOR (40 мм, шов розсувного механізму посередині); край — заокруглений R 12 мм.
+NEXT = {
+    # рифлена дубова колона Ø40 см (24 канелюри), плоский чорний сталевий диск Ø62; стільниця 160×90, кути R 10 см
+    "fluted": {"L": 1.6, "W": 0.9, "corner": 0.10, "col_r": 0.20, "flutes": 24, "flute_d": 0.008, "disc_r": 0.31},
+    # овал-«pill» 160×100 (півкола на торцях), дві скульптурні дубові опори-«D» опуклим боком назовні
+    "oval": {"L": 1.6, "W": 1.0, "corner": 0.5, "ped_r": 0.17, "ped_x": 0.28},
+}
+
+
+def next_oak():
+    """Дуб виробу з проєкцією з координат об'єкта (розгортки в цих сіток немає), волокно — уздовж довжини (X)."""
+    m = oak_material(A.finish, A.albedo, box=True)
+    for n in m.node_tree.nodes:
+        if n.type == "MAPPING":
+            n.inputs["Rotation"].default_value = (0, 0, math.radians(90))
+    return m
+
+
+def prism(name, outline, z0, z1, mat, bevel=0.0, seg=6, rings=None, keep_sharp=None):
+    """Тіло з контуру outline [(x, y)…] від z0 до z1; rings — свій контур на кожній висоті [(z, outline)…].
+
+    keep_sharp(x0, x1) — ребро контуру, яке не заокруглювати (шов розсувного механізму): тоді bevel лише за вагою.
+    """
+    rings = rings or [(z0, outline), (z1, outline)]
+    me = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    loops = [[bm.verts.new((x, y, z)) for x, y in pts] for z, pts in rings]
+    n = len(loops[0])
+    for a, b in zip(loops, loops[1:]):
+        for k in range(n):
+            bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
+    bm.faces.new(list(reversed(loops[0])))
+    bm.faces.new(loops[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    if keep_sharp:
+        wl = bm.edges.layers.float.new("bevel_weight_edge")
+        for e in bm.edges:
+            (a, b) = e.verts
+            ang = e.calc_face_angle(0.0)
+            e[wl] = 1.0 if ang > math.radians(40) and not keep_sharp(a.co, b.co) else 0.0
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.append(mat)
+    ob = link_obj(name, me)
+    me.shade_smooth()
+    me.set_sharp_from_angle(angle=math.radians(35))
+    if bevel:
+        bv = ob.modifiers.new("bevel", "BEVEL")
+        bv.width, bv.segments, bv.limit_method, bv.angle_limit = bevel, seg, "ANGLE", math.radians(40)
+        if keep_sharp:
+            bv.limit_method = "WEIGHT"
+        bv.harden_normals = False
+    return ob
+
+
+def rounded_rect(L, W, r, seg=16):
+    """Контур прямокутника L×W з кутами радіуса r; r = W/2 — овал-«pill» (стадіон)."""
+    pts = []
+    for cx, cy, a0 in ((L / 2 - r, W / 2 - r, 0), (-L / 2 + r, W / 2 - r, 90), (-L / 2 + r, -W / 2 + r, 180),
+                       (L / 2 - r, -W / 2 + r, 270)):
+        for k in range(seg + 1):
+            a = math.radians(a0 + 90 * k / seg)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def rect(L, W):
+    return [(-L / 2, -W / 2), (L / 2, -W / 2), (L / 2, W / 2), (-L / 2, W / 2)]
+
+
+def next_product(kind):
+    c, H, T = NEXT[kind], 0.75, 0.04
+    oak = next_oak()
+    obs = []
+    # дві половини з швом розсувного механізму 1,5 мм посередині; заокруглений лише зовнішній край, шов — прямий
+    gap = 0.00075
+    outline = rounded_rect(c["L"], c["W"], c["corner"], 24 if kind == "oval" else 16)
+    for s in (-1, 1):
+        half = [(x, y) for x, y in outline if s * x > 0]
+        half = sorted(half, key=lambda p: math.atan2(p[1], s * p[0]))      # дуга від -90° до 90° відносно торця
+        ys = [y for _, y in half]
+        half = [(s * gap, min(ys))] + [(x + s * gap, y) for x, y in half] + [(s * gap, max(ys))]
+        if s < 0:
+            half.reverse()
+        obs.append(prism(f"{kind}-top{s}", half, H - T, H, oak, bevel=0.012, seg=6,
+                         keep_sharp=lambda a, b, s=s: abs(a.x - s * gap) < 1e-6 and abs(b.x - s * gap) < 1e-6))
+    # прихована сталева рама під стільницею (напрямні механізму): з низького ракурсу видно темну смугу, як у TAVOR
+    obs.append(prism(f"{kind}-rail", rect(c["L"] - 0.5, 0.36), H - T - 0.03, H - T, MATS["steel"]))
+    if kind == "fluted":
+        R, N, d = c["col_r"], c["flutes"], c["flute_d"]
+        prof = []
+        per = 12
+        for k in range(N * per):                         # канелюра — півеліпс 0,76 періоду, між ними вузьке ребро
+            t = (k % per) / per
+            g = (t - 0.12) / 0.76
+            depth = d * math.sqrt(max(0.0, 1 - (2 * g - 1) ** 2)) if 0 <= g <= 1 else 0.0
+            a = 2 * math.pi * k / (N * per)
+            prof.append(((R - depth) * math.cos(a), (R - depth) * math.sin(a)))
+        z0, z1 = 0.025, H - T - 0.03
+        obs.append(prism(f"{kind}-column", prof, z0, z1, oak, bevel=0.003, seg=3))
+        disc = [(c["disc_r"] * math.cos(2 * math.pi * k / 96), c["disc_r"] * math.sin(2 * math.pi * k / 96)) for k in range(96)]
+        obs.append(prism(f"{kind}-disc", disc, 0.0, 0.025, MATS["steel"], bevel=0.006, seg=4))
+        cap = [(0.17 * math.cos(2 * math.pi * k / 72), 0.17 * math.sin(2 * math.pi * k / 72)) for k in range(72)]
+        obs.append(prism(f"{kind}-cap", cap, z1, H - T, MATS["steel"]))
+    else:
+        r, x0 = c["ped_r"], c["ped_x"]
+        for s in (-1, 1):                                # «D»: пласка грань усередину, опуклий бік — до торця
+            pts = [(s * x0 + s * r * math.cos(math.radians(a)), r * math.sin(math.radians(a)))
+                   for a in [-90 + 180 * k / 48 for k in range(49)]]
+            # опора трохи ширшає донизу (5 %) — «скульптура», а не труба
+            wide = [(s * x0 + (x - s * x0) * 1.05, y * 1.05) for x, y in pts]
+            obs.append(prism(f"{kind}-ped{s}", pts, 0, H - T, oak, bevel=0.01, seg=5,
+                             rings=[(0.0, wide), (0.12, pts), (H - T, pts)]))
+    lo = Vector((-c["L"] / 2, -c["W"] / 2, 0))
+    hi = Vector((c["L"] / 2, c["W"] / 2, H))
+    return obs, lo, hi, {}
+
+
+OBS, LO, HI, INFO = next_product(A.next) if A.next else product(A.geo)
 SIZE = HI - LO
 TOP = HI.z
 

@@ -1,0 +1,97 @@
+{
+  "_note": "«Наступне видання» (№22): два варіанти TAVOR на перевірку попиту рекламою. НЕ товари: каталог, кошик і checkout їх не бачать (build.py читає цей файл окремо). Ціна — як у TAVOR того ж розміру (catalog/products.json, slug like), своєї ціни нема. Сторінки /p/<slug>/, голос — lead_source=vote.",
+  "items": [
+    {
+      "id": "tavor-fluted",
+      "slug": "tavor-fluted",
+      "like": "tavor",
+      "size": "160×90",
+      "name": {"he": "תבור · עמוד מחורץ", "en": "TAVOR · Fluted column", "ru": "TAVOR · Рифлёная колонна"},
+      "tagline": {
+        "he": "אותו שולחן נפתח — על עמוד אלון מחורץ אחד.",
+        "en": "The same extendable table — on a single fluted oak column.",
+        "ru": "Тот же раздвижной стол — на одной рифлёной дубовой колонне."
+      },
+      "description": {
+        "he": "משטח פורניר אלון בעובי 40 מ״מ עם קצה מעוגל, אותו מנגנון פתיחה של תבור ואותם גוונים. במקום רגליים — עמוד אלון מחורץ בקוטר 40 ס״מ על בסיס עגול שטוח מפלדה שחורה. אין רגליים בפינות — כל הכיסאות נכנסים מסביב.",
+        "en": "A 40 mm oak-veneer top with a rounded edge, the same TAVOR extension mechanism and the same finishes. Instead of legs — a fluted oak column, 40 cm across, on a flat round black-steel base. No legs at the corners, so every chair fits around it.",
+        "ru": "Столешница из дубового шпона толщиной 40 мм со скруглённым краем, тот же механизм раскладки, что у TAVOR, и те же тона. Вместо ножек — рифлёная дубовая колонна диаметром 40 см на плоском круглом основании из чёрной стали. Ножек по углам нет — стулья встают со всех сторон."
+      },
+      "specs": {
+        "he": ["160×90 ס״מ, נפתח ל־240", "משטח 40 מ״מ, קצה מעוגל", "עמוד אלון מחורץ Ø40 ס״מ", "בסיס עגול מפלדה שחורה"],
+        "en": ["160×90 cm, opens to 240", "40 mm top, rounded edge", "Fluted oak column, Ø40 cm", "Round black-steel base"],
+        "ru": ["160×90 см, раскладывается до 240", "Столешница 40 мм, скруглённый край", "Рифлёная дубовая колонна Ø40 см", "Круглое основание из чёрной стали"]
+      },
+      "images": [
+        {
+          "src": "/assets/next/tavor-fluted/life-1600.webp",
+          "srcset": "/assets/next/tavor-fluted/life-800.webp 800w, /assets/next/tavor-fluted/life-1600.webp 1600w",
+          "srcset_avif": "/assets/next/tavor-fluted/life-800.avif 800w, /assets/next/tavor-fluted/life-1600.avif 1600w",
+          "width": 1600, "height": 1068, "view": "life",
+          "alt": {
+            "he": "שולחן אוכל תבור על עמוד אלון מחורץ ובסיס עגול שחור, גוון אלון טבעי, בבית באור יום, ועליו ספר, כד וקערת לימונים",
+            "en": "TAVOR dining table on a fluted oak column and a round black base, natural oak finish, at home in daylight, with a book, a jug and a bowl of lemons",
+            "ru": "Обеденный стол TAVOR на рифлёной дубовой колонне и круглом чёрном основании, тон «натуральный дуб», дома при дневном свете, с книгой, кувшином и миской лимонов"
+          }
+        },
+        {
+          "src": "/assets/next/tavor-fluted/front-1600.webp",
+          "srcset": "/assets/next/tavor-fluted/front-800.webp 800w, /assets/next/tavor-fluted/front-1600.webp 1600w",
+          "srcset_avif": "/assets/next/tavor-fluted/front-800.avif 800w, /assets/next/tavor-fluted/front-1600.avif 1600w",
+          "width": 1600, "height": 1068, "view": "front",
+          "alt": {
+            "he": "תבור עם עמוד מחורץ במבט מלפנים: משטח אלון בעובי 40 מ״מ, עמוד אלון מחורץ ובסיס עגול שטוח מפלדה שחורה",
+            "en": "TAVOR with a fluted column, front view: a 40 mm oak top, a fluted oak column and a flat round black-steel base",
+            "ru": "TAVOR с рифлёной колонной, вид спереди: дубовая столешница 40 мм, рифлёная дубовая колонна и плоское круглое основание из чёрной стали"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tavor-oval",
+      "slug": "tavor-oval",
+      "like": "tavor",
+      "size": "160×100",
+      "name": {"he": "תבור · אובל", "en": "TAVOR · Oval", "ru": "TAVOR · Овал"},
+      "tagline": {
+        "he": "משטח אובלי רך על שתי רגלי אלון מפוסלות.",
+        "en": "A soft oval top on two sculpted oak legs.",
+        "ru": "Мягкая овальная столешница на двух скульптурных дубовых опорах."
+      },
+      "description": {
+        "he": "משטח בצורת „גלולה” 160×100 ס״מ שנפתח ל־210, פורניר אלון בעובי 40 מ״מ עם קצה מעוגל, אותם גוונים של תבור. שתי רגלי אלון מפוסלות במקום ארבע — בלי פינות חדות, יותר מקום לברכיים בקצוות.",
+        "en": "A pill-shaped 160×100 cm top that opens to 210, 40 mm oak veneer with a rounded edge, in the same TAVOR finishes. Two sculpted oak legs instead of four — no sharp corners, more knee room at the ends.",
+        "ru": "Столешница-«капсула» 160×100 см, раскладывается до 210, дубовый шпон 40 мм со скруглённым краем, те же тона, что у TAVOR. Две скульптурные дубовые опоры вместо четырёх ножек — без острых углов, больше места для коленей по краям."
+      },
+      "specs": {
+        "he": ["160×100 ס״מ, נפתח ל־210", "משטח 40 מ״מ, קצה מעוגל", "צורת „גלולה”, בלי פינות", "שתי רגלי אלון מפוסלות"],
+        "en": ["160×100 cm, opens to 210", "40 mm top, rounded edge", "Pill shape, no corners", "Two sculpted oak legs"],
+        "ru": ["160×100 см, раскладывается до 210", "Столешница 40 мм, скруглённый край", "Форма «капсула», без углов", "Две скульптурные дубовые опоры"]
+      },
+      "images": [
+        {
+          "src": "/assets/next/tavor-oval/life-1600.webp",
+          "srcset": "/assets/next/tavor-oval/life-800.webp 800w, /assets/next/tavor-oval/life-1600.webp 1600w",
+          "srcset_avif": "/assets/next/tavor-oval/life-800.avif 800w, /assets/next/tavor-oval/life-1600.avif 1600w",
+          "width": 1600, "height": 1068, "view": "life",
+          "alt": {
+            "he": "שולחן אוכל תבור אובלי על שתי רגלי אלון מפוסלות, גוון אלון טבעי, בבית באור יום, ועליו ספר, כד וקערת לימונים",
+            "en": "Oval TAVOR dining table on two sculpted oak legs, natural oak finish, at home in daylight, with a book, a jug and a bowl of lemons",
+            "ru": "Овальный обеденный стол TAVOR на двух скульптурных дубовых опорах, тон «натуральный дуб», дома при дневном свете, с книгой, кувшином и миской лимонов"
+          }
+        },
+        {
+          "src": "/assets/next/tavor-oval/front-1600.webp",
+          "srcset": "/assets/next/tavor-oval/front-800.webp 800w, /assets/next/tavor-oval/front-1600.webp 1600w",
+          "srcset_avif": "/assets/next/tavor-oval/front-800.avif 800w, /assets/next/tavor-oval/front-1600.avif 1600w",
+          "width": 1600, "height": 1068, "view": "front",
+          "alt": {
+            "he": "תבור אובלי במבט מלפנים: משטח אלון בעובי 40 מ״מ על שתי רגלי אלון מפוסלות",
+            "en": "Oval TAVOR, front view: a 40 mm oak top on two sculpted oak legs",
+            "ru": "Овальный TAVOR, вид спереди: дубовая столешница 40 мм на двух скульптурных дубовых опорах"
+          }
+        }
+      ]
+    }
+  ]
+}
