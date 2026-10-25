@@ -522,7 +522,7 @@ def specs(p: dict, loc: str) -> str:
     # строк першої серії — оцінка з каталогу (lead_time_weeks); точна дата — лише в підтвердженні замовлення
     rows.append(("{{t.spec_lead}}", "{{t.lead_series}}" if listed("SERIES_PRODUCTS", p) else "{{t.lead_exact}}"))
     rows.append(("{{t.spec_incl}}", "{{t.spec_incl_v}}"))
-    rows.append(("{{t.spec_ship}}", '{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi> · {{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'))
+    rows.append(("{{t.spec_ship}}", " · ".join(f'{{{{t.{w}}}}} — <bdi dir="ltr">{{{{{t}}}}}</bdi>' for _, w, t in SHIP_WAYS)))
     rows.append(("{{t.spec_warranty}}", "{{t.spec_warranty_v}}"))
     rows.append(("{{t.spec_assembly}}", "{{t.ship_assembly_long}}" if listed("ASSEMBLY_PRODUCTS", p) else "{{t.assembly_other}}"))
     return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
@@ -576,9 +576,21 @@ def listed(key: str, p: dict) -> bool:
     return p.get("slug") in [x.strip() for x in str(CONTENT.get(key) or "").split(",")]
 
 
+# Три способи отримання (слово власника 25.10): ключ кошика/заявки, ключ i18n, токен ціни. Порядок — як на екрані.
+SHIP_WAYS = (("door", "ship_door", "DELIVERY_PRICE"), ("assembled", "ship_assembled", "ASSEMBLED_PRICE"),
+             ("pickup", "ship_pickup", "PICKUP_PRICE"))
+
+
+def ship_fees() -> dict:
+    """Ціни способів отримання з content.json; «зі складанням» = доставка + складання (окремо не зберігається).
+    Те саме рахує api/handler.py:_load_ship_fees — tests/test_handler.py звіряє обидва."""
+    door = int(CONTENT["DELIVERY_ILS"])
+    return {"pickup": int(CONTENT["PICKUP_ILS"]), "door": door, "assembled": door + int(CONTENT["ASSEMBLY_ILS"])}
+
+
 def ship_terms(p: dict, loc: str) -> str:
-    """Рядок під ціною: самовивіз, доставка до дверей, складання — числа лише з content.json (токени)."""
-    items = ['{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi>', '{{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>']
+    """Рядок під ціною: до дверей, зі складанням, самовивіз (+ складання самому) — числа лише з content.json (токени)."""
+    items = [f'{{{{t.{w}}}}} — <bdi dir="ltr">{{{{{t}}}}}</bdi>' for _, w, t in SHIP_WAYS]
     if listed("ASSEMBLY_PRODUCTS", p):
         items.append("{{t.ship_assembly}}")
     return '<ul class="pdp-terms" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
@@ -592,10 +604,9 @@ def trust_row() -> str:
 
 
 def ship_choice() -> str:
-    """Вибір «самовивіз / до дверей» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
-    # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—350 ₪»), тому &nbsp;
-    opts = [("door", '{{t.ship_door}} —&nbsp;<bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'),
-            ("pickup", '{{t.ship_pickup}} —&nbsp;<bdi dir="ltr">{{PICKUP_PRICE}}</bdi>')]
+    """Вибір «до дверей / зі складанням / самовивіз» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
+    # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—950 ₪»), тому &nbsp;
+    opts = [(v, f'{{{{t.{w}}}}} —&nbsp;<bdi dir="ltr">{{{{{t}}}}}</bdi>') for v, w, t in SHIP_WAYS]
     chips = "".join(f'<label class="chip"><input type="radio" name="ship" value="{v}"><span>{x}</span></label>' for v, x in opts)
     return (f'<fieldset class="f f-choice ship-choice" data-ship-choice><legend>{{{{t.ship_legend}}}}</legend>'
             f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
@@ -806,7 +817,7 @@ def organization_jsonld(loc: str, url: str) -> str:
 
 def faq_jsonld(items: list) -> str:
     # відповідь у schema.org — чистий текст, без розмітки сторінки
-    # <bdi> — обгортка всередині речення (ціна в RTL), знімаємо без пробілу: «₪350.», а не «₪350 .»
+    # <bdi> — обгортка всередині речення (ціна в RTL), знімаємо без пробілу: «₪950.», а не «₪950 .»
     plain = lambda h: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", re.sub(r"</?bdi[^>]*>", "", h)))).strip()  # noqa: E731
     return ld_script({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
         {"@type": "Question", "name": plain(it["q"]), "acceptedAnswer": {"@type": "Answer", "text": plain(it["a"])}}
@@ -919,8 +930,8 @@ def main() -> None:
             "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
             **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),
-            # доставка й самовивіз — числа з content.json, у форматі ціни мови (₪350 / 350 ₪)
-            "DELIVERY_PRICE": money(int(CONTENT["DELIVERY_ILS"]), loc), "PICKUP_PRICE": money(int(CONTENT["PICKUP_ILS"]), loc),
+            # способи отримання — числа з content.json, у форматі ціни мови (₪950 / 950 ₪)
+            **{t: money(ship_fees()[v], loc) for v, _, t in SHIP_WAYS},
             "SHIP_CHOICE": ship_choice(),
             "CITY_OPTIONS": "".join(f'<option value="{esc(c["id"])}">{esc(c["name"])}</option>' for c in s.get("cities", [])),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
@@ -928,7 +939,7 @@ def main() -> None:
             "DATA": json.dumps({"lang": loc, "prefix": prefix, "consent": CONTENT.get("CONSENT_VERSION", "v1"),
                                 "s": s.get("js", {}), "products": product_data(products, loc),
                                 "cities": s.get("cities", []),
-                                "ship": {"pickup": int(CONTENT["PICKUP_ILS"]), "door": int(CONTENT["DELIVERY_ILS"])}},
+                                "ship": ship_fees()},
                                ensure_ascii=False).replace("</", "<\\/"),
         }
         hero_p = next((p for p in products if p["slug"] == CONTENT.get("HERO_PRODUCT")), products[0])

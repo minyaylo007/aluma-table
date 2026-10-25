@@ -150,13 +150,15 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertIn(own, inc)
 
     def test_card_shows_delivery_terms_and_lead_cta_under_the_price(self):
-        # хвиля 1 (22.10): під ціною — «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 (· הרכבה עצמית)», ціни — з
-        # content.json; кнопка «השאירו פרטים» → #register ще до плиток (перший екран телефона); «משוער» про ціну — ні.
+        # №19 (слово 25.10): під ціною — «משלוח עד הדלת — ₪950 · משלוח והרכבה — ₪1,150 · איסוף עצמי — ₪0
+        # (· מרכיבים לבד או מזמינים הרכבה)», ціни — з content.json; кнопка «השאירו פרטים» → #register ще до плиток (перший екран телефона); «משוער» про ціну — ні.
         # №15: DOM = екран — рядок довіри → дії (кошик, «שאלה?», «התקשרו») → «השאירו פרטים» → плитки; без CSS order
         content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
         assembly = [x.strip() for x in content["ASSEMBLY_PRODUCTS"].split(",")]
-        fee = {"he": f"₪{int(content['DELIVERY_ILS']):,}", "en": f"₪{int(content['DELIVERY_ILS']):,}",
-               "ru": f"{int(content['DELIVERY_ILS']):,}".replace(",", "\u00a0") + "\u00a0₪"}
+        door = int(content["DELIVERY_ILS"])
+        fees = {"ship_door": door, "ship_assembled": door + int(content["ASSEMBLY_ILS"]), "ship_pickup": int(content["PICKUP_ILS"])}
+        money = {"he": lambda n: f"₪{n:,}", "en": lambda n: f"₪{n:,}",
+                 "ru": lambda n: f"{n:,}".replace(",", "\u00a0") + "\u00a0₪"}
         for lang, prefix in DIST_PREFIX.items():
             t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
             for p in PRODUCTS:
@@ -164,10 +166,10 @@ class BuiltSiteTests(unittest.TestCase):
                 buy = re.search(r'<div class="pdp-buy">.*?<ul class="pdp-points"', html, re.S).group(0)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', buy, re.S).group(1)
-                    self.assertIn(t["ship_pickup"], terms)
-                    # ціна — у <bdi dir="ltr"> (в RTL «₪350» інакше читається навиворіт; tests/responsive.spec.js)
-                    self.assertIn(f'{t["ship_door"]} — <bdi dir="ltr">{fee[lang]}</bdi>', terms)
-                    self.assertEqual(terms.count("<li>"), 3 if p["slug"] in assembly else 2)
+                    # ціна — у <bdi dir="ltr"> (в RTL «₪950» інакше читається навиворіт; tests/responsive.spec.js)
+                    for key, n in fees.items():
+                        self.assertIn(f'{t[key]} — <bdi dir="ltr">{money[lang](n)}</bdi>', terms)
+                    self.assertEqual(terms.count("<li>"), 4 if p["slug"] in assembly else 3)
                     ask = re.search(r'<a class="btn[^"]*pdp-ask" href="#register"[^>]*>([^<]+)</a>', buy)
                     self.assertEqual(ask.group(1), t["lead_cta"])
                     self.assertLess(ask.start(), buy.index('name="size"'))
@@ -376,7 +378,7 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertNotIn(banned, json.dumps(ld), f"{p['slug']}: вигаданий рейтинг у schema.org")
 
     def test_cart_and_checkout_offer_pickup_or_door_and_promise_no_payment(self):
-        # хвиля 1 (22.10): у кошику й на кроці «משלוח» — вибір самовивіз / до дверей (shop.js рахує суму з
+        # хвиля 1 (22.10), №19: у кошику й на кроці «משלוח» — до дверей / зі складанням / самовивіз (shop.js рахує суму з
         # DATA.ship); над кроком оплати — «נחזור תוך יום עסקים… בלי תשלום עכשיו»; «טרם אושר» — ніде
         content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
         for lang, prefix in DIST_PREFIX.items():
@@ -384,7 +386,7 @@ class BuiltSiteTests(unittest.TestCase):
             for rel in ("cart/", "checkout/"):
                 html = self.page(prefix + rel)
                 with self.subTest(page=prefix + rel):
-                    self.assertEqual(re.findall(r'<input type="radio" name="ship" value="(\w+)">', html), ["door", "pickup"])
+                    self.assertEqual(re.findall(r'<input type="radio" name="ship" value="(\w+)">', html), ["door", "assembled", "pickup"])
                     for k in ("data-sum-goods", "data-sum-ship"):
                         self.assertIn(k, html)
                     self.assertNotIn("טרם אושר", html)
@@ -393,7 +395,9 @@ class BuiltSiteTests(unittest.TestCase):
             self.assertIn(t["reg_promise"], self.page(prefix))
             data = json.loads(re.search(r'<script type="application/json" id="aluma-data">(.*?)</script>',
                                         self.page(prefix + "cart/"), re.S).group(1))
-            self.assertEqual(data["ship"], {"pickup": int(content["PICKUP_ILS"]), "door": int(content["DELIVERY_ILS"])})
+            door = int(content["DELIVERY_ILS"])
+            self.assertEqual(data["ship"], {"pickup": int(content["PICKUP_ILS"]), "door": door,
+                                            "assembled": door + int(content["ASSEMBLY_ILS"])})
 
     def test_no_lead_weeks_early_registration_or_free_promise(self):
         # specs/003: «10–12 שבועות» → «זמן אספקה מדויק — באישור ההזמנה»; без «הרשמה מוקדמת» і «ללא תשלום וללא התחייבות».
