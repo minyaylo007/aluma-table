@@ -123,9 +123,9 @@ def _load_catalog(paths=CATALOG_PATHS) -> dict:
 
 CATALOG = _load_catalog()
 
-# Спосіб отримання (content.json: PICKUP_ILS, DELIVERY_ILS) — ціна в сповіщенні береться тут, не з браузера.
-# Немає файлу — {} і в сповіщенні лишається сам спосіб, без суми.
-VALID_DELIVERY = ("pickup", "door")
+# Спосіб отримання (content.json: PICKUP_ILS, DELIVERY_ILS, ASSEMBLY_ILS) — ціна в сповіщенні береться тут, не з браузера.
+# «assembled» = доставка + складання, рахується як build.py:ship_fees. Немає файлу — {} і в сповіщенні лишається сам спосіб.
+VALID_DELIVERY = ("pickup", "door", "assembled")
 CONTENT_PATHS = (
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content.json"),
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "content.json"),
@@ -137,7 +137,8 @@ def _load_ship_fees(paths=CONTENT_PATHS) -> dict:
         try:
             with open(path, encoding="utf-8") as f:
                 c = json.load(f)
-            return {"pickup": int(c["PICKUP_ILS"]), "door": int(c["DELIVERY_ILS"])}
+            door = int(c["DELIVERY_ILS"])
+            return {"pickup": int(c["PICKUP_ILS"]), "door": door, "assembled": door + int(c["ASSEMBLY_ILS"])}
         except (OSError, ValueError, TypeError, KeyError):
             continue
     return {}
@@ -689,7 +690,7 @@ def _order_total(value) -> int:
 LANG_REPLY = {"he": "на иврите", "en": "по-английски", "ru": "по-русски"}
 TIMEFRAME_WORDS = {"now": "сейчас", "1-3m": "через 1–3 месяца", "later": "позже", "browsing": "просто смотрит"}
 CONTACT_WORDS = {"whatsapp": "WhatsApp", "call": "звонок"}
-DELIVERY_WORDS = {"pickup": "самовывоз", "door": "до двери"}
+DELIVERY_WORDS = {"pickup": "самовывоз", "door": "до двери", "assembled": "до двери со сборкой"}
 TELEGRAM_TEXT_MAX = 4000   # ліміт Telegram — 4096 символів; запас на всяк випадок
 
 

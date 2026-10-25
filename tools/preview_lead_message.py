@@ -3,6 +3,7 @@
 
     python3 tools/preview_lead_message.py            # заявка з оформлення (кошик), ru
     python3 tools/preview_lead_message.py --form     # заявка з форми, he
+    python3 tools/preview_lead_message.py --delivery assembled   # спосіб отримання: door / assembled / pickup
 
 Друкує рівно той текст, який notify() надіслав би власнику (api/handler.py lead_message).
 Нічого не надсилає: Telegram тут навіть не імпортується в справу. Ім'я й номер — вигадані.
@@ -39,8 +40,10 @@ FORM = {
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--form", action="store_true", help="заявка з форми замість оформлення")
+    ap.add_argument("--delivery", choices=handler.VALID_DELIVERY, help="спосіб отримання в заявці з оформлення")
     args = ap.parse_args()
-    print(handler.lead_message(FORM if args.form else CHECKOUT))
+    item = FORM if args.form else dict(CHECKOUT, delivery=args.delivery or "")
+    print(handler.lead_message(item))
     return 0
 
 
