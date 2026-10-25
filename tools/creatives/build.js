@@ -163,10 +163,16 @@ function variantHtml(template, cfg, variant, format, products, fonts, imagePaths
     PRICE_NOTE: esc(products.length > 1 ? cfg.price_note_many : cfg.price_note), INCLUDES: esc(cfg.includes),
     CTA: esc(cfg.cta), CTA_NOTE: esc(cfg.cta_note),
   };
-  return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
+  return dropEmptyMark(template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in map)) throw new Error(`шаблон: невідомий ${m}`);
     return String(map[k]);
-  });
+  }));
+}
+
+// Порожній "mark" у creatives.json — кадр без плашки (he з 25.10, слово власника 24.10: «не пиши, что это
+// визуализация»); порожній div із фоном лишив би темну пігулку, тож прибираємо його цілком
+function dropEmptyMark(html) {
+  return html.replace(/<div class="mark" data-text><\/div>\s*/, '');
 }
 
 // У сторінці: частка площі під текстом (прямокутники рядків), контраст кожного тексту до непрозорого тла,
@@ -332,7 +338,8 @@ async function main() {
           if (t.contrast < MIN_CONTRAST) problems.push(`контраст ${t.contrast.toFixed(2)} «${t.text}»`);
           if (!t.inside) problems.push(`виходить за кадр «${t.text}»`);
         }
-        if (m.mark !== cfg.mark || !m.markVisible) problems.push(`нема позначки «${cfg.mark}»`);
+        if (cfg.mark && (m.mark !== cfg.mark || !m.markVisible)) problems.push(`нема позначки «${cfg.mark}»`);
+        if (!cfg.mark && m.mark) problems.push('плашка на кадрі, хоча mark порожній');
         if (m.panelOverflow) problems.push('панель переповнена');
         if (!m.imagesOk) problems.push('кадр не завантажився');
         m.tiles.forEach((share, i) => {
@@ -378,7 +385,7 @@ async function main() {
   console.log(`готово: ${report.creatives.length} креативів → ${path.relative(ROOT, outDir) || outDir}`);
 }
 
-module.exports = { ROOT, ORIGIN, TYPES, LANGS, MAX_BYTES, MAX_TEXT_SHARE, MIN_CONTRAST, MIN_TILE_SHARE, localize, local, esc, money, fontFaces, fill, priceVars, headlineOf, measure, shoot };
+module.exports = { ROOT, ORIGIN, TYPES, LANGS, MAX_BYTES, MAX_TEXT_SHARE, MIN_CONTRAST, MIN_TILE_SHARE, localize, local, esc, dropEmptyMark, money, fontFaces, fill, priceVars, headlineOf, measure, shoot };
 
 // Модулем його бере tools/creatives/video.js — тоді знімки не робимо.
 if (require.main === module) main().catch((e) => { console.error(e.message || e); process.exit(1); });

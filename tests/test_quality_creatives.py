@@ -59,9 +59,9 @@ class CreativeConfigTests(unittest.TestCase):
                 self.assertIn(pid, self.catalog, v["id"])
 
     def test_honest_text(self):
-        """Позначка візуалізації; ціна — як на сайті з хвилі 1 (faq «מחיר ההשקה לסדרה הראשונה», 23.10):
+        """Без плашки візуалізації; ціна — як на сайті з хвилі 1 (faq «מחיר ההשקה לסדרה הראשונה», 23.10):
         з ПДВ, доставка чи самовивіз окремо, складання своє; суми доставки нема (вона в власника на перегляді)."""
-        self.assertEqual(self.cfg["mark"], "הדמיה")
+        self.assertEqual(self.cfg["mark"], "")  # 24.10, слово власника: без плашки «הדמיה» (№23)
         self.assertEqual(self.cfg["price_note"], "מחיר השקה לסדרה הראשונה")
         self.assertEqual(self.cfg["price_note_many"], "מחירי השקה לסדרה הראשונה")
         for fact in ("כולל מע״מ", "משלוח", "איסוף", "בנפרד", "הרכבה עצמית"):

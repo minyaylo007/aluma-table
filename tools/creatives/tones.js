@@ -57,10 +57,10 @@ function cardHtml(template, cfg, product, tone, i, n, format, fonts, note) {
     MARK: B.esc(cfg.mark), BRAND: B.esc(cfg.brand), TONE: B.esc(B.local(tone.name, lang, `finishes.${tone.id}.name`)),
     SUB: B.fill(cfg.tones.sub, { name: B.esc(B.local(product.name, lang, `${product.id}.name`)), i, n }), NOTE: B.esc(note),
   };
-  return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
+  return B.dropEmptyMark(template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in map)) throw new Error(`шаблон: невідомий ${m}`);
     return String(map[k]);
-  });
+  }));
 }
 
 async function main() {
@@ -123,7 +123,8 @@ async function main() {
           if (t.contrast < B.MIN_CONTRAST) problems.push(`контраст ${t.contrast.toFixed(2)} «${t.text}»`);
           if (!t.inside) problems.push(`виходить за кадр «${t.text}»`);
         }
-        if (m.mark !== cfg.mark || !m.markVisible) problems.push(`нема позначки «${cfg.mark}»`);
+        if (!cfg.mark && m.mark) problems.push('плашка на кадрі, хоча mark порожній');
+        if (cfg.mark && (m.mark !== cfg.mark || !m.markVisible)) problems.push(`нема позначки «${cfg.mark}»`);
         if (m.panelOverflow) problems.push('панель переповнена');
         if (!m.imagesOk) problems.push('кадр не завантажився');
         if (!m.fontsOk) problems.push('шрифт сайту не завантажився');
