@@ -1,0 +1,34 @@
+<nav class="wrap crumbs" aria-label="{{t.crumbs_label}}">
+  <a href="{{PREFIX}}/">{{t.nav_home}}</a><span aria-hidden="true">/</span><a href="{{PREFIX}}/p/{{N_LIKE}}/">{{N_LIKE_NAME}}</a><span aria-hidden="true">/</span><span aria-current="page">{{P_NAME}}</span>
+</nav>
+<article class="wrap pdp pdp--next" data-next data-product="{{P_ID}}" data-slug="{{P_SLUG}}" data-name="{{P_NAME}}" data-price="{{P_PRICE_PLAIN}}">
+  <div class="pdp-media">{{P_GALLERY}}</div>
+  <div class="pdp-buy">
+    <div class="pdp-kicker"><p class="eyebrow">{{t.next_kicker}}</p></div>
+    <h1 class="pdp-h1">{{P_NAME}}</h1>
+    <p class="pdp-tag">{{P_TAGLINE}}</p>
+    <p class="pdp-lead"><span class="dot" aria-hidden="true"></span>{{t.next_status}}</p>
+    <div class="pdp-price">
+      <span class="price"><bdi dir="ltr">{{P_PRICE}}</bdi></span>
+      <span class="price-incl">{{N_PRICE_NOTE}}</span>
+    </div>
+    <ul class="pdp-points" role="list">{{N_SPECS}}</ul>
+    <div class="pdp-actions">
+      <button class="btn btn--dark btn--block" type="button" data-vote aria-expanded="false" aria-controls="vote">{{t.next_cta}}</button>
+      <p class="muted small">{{t.next_cta_hint}}</p>
+      <form class="callback" id="vote" data-source="vote" data-err="v-" novalidate hidden>
+        <input type="hidden" name="product_id" value="{{P_ID}}">
+        <div class="f"><label for="v-phone">{{t.f_phone}} <span class="opt-l">{{t.cb_or_email}}</span></label><input id="v-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="40" aria-describedby="v-e-phone"><p class="f-err" id="v-e-phone" hidden></p></div>
+        <div class="f"><label for="v-email">{{t.f_email}} <span class="opt-l">{{t.cb_or_phone}}</span></label><input id="v-email" name="email" type="email" inputmode="email" autocomplete="email" dir="ltr" maxlength="120" aria-describedby="v-e-email"><p class="f-err" id="v-e-email" hidden></p></div>
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <label class="check"><input type="checkbox" name="consent" required aria-describedby="v-e-consent"><span>{{t.f_consent}}</span></label>
+        <p class="f-err" id="v-e-consent" hidden></p>
+        <button class="btn btn--dark btn--block" type="submit">{{t.next_send}}</button>
+        <p class="f-status" role="status" aria-live="polite"></p>
+      </form>
+      <p class="thanks callback-thanks" data-vote-thanks hidden tabindex="-1">{{t.next_thanks}}</p>
+    </div>
+    <p class="pdp-desc">{{P_DESC}}</p>
+    <p class="muted small">{{t.next_like}} <a href="{{PREFIX}}/p/{{N_LIKE}}/">{{N_LIKE_NAME}}</a></p>
+  </div>
+</article>

@@ -109,7 +109,7 @@ class CallButtonTests(unittest.TestCase):
                       block)
         self.assertIn("b.hidden = true", block, "форми нема — кнопок нема")
         self.assertIn('data.lead_source = "callback";', JS)
-        self.assertIn("if (!callback && data.name.length < 2)", JS)
+        self.assertIn("if (!callback && !vote && data.name.length < 2)", JS)
         self.assertIn("if (cbForm) wireForm(cbForm);", JS)
 
 

@@ -35,6 +35,8 @@ PAGES = SITE / "pages"
 DIST = ROOT / "dist"
 I18N = ROOT / "i18n"
 CATALOG = pathlib.Path(os.environ.get("ALUMA_CATALOG") or (ROOT / "catalog" / "products.json"))
+# «наступне видання» (№22): варіанти на перевірку попиту — свої сторінки /p/<slug>/ з голосом, поза каталогом і кошиком
+NEXT_CATALOG = pathlib.Path(os.environ.get("ALUMA_NEXT") or (ROOT / "catalog" / "next.json"))
 # Зразки тонів: шматок справжнього скану шпону (tools/oak_tones.py) — або ФОТО зразка з фабрики.
 # Фото кладемо сюди як <тон>.jpg (tools/oak_tones.py --factory фото.jpg <тон>): воно заміняє скан. README.md поруч.
 FINISH_SCANS = SITE / "assets" / "products" / "finishes"
@@ -200,6 +202,29 @@ def load_catalog() -> list:
         out.append(p)
     if not out:
         raise SystemExit("catalog: no visible products")
+    return out
+
+
+def load_next(products: list) -> list:
+    """catalog/next.json -> варіанти «наступного видання». Ціна — лише з товару like (TAVOR того ж розміру): своєї нема.
+
+    Slug не може збігтися з товаром каталогу; без файлу — порожньо (сайт збирається й без варіантів)."""
+    if not NEXT_CATALOG.is_file():
+        return []
+    by_slug = {p["slug"]: p for p in products}
+    out = []
+    for n in json.loads(read_text(NEXT_CATALOG)).get("items") or []:
+        slug = str(n.get("slug") or "")
+        like = by_slug.get(n.get("like"))
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug) or slug in by_slug or any(o["slug"] == slug for o in out):
+            raise SystemExit(f"next: bad or duplicate slug {slug!r}")
+        if not like:
+            raise SystemExit(f"next: {slug} — like {n.get('like')!r} не в каталозі")
+        size = next((z for z in like["sizes"] if z.get("label") == n.get("size")), None)
+        n["price_ils"] = int(size["price_ils"]) if size else int(like.get("price_from_ils") or 0)
+        n["like_p"] = like
+        n.setdefault("images", [])
+        out.append(n)
     return out
 
 
@@ -937,6 +962,7 @@ def main() -> None:
     DIST.mkdir()
     locales = load_locales()
     products = load_catalog()
+    next_items = load_next(products)
     layout = read_text(SITE / "_layout.html")
     templates = {f.stem: read_text(f) for f in sorted(PAGES.glob("*.html"))}
     tracking = (SITE / "assets" / "tracking.js").is_file()
@@ -1048,6 +1074,27 @@ def main() -> None:
             }
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{p['slug']}/index.html",
                  templates["product"], tokens, "", "", path)
+            pages_out.append(prefix + path)
+
+        # «наступне видання»: картка без кошика й конфігуратора — одна кнопка «אני רוצה כזה» (lead_source=vote)
+        for n in next_items:
+            path = f"/p/{n['slug']}/"
+            like = n["like_p"]
+            like_name = esc(L(like.get("name"), loc))
+            tokens = {
+                "TITLE": esc(L(n.get("name"), loc)) + " — {{t.brand_name}}",
+                "DESC": esc(L(n.get("tagline"), loc)),
+                "BODY_CLASS": "page-product page-next",
+                "P_ID": esc(n["id"]), "P_SLUG": n["slug"], "P_NAME": esc(L(n.get("name"), loc)),
+                "P_TAGLINE": esc_bidi(L(n.get("tagline"), loc)), "P_DESC": esc_bidi(L(n.get("description"), loc)),
+                "P_PRICE": money(n["price_ils"], loc), "P_PRICE_PLAIN": str(n["price_ils"]),
+                "P_GALLERY": gallery(n, loc),
+                "N_LIKE": like["slug"], "N_LIKE_NAME": like_name,
+                "N_PRICE_NOTE": esc(s.get("next_price_note", "")).replace("{like}", like_name),
+                "N_SPECS": "".join(f"<li>{esc_bidi(x)}</li>" for x in (n.get("specs") or {}).get(loc) or []),
+            }
+            emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{n['slug']}/index.html",
+                 templates["next"], tokens, "", "", path)
             pages_out.append(prefix + path)
         missing |= render.missing
 

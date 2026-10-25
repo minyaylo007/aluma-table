@@ -1,0 +1,33 @@
+# ALUMA — שלב 2, בדיקת עיצוב: שני וריאנטים של תבור (№22)
+# סגנון sahar-v3. לא מפורסם בקבינט Meta — את המודעות מעלה המנצח.
+# מחיר: משוער, כמו תבור באותה מידה (catalog/products.json) — ₪4,490 ל־160×90 ול־160×100.
+# כפתור: Learn more (לא Shop now — אין קנייה, רק הצבעה).
+# UTM — בקישור עצמו, כמו שכתוב למטה.
+
+## tavor-fluted-v1
+link: https://table.central-aparts.store/p/tavor-fluted/?utm_source=meta&utm_medium=paid_social&utm_campaign=stage2-lead&utm_content=tavor-fluted
+images: docs/creatives/stage2-design/tavor-fluted-1080x1080.jpg (1:1), docs/creatives/stage2-design/tavor-fluted-1080x1350.jpg (4:5)
+
+body:
+אותו שולחן אוכל נפתח — על עמוד אלון מחורץ אחד, בלי רגליים בפינות.
+160×90 ס״מ, נפתח ל־240. משטח 40 מ״מ עם קצה מעוגל, בסיס עגול מפלדה שחורה.
+זו המהדורה הבאה, עדיין בבדיקה: אם יש מספיק עניין — היא נכנסת לייצור.
+מחיר משוער ₪4,490, כולל מע״מ — כמו תבור באותה מידה.
+רוצים כזה? לחצו „אני רוצה כזה” באתר — טלפון או מייל, בלי התחייבות.
+
+title: עמוד אחד, בלי פינות לרגליים. נפתח ל־240.
+description: מהדורה הבאה · בבדיקה · מחיר משוער כולל מע״מ
+
+## tavor-oval-v1
+link: https://table.central-aparts.store/p/tavor-oval/?utm_source=meta&utm_medium=paid_social&utm_campaign=stage2-lead&utm_content=tavor-oval
+images: docs/creatives/stage2-design/tavor-oval-1080x1080.jpg (1:1), docs/creatives/stage2-design/tavor-oval-1080x1350.jpg (4:5)
+
+body:
+משטח אובלי רך, בלי פינות — על שתי רגלי אלון מפוסלות.
+160×100 ס״מ, נפתח ל־210. משטח 40 מ״מ עם קצה מעוגל.
+זו המהדורה הבאה, עדיין בבדיקה: אם יש מספיק עניין — היא נכנסת לייצור.
+מחיר משוער ₪4,490, כולל מע״מ — כמו תבור באותה מידה.
+רוצים כזה? לחצו „אני רוצה כזה” באתר — טלפון או מייל, בלי התחייבות.
+
+title: אובל רך. בלי פינות.
+description: מהדורה הבאה · בבדיקה · מחיר משוער כולל מע״מ
