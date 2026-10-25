@@ -205,7 +205,7 @@ class BuiltSiteTests(unittest.TestCase):
                     for k in ("BOARD_MM", "TOP_MM", "INSERT_CM"):
                         self.assertIn(f"{content[k]} ", b)
                     self.assertIn(content["VENEER_MM"].replace(".", "," if lang == "ru" else "."), b)
-                    self.assertIn(t["inside_note"], b)
+                    self.assertNotIn("inside_note", b)
                     href = re.search(r'<a class="pdp-pdf" href="(/assets/docs/[^"]+\.pdf)"', b).group(1)
                     self.assertRegex(href, rf"/{p['slug']}-assembly-{pdf_lang[lang]}\.[0-9a-f]{{10}}\.pdf$")
                     self.assertEqual((self.dist / href.lstrip("/")).read_bytes()[:5], b"%PDF-")
@@ -249,14 +249,17 @@ class BuiltSiteTests(unittest.TestCase):
                 self.assertEqual(" hidden " in slot.group(0), content.get("WORKSHOP_PHOTOS") != "1")
 
     def test_sticky_thumb_has_alt(self):
-        # 22.10, аудит (а) 11: жодного <img> без alt на картці; мініатюра смуги — «הדמיה: <назва>»
+        # 22.10, аудит (а) 11: жодного <img> без alt на картці; мініатюра смуги — назва товару
+        # (з 24.10 без «הדמיה: » — слово власника; застереження лишилось у terms_html «תמונות»)
         for lang, prefix in DIST_PREFIX.items():
             viz = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))["viz_tag"]
             for p in PRODUCTS:
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     self.assertEqual([i for i in re.findall(r"<img\b[^>]*>", html) if not re.search(r'\balt="[^"]+"', i)], [])
-                    self.assertRegex(html, r'<img class="sticky-thumb"[^>]*alt="' + re.escape(viz) + r': [^"]+"')
+                    alt = re.search(r'<img class="sticky-thumb"[^>]*alt="([^"]+)"', html).group(1)
+                    self.assertEqual(alt, p["name"][lang])
+                    self.assertNotIn(viz, alt)
 
     def test_each_language_embeds_only_its_own_font_faces(self):
         # he-картка качала 44 КБ латинського Frank Ruhl і 15 КБ кирилиці (аудит 22.10): обличчя мови —

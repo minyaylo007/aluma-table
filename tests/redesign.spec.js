@@ -67,21 +67,23 @@ for (const p of PRODUCTS) {
     await expect(page.locator('.pdp-price')).not.toContainText('משוער');
     await expect(page.locator('.pdp-price')).not.toContainText('טרם אושר');
     await expect(page.locator('.pdp-buy')).not.toContainText('שבועות');
-    if ((p.images || []).length) await expect(page.locator('.viz-tag').first()).toContainText('הדמיה');
+    // 24.10, слово власника: позначки «הדמיה» на кадрах нема (застереження — у terms_html «תמונות»)
+    await expect(page.locator('.viz-tag')).toHaveCount(0);
+    expect(await page.locator('main').innerText()).not.toContain('הדמיה');
     if (!p.model3d) await expect(page.locator('.js-3d')).toHaveCount(0);
     expect(await noOverflow(page)).toBeLessThanOrEqual(0);
     expect(errors).toEqual([]);
   });
 }
 
-test('material block: three facts, a tagged close-up, every catalog finish, link to the materials on About', async ({ page }) => {
+test('material block: three facts, a close-up, every catalog finish, link to the materials on About', async ({ page }) => {
   const errors = watchErrors(page);
   await mockApi(page);
   for (const [pre, loc] of [['', 'he'], ['/en', 'en']]) {
     await page.goto(pre + '/');
     const sec = page.locator('section.material');
     await expect(sec.locator('.mat-facts > li')).toHaveCount(3);
-    await expect(sec.locator('.viz-tag')).toBeVisible();
+    await expect(sec.locator('.viz-tag')).toHaveCount(0);
     const fins = PRODUCTS[0].finishes;
     await expect(sec.locator('.mat-tones li')).toHaveCount(fins.length);
     for (const f of fins) await expect(sec.locator('.mat-tones')).toContainText(f.name[loc]);
@@ -173,13 +175,13 @@ test('plan "closed / open" follows the chosen size and the mechanism frames carr
   if ((p.images || []).filter(i => i.view === 'mechanism').length >= 2) {
     const steps = page.locator('.how-steps li');
     await expect(steps).toHaveCount(3);
-    for (let i = 0; i < 3; i++) await expect(steps.nth(i).locator('.viz-tag')).toBeVisible();
+    await expect(steps.locator('.viz-tag')).toHaveCount(0);
   }
   expect(await noOverflow(page)).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
 });
 
-test('morning / evening switch swaps the light layer, keeps the tag and hides the inactive picture from screen readers', async ({ page }) => {
+test('morning / evening switch swaps the light layer, no tag, hides the inactive picture from screen readers', async ({ page }) => {
   const p = PRODUCTS.find(x => (x.images || []).filter(i => i.view === 'light').length >= 2);
   const errors = watchErrors(page);
   await mockApi(page);
@@ -188,7 +190,7 @@ test('morning / evening switch swaps the light layer, keeps the tag and hides th
   await page.locator('[data-notice-no]').click();
   const fig = page.locator('[data-light-fig]');
   await expect(fig).toHaveAttribute('data-on', 'morning');
-  await expect(fig.locator('.viz-tag')).toBeVisible();
+  await expect(fig.locator('.viz-tag')).toHaveCount(0);
   await expect(fig.locator('[data-l="evening"]')).toHaveAttribute('aria-hidden', 'true');
   await page.locator('[data-light="evening"]').click();
   await expect(fig).toHaveAttribute('data-on', 'evening');
@@ -282,7 +284,7 @@ test('mobile: sticky CTA shows only after the add-to-cart button scrolls above t
   await expect(sticky).toHaveClass(/is-on/);
   await expect(sticky.locator('[data-add-cart]')).toHaveText('הוספה לסל');
   await expect(sticky.locator('.sticky-thumb')).toHaveCount(1);
-  await expect(sticky.locator('.sticky-thumb')).toHaveAttribute('alt', /^הדמיה: \S/);
+  await expect(sticky.locator('.sticky-thumb')).toHaveAttribute('alt', PRODUCTS[0].name.he);
   await page.locator('#register').scrollIntoViewIfNeeded();
   await expect(sticky).not.toHaveClass(/is-on/);
 });
@@ -475,7 +477,7 @@ for (const rm of ['no-preference', 'reduce']) {
       expect(entering).toMatch(/round [1-9]/);
       expect(settled).not.toMatch(/round [1-9]/);
     }
-    await expect(band.locator('.viz-tag')).toBeVisible();
+    await expect(band.locator('.viz-tag')).toHaveCount(0);
   });
 }
 
@@ -817,18 +819,18 @@ for (const [w, h] of [[390, 844], [1440, 900]]) {
   });
 }
 
-test('hero first: every card opens its gallery on the whole piece; the oak close-up of the console and the TV unit comes second', async ({ page }) => {
-  // 21.10: крупний план першим кадром скасовано — з реклами на 390 видно лише кут дошки, не виріб;
-  // перший — жилий кадр home (виріб цілком у квартирі, власник 21.10), за ним крупний план дуба.
-  // TAL — виняток (дирижер 21.10): першим колишній hero у вітальні, він живіший; home — другим.
+test('life first: every card opens its gallery on the piece at home, then the clean frontal; the oak close-up of the console and the TV unit comes third', async ({ page }) => {
+  // 21.10: крупний план першим кадром скасовано — з реклами на 390 видно лише кут дошки, не виріб.
+  // 24.10 (слово власника, «як фото»): першим — кадр life у квартирі для всіх п'яти (TAL більше не виняток),
+  // за ним чистий фронтальний hero, потім крупний план дуба, де він є.
   await mockApi(page);
   for (const p of PRODUCTS) {
     await page.goto(`/p/${p.slug}/`);
     const srcs = await page.locator('.gallery .g-slide img').evaluateAll(is => is.map(i => i.getAttribute('src')));
-    const first = p.slug === 'tal' ? 'hero' : 'home';
     expect(p.images[0].view, p.slug).toBe('hero');
-    expect(srcs[0], p.slug).toContain(`/products/${p.slug}/${first}-`);
-    if (p.images.some(i => i.view === 'texture')) expect(srcs[1], p.slug).toContain(`/products/${p.slug}/texture-`);
+    expect(srcs[0], p.slug).toContain(`/products/${p.slug}/life-`);
+    expect(srcs[1], p.slug).toContain(`/products/${p.slug}/hero-`);
+    if (p.images.some(i => i.view === 'texture')) expect(srcs[2], p.slug).toContain(`/products/${p.slug}/texture-`);
   }
 });
 
@@ -850,7 +852,7 @@ for (const [prefix, lang] of [['', 'he'], ['/en', 'en']]) {
     const r = await canvas.evaluate(c => ({ w: c.width, h: c.height, cw: c.clientWidth, ch: c.clientHeight }));
     expect(r.w * r.h * r.cw * r.ch).toBeGreaterThan(0);
     await expect(box.locator('.v3d-msg')).toBeHidden();
-    await expect(box.locator('.viz-tag')).toHaveText(lang === 'he' ? 'הדמיה' : 'Visualisation');
+    await expect(box.locator('.viz-tag')).toHaveCount(0);
     // розкласти стіл і закрити: полотно прибрано, кнопка повернулась
     await box.locator('.v3d-st[data-state="open"]').click();
     await expect(box.locator('.v3d-st[data-state="open"]')).toHaveAttribute('aria-pressed', 'true');

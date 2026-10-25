@@ -35,9 +35,8 @@ PAGES = SITE / "pages"
 DIST = ROOT / "dist"
 I18N = ROOT / "i18n"
 CATALOG = pathlib.Path(os.environ.get("ALUMA_CATALOG") or (ROOT / "catalog" / "products.json"))
-# Зразки тонів: шматок справжнього скану шпону (tools/oak_tones.py, «הדמיה») — або ФОТО зразка з фабрики.
-# Фото кладемо сюди як <тон>.jpg (tools/oak_tones.py --factory фото.jpg <тон>): воно заміняє скан, і коли
-# фото є для всіх тонів товару, підпис «הדמיה» біля зразків зникає. README.md поруч.
+# Зразки тонів: шматок справжнього скану шпону (tools/oak_tones.py) — або ФОТО зразка з фабрики.
+# Фото кладемо сюди як <тон>.jpg (tools/oak_tones.py --factory фото.jpg <тон>): воно заміняє скан. README.md поруч.
 FINISH_SCANS = SITE / "assets" / "products" / "finishes"
 FINISH_PHOTOS = FINISH_SCANS / "photo"
 FINISH_PHOTO_MAX = 60 * 1024
@@ -331,11 +330,10 @@ def avif_srcset(img: dict, src: str) -> str:
 
 
 def media(p: dict, loc: str, *, eager: bool = False, sizes: str = "100vw") -> str:
-    """Перша візуалізація товару з позначкою «הדמיה» або плитка-силует."""
+    """Перший кадр товару або плитка-силует (з 24.10 без позначки «הדמיה» — слово власника)."""
     imgs = [i for i in p.get("images") or [] if i.get("src")]
     if imgs:
-        return (f'<div class="media media--img">{picture(imgs[0], loc, eager=eager, sizes=sizes)}'
-                f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></div>')
+        return (f'<div class="media media--img">{picture(imgs[0], loc, eager=eager, sizes=sizes)}</div>')
     return f'<div class="media media--tile">{silhouette(p)}</div>'
 
 
@@ -356,11 +354,6 @@ def finish_chip(f: dict) -> tuple:
     return f"--c:{hexv}", False
 
 
-def finishes_viz(fins: list) -> bool:
-    """Чи є серед зразків хоч один не-фото (тоді група підписана «הדמיה»)."""
-    return any(not finish_chip(f)[1] for f in fins)
-
-
 # каталог на телефоні — дві колонки (aluma.css, .page-catalog .cards), головна й «עוד מהסדרה» — одна (№15)
 CARD_SIZES = "(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw"
 CARD_SIZES_TWO_UP = "(min-width: 1000px) 30vw, 46vw"
@@ -375,8 +368,7 @@ def card(p: dict, loc: str, prefix: str, eager: bool = False, sizes: str = CARD_
     if imgs:
         alt2 = (f'<span class="card-alt" aria-hidden="true">{picture(imgs[1], loc, sizes=sz)}</span>'
                 if len(imgs) > 1 else "")
-        pic = (f'<span class="media media--img card-media">{picture(imgs[0], loc, eager=eager, sizes=sz)}{alt2}'
-               f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></span>')
+        pic = (f'<span class="media media--img card-media">{picture(imgs[0], loc, eager=eager, sizes=sz)}{alt2}</span>')
     else:
         pic = f'<span class="media media--tile card-media">{silhouette(p)}</span>'
     dots = "".join(f'<span class="card-dot" style="{esc(finish_chip(f)[0])}" title="{esc(L(f.get("name"), loc))}"></span>'
@@ -434,12 +426,12 @@ def thumb_src(p: dict) -> str:
 
 
 def thumb(p: dict, loc: str) -> str:
-    """Мініатюра обраного столу в липкій кнопці: найменший кадр героя; alt — «הדמיה: <назва>» (аудит 22.10, (а) 11)."""
+    """Мініатюра обраного столу в липкій кнопці: найменший кадр героя; alt — назва столу (аудит 22.10, (а) 11; без «הדמיה» з 24.10)."""
     img = first_frame(p)
     if not img:
         return ""
     srcset = f' srcset="{esc(img["srcset"])}" sizes="44px"' if img.get("srcset") else ""
-    tag = (f'<img class="sticky-thumb" src="{esc(smallest_src(img))}"{srcset} alt="{{{{t.viz_tag}}}}: {esc(L(p.get("name"), loc))}"'
+    tag = (f'<img class="sticky-thumb" src="{esc(smallest_src(img))}"{srcset} alt="{esc(L(p.get("name"), loc))}"'
            ' width="44" height="44" loading="lazy" decoding="async">')
     # той самий AVIF-набір, що в мініатюрі галереї: браузер бере вже закешований 400w AVIF, а не окремий WebP (Lighthouse 22.10, п. 3)
     avset = avif_srcset(img, str(img.get("src") or ""))
@@ -474,7 +466,7 @@ def configurator(p: dict, loc: str) -> str:
             out.append(f'<label class="swatch" title="{name}"><input type="radio" name="finish" value="{esc(f.get("id"))}"'
                        f' data-name="{name}"{" checked" if i == 0 else ""}><span class="swatch-dot" style="{esc(finish_chip(f)[0])}"></span>'
                        f'<span class="sr">{name}</span></label>')
-        out.append("</div>" + ('<span class="swatch-viz">{{t.viz_tag}}</span>' if finishes_viz(fins) else "") + "</fieldset>")
+        out.append("</div></fieldset>")
     bases = p.get("bases") or []
     if bases:
         out.append('<fieldset class="opt" data-opt="base"><legend>{{t.pick_base}}</legend><div class="pills pills--text">')
@@ -621,7 +613,7 @@ def inside(p: dict, loc: str) -> str:
     link = (f'<p><a class="pdp-pdf" href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">'
             f'{{{{t.{"assembly_pdf" if pdf.endswith(f"-{loc}.pdf") else "assembly_pdf_en"}}}}}</a></p>') if pdf else ""
     return (f'<div class="pdp-inside"><h3 class="h3">{{{{t.inside_h}}}}</h3><ul class="pdp-inside-list" role="list">{lis}</ul>'
-            f'<p class="muted small">{{{{t.inside_note}}}}</p>{link}</div>')
+            f'{link}</div>')
 
 
 SIZE_HELP = {"dining_table": ("{{t.size_clear}}", "{{t.size_seat}}"), "coffee_table": ("{{t.size_clear_pass}}",)}
@@ -719,7 +711,7 @@ def light(p: dict, loc: str) -> str:
             f'<div class="sec-head"><h2 class="h2" id="light-h">{{{{t.light_h2}}}}</h2><p class="sec-lede">{{{{t.light_lede}}}}</p></div>'
             f'<div class="light-switch" role="group" aria-label="{{{{t.light_h2}}}}">{btns}</div>'
             f'<figure class="media media--img light-media" data-light-fig data-on="morning">{layers}'
-            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure></div></section>')
+            f'</figure></div></section>')
 
 
 
@@ -740,7 +732,7 @@ def how(p: dict, loc: str) -> str:
         frames = [("closed", mech["closed"]), ("half", mech["half"])] + ([("open", opened)] if opened else [])
         steps = '<ol class="how-steps" role="list" tabindex="0" aria-label="{{t.unfold_h2}}">' + "".join(
             f'<li><figure><div class="media media--img how-media">'
-            f'{picture(im, loc, sizes="(min-width: 900px) 30vw, 80vw")}<span class="viz-tag">{{{{t.viz_tag}}}}</span></div>'
+            f'{picture(im, loc, sizes="(min-width: 900px) 30vw, 80vw")}</div>'
             f'<figcaption><span class="how-n">{k + 1}</span> {{{{t.unfold_{st}}}}}</figcaption></figure></li>'
             for k, (st, im) in enumerate(frames)) + "</ol>"
     pl = plan(p, loc)
@@ -761,7 +753,7 @@ def gallery(p: dict, loc: str) -> str:
     slides = "".join(
         f'<li class="g-slide" id="g-{p["slug"]}-{i}"><div class="media media--img">'
         f'{picture(im, loc, eager=(i == 0), sizes="(min-width: 960px) 58vw, 100vw")}'
-        f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></div></li>' for i, im in enumerate(imgs))
+        f'</div></li>' for i, im in enumerate(imgs))
     dots = ""
     if len(imgs) > 1:
         dots = '<div class="g-thumbs" role="group" aria-label="{{t.gallery_nav}}">' + "".join(
@@ -783,7 +775,7 @@ def gallery(p: dict, loc: str) -> str:
                   '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9" fill="none" stroke="currentColor" '
                   'stroke-width="1.6" stroke-linejoin="round"/></svg>{{t.view_3d}}</button>'
                   f'<div class="viewer3d" id="{vid}" hidden><div class="v3d-stage"></div>'
-                  '<p class="v3d-msg" role="status"></p><span class="viz-tag">{{t.viz_tag}}</span>'
+                  '<p class="v3d-msg" role="status"></p>'
                   f'<div class="v3d-bar">{states}<span class="v3d-hint">{{{{t.v3d_hint}}}}</span>'
                   '<button class="v3d-close" type="button">{{t.v3d_close}}</button></div></div>')
     return f'<div class="gallery"><ul class="g-track" role="list" tabindex="0" aria-label="{{{{t.gallery_label}}}}">{slides}</ul>{dots}{viewer}</div>'
@@ -943,25 +935,22 @@ def main() -> None:
         hero_imgs = [i for i in hero_p.get("images") or [] if i.get("src")]
         base_tokens["HERO_MEDIA"] = (
             f'<div class="hero-media">{picture(hero_imgs[0], loc, eager=True, sizes="100vw")}'
-            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></div>' if hero_imgs
+            f'</div>' if hero_imgs
             else f'<div class="hero-media hero-media--tile">{silhouette(hero_p, "sil--hero")}</div>')
         band = next((i for i in hero_imgs if i.get("view") == "detail"), None)
         base_tokens["BAND_MEDIA"] = (
-            f'<figure class="band">{picture(band, loc, sizes="100vw")}<span class="viz-tag">{{{{t.viz_tag}}}}</span>'
+            f'<figure class="band">{picture(band, loc, sizes="100vw")}'
             f'<figcaption class="band-cap"><span class="wrap">{{{{t.band_cap}}}}</span></figcaption></figure>' if band else "")
 
-        # «עץ אמיתי, בלי סיפורים»: крупний план фанери й крайки з каталогу (рендер — з «הדמיה»), тони — з каталогу
+        # «עץ אמיתי, בלי סיפורים»: крупний план фанери й крайки з каталогу, тони — з каталогу
         tex = next((i for q in [hero_p] + products for i in q.get("images") or [] if i.get("view") == "texture" and i.get("src")), None)
         base_tokens["MAT_MEDIA"] = (
             f'<figure class="media media--img mat-media">{picture(tex, loc, sizes="(min-width: 900px) 50vw, 100vw")}'
-            f'<span class="viz-tag">{{{{t.viz_tag}}}}</span></figure>' if tex else "")
+            f'</figure>' if tex else "")
         tones = []
         for f in (hero_p.get("finishes") or []):
             tones.append(f'<li><span class="swatch-dot" style="{esc(finish_chip(f)[0])}" aria-hidden="true"></span>{esc(L(f.get("name"), loc))}</li>')
-        # «הדמיה» — під списком, а не пунктом: у списку лише тони (redesign.spec.js рахує li = тони каталогу)
-        viz = ('<span class="swatch-viz mat-viz">{{t.viz_tag}}</span>'
-               if tones and finishes_viz(hero_p.get("finishes") or []) else "")
-        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>{viz}' if tones else ""
+        base_tokens["MAT_TONES"] = f'<ul class="mat-tones" role="list">{"".join(tones)}</ul>' if tones else ""
 
         def emit(rel: str, body: str, tokens: dict, title_key: str, desc_key: str, path: str):
             toks = {**base_tokens, **tokens}
