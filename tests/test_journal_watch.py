@@ -155,6 +155,17 @@ class SourcesTests(unittest.TestCase):
                          [("ihor-aluma-backup.timer", "таймер мовчить 2 год"),
                           ("ihor-aluma-digest.timer", "таймер не активний")])
 
+    def test_digest_gap_on_winter_time_night(self):
+        """Ніч переходу на зимовий час: 20:00 EEST → 09:00 EET = 14 год. Це не тривога, 14:45 — тривога."""
+        def found_after(gap):
+            last = (NOW - gap).strftime("%a %Y-%m-%d %H:%M:%S UTC")
+            out = "Id=ihor-aluma-digest.timer\nActiveState=active\nLastTriggerUSec=%s\n" % last
+            with mock.patch.object(jw, "run", return_value=out):
+                return [(f["src"], f["kind"]) for f in jw.stale_timers(NOW)]
+        self.assertEqual(found_after(timedelta(hours=14, minutes=5)), [])
+        self.assertEqual(found_after(timedelta(hours=14, minutes=45)),
+                         [("ihor-aluma-digest.timer", "таймер мовчить 14 год")])
+
     def test_ci_missing_gh_is_silent(self):
         status = {}
         with mock.patch.object(jw, "run", return_value=None):
