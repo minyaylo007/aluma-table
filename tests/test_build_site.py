@@ -451,6 +451,26 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertNotIn(t["ask_hint"], sticky)
                     self.assertEqual(html.count(t["ask_hint"]), 1)
 
+    def test_call_form_offers_phone_video_or_details_three_languages(self):
+        # №20 (слово 25.10): під «התקשרו אלינו» — рядок про три способи; у міні-формі три чипи, перший обраний,
+        # e-mail для «деталей» і зручний час; номера власника нема — жодного tel:
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for p in PRODUCTS:
+                rel = f"{prefix}p/{p['slug']}/"
+                html = self.page(rel)
+                with self.subTest(page=rel):
+                    self.assertIn(f'<p class="pdp-call-hint muted small">{t["call_hint"]}</p>', html)
+                    form = re.search(r'<form class="callback".*?</form>', html, re.S).group(0)
+                    chips = re.findall(r'name="contact_pref" value="(\w+)"( checked)?[^>]*><span>([^<]+)</span>', form)
+                    self.assertEqual(chips, [("call", " checked", t["cb_pref_call"]), ("video", "", t["cb_pref_video"]),
+                                             ("info", "", t["cb_pref_info"])])
+                    for k in ("cb_pref", "cb_hint_call", "cb_hint_video", "cb_hint_info", "f_email", "cb_time"):
+                        self.assertIn(t[k], form)
+                    self.assertIn('name="email" type="email"', form)
+                    self.assertIn('name="preferred_time" type="text" maxlength="80"', form)
+                    self.assertNotIn("tel:", html)
+
     def test_no_placeholders_buy_buttons_or_solid_oak_claims(self):
         for rel, html in self.all_html():
             text = re.sub(r"<[^>]+>", " ", html)

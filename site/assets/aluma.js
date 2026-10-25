@@ -323,6 +323,7 @@
   });
   // ---------------------------------------------------------------- картка: «התקשרו אלינו» — номера нема, є зворотний дзвінок
   // [data-call] під парою кнопок і іконка в липкій смузі → міні-форма #callback (телефон + згода, lead_source=callback).
+  // №20: «що вам зручно» — дзвінок, відеодзвінок або «надішліть деталі» (тоді e-mail або телефон, хоч один).
   // cta_call — лише в нашу аналітику (воронка: «позвоните нам»), Meta не потрібна.
   var calls = qsa("[data-call]"), cbForm = qs("#callback"), cbMain = qs('.pdp-call[data-call]');
   if (calls.length && !cbForm) calls.forEach(function (b) { b.hidden = true; });
@@ -342,6 +343,19 @@
       setTimeout(function () { if (ph) { try { ph.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
     });
   });
+  if (cbForm) {
+    var cbPref = function () { var x = qs('input[name="contact_pref"]:checked', cbForm); return x ? x.value : "call"; };
+    var cbSync = function () {
+      var pref = cbPref(), info = pref === "info";
+      qsa("[data-pref-hint]", cbForm).forEach(function (h) { h.hidden = h.getAttribute("data-pref-hint") !== pref; });
+      var em = qs("[data-cb-email]", cbForm), opt = qs("[data-phone-opt]", cbForm);
+      if (em) em.hidden = !info;
+      if (opt) opt.hidden = !info;
+      if (cbForm.elements.phone) { if (info) cbForm.elements.phone.removeAttribute("required"); else cbForm.elements.phone.setAttribute("required", ""); }
+    };
+    qsa('input[name="contact_pref"]', cbForm).forEach(function (r) { r.addEventListener("change", cbSync); });
+    cbSync();
+  }
   // «Інший розмір» → коментар у формі
   qsa(".js-custom").forEach(function (a) {
     a.addEventListener("click", function () {
@@ -473,6 +487,7 @@
 
   // ---------------------------------------------------------------- форма: перевірка і надсилання
   var PHONE_NATIONAL = /^(?:5\d{8}|[23489]\d{7}|7[2-9]\d{7})$/;
+  var EMAIL_OK = /^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$/;   // той самий шаблон, що LEAD_EMAIL у handler.py
   function phoneOk(raw) {
     var d = String(raw || "").replace(/[^0-9]/g, "");
     if (!d || d.length > 15) return false;
@@ -494,7 +509,7 @@
       if (err) { err.textContent = msg || ""; err.hidden = !msg; }
       if (input && input.setAttribute) { if (msg) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid"); }
     };
-    ["name", "phone", "consent"].forEach(function (n) {
+    ["name", "phone", "email", "consent"].forEach(function (n) {
       var el = form.elements[n];
       if (el) el.addEventListener(n === "consent" ? "change" : "input", function () { setErr(n, ""); });
     });
@@ -520,13 +535,23 @@
       data.color = data.finish_id.slice(0, 40);
       data.size = data.size_label.replace(/[^0-9]/g, "").slice(0, 3);
       ATTR_KEYS.forEach(function (k) { data[k] = ap[k] || ""; });
-      if (callback) data.lead_source = "callback";
+      if (callback) {
+        data.lead_source = "callback";
+        data.contact_pref = data.contact_pref || "call";
+        data.preferred_time = fv("preferred_time").slice(0, 80);
+        if (data.contact_pref === "info") data.email = fv("email").slice(0, 120);
+      }
       // спосіб отримання, якщо вже вибрали в кошику (shop.js, fx_ship_v1); нового поля у формі нема
       try { var way = sessionStorage.getItem("fx_ship_v1"); if (way === "pickup" || way === "door" || way === "assembled") data.delivery = way; } catch (x) {}
       var bad = [];
-      setErr("name", ""); setErr("phone", ""); setErr("consent", "");
+      setErr("name", ""); setErr("phone", ""); setErr("email", ""); setErr("consent", "");
       if (!callback && data.name.length < 2) { setErr("name", S.e_name); bad.push("name"); }
-      if (!phoneOk(data.phone)) { setErr("phone", S.e_phone); bad.push("phone"); }
+      if (callback && data.contact_pref === "info") {
+        // «деталі»: e-mail або телефон — хоч один, і кожен заповнений має бути правильним
+        if (!data.phone && !data.email) { setErr("phone", S.e_contact); bad.push("phone"); }
+        if (data.phone && !phoneOk(data.phone)) { setErr("phone", S.e_phone); bad.push("phone"); }
+        if (data.email && !EMAIL_OK.test(data.email)) { setErr("email", S.e_email); bad.push("email"); }
+      } else if (!phoneOk(data.phone)) { setErr("phone", S.e_phone); bad.push("phone"); }
       if (!data.consent) { setErr("consent", S.e_consent); bad.push("consent"); }
       if (bad.length) {
         status.className = "f-status is-err"; status.textContent = S.invalid || "";

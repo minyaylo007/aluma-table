@@ -622,6 +622,10 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-call svg, .sticky-call svg { flex: none; }
 .callback { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
 .callback .muted { margin: 0; }
+/* №20: рядок під кнопкою і «що вам зручно» — три чипи; підказка обраного варіанта під ними */
+.pdp-call-hint { margin: -2px 0 0; line-height: 1.4; }
+.callback .f-choice { margin: 0; padding: 0; border: 0; min-width: 0; }
+.callback .f-choice .muted { margin-block-start: 8px; line-height: 1.4; }
 .callback-thanks { margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); }
 .callback-thanks:focus { outline: none; }
 /* «מה כלול במחיר» і «איך לבחור מידה» — під кнопкою кошика, до «מפרט» */

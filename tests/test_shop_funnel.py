@@ -303,6 +303,80 @@ class CallbackLeadTests(Base):
         self.assertIn("источник: callback", texts[0])
         self.assertNotIn("Обратный звонок", texts[1], "інші заявки — без рядка дзвінка")
 
+    def test_contact_pref_three_values_unknown_is_call(self):
+        # №20: «що вам зручно» — call / video / info; нема поля або чуже (whatsapp, сміття) → call
+        for i, (sent, kept) in enumerate((("call", "call"), ("video", "video"), ("info", "info"),
+                                          ("whatsapp", "call"), ("zoom!", "call"), (None, "call"))):
+            data = callback_lead(phone=FAKE_LOCAL[:-1] + str(i), event_id=f"lead.k1.pref000{i}")
+            if sent is not None:
+                data["contact_pref"] = sent
+            with self.subTest(sent=sent), mock.patch.object(h, "LEADS_PER_IP_PER_HOUR", 50):
+                r = self.post(data)
+                self.assertEqual(r["statusCode"], 200, r["body"])
+                item = next(x for x in self.all_leads() if x["event_id"] == data["event_id"])
+                self.assertEqual(item["contact_pref"], kept)
+
+    def test_main_form_contact_pref_unchanged(self):
+        # головна форма лишає whatsapp/call як було; video для неї не підміняється на call
+        r = self.post(lead_payload(contact_pref="whatsapp", event_id="lead.k1.mainform1"))
+        self.assertEqual(r["statusCode"], 200, r["body"])
+        self.assertEqual(self.all_leads()[0]["contact_pref"], "whatsapp")
+        self.assertNotIn("preferred_time", self.all_leads()[0])
+
+    def test_preferred_time_clipped_to_80_one_line(self):
+        r = self.post(callback_lead(preferred_time="  מחר\nבערב  " + "א" * 200))
+        self.assertEqual(r["statusCode"], 200, r["body"])
+        t = self.all_leads()[0]["preferred_time"]
+        self.assertEqual(len(t), 80)
+        self.assertTrue(t.startswith("מחר בערב א"), t[:12])
+        self.assertNotIn("\n", t)
+
+    def test_info_email_only_is_enough(self):
+        r = self.post(callback_lead(phone="", contact_pref="info", email="Dana.Test@example.org"))
+        self.assertEqual(r["statusCode"], 200, r["body"])
+        item = self.all_leads()[0]
+        self.assertEqual((item["contact_pref"], item["email"], item["phone"]), ("info", "dana.test@example.org", ""))
+
+    def test_info_needs_one_valid_contact(self):
+        for data, errs in ((callback_lead(phone="", contact_pref="info"), {"phone"}),
+                           (callback_lead(phone="", contact_pref="info", email="not-an-email"), {"email"}),
+                           (callback_lead(phone="123", contact_pref="info", email="a@b.co"), {"phone"}),
+                           (callback_lead(contact_pref="info", email="broken@"), {"email"})):
+            with self.subTest(data={k: data.get(k) for k in ("phone", "email")}):
+                r = self.post(data)
+                self.assertEqual(r["statusCode"], 422, r["body"])
+                self.assertEqual(set(body_json(r)["errors"]), errs)
+        self.assertEqual(self.all_leads(), [])
+
+    def test_call_and_video_still_need_phone_email_dropped(self):
+        r = self.post(callback_lead(phone="", contact_pref="video", email="a@b.co"))
+        self.assertEqual(set(body_json(r)["errors"]), {"phone"})
+        r = self.post(callback_lead(contact_pref="video", email="a@b.co"))
+        self.assertEqual(r["statusCode"], 200, r["body"])
+        self.assertEqual(self.all_leads()[0]["email"], "", "e-mail видно лише для «деталей» — інакше не зберігаємо")
+
+    def test_telegram_lines_how_and_when_no_pii_in_logs(self):
+        with mock.patch.object(h, "TELEGRAM_BOT_TOKEN", "123:abc"), \
+                mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", "42"):
+            self.post(callback_lead(contact_pref="video", preferred_time="מחר בערב"))
+            self.post(callback_lead(phone="", contact_pref="info", email="dana.test@example.org",
+                                    event_id="lead.k1.info0001"))
+            self.post(callback_lead(phone=FAKE_LOCAL[:-1] + "8", event_id="lead.k1.call0001"))
+        video, info, call = (c["json"]["text"] for c in self.rec.calls)
+        self.assertTrue(video.startswith("🎥 Видеозвонок — договориться о времени\n"), video[:60])
+        self.assertIn("\nКак: видеозвонок\nВремя: מחר בערב\n", video)
+        self.assertTrue(info.startswith("📄 Выслать детали"), info[:60])
+        self.assertIn("✉️ dana.test@example.org\nКак: выслать детали\n", info)
+        self.assertNotIn("📞 \n", info, "без телефону — без порожнього рядка")
+        self.assertTrue(call.startswith("📞 Обратный звонок — позвонить\n"))
+        self.assertIn("\nКак: звонок\n", call)
+        self.assertNotIn("Время:", call)
+        for text in (video, info, call):
+            self.assertNotIn("Связь:", text, "для картки — лише «Как:», без дубля")
+        logs = self.out.getvalue()
+        for pii in ("dana.test", "מחר", FAKE_LOCAL[3:], "1234567"):
+            self.assertNotIn(pii, logs)
+
     def test_x_test_stored_as_test_and_sends_nothing(self):
         with mock.patch.object(h, "TELEGRAM_BOT_TOKEN", "123:abc"), \
                 mock.patch.object(h, "OWNER_TELEGRAM_CHAT_ID", "42"):
@@ -479,11 +553,24 @@ class ComputeTests(unittest.TestCase):
                            row("cta_call", "s1", T, content_ids=["tavor"], cta="pdp")]
         leads = [{"session_id": "s3", "ts": T, "lead_source": "callback"}, {"session_id": "s1", "ts": T}]
         rep = funnel.compute(events, leads)
-        self.assertEqual(rep["call"], {"sessions": 2, "by_cta": {"pdp": 2, "sticky": 1}, "leads": 1})
+        self.assertEqual(rep["call"], {"sessions": 2, "by_cta": {"pdp": 2, "sticky": 1}, "leads": 1,
+                                       "by_pref": {"call": 1, "video": 0, "info": 0}})
         self.assertEqual(rep["ask"], funnel.compute(EVENTS, leads)["ask"])
-        self.assertEqual(funnel.compute(EVENTS, [])["call"], {"sessions": 0, "by_cta": {}, "leads": 0})
+        self.assertEqual(funnel.compute(EVENTS, [])["call"], {"sessions": 0, "by_cta": {}, "leads": 0,
+                                                              "by_pref": {"call": 0, "video": 0, "info": 0}})
         self.assertIn("«Позвоните нам»: 2, заявок на звонок 1 · pdp 2, sticky 1",
                       funnel.text(funnel.report(events, leads, 0)))
+
+    def test_callback_leads_split_by_contact_pref(self):
+        # №20: «Позвоните нам» — три варіанти; заявка без поля (до 25.10) і чуже значення — дзвінок; інші джерела — ні
+        leads = [{"session_id": f"s{i}", "ts": T, "lead_source": "callback", "contact_pref": p}
+                 for i, p in enumerate(("video", "info", "info", "", "whatsapp"))]
+        leads.append({"session_id": "s9", "ts": T, "lead_source": "form", "contact_pref": "call"})
+        rep = funnel.compute(EVENTS, leads)
+        self.assertEqual(rep["call"]["by_pref"], {"call": 2, "video": 1, "info": 2})
+        self.assertEqual(rep["call"]["leads"], 5)
+        self.assertIn("  как: звонок 2, видео 1, детали 2", funnel.text(funnel.report(EVENTS, leads, 0)))
+        self.assertNotIn("как:", funnel.text(funnel.report(EVENTS, [], 0)), "без заявок — без рядка")
 
     def test_pdp_scroll_depth_in_screens_by_device(self):
         # №15: leave на картці несе scroll_px і vh → глибина в екранах; медіана й q75 окремо mobile/desktop,
@@ -554,7 +641,10 @@ class AdminFunnelTests(Base):
         page = self.admin("/admin/funnel", {"range": "1"})["body"]
         self.assertRegex(page, r"\(cta_call\)</h2><table><tr><td>сессии</td><td class='n'>1</td></tr>"
                                r"<tr><td class='mono'>pdp</td><td class='n'>1</td></tr>"
-                               r"<tr><td>заявки callback</td><td class='n'>1</td></tr>")
+                               r"<tr><td>заявки callback</td><td class='n'>1</td></tr>"
+                               r"<tr><td>· טלפון · звонок \(call\)</td><td class='n'>1</td></tr>"
+                               r"<tr><td>· שיחת וידאו · видео \(video\)</td><td class='n'>0</td></tr>"
+                               r"<tr><td>· עוד פרטים · детали \(info\)</td><td class='n'>0</td></tr>")
         main = self.admin("/admin", {"range": "7"})["body"]
         self.assertIn("/admin/funnel", main)
 
