@@ -31,6 +31,8 @@ function watchErrors(page) {
 const noOverflow = page => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 // < 900 px банер cookies з'являється після першої прокрутки або через 6 с (24.10) — у тестах будимо його подією scroll
 const nudge = page => page.evaluate(() => dispatchEvent(new Event('scroll')));
+// №15: на картці телефона банер чекає, доки пара кнопок і «התקשרו» піднімуться над його зоною — прокрутка на 400 px
+const reveal = page => page.evaluate(() => { scrollTo(0, 400); dispatchEvent(new Event('scroll')); });
 
 // ---------------------------------------------------------------- сторінки й мови
 for (const [path, lang, dir] of [['/', 'he', 'rtl'], ['/en/', 'en', 'ltr']]) {
@@ -266,7 +268,7 @@ test('mobile: sticky CTA shows only after the add-to-cart button scrolls above t
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
   const sticky = page.locator('[data-sticky]');
-  await nudge(page);
+  await reveal(page);
   await expect(page.locator('#notice')).toBeVisible();
   await expect(sticky).not.toHaveClass(/is-on/);               // перший екран — кадр, назва, ціна й розміри, смуги нема
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
@@ -306,7 +308,7 @@ test('mobile: a product with 8+ frames keeps the gallery inside the screen and t
   expect(widths.page).toBeLessThanOrEqual(390);
   expect(widths.gallery).toBeLessThanOrEqual(390);
   expect(widths.slide).toBeLessThanOrEqual(390);
-  await nudge(page);
+  await reveal(page);
   await page.locator('[data-notice-no]').click();             // з відкритим банером смуги нема (аудит 22.10)
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(page.locator('[data-sticky]')).toHaveClass(/is-on/);
@@ -556,7 +558,7 @@ test('first screen 390×844 of a card: no sticky bar with the notice open; after
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page);
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
-  await nudge(page);
+  await reveal(page);
   await expect(page.locator('#notice')).toBeVisible();
   const sticky = page.locator('[data-sticky]');
   await page.waitForTimeout(300);
@@ -576,7 +578,7 @@ test('first screen 390×844 of a card: no sticky bar with the notice open; after
 
 // 24.10: реклама веде на картку з телефона. Без прокрутки (банер ще не показано) — кадр, назва, гасло, ціна з підписом
 // серії, умови, рядок довіри й ОБИДВІ кнопки «הוספה לסל» + «שאלה?»; «השאירו פרטים» — під ними, плитки розмірів — нижче.
-// На 390 і банер (після першої прокрутки) не накриває «הוספה לסל». Смуги на першому екрані нема; 3D — чип на кадрі
+// Банер (№15) — лише коли не накриває пари й «התקשרו», на 360 і на 390. Смуги на першому екрані нема; 3D — чип на кадрі
 for (const [w, h] of [[390, 844], [360, 780]]) {
   for (const [prefix, lang] of [['', 'he'], ['/en', 'en'], ['/ru', 'ru']]) {
     for (const slug of ['tavor', 'sahar', 'tal']) {
@@ -594,7 +596,7 @@ for (const [w, h] of [[390, 844], [360, 780]]) {
           return { y: scrollY, vh: innerHeight, notice: n.hidden ? innerHeight : box('#notice').top,
             img: box('.g-track'), chip: box('.g-3d'), h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
             incl: box('.pdp-price .price-incl'), trust: box('.pdp-trust'), cart: box('.pdp-pair [data-add-cart]'),
-            ask: box('.pdp-pair [data-ask]'), lead: box('.pdp-ask'), tile: box('label.pill:has(input[name="size"])'),
+            ask: box('.pdp-pair [data-ask]'), call: box('.pdp-actions [data-call]'), lead: box('.pdp-ask'), tile: box('label.pill:has(input[name="size"])'),
             inclLH: parseFloat(getComputedStyle(document.querySelector('.pdp-price .price-incl')).lineHeight) };
         });
         const r = await measure();
@@ -607,17 +609,24 @@ for (const [w, h] of [[390, 844], [360, 780]]) {
         expect(r.trust.top).toBeGreaterThanOrEqual(r.price.bottom - 1);
         expect(r.cart.top).toBeGreaterThan(r.trust.bottom);
         expect(r.ask.top).toBeGreaterThan(r.cart.bottom - 1);
-        expect(r.lead.top).toBeGreaterThan(r.ask.bottom);
+        expect(r.call.top).toBeGreaterThan(r.ask.bottom);
+        expect(r.lead.top).toBeGreaterThan(r.call.bottom);
         expect(r.tile.top).toBeGreaterThan(r.lead.bottom);
         expect(r.chip.top).toBeGreaterThanOrEqual(r.img.top);         // чип 3D лежить на кадрі
         expect(r.chip.bottom).toBeLessThanOrEqual(r.img.bottom);
         expect(r.chip.width).toBeLessThan(r.img.width / 2);
-        if (w === 390) {
-          await nudge(page);
-          await expect(page.locator('#notice')).toBeVisible();
-          const n = await measure();
-          expect(n.cart.bottom).toBeLessThanOrEqual(n.notice);
+        // №15: банер з'являється лише тоді, коли не накриває жодної з трьох кнопок — крок прокрутки 40 px, як пальцем
+        await nudge(page);
+        await page.waitForTimeout(100);
+        await expect(page.locator('#notice')).toBeHidden();           // на місці — накрив би «התקשרו»
+        for (let i = 0; i < 25 && await page.locator('#notice').isHidden(); i++) {
+          await page.mouse.wheel(0, 40);
+          await page.waitForTimeout(60);
         }
+        await expect(page.locator('#notice')).toBeVisible();
+        await page.waitForTimeout(150);
+        const n = await measure();
+        for (const b of [n.cart, n.ask, n.call]) expect(b.bottom).toBeLessThanOrEqual(n.notice);
       });
     }
   }
@@ -639,6 +648,72 @@ test('cookie notice on a phone: hidden at load, shows on the first scroll; witho
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/p/tavor/');
   await expect(page.locator('#notice')).toBeVisible({ timeout: 2500 });
+});
+
+// №15: на 360 таймера нема — без прокрутки банер не з'являється й через 7 с, після прокрутки — так
+test('cookie notice on 360: no 6 s timer, only after a scroll (catalog and card)', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await mockApi(page);
+  await page.goto('/catalog/');
+  await page.waitForTimeout(7000);
+  await expect(page.locator('#notice')).toBeHidden();
+  await page.mouse.wheel(0, 300);
+  await expect(page.locator('#notice')).toBeVisible();
+  await page.evaluate(() => localStorage.removeItem('fx_notice_v1'));
+  await page.goto('/ru/p/tavor/');
+  await page.waitForTimeout(7000);
+  await expect(page.locator('#notice')).toBeHidden();
+  await reveal(page);
+  await expect(page.locator('#notice')).toBeVisible();
+});
+
+// №15: Tab іде так, як видно — DOM картки = екран, без CSS order: ціна → кошик → «שאלה?» → «התקשרו» → «השאירו פרטים» → тон/розмір
+for (const [w, h] of [[390, 844], [1280, 800]]) {
+  test(`focus order on a card at ${w}px follows the screen: actions right after the trust row, then the lead link, then the config`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: h });
+    await mockApi(page);
+    await page.goto('/p/tavor/');
+    await page.evaluate(() => document.fonts.ready);
+    const tops = await page.evaluate(() => {
+      const els = [...document.querySelectorAll('.pdp-buy a[href], .pdp-buy button, .pdp-buy input:checked, .pdp-buy summary')]
+        .filter(e => e.getClientRects().length && !e.closest('[hidden]'));
+      return els.map(e => { const b = (e.matches('input') ? e.closest('label') || e : e).getBoundingClientRect(); return b.top + scrollY; });
+    });
+    expect(tops.length).toBeGreaterThan(5);
+    for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeGreaterThanOrEqual(tops[i - 1] - 2);   // DOM-порядок = зверху вниз
+    await page.locator('.pdp-pair [data-add-cart]').focus();
+    const seq = [];
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press('Tab');
+      seq.push(await page.evaluate(() => { const a = document.activeElement;
+        return a.matches('[data-ask]') ? 'ask' : a.matches('[data-call]') ? 'call' : a.matches('.pdp-ask') ? 'lead'
+          : a.closest('.pdp-config') ? 'config' : a.tagName; }));
+    }
+    expect(seq).toEqual(['ask', 'call', 'lead', 'config']);
+  });
+}
+
+// №15: каталог на телефоні — дві колонки, тож sizes «46vw», а не «92vw»: на 390 px × DPR 3 браузер бере 800w, не 1200w
+test('catalog photos on a 390 px phone (DPR 3) load the half-width file; the home page keeps the full-width one', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
+  const page = await ctx.newPage();
+  await mockApi(page);
+  await page.goto('/catalog/');
+  const img = page.locator('.cards .card-media img').first();
+  await img.evaluate(el => el.decode().catch(() => {}));
+  const r = await img.evaluate(el => {
+    const set = el.closest('picture').querySelector('source').getAttribute('srcset').split(',').map(s => s.trim().split(' '));
+    const cur = set.find(([u]) => el.currentSrc.endsWith(u));
+    return { sizes: el.getAttribute('sizes'), w: cur ? parseInt(cur[1], 10) : 0, all: set.map(s => parseInt(s[1], 10)),
+      slot: el.getBoundingClientRect().width * devicePixelRatio };
+  });
+  expect(r.sizes).toBe('(min-width: 1000px) 30vw, 46vw');
+  expect(r.w).toBeGreaterThan(0);
+  expect(r.w).toBe(Math.min(...r.all.filter(x => x >= 0.46 * 390 * 3)));   // найменший файл, що покриває пів-ширини
+  expect(r.w).toBeLessThanOrEqual(r.slot * 1.6);
+  await page.goto('/');
+  expect(await page.locator('.cards .card-media img').first().getAttribute('sizes')).toBe('(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw');
+  await ctx.close();
 });
 
 // 24.10: каталог на телефоні — дві колонки, фото 1:1, під ним назва й ціна; після заголовка видно ≥ 4 картки з цінами
@@ -704,7 +779,7 @@ for (const path of ['/', '/en/', '/p/tavor/', '/en/p/tavor/']) {
     await mockApi(page);
     await page.goto(path);
     const n = page.locator('#notice');
-    await nudge(page);
+    await (path.includes("/p/") ? reveal(page) : nudge(page));
     await expect(n).toBeVisible();
     const r = await n.evaluate(el => ({ h: el.getBoundingClientRect().height,
       ok: el.querySelector('[data-notice-ok]').getBoundingClientRect(), no: el.querySelector('[data-notice-no]').getBoundingClientRect() }));

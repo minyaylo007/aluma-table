@@ -87,6 +87,40 @@ class DedupTests(unittest.TestCase):
         self.assertEqual(len(later), 1)
         self.assertIn("×3", later[0][1])
 
+    def test_state_gone_is_not_resent(self):
+        """Таймер мовчав → надіслано; далі умова зникла (поріг/таймер ожив) — повтору нема, pending 0."""
+        f = {"src": "ihor-aluma-digest.timer", "kind": "таймер мовчить 13 год", "n": 1, "state": True,
+             "key": "timer|ihor-aluma-digest.timer", "at": NOW, "hint": "systemctl --user list-timers x"}
+        state = {}
+        first = jw.plan([f], state, NOW)
+        self.assertEqual(len(first), 1)
+        k = first[0][0]
+        state["seen"][k].update(last_sent=NOW.timestamp(), pending=0)
+        self.assertEqual(jw.plan([f], state, NOW + timedelta(minutes=10)), [])   # ще є, година не минула
+        self.assertEqual(state["seen"][k]["pending"], 1)
+        self.assertEqual(jw.plan([], state, NOW + timedelta(minutes=20)), [])
+        self.assertEqual(jw.plan([], state, NOW + timedelta(minutes=61)), [])
+        self.assertEqual(state["seen"][k]["pending"], 0)
+
+    def test_counter_gone_is_still_reported(self):
+        """Лічильник помилок: ×2 надіслано, далі ×1 у межах години — тиша, без знахідок через годину — ×1."""
+        state = {}
+        first = jw.plan([self.finding(n=2)], state, NOW)
+        self.assertEqual(len(first), 1)
+        self.assertIn("×2", first[0][1])
+        state["seen"][first[0][0]].update(last_sent=NOW.timestamp(), pending=0)
+        self.assertEqual(jw.plan([self.finding(n=1)], state, NOW + timedelta(minutes=10)), [])
+        later = jw.plan([], state, NOW + timedelta(minutes=61))
+        self.assertEqual(len(later), 1)
+        self.assertIn("×1", later[0][1])
+
+    def test_state_flag_on_state_findings(self):
+        with mock.patch.object(jw, "run", return_value="ihor-aluma-api.service loaded failed failed x\n"):
+            self.assertTrue(jw.failed_units()[0]["state"])
+        out = "Id=ihor-aluma-digest.timer\nActiveState=inactive\nLastTriggerUSec=\n"
+        with mock.patch.object(jw, "run", return_value=out):
+            self.assertTrue(jw.stale_timers(NOW)[0]["state"])
+
     def test_message_shape_and_no_pd(self):
         msg = jw.message(self.finding(), 7, NOW - timedelta(minutes=40), NOW)
         self.assertTrue(msg.startswith("🔴 ALUMA журнал: ihor-aluma-api.service — notify_failed ×7 за 40 хв; лог: "))
@@ -154,6 +188,17 @@ class SourcesTests(unittest.TestCase):
         self.assertEqual([(f["src"], f["kind"]) for f in found],
                          [("ihor-aluma-backup.timer", "таймер мовчить 2 год"),
                           ("ihor-aluma-digest.timer", "таймер не активний")])
+
+    def test_digest_gap_on_winter_time_night(self):
+        """Ніч переходу на зимовий час: 20:00 EEST → 09:00 EET = 14 год. Це не тривога, 14:45 — тривога."""
+        def found_after(gap):
+            last = (NOW - gap).strftime("%a %Y-%m-%d %H:%M:%S UTC")
+            out = "Id=ihor-aluma-digest.timer\nActiveState=active\nLastTriggerUSec=%s\n" % last
+            with mock.patch.object(jw, "run", return_value=out):
+                return [(f["src"], f["kind"]) for f in jw.stale_timers(NOW)]
+        self.assertEqual(found_after(timedelta(hours=14, minutes=5)), [])
+        self.assertEqual(found_after(timedelta(hours=14, minutes=45)),
+                         [("ihor-aluma-digest.timer", "таймер мовчить 14 год")])
 
     def test_ci_missing_gh_is_silent(self):
         status = {}

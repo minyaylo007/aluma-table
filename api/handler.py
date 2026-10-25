@@ -1389,6 +1389,11 @@ def admin_funnel(event):
         f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td>"
         f"<td class='n'>{esc(rep['median_seconds'].get(k, '—'))}</td></tr>" for k, v in rep["leave_by_step"].items()
     ) or "<tr><td colspan='3' class='muted'>אין נתונים · нет данных</td></tr>"
+    dep = rep.get("pdp_depth") or {}
+    depth_rows = "".join(
+        f"<tr><td>{label}</td><td class='n'>{d['median']}</td><td class='n'>{d['q75']}</td><td class='n'>{d['n']}</td></tr>"
+        if d else f"<tr><td>{label}</td><td colspan='3' class='muted'>אין נתונים · нет данных</td></tr>"
+        for label, d in (("mobile", dep.get("mobile")), ("desktop", dep.get("desktop"))))
     ask_rep = rep.get("ask") or {}
     ask = f"<tr><td>сессии</td><td class='n'>{ask_rep.get('sessions', 0)}</td></tr>" + "".join(
         f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td></tr>" for k, v in (ask_rep.get("by_cta") or {}).items())
@@ -1445,6 +1450,8 @@ def admin_funnel(event):
   <section class="card"><h2>שאלה מכרטיס המוצר · вопрос с карточки (cta_ask)</h2><table>{ask}</table></section>
   <section class="card"><h2>התקשרו אלינו · «позвоните нам» (cta_call)</h2><table>{call}</table></section>
   <section class="card"><h2>יציאה מהדף · уход со страницы (шаг · медиана сек.)</h2><table>{leave}</table></section>
+  <section class="card"><h2>עומק בכרטיס · глубина на карточке (экранов: scroll_px / vh)</h2>
+    <table><thead><tr><th></th><th>медиана</th><th>q75</th><th>n</th></tr></thead><tbody>{depth_rows}</tbody></table></section>
   <section class="card wide"><h2>באיזה מחיר · цена в корзине → дошли</h2>
     <table><thead><tr><th>מוצר</th><th>₪</th><th>корзина</th><th>«לתשלום»</th><th>оплата</th><th>Lead</th></tr></thead>
     <tbody>{prices}</tbody></table></section>

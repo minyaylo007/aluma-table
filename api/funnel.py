@@ -158,6 +158,19 @@ def _pct(a: int, b: int | None) -> int | None:
     return round(100.0 * a / b) if b else None
 
 
+def _quant(v: list, q: float) -> float:
+    """Квантиль за найближчим рангом (без інтерполяції) — той самий спосіб, що й медіана секунд."""
+    v = sorted(v)
+    return v[min(len(v) - 1, int(len(v) * q))]
+
+
+def depth(values: list) -> dict | None:
+    """Глибина в екранах (scroll_px / vh): медіана, q75, n — округлено до 0,1. Порожньо → None."""
+    if not values:
+        return None
+    return {"median": round(_quant(values, .5), 1), "q75": round(_quant(values, .75), 1), "n": len(values)}
+
+
 def _flag(v) -> int | None:
     """fbclid_present із події: 1 / 0, None — подія старша за прапорець (до хвилі 1)."""
     if v is None or v == "":
@@ -201,6 +214,7 @@ def compute(events, leads) -> dict:
     seconds = defaultdict(list)
     asks = defaultdict(set)                                  # м'який крок картки: cta → сесії з cta_ask
     calls = defaultdict(set)                                 # «התקשרו אלינו» (24.10): cta → сесії з cta_call
+    pdp_depth = defaultdict(list)                            # mobile/desktop → глибина картки в екранах (leave)
 
     for e in events:
         sid = e.get("session_id") or ""
@@ -222,6 +236,11 @@ def compute(events, leads) -> dict:
             s = _num(p.get("seconds"))
             if s is not None:
                 seconds[str(p.get("step") or "other")[:20]].append(s)
+            # №15: scroll_px — найглибша позиція в px, vh — висота екрана; лише там, де обидва > 0
+            px, vh = _num(p.get("scroll_px")), _num(p.get("vh"))
+            if p.get("step") == "pdp" and px and vh and px > 0 and vh > 0:
+                dev = "desktop" if e.get("device") == "desktop" else "mobile"
+                pdp_depth[dev].append(px / vh)
         if name == "cta_ask":
             asks[str(p.get("cta") or "other")[:20]].add(sid)
         if name == "cta_call":
@@ -288,6 +307,8 @@ def compute(events, leads) -> dict:
                  "by_cta": {k: len(v) for k, v in sorted(calls.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
                  "leads": callbacks},
         "median_seconds": {k: sorted(v)[len(v) // 2] for k, v in seconds.items() if v},
+        # глибина картки товару в екранах: лише агрегати (медіана, q75, n), без сесій
+        "pdp_depth": {d: depth(pdp_depth.get(d)) for d in ("mobile", "desktop")},
         "price_points": [
             {"product": k[0], "size": k[1], "price": k[2],
              **{s: len(price_points[k].get(s, ())) for s in ("cart", "checkout", "payment", "lead")}}
@@ -351,6 +372,11 @@ def text(rep: dict) -> str:
         lines += ["", "Уходы со страницы по шагу: " + ", ".join(f"{k} {v}" for k, v in rep["leave_by_step"].items())]
     if rep["median_seconds"]:
         lines.append("Медиана секунд на шаге: " + ", ".join(f"{k} {v}" for k, v in rep["median_seconds"].items()))
+    dep = rep.get("pdp_depth") or {}
+    if any(dep.values()):
+        lines.append("Глубина на карточке (экранов): " + " · ".join(
+            f"{label} мед. {d['median']} · q75 {d['q75']} (n={d['n']})" if d else f"{label} нет данных"
+            for label, d in (("моб.", dep.get("mobile")), ("деск.", dep.get("desktop")))))
     lines += ["", "Цена в корзине → дошли:"]
     lines += [f"  {p['product']} {p['size']} ₪{p['price']}: корзина {p['cart']}, «לתשלום» {p['checkout']}, "
               f"оплата {p['payment']}, Lead {p['lead']}" for p in rep["price_points"]] or ["  нет данных"]

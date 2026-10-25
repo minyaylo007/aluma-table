@@ -70,9 +70,18 @@
       var whenFonts = function () { if (D.fonts && D.fonts.ready) { D.fonts.ready.then(reveal, reveal); setTimeout(reveal, 1500); } else reveal(); };
       // телефон і планшет (банер на всю ширину, < 900 px): перший екран картки — кадр, ціна й кнопки, а не банер.
       // Показ — після першої прокрутки або через 6 с, що раніше (24.10). Згода не змінюється: без «אישור» пікселя нема.
+      // №15: ≤ 380 px — лише після прокрутки, без таймера. І на картці банер не з'являється, поки накрив би
+      // пару кнопок чи «התקשרו»: заміри 24.10 — банер на 360 займає 79–102 px знизу, на 390 — від 765 px, а «התקשרו»
+      // стоїть на 756–815. Тоді чекаємо наступної прокрутки, доки трійка не підніметься над зоною банера.
+      var NOTICE_ZONE = 130;   // px знизу: найвищий банер (ru, 360 px) — 102 px, із запасом
+      var clear = function () {   // трійка вся над зоною банера або вся нижче екрана
+        var c = qs(".pdp-actions [data-call]"), p = qs(".pdp-pair");
+        if (!c || !p || !c.offsetHeight) return true;
+        return c.getBoundingClientRect().bottom <= W.innerHeight - NOTICE_ZONE || p.getBoundingClientRect().top >= W.innerHeight;
+      };
       if (W.matchMedia && W.matchMedia("(max-width: 899px)").matches) {
-        var later = function () { W.removeEventListener("scroll", later); clearTimeout(timer); whenFonts(); };
-        var timer = setTimeout(later, 6000);
+        var later = function () { if (!clear()) return; W.removeEventListener("scroll", later); clearTimeout(timer); whenFonts(); };
+        var timer = W.matchMedia("(max-width: 380px)").matches ? 0 : setTimeout(later, 6000);
         W.addEventListener("scroll", later, { passive: true });
       } else whenFonts();
     }

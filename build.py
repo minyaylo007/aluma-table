@@ -354,11 +354,16 @@ def finish_chip(f: dict) -> tuple:
     return f"--c:{hexv}", False
 
 
-def card(p: dict, loc: str, prefix: str, eager: bool = False) -> str:
+# каталог на телефоні — дві колонки (aluma.css, .page-catalog .cards), головна й «עוד מהסדרה» — одна (№15)
+CARD_SIZES = "(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw"
+CARD_SIZES_TWO_UP = "(min-width: 1000px) 30vw, 46vw"
+
+
+def card(p: dict, loc: str, prefix: str, eager: bool = False, sizes: str = CARD_SIZES) -> str:
     """Картка товару: фото 4:5 (другий кадр — при наведенні), назва, ціна «מ־₪», кружки тонувань."""
     price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"], loc)}</bdi></span>'
              if p.get("price_from_ils") else "")
-    sz = "(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw"
+    sz = sizes
     imgs = [i for i in p.get("images") or [] if i.get("src")]
     if imgs:
         alt2 = (f'<span class="card-alt" aria-hidden="true">{picture(imgs[1], loc, sizes=sz)}</span>'
@@ -383,9 +388,9 @@ def badges(p: dict, loc: str) -> str:
         f'<li class="badge">{esc(L(b.get("label"), loc))}</li>' for b in items) + "</ul>"
 
 
-def grid(products: list, loc: str, prefix: str, limit: int | None = None) -> str:
+def grid(products: list, loc: str, prefix: str, limit: int | None = None, sizes: str = CARD_SIZES) -> str:
     items = products[:limit] if limit else products
-    return '<ul class="cards" role="list">' + "".join(card(p, loc, prefix, eager=False) for p in items) + "</ul>"
+    return '<ul class="cards" role="list">' + "".join(card(p, loc, prefix, eager=False, sizes=sizes) for p in items) + "</ul>"
 
 
 def size_dims(s: dict) -> str:
@@ -910,7 +915,7 @@ def main() -> None:
                          'var s=document.createElement("script");s.src="/assets/tracking.js";document.head.appendChild(s)})})</script>'
                          if tracking else ""),
             "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
-            "GRID_ALL": grid(products, loc, prefix), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
+            "GRID_ALL": grid(products, loc, prefix, sizes=CARD_SIZES_TWO_UP), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
             "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
             **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),

@@ -551,11 +551,11 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 /* рядок довіри — ті самі факти, що в «מה כלול», коротко й одразу під умовами (24.10) */
 .pdp-trust { display: flex; flex-wrap: wrap; gap: 2px 0; margin: 6px 0 0; padding: 0; list-style: none; font-size: .82rem; line-height: 1.4; color: var(--muted); }
 .pdp-trust li:not(:last-child)::after { content: "·"; margin-inline: 6px; }
-/* «השאירו פרטים» — десктоп: одразу під ціною (22.10); телефон — під парою кнопок (24.10) */
+/* «השאירו פרטים» — під парою кнопок і «התקשרו» (24.10, №15: DOM = екран, Tab іде так само) */
 .pdp-ask { margin-block-start: 12px; }
 /* телефон, 24.10: на 390×844 і 360×780 без прокрутки — кадр, назва, ціна, умови, рядок довіри й ОБИДВІ кнопки (.pdp-pair).
    Кадр 16:10 замість 4:3, мініатюри 44 px; «סדרת השקה · נפתח» — у смузі над шапкою й у гаслі, тут не дублюємо.
-   Дії стоять одразу під рядком довіри (візуальний порядок), конфігуратор, «השאירו פרטים» і решта — під ними:
+   Дії стоять одразу під рядком довіри — у DOM теж (№15, без CSS order: фокус = екран), «השאירו פרטים», конфігуратор і решта — під ними:
    кошик бере вибране за замовчуванням, змінити тон/розмір — нижче, тоді вже з липкою смугою. */
 @media (max-width: 599px) {
   .price { font-size: 1.9rem; }
@@ -568,10 +568,8 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .g-thumbs { gap: 6px; padding-block-end: 0; }
   .g-thumb { width: 44px; }
   .pdp-buy { display: flex; flex-direction: column; }
-  .pdp-buy > * { order: 2; }
-  .pdp-buy > :is(.pdp-h1, .pdp-tag, .pdp-price, .pdp-terms, .pdp-trust) { order: 0; }
   .pdp-buy > .pdp-kicker { display: none; }
-  .pdp-buy > .pdp-actions { order: 1; margin-block: 10px 4px; gap: 6px; }
+  .pdp-buy > .pdp-actions { margin-block: 10px 4px; gap: 6px; }
   .pdp-h1 { font-size: 2rem; }
   .pdp-tag { margin-block-start: 2px; font-size: .95rem; line-height: 1.4; }
   .pdp-price { margin-block: 8px 0; padding-block-start: 8px; row-gap: 0; }
