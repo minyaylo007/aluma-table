@@ -553,15 +553,15 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
    розсипав би кожен пункт на 3–4 рядки. Компактна (кошик) — лише заголовки, 2×2 = два рядки. */
 .trust-strip { display: grid; gap: 10px; margin: 16px 0 0; padding: 14px 0 0; list-style: none; border-block-start: 1px solid var(--line); font-size: .88rem; line-height: 1.35; }
 .trust-strip li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
-.trust-strip svg { color: var(--oak-deep); margin-block-start: 1px; }
-.trust-strip .ts-h { font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.trust-strip svg { color: var(--oak-deep); margin-block-start: 4px; }
+.trust-strip .ts-h { display: inline-block; padding-block: 3px; font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
 .trust-strip .ts-h:hover { text-decoration-color: currentColor; }
 .trust-strip .ts-p { display: block; color: var(--muted); font-size: .82rem; }
 .trust-strip .ts-p a { color: inherit; }
 @media (min-width: 600px) { .trust-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; } }
 .trust-strip--compact { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px 12px; margin: 0; padding: 0; border: 0; font-size: .82rem; }
 .trust-strip--compact li { grid-template-columns: 18px 1fr; gap: 6px; align-items: center; }
-.trust-strip--compact svg { width: 18px; height: 18px; }
+.trust-strip--compact svg { width: 18px; height: 18px; margin: 0; }
 .trust-strip--compact .ts-h { font-weight: 500; }
 /* «השאירו פרטים» — під парою кнопок і «התקשרו» (24.10, №15: DOM = екран, Tab іде так само) */
 .pdp-ask { margin-block-start: 12px; }
