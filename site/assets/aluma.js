@@ -542,7 +542,7 @@
         if (data.contact_pref === "info") data.email = fv("email").slice(0, 120);
       }
       // спосіб отримання, якщо вже вибрали в кошику (shop.js, fx_ship_v1); нового поля у формі нема
-      try { var way = sessionStorage.getItem("fx_ship_v1"); if (way === "pickup" || way === "door") data.delivery = way; } catch (x) {}
+      try { var way = sessionStorage.getItem("fx_ship_v1"); if (way === "pickup" || way === "door" || way === "assembled") data.delivery = way; } catch (x) {}
       var bad = [];
       setErr("name", ""); setErr("phone", ""); setErr("email", ""); setErr("consent", "");
       if (!callback && data.name.length < 2) { setErr("name", S.e_name); bad.push("name"); }

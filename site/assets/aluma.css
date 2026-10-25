@@ -545,7 +545,7 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-price .price-incl { order: 3; flex-basis: 100%; }
 .pdp-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-block: 24px 4px; padding-block-start: 20px; border-block-start: 1px solid var(--line); }
 .price { font-size: 2.2rem; line-height: 1; }
-/* «איסוף עצמי — ₪0 · משלוח עד הדלת — ₪350 · הרכבה» — один рядок через «·», на вузькому переноситься по пунктах */
+/* «משלוח עד הדלת — ₪950 · משלוח והרכבה — ₪1,150 · איסוף עצמי — ₪0 · מרכיבים לבד» — один рядок через «·», на вузькому переноситься по пунктах */
 .pdp-terms { display: flex; flex-wrap: wrap; gap: 2px 0; margin: 4px 0 0; padding: 0; list-style: none; font-size: .88rem; color: var(--muted); }
 .pdp-terms li:not(:last-child)::after { content: "·"; margin-inline: 8px; }
 /* рядок довіри — ті самі факти, що в «מה כלול», коротко й одразу під умовами (24.10) */

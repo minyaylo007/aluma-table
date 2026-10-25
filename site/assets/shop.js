@@ -64,12 +64,12 @@
     try { localStorage.setItem(CART_KEY, JSON.stringify({ v: 1, items: items })); } catch (e) {}
     badge(lines);
   }
-  // спосіб отримання — sessionStorage fx_ship_v1: "door" (за замовчуванням) або "pickup"; ціни — DATA.ship (content.json)
+  // спосіб отримання — sessionStorage fx_ship_v1: "door" (за замовчуванням), "assembled" або "pickup"; ціни — DATA.ship (content.json)
   var SHIP = DATA.ship || {}, SHIP_KEY = "fx_ship_v1", shipMem = "";
   var shipWay = function () {
     var v = shipMem;
     try { v = sessionStorage.getItem(SHIP_KEY) || v; } catch (e) {}
-    return v === "pickup" ? "pickup" : "door";
+    return v === "pickup" || v === "assembled" ? v : "door";
   };
   var shipFee = function () { return Number(SHIP[shipWay()]) || 0; };
   // радіо name="ship" у box: показати збережений вибір, на зміну — зберегти й перерахувати суми
