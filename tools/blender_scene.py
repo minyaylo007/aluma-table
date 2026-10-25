@@ -34,6 +34,10 @@ ap.add_argument("--hdri", default="photo_studio_loft_hall_2k.hdr")
 ap.add_argument("--blend", default="")               # зберегти сцену (.blend) для ручної правки
 A = ap.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
 CAM = json.loads(A.cam)
+# фотореальний прохід №21 (25.10, кадр life): шпон по листах, подряпини й пил, плитка з перепадами, стіна «хвилею»,
+# справжня тканина доріжки, плетене сидіння, розетка й вимикач, чашка, світле вікно з ореолом, оптика камери.
+# Лише за прапорцем: решта кадрів (hero, home, angle…) з тим самим cam рендериться байт-у-байт як раніше.
+PHOTO = bool(CAM.get("photo"))
 
 # ---------------------------------------------------------------------------------------------------------
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -121,6 +125,103 @@ def vary(nt, sock, fac, lo, hi, kind="RGBA"):
     return mx.outputs[2]
 
 
+def rgb(nt, color):
+    """Сталий колір як сокет (щоб пропустити його через vary)."""
+    n = nt.nodes.new("ShaderNodeRGB")
+    n.outputs[0].default_value = (*color, 1)
+    return n.outputs[0]
+
+
+def math_node(nt, op, a, b=None, clamp=False):
+    """Вузол Math: a і b — сокет або число."""
+    mn = nt.nodes.new("ShaderNodeMath")
+    mn.operation = op
+    mn.use_clamp = clamp
+    for i, x in enumerate((a, b)):
+        if x is None:
+            continue
+        if isinstance(x, (int, float)):
+            mn.inputs[i].default_value = x
+        else:
+            nt.links.new(x, mn.inputs[i])
+    return mn.outputs["Value"]
+
+
+def rand_of(nt, *socks):
+    """Детерміноване випадкове 0..1 від одного-трьох чисел (номер листа шпону, номер плитки)."""
+    wn = nt.nodes.new("ShaderNodeTexWhiteNoise")
+    if len(socks) == 1:
+        wn.noise_dimensions = "1D"
+        nt.links.new(socks[0], wn.inputs["W"])
+    else:
+        wn.noise_dimensions = "3D"
+        cb = nt.nodes.new("ShaderNodeCombineXYZ")
+        for i, s in enumerate(socks):
+            nt.links.new(s, cb.inputs[i])
+        nt.links.new(cb.outputs["Vector"], wn.inputs["Vector"])
+    return wn.outputs["Value"], wn.outputs["Color"]
+
+
+def veneer_leaves(nt, vec, leaf=0.1):
+    """Стільниця з листів шпону (№21), а не одним аркушем скану: лист ~18 см поперек волокна (вісь X розгортки),
+    кожен — свій шматок скану (зсув уздовж волокна й поперек на цілу кількість листів), половина дзеркальна
+    («книжкою», як склеюють шпон на фабриці). Повертає вектор і випадкове листа (для відтінку й шорсткості)."""
+    sp = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(vec, sp.inputs["Vector"])
+    x, y = sp.outputs["X"], sp.outputs["Y"]
+    lid = math_node(nt, "FLOOR", math_node(nt, "DIVIDE", x, leaf))
+    r1, rc = rand_of(nt, lid)
+    sc = nt.nodes.new("ShaderNodeSeparateColor")
+    nt.links.new(rc, sc.inputs["Color"])
+    # дзеркало всередині листа: x' = 2·lid·leaf + leaf − x
+    mirrored = math_node(nt, "SUBTRACT", math_node(nt, "ADD", math_node(nt, "MULTIPLY", lid, 2 * leaf), leaf), x)
+    flip = math_node(nt, "GREATER_THAN", sc.outputs["Green"], 0.5)
+    xm = math_node(nt, "ADD", x, math_node(nt, "MULTIPLY", flip, math_node(nt, "SUBTRACT", mirrored, x)))
+    jump = math_node(nt, "MULTIPLY", math_node(nt, "FLOOR", math_node(nt, "MULTIPLY", sc.outputs["Blue"], 7)), leaf)
+    cb = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(math_node(nt, "ADD", xm, jump), cb.inputs["X"])
+    nt.links.new(math_node(nt, "ADD", y, math_node(nt, "MULTIPLY", r1, 3.7)), cb.inputs["Y"])
+    nt.links.new(sp.outputs["Z"], cb.inputs["Z"])
+    return cb.outputs["Vector"], r1
+
+
+def wear(nt, rough, color, scale=18.0, coords="Object", dust=0.3):
+    """Життя на поверхні (№21): волосяні подряпини (тонкі ізолінії шуму — видно лише у відблиску вікна) і пил на
+    горизонталях (дрібні світлі цятки там, де нормаль дивиться вгору). Повертає (шорсткість, колір)."""
+    n = noise(nt, scale, 1.0, coords)
+    line = math_node(nt, "ABSOLUTE", math_node(nt, "SUBTRACT", n, 0.5))
+    scratch = math_node(nt, "SUBTRACT", 1.0, math_node(nt, "DIVIDE", line, 0.006), clamp=True)
+    sparse = nt.nodes.new("ShaderNodeMapRange")                     # подряпини не всюди: плямами
+    sparse.inputs["From Min"].default_value, sparse.inputs["From Max"].default_value = 0.45, 0.65
+    nt.links.new(noise(nt, 1.6, 2.0, coords), sparse.inputs["Value"])
+    scratch = math_node(nt, "MULTIPLY", scratch, sparse.outputs["Result"])
+    rough = math_node(nt, "ADD", rough, math_node(nt, "MULTIPLY", scratch, 0.14))
+    if dust:
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        sp = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(geo.outputs["Normal"], sp.inputs["Vector"])
+        up = nt.nodes.new("ShaderNodeMapRange")
+        up.inputs["From Min"].default_value, up.inputs["From Max"].default_value = 0.85, 1.0
+        nt.links.new(sp.outputs["Z"], up.inputs["Value"])
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        fine = nt.nodes.new("ShaderNodeTexNoise")
+        fine.inputs["Scale"].default_value = 700.0
+        fine.inputs["Detail"].default_value = 0.0
+        nt.links.new(tc.outputs[coords], fine.inputs["Vector"])
+        speck = nt.nodes.new("ShaderNodeMapRange")
+        speck.inputs["From Min"].default_value, speck.inputs["From Max"].default_value = 0.68, 0.78
+        nt.links.new(fine.outputs["Fac"], speck.inputs["Value"])
+        d = math_node(nt, "MULTIPLY", math_node(nt, "MULTIPLY", speck.outputs["Result"], up.outputs["Result"]), dust)
+        mx = nt.nodes.new("ShaderNodeMix")
+        mx.data_type = "RGBA"
+        nt.links.new(d, mx.inputs["Factor"])
+        nt.links.new(color, mx.inputs[6])
+        mx.inputs[7].default_value = (0.74, 0.72, 0.69, 1)
+        color = mx.outputs[2]
+        rough = math_node(nt, "ADD", rough, math_node(nt, "MULTIPLY", d, 0.5))
+    return math_node(nt, "MINIMUM", rough, 1.0), color
+
+
 def oak_material(finish, albedo="", box=False):
     """Дуб під олією: альбедо тону, нормалі й шорсткість його справжнього скану шпону.
 
@@ -145,16 +246,30 @@ def oak_material(finish, albedo="", box=False):
         mp.inputs["Scale"].default_value = (scale, scale, 1)
         nt.links.new(uv.outputs["UV"], mp.inputs["Vector"])
     vec = mp.outputs["Vector"]
+    leaf = None
+    if PHOTO and not box:                            # №21: листи шпону, а не один аркуш скану
+        vec, leaf = veneer_leaves(nt, vec)
     proj = "BOX" if box else "FLAT"
     ta = node_tex(nt, alb, vector=vec, proj=proj)
     smudge = noise(nt, 2.2, 4.0)
-    nt.links.new(vary(nt, ta.outputs["Color"], noise(nt, 0.9, 2.0), 0.97, 1.03), b.inputs["Base Color"])
+    color = vary(nt, ta.outputs["Color"], noise(nt, 0.9, 2.0), 0.97, 1.03)
+    if leaf is not None:                             # листи з різних колод: ±4 % тону, середнє те саме
+        color = vary(nt, color, leaf, 0.96, 1.04)
     tr = node_tex(nt, os.path.join(TEX, f"{maps}-rough-2048.jpg"), True, vec, proj)
     mr = nt.nodes.new("ShaderNodeMapRange")          # олія: 0.35..0.47 — живий сатиновий відблиск, без дзеркала
     mr.inputs["To Min"].default_value = 0.35 if finish != "black" else 0.42
     mr.inputs["To Max"].default_value = 0.47 if finish != "black" else 0.55
     nt.links.new(tr.outputs["Color"], mr.inputs["Value"])
-    nt.links.new(vary(nt, mr.outputs["Result"], smudge, 0.9, 1.12, "VALUE"), b.inputs["Roughness"])
+    # №21: сліди долонь і серветки у відблиску вікна — сильніші, ніж «ледь помітні» 22.10
+    rough = vary(nt, mr.outputs["Result"], smudge, *((0.72, 1.3) if PHOTO else (0.9, 1.12)), "VALUE")
+    if PHOTO:
+        if leaf is not None:
+            rough = vary(nt, rough, leaf, 0.92, 1.08, "VALUE")
+        rough, color = wear(nt, rough, color, dust=0.0 if box else 0.3)
+        b.inputs["Coat Weight"].default_value = 0.2   # олія з воском: м'який відблиск вікна на стільниці
+        b.inputs["Coat Roughness"].default_value = 0.22
+    nt.links.new(color, b.inputs["Base Color"])
+    nt.links.new(rough, b.inputs["Roughness"])
     tn = node_tex(nt, os.path.join(TEX, f"{maps}-normal-2048.jpg"), True, vec, proj)
     nm = nt.nodes.new("ShaderNodeNormalMap")
     nm.inputs["Strength"].default_value = 0.45
@@ -234,9 +349,12 @@ TOP = HI.z
 
 # ---- кімната ---------------------------------------------------------------------------------------------
 def tex_material(name, folder, scale, tint=None, sat=None, bright=0.0, contrast=0.0, rough=(0.4, 0.8), nstr=0.4,
-                 disp=0.0, mottle=None):
+                 disp=0.0, mottle=None, tiles=0, wave=0.0):
     """CC0-матеріал з теки. mottle=(сила, масштаб): велика пляма тону й шорсткості поверх тайла — вапно, сліди,
-    нерівно витерта підлога; без неї тайл повторюється рівно, і стіна читається як шпалери."""
+    нерівно витерта підлога; без неї тайл повторюється рівно, і стіна читається як шпалери.
+    tiles=N (№21): у тайлі текстури N×N плиток (шви на кратних 1/N) — кожна плитка свого відтінку й шорсткості і
+    трохи нахилена (перепад укладки): відблиск вікна ламається на швах, як на справжній підлозі.
+    wave (№21): сила великої «хвилі» поверхні — штукатурка рукою не буває площиною, косе сонце це показує."""
     m, nt, b = pbr(name)
     tc = nt.nodes.new("ShaderNodeTexCoord")
     mp = nt.nodes.new("ShaderNodeMapping")
@@ -269,6 +387,20 @@ def tex_material(name, folder, scale, tint=None, sat=None, bright=0.0, contrast=
         amt, sc = mottle
         fac = noise(nt, sc, 4.0)
         c = vary(nt, c, fac, 1 - amt, 1 + amt)
+    tile_r = None
+    if tiles:
+        sp = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(v, sp.inputs["Vector"])
+        tx = math_node(nt, "FLOOR", math_node(nt, "MULTIPLY", sp.outputs["X"], tiles))
+        ty = math_node(nt, "FLOOR", math_node(nt, "MULTIPLY", sp.outputs["Y"], tiles))
+        tile_r, tile_c = rand_of(nt, tx, ty)
+        c = vary(nt, c, tile_r, 0.95, 1.05)
+        sc_ = nt.nodes.new("ShaderNodeSeparateColor")
+        nt.links.new(tile_c, sc_.inputs["Color"])
+        fx = math_node(nt, "FRACT", math_node(nt, "MULTIPLY", sp.outputs["X"], tiles))
+        fy = math_node(nt, "FRACT", math_node(nt, "MULTIPLY", sp.outputs["Y"], tiles))
+        tilt = math_node(nt, "ADD", math_node(nt, "MULTIPLY", fx, math_node(nt, "SUBTRACT", sc_.outputs["Green"], 0.5)),
+                         math_node(nt, "MULTIPLY", fy, math_node(nt, "SUBTRACT", sc_.outputs["Blue"], 0.5)))
     nt.links.new(c, b.inputs["Base Color"])
     tr = node_tex(nt, os.path.join(f, "Rough.jpg"), True, v)
     mr = nt.nodes.new("ShaderNodeMapRange")
@@ -277,14 +409,29 @@ def tex_material(name, folder, scale, tint=None, sat=None, bright=0.0, contrast=
     r_out = mr.outputs["Result"]
     if mottle:
         r_out = vary(nt, r_out, noise(nt, mottle[1] * 1.7, 3.0), 0.85, 1.15, "VALUE")
+    if tile_r is not None:
+        r_out = vary(nt, r_out, tile_r, 0.8, 1.2, "VALUE")
     nt.links.new(r_out, b.inputs["Roughness"])
     nf = os.path.join(f, "nor_gl.jpg")
+    nrm = None
     if os.path.exists(nf):
         tn = node_tex(nt, nf, True, v)
         nm = nt.nodes.new("ShaderNodeNormalMap")
         nm.inputs["Strength"].default_value = nstr
         nt.links.new(tn.outputs["Color"], nm.inputs["Color"])
-        nt.links.new(nm.outputs["Normal"], b.inputs["Normal"])
+        nrm = nm.outputs["Normal"]
+    for height, dist in ((tilt, 0.004) if tiles else (None, 0), (noise(nt, 1.1, 2.0) if wave else None, 0.004 * wave)):
+        if height is None:
+            continue
+        bp = nt.nodes.new("ShaderNodeBump")              # плитка: нахил ~1,5 мм на 30 см; стіна: хвиля кельми
+        bp.inputs["Distance"].default_value = dist
+        bp.inputs["Strength"].default_value = 1.0
+        nt.links.new(height, bp.inputs["Height"])
+        if nrm is not None:
+            nt.links.new(nrm, bp.inputs["Normal"])
+        nrm = bp.outputs["Normal"]
+    if nrm is not None:
+        nt.links.new(nrm, b.inputs["Normal"])
     return m
 
 
@@ -326,7 +473,8 @@ WALL_Y = CAM.get("wall_y", -INFO["wallZ"] if INFO.get("floating") else HI.y + 1.
 ROOM = CAM.get("room", "studio")
 if ROOM == "home":
     # плитка 31 см (ambientCG Tiles110: 6 плиток на 1,85 м), полірована — м'який відблиск вікна, темні шви
-    FLOOR = tex_material("balata", "Tiles110", 1.85, sat=0.85, bright=0.03, rough=(0.2, 0.45), nstr=0.6)
+    FLOOR = tex_material("balata", "Tiles110", 1.85, sat=0.85, bright=0.03, rough=(0.2, 0.45), nstr=0.6,
+                         **(dict(tiles=6, mottle=(0.035, 0.5)) if PHOTO else {}))   # №21: плитки різні, витерта доріжка
 else:
     # 22.10: замість рівного мікроцементу — великі світлі кам'яні плити 75 см (Poly Haven large_floor_tiles_02,
     # перефарбовані в теплий вапняк), матова полировка з м'яким відблиском вікна, шви й нерівність каменю видно
@@ -334,7 +482,7 @@ else:
                          contrast=0.05, rough=(0.2, 0.48), nstr=0.7, mottle=(0.05, 0.6))
 # стіна: вапняна штукатурка — та сама plastered_wall_04, але з великою плямою тону (вапно лягає нерівно)
 WALL = tex_material("plaster", "plastered_wall_04", 1.6, tint=(0.98, 0.94, 0.88), sat=0.3, bright=0.06,
-                    rough=(0.78, 0.97), nstr=0.9, mottle=(0.06, 0.45))
+                    rough=(0.78, 0.97), nstr=0.9, mottle=(0.06, 0.45), wave=1.0 if PHOTO else 0.0)
 plane("floor", 16, 14, FLOOR, loc=(0, WALL_Y - 7, 0))
 GX = CAM.get("win_x", -3.2)                                       # ліва стіна з вікном
 
@@ -422,7 +570,51 @@ def wicker_material():
     return m
 
 
-WICKER = wicker_material()
+def cord_material():
+    """Сидіння з паперового шнура (№21): чотири трикутники, у кожному шнур іде паралельно своєму краю (як плетуть
+    данські стільці), шнур ~5 мм з рельєфом і ледь різним тоном — замість розмазаної текстури кошика."""
+    m, nt, b = pbr("cord", rough=0.8)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sp = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Object"], sp.inputs["Vector"])
+    ax, ay = math_node(nt, "ABSOLUTE", sp.outputs["X"]), math_node(nt, "ABSOLUTE", sp.outputs["Y"])
+    side = math_node(nt, "GREATER_THAN", ax, ay)                  # 1 — лівий/правий трикутник
+    coord = math_node(nt, "ADD", math_node(nt, "MULTIPLY", side, ax),
+                      math_node(nt, "MULTIPLY", math_node(nt, "SUBTRACT", 1.0, side), ay))
+    cb = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(coord, cb.inputs["X"])
+    wv = nt.nodes.new("ShaderNodeTexWave")
+    wv.wave_type, wv.bands_direction, wv.wave_profile = "BANDS", "X", "SIN"
+    wv.inputs["Scale"].default_value = 36.0                         # період 2π/(20·36) ≈ 9 мм: дрібніший OIDN змазує
+    wv.inputs["Distortion"].default_value = 0.6
+    wv.inputs["Detail"].default_value = 1.0
+    nt.links.new(cb.outputs["Vector"], wv.inputs["Vector"])
+    ridge = nt.nodes.new("ShaderNodeMapRange")                      # жолобок між шнурами темніший
+    ridge.inputs["To Min"].default_value, ridge.inputs["To Max"].default_value = 0.38, 1.05
+    nt.links.new(wv.outputs["Fac"], ridge.inputs["Value"])
+    col = vary(nt, rgb(nt, (0.6, 0.47, 0.3)), noise(nt, 40.0, 3.0), 0.85, 1.12)
+    mx = nt.nodes.new("ShaderNodeMix")
+    mx.data_type, mx.blend_type = "RGBA", "MULTIPLY"
+    mx.inputs["Factor"].default_value = 1.0
+    nt.links.new(col, mx.inputs[6])
+    nt.links.new(ridge.outputs["Result"], mx.inputs[7])
+    # шнур бічних трикутників лежить поперек світла, переднього й заднього — уздовж: тон різний, і ці діагоналі
+    # видно навіть у розфокусі, де самі шнури (9 мм) змазуються
+    tri = nt.nodes.new("ShaderNodeMix")
+    tri.data_type, tri.blend_type = "RGBA", "MULTIPLY"
+    tri.inputs["Factor"].default_value = 1.0
+    nt.links.new(mx.outputs[2], tri.inputs[6])
+    nt.links.new(math_node(nt, "ADD", 0.84, math_node(nt, "MULTIPLY", side, 0.16)), tri.inputs[7])
+    nt.links.new(tri.outputs[2], b.inputs["Base Color"])
+    bp = nt.nodes.new("ShaderNodeBump")
+    bp.inputs["Strength"].default_value, bp.inputs["Distance"].default_value = 1.0, 0.003
+    nt.links.new(wv.outputs["Fac"], bp.inputs["Height"])
+    nt.links.new(bp.outputs["Normal"], b.inputs["Normal"])
+    b.inputs["Sheen Weight"].default_value = 0.25
+    return m
+
+
+WICKER = cord_material() if PHOTO else wicker_material()
 
 
 def rod(name, p0, p1, r0, r1, mat):
@@ -529,7 +721,7 @@ def centre_on(root, objs, x, y):
     root.location += Vector((x - (lo.x + hi.x) / 2, y - (lo.y + hi.y) / 2, 0))
 
 
-def boost(objs, sat=1.0, val=1.0):
+def boost(objs, sat=1.0, val=1.0, hue=0.5, sss=0.0):
     """Насиченість і яскравість імпортованого CC0-предмета: під AgX і теплим світлом лимон виходив оливковим."""
     for o in objs:
         for slot in getattr(o, "material_slots", []):
@@ -543,6 +735,10 @@ def boost(objs, sat=1.0, val=1.0):
             src = b.inputs["Base Color"].links[0].from_socket
             hs = nt.nodes.new("ShaderNodeHueSaturation")
             hs.inputs["Saturation"].default_value, hs.inputs["Value"].default_value = sat, val
+            hs.inputs["Hue"].default_value = hue
+            if sss:                                   # шкірка лимона пропускає світло — без цього «пластик»
+                b.inputs["Subsurface Weight"].default_value = sss
+                b.inputs["Subsurface Radius"].default_value = (0.004, 0.003, 0.0015)
             nt.links.new(src, hs.inputs["Color"])
             nt.links.new(hs.outputs["Color"], b.inputs["Base Color"])
 
@@ -557,7 +753,7 @@ def lemons_in_bowl(x, y, z, yaw=0.4, n=5):
     spots = [(0, 0, 0), (0.05, 0.02, 0), (-0.045, 0.025, 0), (0.01, -0.05, 0), (0.015, 0.01, 0.045)][:n]
     for i, (dx, dy, dz) in enumerate(spots):
         lroot, lobjs = gltf("lemon", (0, 0, 0), yaw=1.3 * i + 0.4)
-        boost(lobjs, 1.35, 1.12)
+        boost(lobjs, *((1.85, 1.25, 0.497, 0.25) if PHOTO else (1.35, 1.12)))   # №21: жовтий, не оливковий
         lroot.rotation_euler = (math.radians(90 + 25 * (i % 3 - 1)), math.radians(17 * i), 1.3 * i)
         drop_on(lroot, lobjs, base + dz)
         centre_on(lroot, lobjs, x + dx, y + dy)
@@ -570,11 +766,33 @@ def jug_on(x, y, z, yaw=2.2):
     centre_on(root, objs, x, y)
 
 
-def book_on(x, y, z, yaw=0.3, size=(0.155, 0.235, 0.024), cover=(0.36, 0.17, 0.1)):
-    """Книжка, покладена на стіл (24.10, «як живе фото»): наша модель — палітурка і блок сторінок, чужих видань нема."""
+def book_on(x, y, z, yaw=0.3, size=(0.155, 0.235, 0.024), cover=(0.36, 0.17, 0.1), stack=True):
+    """Книжка, покладена на стіл (24.10, «як живе фото»): наша модель — палітурка і блок сторінок, чужих видань нема.
+    №21: палітурка — тканина (рельєф і злегка витерті краї), обріз — тонкі смуги аркушів; під нею — друга, більша
+    й тонша, трохи повернута: дві книжки купкою — так кладе людина, а не стиліст."""
+    if PHOTO and stack:
+        book_on(x + 0.01, y - 0.006, z, yaw - 0.13, (0.17, 0.245, 0.016), (0.62, 0.6, 0.52), stack=False)
+        z += 0.016
     w, h, t = size
     cov = pbr("book-cover", color=cover, rough=0.78)[0]
     pages = pbr("book-pages", color=(0.86, 0.83, 0.76), rough=0.9)[0]
+    if PHOTO:
+        nt = cov.node_tree
+        bp = nt.nodes.new("ShaderNodeBump")
+        bp.inputs["Strength"].default_value, bp.inputs["Distance"].default_value = 0.6, 0.0004
+        nt.links.new(noise(nt, 900.0, 2.0), bp.inputs["Height"])
+        nt.links.new(bp.outputs["Normal"], nt.nodes["Principled BSDF"].inputs["Normal"])
+        bc = nt.nodes["Principled BSDF"].inputs["Base Color"]
+        nt.links.new(vary(nt, rgb(nt, cover), noise(nt, 30.0, 3.0), 0.9, 1.12), bc)
+        nt = pages.node_tree
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        wv = nt.nodes.new("ShaderNodeTexWave")
+        wv.wave_type, wv.bands_direction = "BANDS", "Z"
+        wv.inputs["Scale"].default_value = 900.0
+        wv.inputs["Distortion"].default_value = 3.0
+        nt.links.new(tc.outputs["Object"], wv.inputs["Vector"])
+        nt.links.new(vary(nt, rgb(nt, (0.86, 0.83, 0.76)), wv.outputs["Fac"], 0.9, 1.04),
+                     nt.nodes["Principled BSDF"].inputs["Base Color"])
     c, s = math.cos(yaw), math.sin(yaw)
 
     def at(dx, dz):                                   # зсув від центру книжки вздовж її ширини, повернутий на yaw
@@ -584,6 +802,62 @@ def book_on(x, y, z, yaw=0.3, size=(0.155, 0.235, 0.024), cover=(0.36, 0.17, 0.1
     cube("book-cover-top", (w, h, 0.0022), at(0, t - 0.0011), cov, bevel=0.0008, rot=rot)
     cube("book-cover-bot", (w, h, 0.0022), at(0, 0.0011), cov, bevel=0.0008, rot=rot)
     cube("book-spine", (0.0026, h, t), at(-w / 2 + 0.0013, t / 2), cov, bevel=0.001, rot=rot)
+
+
+def mug_on(x, y, z, yaw=0.0, color=(0.74, 0.72, 0.66)):
+    """Керамічна чашка 8 см (№21, наша модель): глазур із відблиском, ручка — півтора тора. Чашку лишили на столі —
+    стіл живий, а не виставковий."""
+    glaze = pbr("glaze", rough=0.14, coat=0.3, coat_rough=0.08, color=color)[0]
+    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=0.04, depth=0.088, location=(x, y, z + 0.044))
+    mg = bpy.context.object
+    mg.name = "mug"
+    bm = bmesh.new()
+    bm.from_mesh(mg.data)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.normal.z > 0.9], context="FACES")
+    bm.to_mesh(mg.data)
+    bm.free()
+    mg.data.materials.append(glaze)
+    so = mg.modifiers.new("solid", "SOLIDIFY")
+    so.thickness, so.offset = 0.004, -1.0
+    bv = mg.modifiers.new("bevel", "BEVEL")
+    bv.width, bv.segments = 0.0015, 3
+    mg.data.shade_smooth()
+    c, s = math.cos(yaw), math.sin(yaw)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.024, minor_radius=0.0055, major_segments=48, minor_segments=16,
+                                     location=(x + 0.045 * c, y + 0.045 * s, z + 0.047), rotation=(math.radians(90), 0, yaw))
+    hd = bpy.context.object
+    hd.name = "mug-handle"
+    hd.data.materials.append(glaze)
+    hd.data.shade_smooth()
+
+
+def cloth(name, w, d, loc, mat, seed=3):
+    """Лляна доріжка (№21): сітка 1 см, підйом лише вгору (лежить на стільниці, не провалюється) — дрібні хвилі
+    тканини, поздовжній залом від складання і трохи піднятий край; товщина 1,2 мм, кромка-підгин 1 см."""
+    from mathutils import noise as mnoise
+    nx, ny = max(int(w / 0.01), 8), max(int(d / 0.01), 8)
+    vs, fs = [], []
+    for j in range(ny + 1):
+        for i in range(nx + 1):
+            x, y = -w / 2 + w * i / nx, -d / 2 + d * j / ny
+            h = 0.0012 * (1 + mnoise.noise(Vector((x * 9 + seed, y * 9, 0.3))))          # м'які хвилі
+            h += 0.0016 * math.exp(-((y - d * 0.08) / 0.006) ** 2)                       # залом від складання
+            edge = min(x + w / 2, w / 2 - x, y + d / 2, d / 2 - y)
+            h += 0.0012 * max(0.0, 1 - edge / 0.012)                                     # підгин по краю
+            vs.append((x, y, h))
+    for j in range(ny):
+        for i in range(nx):
+            k = j * (nx + 1) + i
+            fs.append((k, k + 1, k + nx + 2, k + nx + 1))
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(vs, [], fs)
+    me.materials.append(mat)
+    me.shade_smooth()
+    ob = link_obj(name, me)
+    ob.location = loc
+    so = ob.modifiers.new("solid", "SOLIDIFY")
+    so.thickness, so.offset = 0.0012, 1.0
+    return ob
 
 
 def dining_decor():
@@ -602,13 +876,19 @@ def dining_decor():
     if not round_:                                     # доріжка з льону вздовж стільниці
         run_m = tex_material("linen-run", "rough_linen", 0.22, tint=(0.86, 0.8, 0.7), sat=0.0, rough=(0.85, 1.0),
                              nstr=0.9)
-        r = cube("runner", (min(1.3, L * 0.62), 0.38, 0.003), (-0.05, cy, TOP + 0.0016), run_m)
-        r.modifiers.new("sub", "SUBSURF").render_levels = 1
+        if PHOTO:                                      # №21: тканина з товщиною, м'якими складками й заломом
+            cloth("runner", min(1.3, L * 0.62), 0.38, (-0.05, cy, TOP + 0.0002), run_m)
+        else:
+            r = cube("runner", (min(1.3, L * 0.62), 0.38, 0.003), (-0.05, cy, TOP + 0.0016), run_m)
+            r.modifiers.new("sub", "SUBSURF").render_levels = 1
     # 22.10: глечик і миска з лимонами (як живе фото), замість вази з сухою гілкою й дошки з грушами
     jug_on(-min(L * 0.18, 0.3) - (0.04 if round_ else 0), cy + 0.07, TOP + 0.003)
     lemons_in_bowl(min(L * 0.14, 0.2), cy - 0.03, TOP + 0.003)
     if CAM.get("book"):                                # кадр life: розгорнута на столі книжка ближче до камери
         book_on(min(L * 0.3, 0.5), cy - D * 0.22, TOP + 0.003, yaw=0.35)
+    if PHOTO and CAM.get("mug", True):
+        mx_, my_ = CAM.get("mug_at", [min(L * 0.3, 0.5) - 0.25, -D * 0.2])
+        mug_on(mx_, cy + my_, TOP + 0.0005, yaw=CAM.get("mug_yaw", -0.6))
 
 
 def top_decor():
@@ -618,6 +898,9 @@ def top_decor():
     lemons_in_bowl(HI.x - min(0.3, L * 0.26), cy - 0.01, TOP + 0.0005, n=4)
     if CAM.get("book"):
         book_on((LO.x + HI.x) / 2 + L * 0.06, cy + 0.005, TOP + 0.0005, yaw=-0.18)
+    if PHOTO and CAM.get("mug", True):
+        mx_, my_ = CAM.get("mug_at", [-L * 0.08, -0.1])
+        mug_on((LO.x + HI.x) / 2 + mx_, cy + my_, TOP + 0.0005, yaw=CAM.get("mug_yaw", -0.6))
 
 
 if A.decor == "dining":
@@ -697,8 +980,28 @@ def home_decor(wb):
         cube("rug", (rw, rd, 0.01), ((LO.x + HI.x) / 2, (LO.y + HI.y) / 2 + dy, 0.005), rug_m, bevel=0.004)
 
 
+def wall_plate(name, x, z, kind="socket"):
+    """Біла рамка 8×8 см на стіні (№21): розетка (ізраїльська, три круглі гнізда) або клавішний вимикач."""
+    plate = pbr("plate", rough=0.35, color=(0.86, 0.85, 0.82))[0]
+    hole = pbr("hole", rough=0.9, color=(0.02, 0.02, 0.02))[0]
+    cube(name, (0.082, 0.009, 0.082), (x, WALL_Y - 0.0045, z), plate, bevel=0.004, seg=4)
+    if kind == "socket":
+        for dx, dz in ((-0.0095, 0.006), (0.0095, 0.006), (0.0, -0.011)):
+            bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=0.0024, depth=0.002,
+                                                location=(x + dx, WALL_Y - 0.0085, z + dz), rotation=(math.radians(90), 0, 0))
+            bpy.context.object.data.materials.append(hole)
+    else:
+        cube(name + "-key", (0.034, 0.006, 0.05), (x, WALL_Y - 0.0105, z), plate, bevel=0.003, seg=3,
+             rot=(math.radians(-3), 0, 0))
+
+
 if WIN_BACK:
     home_decor(WIN_BACK)
+    if PHOTO:
+        sx, sz = CAM.get("socket", [0.35, 0.32])
+        wall_plate("socket", HI.x + sx, sz)
+        if CAM.get("switch", True):
+            wall_plate("switch", WIN_BACK["x1"] + 0.28, 1.1, "switch")
 elif A.decor != "none" and CAM.get("studio_plant", True):
     # студійна кімната (22.10): деревце в теракоті в глибині ліворуч — глибина кадру й жива зелень, як на фото
     floor_obj("potted_plant_01", LO.x - CAM.get("plant_dx", 0.6), WALL_Y - 0.4, yaw=0.8, scale=1.1)
@@ -872,6 +1175,9 @@ def fit_camera():
         dist *= k ** 0.7
     cam.location = eye
     cam.rotation_euler = rot
+    if CAM.get("roll"):                          # з рук, не зі штатива: горизонт на пів градуса не рівний
+        from mathutils import Quaternion
+        cam.rotation_euler = (rot.to_quaternion() @ Quaternion((0, 0, 1), math.radians(CAM["roll"]))).to_euler()
     cam_d.shift_y = CAM.get("shift_y", 0.0)
     cam_d.dof.use_dof = True
     cam_d.dof.focus_distance = (tgt - eye).length
@@ -917,10 +1223,13 @@ def camera_post(path):
 
     Зерно — яскравісне, сильніше в напівтонах, злегка розмите (зерно «грудками», а не піксельний шум) і
     детерміноване (seed), щоб повторний рендер давав ті самі байти. Сила — CAM grain/vignette/ca; 0 вимикає.
+    №21: distort — легка бочка об'єктива (k від краю кадру, кути підрізаються, а не розтягуються); bloom — ореол
+    навколо світлих місць (вікно, відблиск на склі): два розмиття, теплий відтінок, додається «екраном».
     """
     import numpy as np
     vig, ca, grain = CAM.get("vignette", 0.14), CAM.get("ca", 0.6), CAM.get("grain", 0.008)
-    if not (vig or ca or grain):
+    distort, bloom = CAM.get("distort", 0.0), CAM.get("bloom", 0.0)
+    if not (vig or ca or grain or distort or bloom):
         return
     im = bpy.data.images.load(path)
     w, h = im.size
@@ -930,8 +1239,12 @@ def camera_post(path):
     rgb = a[..., :3].copy()
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     cx, cy_ = (w - 1) / 2, (h - 1) / 2
-    if ca:                                       # латеральна хроматика: R трохи більший, B трохи менший від центру
+    if ca or distort:                            # латеральна хроматика: R трохи більший, B трохи менший від центру
         k = ca / cx
+        base = 1.0
+        if distort:                              # бочка: пиксель на радіусі r бере джерело з r·(1 + d·r²), кадр підрізано
+            r2n = ((xx - cx) ** 2 + (yy - cy_) ** 2) / (cx * cx)
+            base = (1 + distort * r2n) / (1 + distort * r2n.max())
 
         def resample(ch, s):
             sx = np.clip(cx + (xx - cx) * s, 0, w - 1.001)
@@ -940,8 +1253,22 @@ def camera_post(path):
             fx, fy = sx - x0, sy - y0_
             return ((ch[y0_, x0] * (1 - fx) + ch[y0_, x0 + 1] * fx) * (1 - fy)
                     + (ch[y0_ + 1, x0] * (1 - fx) + ch[y0_ + 1, x0 + 1] * fx) * fy)
-        rgb[..., 0] = resample(rgb[..., 0], 1 - k)
-        rgb[..., 2] = resample(rgb[..., 2], 1 + k)
+        rgb[..., 0] = resample(rgb[..., 0], base * (1 - k))
+        rgb[..., 2] = resample(rgb[..., 2], base * (1 + k))
+        if distort:
+            rgb[..., 1] = resample(rgb[..., 1], base)
+    if bloom:
+        def blur(x, r):                          # три проходи коробкою ≈ гаус, окремо по осях
+            for _ in range(3):
+                for ax in (0, 1):
+                    c = np.cumsum(np.pad(x, [(r + 1, r) if i == ax else (0, 0) for i in range(3)], mode="edge"), axis=ax)
+                    x = (np.take(c, range(2 * r + 1, c.shape[ax]), axis=ax) - np.take(c, range(0, c.shape[ax] - 2 * r - 1), axis=ax)) / (2 * r + 1)
+            return x
+        lum = rgb @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+        hi = (np.clip((lum - 0.8) / 0.2, 0, 1) ** 2)[..., None] * rgb
+        glow = (0.6 * blur(hi, max(2, w // 260)) + 0.4 * blur(hi, max(4, w // 70))) * np.array([1.0, 0.93, 0.84], np.float32)
+        glow *= bloom
+        rgb = 1 - (1 - rgb) * (1 - np.clip(glow, 0, 1))
     if vig:                                      # плавне падіння до кутів (~cos⁴ ширококутника, але м'якше)
         r2 = ((xx - cx) / cx) ** 2 + ((yy - cy_) / cx) ** 2
         r2 /= r2.max()

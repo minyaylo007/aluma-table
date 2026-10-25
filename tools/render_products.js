@@ -181,12 +181,16 @@ const HOME = {
 // Кадр «як фото» (власник 24.10: «реальних фото не буде — зроби, щоб виглядало як фото»): та сама квартира, що в home,
 // але камера на висоті очей (1,55 м, 40 мм), мала глибина різкості (f/2.2) і книжка на столі поруч із глечиком і
 // лимонами — як знімає людина, що зайшла в кімнату. Перший у images: обкладинка картки й герой головної.
+// №21 (власник 25.10: «щоб прям як справжні»): photo вмикає в blender_scene.py шпон смугами-листами, подряпини
+// й пил, нерівну стіну й плитку, тканинну доріжку, паперовий шнур сидіння, чашку, другу книжку, розетку й
+// вимикач; камера — пересвічене вікно з ореолом, бочка об'єктива, нахил горизонту на пів градуса, грубіше зерно.
+const PHOTO = { photo: true, view_strength: 24, roll: 0.5, bloom: 0.4, distort: 0.025, grain: 0.012, ca: 1.0, vignette: 0.2 };
 const LIFE = {
-  tavor: { ...HOME.tavor, eye: 1.55, lens: 45, fstop: 2.2, margin: 0.03, az: 32, target_z: 0.55, book: true },
-  sahar: { ...HOME.sahar, eye: 1.5, lens: 50, fstop: 2.2, margin: 0.02, az: 30, target_z: 0.5, book: true },
-  ofek:  { ...HOME.ofek, eye: 1.5, lens: 45, fstop: 2.2, margin: 0.22, target_z: 0.6, book: true },
-  saf:   { ...HOME.saf, eye: 1.5, lens: 45, fstop: 2.2, margin: 0.14, book: true },
-  tal:   { ...HOME.tal, eye: 1.35, lens: 45, fstop: 2.2, margin: 0.16, rug: [1.6, 1.1, 0], book: true }
+  tavor: { ...HOME.tavor, eye: 1.55, lens: 45, fstop: 2.2, margin: 0.03, az: 32, target_z: 0.55, book: true, ...PHOTO },
+  sahar: { ...HOME.sahar, eye: 1.5, lens: 50, fstop: 2.2, margin: 0.02, az: 30, target_z: 0.5, book: true, ...PHOTO },
+  ofek:  { ...HOME.ofek, eye: 1.5, lens: 45, fstop: 2.2, margin: 0.22, target_z: 0.6, book: true, ...PHOTO, mug: false },
+  saf:   { ...HOME.saf, eye: 1.5, lens: 45, fstop: 2.2, margin: 0.14, book: true, ...PHOTO },
+  tal:   { ...HOME.tal, eye: 1.35, lens: 45, fstop: 2.2, margin: 0.16, rug: [1.6, 1.1, 0], book: true, ...PHOTO }
 };
 function framesFor(p) {
   const base = p.bases.length ? 'oak' : 'none', ext = p.badges.some(b => b.id === 'extendable');
