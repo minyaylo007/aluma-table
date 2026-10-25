@@ -177,7 +177,7 @@ def failed_units():
     if out is None:
         return []
     units = [line.split()[0] for line in out.splitlines() if line.strip()]
-    return [{"src": u, "kind": "юніт failed", "n": 1, "key": "failed|" + u, "at": now_utc(),
+    return [{"src": u, "kind": "юніт failed", "n": 1, "state": True, "key": "failed|" + u, "at": now_utc(),
              "hint": "systemctl --user status %s" % u} for u in units]
 
 
@@ -204,7 +204,7 @@ def stale_timers(now: datetime):
             if now - when > TIMER_MAX_GAP[unit]:
                 kind = "таймер мовчить %d год" % ((now - when).total_seconds() // 3600)
         if kind:
-            found.append({"src": unit, "kind": kind, "n": 1, "key": "timer|" + unit, "at": now,
+            found.append({"src": unit, "kind": kind, "n": 1, "state": True, "key": "timer|" + unit, "at": now,
                           "hint": "systemctl --user list-timers %s" % unit})
     return found
 
@@ -221,7 +221,7 @@ def health():
         code = "timeout"
     if code == 200:
         return []
-    return [{"src": API_UNIT, "kind": "health %s" % code, "n": 1, "key": "health", "at": now_utc(),
+    return [{"src": API_UNIT, "kind": "health %s" % code, "n": 1, "state": True, "key": "health", "at": now_utc(),
              "hint": "journalctl --user -u %s --since '{since}'" % API_UNIT}]
 
 
@@ -295,14 +295,22 @@ def message(f: dict, n: int, first: datetime, now: datetime) -> str:
 def plan(findings: list, state: dict, now: datetime) -> list:
     """Оновлює стан; повертає [(ключ, текст)] до відправки. Ключ стану — хеш, не текст журналу."""
     seen = state.setdefault("seen", {})
+    now_keys = set()
     for f in findings:
         k = hashlib.sha256(f["key"].encode()).hexdigest()[:16]
+        now_keys.add(k)
         s = seen.setdefault(k, {"last_sent": 0, "pending": 0, "first": f["at"].timestamp()})
         if not s["pending"]:
             s["first"] = f["at"].timestamp()
         # абсолютні агрегати (лічильник за годину) не складаємо між прогонами — беремо найбільший
         s["pending"] = max(s["pending"], f["n"]) if f.get("abs") else s["pending"] + f["n"]
         s["f"] = {x: f[x] for x in ("src", "kind", "hint")}
+        s["state"] = bool(f.get("state"))
+    # стан (таймер мовчить, юніт failed, health) або є зараз, або його нема: зниклий не досилаємо.
+    # Лічильники подій (журнал, 404, login_failed) — події вже сталися, накопичене доповідаємо.
+    for k, s in seen.items():
+        if s.get("state") and k not in now_keys:
+            s["pending"] = 0
     out = []
     for k, s in seen.items():
         if s["pending"] and now.timestamp() - s["last_sent"] >= RESEND_SECONDS and "f" in s:
