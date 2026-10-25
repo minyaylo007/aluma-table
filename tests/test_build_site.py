@@ -163,7 +163,7 @@ class BuiltSiteTests(unittest.TestCase):
             t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
             for p in PRODUCTS:
                 html = self.page(f"{prefix}p/{p['slug']}/")
-                buy = re.search(r'<div class="pdp-buy">.*?<ul class="pdp-points"', html, re.S).group(0)
+                buy = re.search(r'<div class="pdp-buy">.*?class="pdp-inc"', html, re.S).group(0)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', buy, re.S).group(1)
                     # ціна — у <bdi dir="ltr"> (в RTL «₪950» інакше читається навиворіт; tests/responsive.spec.js)
@@ -175,16 +175,72 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertLess(ask.start(), buy.index('name="size"'))
                     self.assertIsNone(re.search(r"מחיר משוער|[Ee]stimated price|[Оо]риентировочная цена", buy))
                     self.assertIn(f'<p class="pdp-est muted small">{t["price_est"]}</p>', buy)
-                    # 24.10: рядок довіри одразу під умовами — шпон, гарантія (з content.json), підтвердження до
-                    # оплати, своя фабрика; лише наявні факти, без відгуків, лічильників і знижок
-                    trust_m = re.search(r'<ul class="pdp-trust" role="list">(.*?)</ul>', buy, re.S)
-                    self.assertLess(buy.index('class="pdp-terms"'), trust_m.start())
-                    self.assertLess(trust_m.end(), buy.index('<div class="pdp-actions">'))
-                    self.assertLess(buy.index('data-call data-cta="pdp"'), ask.start())
-                    trust = trust_m.group(1)
-                    warranty = t["inc_warranty"].replace("{{WARRANTY_MONTHS}}", str(content["WARRANTY_MONTHS"]))
-                    self.assertEqual(re.findall(r"<li>(.*?)</li>", trust),
-                                     [t["trust_veneer"], warranty, t["pt_2"], t["trust_own"]])
+                    # №19 (25.10): смуга довіри — одразу під діями (кошик, «שאלה?», «התקשרו»), перед «השאירו פרטים»;
+                    # старого текстового рядка над кнопками й «— поінтів» під плитками нема
+                    strip_m = re.search(r'<ul class="trust-strip"[^>]*>.*?</ul>', buy, re.S)
+                    self.assertIsNotNone(strip_m)
+                    self.assertLess(buy.index('data-call data-cta="pdp"'), strip_m.start())
+                    self.assertLess(strip_m.end(), ask.start())
+                    self.assertNotIn("pdp-trust", buy)
+                    self.assertNotIn("pdp-points", html)
+
+    def test_trust_strip_on_every_card_and_in_cart(self):
+        # №19: чотири пункти з іконкою й посиланням — оплата не на сайті (how), гарантія WARRANTY_MONTHS (faq),
+        # своя фабрика (about), доставка ₪950 / самовивіз ₪0 / зі складанням (faq); PDF збирання — лише де файл є.
+        # Кошик — компактна (лише заголовки) над «לתשלום». Числа — з content.json; «הדמיה» на картці — ні
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        door, months = int(content["DELIVERY_ILS"]), str(content["WARRANTY_MONTHS"])
+        assembled = door + int(content["ASSEMBLY_ILS"])
+        money = {"he": lambda n: f"₪{n:,}", "en": lambda n: f"₪{n:,}",
+                 "ru": lambda n: f"{n:,}".replace(",", " ") + " ₪"}
+        pdfs = {f.name for f in (PROJECT / "site" / "assets" / "docs").glob("*-assembly-*.pdf")}
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for p in PRODUCTS:
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    strip = re.search(r'<ul class="trust-strip" role="list" aria-label="([^"]+)">(.*?)</ul>', html, re.S)
+                    self.assertIsNotNone(strip)
+                    self.assertEqual(strip.group(1), t["trust_strip_label"])
+                    items = re.findall(r"<li>(.*?)</li>", strip.group(2), re.S)
+                    self.assertEqual(len(items), 4)
+                    for li in items:
+                        self.assertIn('aria-hidden="true"', li.split("</svg>")[0])  # іконка — декоративна
+                    hrefs = re.findall(r'<a class="ts-h" href="([^"]+)"', strip.group(2))
+                    self.assertEqual(hrefs, [f"/{prefix}how/", f"/{prefix}faq/", f"/{prefix}about/", f"/{prefix}faq/"])
+                    self.assertIn(money[lang](door), items[3])
+                    self.assertIn(money[lang](assembled), items[3])
+                    self.assertIn(months, items[1])
+                    has_pdf = any(n.startswith(f"{p['slug']}-assembly-") for n in pdfs)
+                    self.assertEqual(t["trust_strip_pdf"] in items[3], has_pdf)
+                    self.assertNotIn("הדמיה", html)
+                    self.assertNotIn("{{", strip.group(0))
+            cart = self.page(f"{prefix}cart/")
+            with self.subTest(page=f"{prefix}cart/"):
+                m = re.search(r'<ul class="trust-strip trust-strip--compact"[^>]*>(.*?)</ul>', cart, re.S)
+                self.assertIsNotNone(m)
+                self.assertLess(m.end(), cart.index("data-cart-pay"))
+                self.assertEqual(len(re.findall(r"<li>", m.group(1))), 4)
+                self.assertNotIn('class="ts-p"', m.group(1))
+                self.assertIn(money[lang](door), m.group(1))
+                self.assertIn(months, m.group(1))
+
+    def test_footer_links_to_aluma_profiles(self):
+        # №19: профілі @aluma.il — у підвалі кожної сторінки, нова вкладка з rel="noopener", назва — в aria-label
+        links = {"https://www.instagram.com/aluma.il/": "foot_instagram",
+                 "https://www.facebook.com/1473436979175835": "foot_facebook"}
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for page in ("", "p/tavor/", "cart/", "about/"):
+                html = self.page(f"{prefix}{page}")
+                with self.subTest(page=f"{prefix}{page}"):
+                    foot = html[html.index('<footer class="foot">'):]
+                    for url, key in links.items():
+                        a = re.search(r'<a href="' + re.escape(url) + r'"([^>]*)>', foot)
+                        self.assertIsNotNone(a)
+                        self.assertIn('target="_blank"', a.group(1))
+                        self.assertIn('rel="noopener"', a.group(1))
+                        self.assertIn(f'aria-label="{t[key]}"', a.group(1))
 
     def test_inside_block_and_assembly_pdf_only_where_confirmed(self):
         # хвиля 1 (22.10): «מה בפנים» — лише в INSIDE_PRODUCTS, числа з content.json, «הדמיה» поруч; PDF збирання
