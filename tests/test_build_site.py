@@ -538,6 +538,26 @@ class BuiltSiteTests(unittest.TestCase):
             # «הוספה לסל» — так (specs/003); «קנה עכשיו» без оплати на сайті — обіцянка, якої нема
             self.assertIsNone(re.search(r">\s*(קנה|קנו|Buy now)\s*<", html), f"{rel}: кнопка «купити»")
 
+    def test_no_visualisation_word_outside_terms(self):
+        # слово власника 24.10: «не пиши, что это визуализация» — ні на сторінках he/en/ru, ні в JS/JSON, які
+        # читає гість чи читач екрана (№19 — тексти, №23 — aria-roledescription 3D); лишається тільки юридичне
+        # застереження в terms («не як на картинці», рішення диригента 25.10)
+        word = re.compile(r"הדמי|визуализ|visuali[sz]", re.I)
+        found = []
+        for f in sorted(self.dist.rglob("*")):
+            rel = f.relative_to(self.dist).as_posix()
+            if not f.is_file() or f.suffix not in (".html", ".js", ".json", ".css", ".xml", "") or rel.endswith(".bin"):
+                continue
+            if re.fullmatch(r"(?:(?:en|ru)/)?terms(?:\.html|/index\.html)?", rel):
+                continue
+            try:
+                text = f.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            if word.search(text):
+                found.append(rel)
+        self.assertEqual(found, [])
+
     def test_no_launch_discount_promise(self):
         # «מחיר השקה לסדרה הראשונה» (хвиля 1) — ціна серії, не знижка: ні «было», ні закреслених, ні відсотків,
         # ні «залишилось N», ні таймерів (§15 חוק הגנת הצרכן)

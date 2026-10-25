@@ -251,3 +251,37 @@ for (const pagePath of ['/', '/en/', '/ru/', '/p/tavor/', '/en/p/tavor/', '/ru/p
     });
   }
 }
+
+// №23: пара кнопок картки («у кошик» + «є питання? передзвонимо») — рівно на 390/768/1440 у he/en/ru:
+// текст не вилазить за кнопку, кнопка — за колонку покупки, у ряд — одна висота й один верх, стовпчиком — одна ширина
+for (const pagePath of ['/p/tavor/', '/en/p/tavor/', '/ru/p/tavor/']) {
+  for (const w of [390, 768, 1440]) {
+    test(`пара кнопок ${pagePath} @${w}`, async ({ page }) => {
+      await serveDist(page);
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.goto(ORIGIN + pagePath, { waitUntil: 'load' });
+      await settle(page);
+      const problems = await page.evaluate(() => {
+        const out = [];
+        const col = document.querySelector('.pdp-buy').getBoundingClientRect();
+        const btns = [...document.querySelectorAll('.pdp-pair .btn')];
+        if (btns.length !== 2) out.push({ rule: 'pair', where: '.pdp-pair', detail: `кнопок ${btns.length}` });
+        const rs = btns.map((b) => b.getBoundingClientRect());
+        btns.forEach((b, i) => {
+          const t = (b.textContent || '').trim().slice(0, 24);
+          if (b.scrollWidth > b.clientWidth + 1) out.push({ rule: 'pair-text', where: t, detail: `${b.scrollWidth} > ${b.clientWidth}` });
+          if (rs[i].left < col.left - 1 || rs[i].right > col.right + 1) {
+            out.push({ rule: 'pair-col', where: t, detail: `x ${Math.round(rs[i].left)}…${Math.round(rs[i].right)} / ${Math.round(col.left)}…${Math.round(col.right)}` });
+          }
+        });
+        if (rs.length === 2) {
+          const row = Math.abs(rs[0].top - rs[1].top) < 1;
+          if (row && Math.abs(rs[0].height - rs[1].height) > 1) out.push({ rule: 'pair-level', where: '.pdp-pair', detail: `висоти ${Math.round(rs[0].height)} / ${Math.round(rs[1].height)}` });
+          if (!row && Math.abs(rs[0].width - rs[1].width) > 1) out.push({ rule: 'pair-level', where: '.pdp-pair', detail: `ширини ${Math.round(rs[0].width)} / ${Math.round(rs[1].width)}` });
+        }
+        return out;
+      });
+      expect(report(pagePath, `пара ${pagePath} @${w}`, problems), pagePath).toEqual([]);
+    });
+  }
+}

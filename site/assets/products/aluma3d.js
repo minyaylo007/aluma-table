@@ -714,7 +714,7 @@
       renderer.domElement.setAttribute('aria-hidden', 'true');
       el.appendChild(renderer.domElement);
       el.setAttribute('tabindex', '0'); el.setAttribute('role', 'img');
-      el.setAttribute('aria-roledescription', opts.roleText || 'הדמיה בתלת־ממד');
+      el.setAttribute('aria-roledescription', opts.roleText || 'תצוגה תלת־ממדית');
       if (opts.label) el.setAttribute('aria-label', opts.label);
       var desc = document.createElement('p');
       desc.id = 'a3d-' + Math.random().toString(36).slice(2, 9);

@@ -85,7 +85,7 @@ async function main() {
     '@tone_note': he.matb_3_p.split(';')[0].trim(),   // «הגוון במסך הוא קירוב» — як на сайті біля тонів
     '@includes': he.pt_1,                             // «המחיר כולל מע״מ, משלוח והרכבה»
   };
-  const mark = `<div class="mark" data-text>${B.esc(ccfg.mark)}</div>`;
+  const mark = ccfg.mark ? `<div class="mark" data-text>${B.esc(ccfg.mark)}</div>` : '';
   const tiles = (n) => Array.from({ length: n }, (_, i) => `<img src="${B.ORIGIN}/img/${i}" alt="">`).join('');
 
   // План знімків: {file, kind, format, body, images[], products[]}.
@@ -178,7 +178,7 @@ async function main() {
         if (t.contrast < B.MIN_CONTRAST) problems.push(`контраст ${t.contrast.toFixed(2)} «${t.text}»`);
         if (!t.inside) problems.push(`виходить за кадр «${t.text}»`);
       }
-      if (job.images.length && (m.mark !== ccfg.mark || !m.markVisible)) problems.push('кадр без позначки «הדמיה»');
+      if (job.images.length && ccfg.mark && (m.mark !== ccfg.mark || !m.markVisible)) problems.push('кадр без позначки «הדמיה»');
       if (m.panelOverflow) problems.push('панель переповнена');
       if (!m.imagesOk) problems.push('кадр не завантажився');
       // Позначка «הדמיה» (Plex 600) є лише на кадрах; лого — Frank Ruhl Libre 400 + Plex 400, Highlights — без тексту.
