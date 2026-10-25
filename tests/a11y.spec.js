@@ -112,3 +112,18 @@ for (const prefix of ['', '/en', '/ru']) {
     expect(await axeBlocking(page), 'міні-форма з помилками').toEqual([]);
   });
 }
+
+// №22: форма голосу «אני רוצה כזה» на сторінці наступного видання — відкрита і з помилками
+for (const prefix of ['', '/en', '/ru']) {
+  test(`a11y голос ${prefix || '/'}p/tavor-fluted/: форма і помилки`, async ({ page }) => {
+    await serveDist(page);
+    await page.setViewportSize(VIEWPORTS.mobile);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor-fluted/`, { waitUntil: 'load' });
+    await page.locator('[data-vote]').click();
+    await expect(page.locator('#vote')).toBeVisible();
+    expect(await axeBlocking(page), 'форма голосу відкрита').toEqual([]);
+    await page.locator('#vote button[type="submit"]').click();
+    await expect(page.locator('#vote [aria-invalid="true"]').first()).toBeVisible();
+    expect(await axeBlocking(page), 'форма голосу з помилками').toEqual([]);
+  });
+}

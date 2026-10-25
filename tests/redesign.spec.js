@@ -250,6 +250,39 @@ test('a valid lead from a card sends product, size, finish and lands on the than
   expect(lead.website).toBe('');
 });
 
+// №22: «наступне видання» — не товар: без кошика, одна кнопка, голос — lead_source=vote, досить телефону
+for (const slug of ['tavor-fluted', 'tavor-oval']) {
+  test(`next edition /p/${slug}/: one button, no cart, a vote with a phone only`, async ({ page }) => {
+    const errors = watchErrors(page);
+    const sent = await mockApi(page);
+    await page.goto(`/p/${slug}/?utm_campaign=stage2-lead&utm_content=${slug}`);
+    await expect(page.locator('h1')).toHaveCount(1);
+    await expect(page.locator('[data-add-cart]')).toHaveCount(0);
+    await expect(page.locator('a[href*="/checkout/"]')).toHaveCount(0);
+    await expect(page.locator('#vote')).toBeHidden();
+    await page.locator('[data-vote]').click();
+    await expect(page.locator('#vote')).toBeVisible();
+    await expect(page.locator('[data-vote]')).toHaveAttribute('aria-expanded', 'true');
+    await page.locator('#vote button[type="submit"]').click();
+    await expect(page.locator('#vote [aria-invalid="true"]').first()).toBeVisible();
+    expect(sent.leads).toHaveLength(0);
+    await page.locator('#v-phone').fill(FAKE_PHONE);
+    await page.locator('#vote input[name="consent"]').check();
+    await page.locator('#vote button[type="submit"]').click();
+    await expect(page.locator('[data-vote-thanks]')).toBeVisible();
+    expect(sent.leads).toHaveLength(1);
+    const lead = sent.leads[0];
+    expect(lead.lead_source).toBe('vote');
+    expect(lead.product_id).toBe(slug);
+    expect(lead.utm_content).toBe(slug);
+    expect(lead.name || '').toBe('');
+    await expect.poll(() => sent.events.flatMap(b => b.events || []).filter(e => e.name === 'cta_vote').length,
+      { timeout: 8000 }).toBe(1);
+    expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+    expect(errors).toEqual([]);
+  });
+}
+
 test('rate limit answer is shown as text, the form stays', async ({ page }) => {
   await mockApi(page, { lead: { status: 429, json: { ok: false, error: 'rate_limited' } } });
   await page.goto('/en/');
