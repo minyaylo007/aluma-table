@@ -21,8 +21,22 @@
       </div>
       <p class="pdp-ask-hint muted small">{{t.ask_hint}}</p>
       <button class="btn btn--line btn--block pdp-call" type="button" data-call data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg>{{t.call_cta}}</button>
+      <p class="pdp-call-hint muted small">{{t.call_hint}}</p>
       <form class="callback" id="callback" data-source="callback" data-err="cb-" novalidate hidden>
-        <div class="f"><label for="cb-phone">{{t.f_phone}}</label><input id="cb-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="cb-e-phone"><p class="f-err" id="cb-e-phone" hidden></p></div>
+        <fieldset class="f f-choice">
+          <legend>{{t.cb_pref}}</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="contact_pref" value="call" checked aria-describedby="cb-h-call"><span>{{t.cb_pref_call}}</span></label>
+            <label class="chip"><input type="radio" name="contact_pref" value="video" aria-describedby="cb-h-video"><span>{{t.cb_pref_video}}</span></label>
+            <label class="chip"><input type="radio" name="contact_pref" value="info" aria-describedby="cb-h-info"><span>{{t.cb_pref_info}}</span></label>
+          </div>
+          <p class="muted small" id="cb-h-call" data-pref-hint="call">{{t.cb_hint_call}}</p>
+          <p class="muted small" id="cb-h-video" data-pref-hint="video" hidden>{{t.cb_hint_video}}</p>
+          <p class="muted small" id="cb-h-info" data-pref-hint="info" hidden>{{t.cb_hint_info}}</p>
+        </fieldset>
+        <div class="f"><label for="cb-phone">{{t.f_phone}} <span class="opt-l" data-phone-opt hidden>{{t.cb_or_email}}</span></label><input id="cb-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="cb-e-phone"><p class="f-err" id="cb-e-phone" hidden></p></div>
+        <div class="f" data-cb-email hidden><label for="cb-email">{{t.f_email}} <span class="opt-l">{{t.cb_or_phone}}</span></label><input id="cb-email" name="email" type="email" inputmode="email" autocomplete="email" dir="ltr" maxlength="120" aria-describedby="cb-e-email"><p class="f-err" id="cb-e-email" hidden></p></div>
+        <div class="f"><label for="cb-time">{{t.cb_time}} <span class="opt-l">{{t.f_optional}}</span></label><input id="cb-time" name="preferred_time" type="text" maxlength="80" autocomplete="off" placeholder="{{t.cb_time_ph}}"></div>
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
         <label class="check"><input type="checkbox" name="consent" required aria-describedby="cb-e-consent"><span>{{t.f_consent}}</span></label>
         <p class="f-err" id="cb-e-consent" hidden></p>

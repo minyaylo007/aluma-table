@@ -95,3 +95,20 @@ for (const pagePath of ['/', '/en/', '/ru/', '/p/tavor/', '/en/p/tavor/', '/ru/p
     expect(await axeBlocking(page), 'помилки форми').toEqual([]);
   });
 }
+
+// Міні-форма «התקשרו אלינו» (№20): відкрита, на варіанті «деталі» (поле e-mail), порожня відправка — помилки.
+for (const prefix of ['', '/en', '/ru']) {
+  test(`a11y міні-форма ${prefix || '/'}p/tavor/: вибір і помилки`, async ({ page }) => {
+    await serveDist(page);
+    await page.setViewportSize(VIEWPORTS.mobile);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`, { waitUntil: 'load' });
+    await page.locator('.pdp-actions [data-call]').click();
+    await expect(page.locator('#callback')).toBeVisible();
+    expect(await axeBlocking(page), 'міні-форма відкрита').toEqual([]);
+    await page.locator('#callback label.chip:has(input[value="info"])').click();
+    await expect(page.locator('#cb-email')).toBeVisible();
+    await page.locator('#callback button[type="submit"]').click();
+    await expect(page.locator('#callback [aria-invalid="true"]').first()).toBeVisible();
+    expect(await axeBlocking(page), 'міні-форма з помилками').toEqual([]);
+  });
+}

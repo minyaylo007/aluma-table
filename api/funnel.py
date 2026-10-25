@@ -13,6 +13,9 @@ import re
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
+# міні-форма «התקשרו אלינו» (№20): як людина хоче — дзвінок, відео, деталі (той самий список, що в handler.py)
+CALLBACK_PREFS = ("call", "video", "info")
+
 try:
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     try:
@@ -263,9 +266,13 @@ def compute(events, leads) -> dict:
 
     # Заявка без події Lead у браузері (блокувальник, обірвана сторінка) — теж Lead своєї сесії.
     lead_rows = callbacks = 0
+    call_prefs = Counter({k: 0 for k in CALLBACK_PREFS})
     for l in leads:
         lead_rows += 1
-        callbacks += l.get("lead_source") == "callback"
+        if l.get("lead_source") == "callback":
+            callbacks += 1
+            # №20: як людина хоче — заявки до 25.10 без поля рахуються як дзвінок
+            call_prefs[l.get("contact_pref") if l.get("contact_pref") in CALLBACK_PREFS else "call"] += 1
         sid = l.get("session_id") or ""
         if not sid:
             continue
@@ -305,7 +312,7 @@ def compute(events, leads) -> dict:
         # кнопка дзвінка: сесії з натисканням і заявки з міні-форми (lead_source=callback)
         "call": {"sessions": len(set().union(*calls.values())) if calls else 0,
                  "by_cta": {k: len(v) for k, v in sorted(calls.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
-                 "leads": callbacks},
+                 "leads": callbacks, "by_pref": {k: call_prefs[k] for k in CALLBACK_PREFS}},
         "median_seconds": {k: sorted(v)[len(v) // 2] for k, v in seconds.items() if v},
         # глибина картки товару в екранах: лише агрегати (медіана, q75, n), без сесій
         "pdp_depth": {d: depth(pdp_depth.get(d)) for d in ("mobile", "desktop")},
@@ -357,6 +364,9 @@ def text(rep: dict) -> str:
     call = rep.get("call") or {}
     lines.append(f"«Позвоните нам»: {call.get('sessions', 0)}, заявок на звонок {call.get('leads', 0)}"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in call["by_cta"].items()) if call.get("by_cta") else ""))
+    if call.get("leads"):
+        words = {"call": "звонок", "video": "видео", "info": "детали"}
+        lines.append("  как: " + ", ".join(f"{words.get(k, k)} {v}" for k, v in (call.get("by_pref") or {}).items()))
     lines.append("Реклама Meta, сессии: " + " · ".join(f"{a['ru']} {a['n']}" for a in rep.get("by_audience") or [])
                  + (" (шаги выше — только люди)" if rep.get("people_only") else ""))
     if any(a["key"] == "ads_meta_est" and a["n"] for a in rep.get("by_audience") or []):

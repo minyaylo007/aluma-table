@@ -333,6 +333,65 @@ for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
   });
 }
 
+// №20 (слово 25.10): «що вам зручно» — дзвінок, відеодзвінок або «надішліть деталі» (e-mail або телефон), зручний час
+for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
+  test(`${prefix || '/'} 390: міні-форма — ${t.cb_pref_call} / ${t.cb_pref_video} / ${t.cb_pref_info}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    await expect(page.locator('.pdp-call-hint')).toHaveText(t.call_hint);
+    await page.locator('.pdp-actions [data-call]').click();
+    const form = page.locator('#callback');
+    await expect(form).toBeVisible();
+    const chip = (v) => form.locator(`input[name="contact_pref"][value="${v}"]`);
+    await expect(chip('call')).toBeChecked();
+    await expect(form.locator('[data-pref-hint="call"]')).toBeVisible();
+    await expect(form.locator('[data-cb-email]')).toBeHidden();
+    // «деталі»: з'являється e-mail, підказка змінюється; без жодного контакту — помилка, лід не йде
+    await form.locator('label.chip:has(input[value="info"])').click();
+    await expect(chip('info')).toBeChecked();
+    await expect(form.locator('[data-pref-hint="info"]')).toBeVisible();
+    await expect(form.locator('[data-pref-hint="call"]')).toBeHidden();
+    await expect(page.locator('#cb-email')).toBeVisible();
+    expect(await noOverflow(page)).toBe(0);
+    await form.locator('input[name="consent"]').check();
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('#cb-e-phone')).toHaveText(t.js.e_contact);
+    await page.locator('#cb-email').fill('not-an-email');
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('#cb-e-email')).toHaveText(t.js.e_email);
+    expect(net.leads).toHaveLength(0);
+    await page.locator('#cb-email').fill('dana.test@example.org');
+    await page.locator('#cb-time').fill('x'.repeat(100));
+    await expect(page.locator('#cb-time')).toHaveValue('x'.repeat(80));
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('[data-callback-thanks]')).toBeVisible();
+    expect(net.leads).toHaveLength(1);
+    expect(net.leads[0]).toMatchObject({ lead_source: 'callback', contact_pref: 'info', email: 'dana.test@example.org',
+      phone: '', preferred_time: 'x'.repeat(80), product_id: 'tavor' });
+  });
+
+  test(`${prefix || '/'} 390: ${t.cb_pref_video} — телефон обов'язковий, e-mail не йде`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    await page.locator('.pdp-actions [data-call]').click();
+    const form = page.locator('#callback');
+    await form.locator('label.chip:has(input[value="video"])').click();
+    await expect(form.locator('[data-pref-hint="video"]')).toHaveText(t.cb_hint_video);
+    await expect(page.locator('#cb-email')).toBeHidden();
+    await form.locator('input[name="consent"]').check();
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('#cb-e-phone')).toBeVisible();
+    await page.locator('#cb-phone').fill(PHONE);
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('[data-callback-thanks]')).toBeVisible();
+    expect(net.leads).toHaveLength(1);
+    expect(net.leads[0]).toMatchObject({ lead_source: 'callback', contact_pref: 'video', phone: PHONE });
+    expect(net.leads[0].email || '').toBe('');
+  });
+}
+
 for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
   test(`${prefix || '/'} 390: іконка дзвінка 44×44 у липкій смузі поруч із «${t.ask_cta_short}», смуга не ламається`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });

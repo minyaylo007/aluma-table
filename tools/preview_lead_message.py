@@ -3,6 +3,7 @@
 
     python3 tools/preview_lead_message.py            # заявка з оформлення (кошик), ru
     python3 tools/preview_lead_message.py --form     # заявка з форми, he
+    python3 tools/preview_lead_message.py --callback # «התקשרו אלינו» на картці: відеодзвінок і зручний час, he
 
 Друкує рівно той текст, який notify() надіслав би власнику (api/handler.py lead_message).
 Нічого не надсилає: Telegram тут навіть не імпортується в справу. Ім'я й номер — вигадані.
@@ -34,13 +35,20 @@ FORM = {
     "finish_id": "smoked", "base_id": "steel", "cart": "", "order_total": 0, "comment": "אחרי 18:00",
     "page": "/p/sahar/", "utm_source": "", "utm_campaign": "", "consent_marketing": True,
 }
+CALLBACK = {
+    "id": "c0ffee123456", "ts": "2026-10-25T17:20:05+00:00", "lead_source": "callback", "lang": "he",
+    "name": "", "phone": "+97254" + "7654321", "phone_raw": "054-" + "765-4321", "contact_pref": "video",
+    "preferred_time": "מחר אחרי 18:00", "product_id": "tavor", "size_label": "160×90", "finish_id": "natural",
+    "base_id": "oak", "page": "/p/tavor/", "utm_source": "fb", "utm_campaign": "launch", "consent_marketing": False,
+}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--form", action="store_true", help="заявка з форми замість оформлення")
+    ap.add_argument("--callback", action="store_true", help="«התקשרו אלינו» з картки: відеодзвінок")
     args = ap.parse_args()
-    print(handler.lead_message(FORM if args.form else CHECKOUT))
+    print(handler.lead_message(CALLBACK if args.callback else FORM if args.form else CHECKOUT))
     return 0
 
 
