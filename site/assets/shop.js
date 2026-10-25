@@ -64,12 +64,12 @@
     try { localStorage.setItem(CART_KEY, JSON.stringify({ v: 1, items: items })); } catch (e) {}
     badge(lines);
   }
-  // спосіб отримання — sessionStorage fx_ship_v1: "door" (за замовчуванням) або "pickup"; ціни — DATA.ship (content.json)
+  // спосіб отримання — sessionStorage fx_ship_v1: "door" (за замовчуванням), "assembled" або "pickup"; ціни — DATA.ship (content.json)
   var SHIP = DATA.ship || {}, SHIP_KEY = "fx_ship_v1", shipMem = "";
   var shipWay = function () {
     var v = shipMem;
     try { v = sessionStorage.getItem(SHIP_KEY) || v; } catch (e) {}
-    return v === "pickup" ? "pickup" : "door";
+    return v === "pickup" || v === "assembled" ? v : "door";
   };
   var shipFee = function () { return Number(SHIP[shipWay()]) || 0; };
   // радіо name="ship" у box: показати збережений вибір, на зміну — зберегти й перерахувати суми
@@ -366,7 +366,8 @@
 
   // ---------------------------------------------------------------- глибина прокрутки і догляд зі сторінки
   // лише в нашу аналітику (pixel:false): Meta ці події не потрібні
-  var step = pdp ? "pdp" : cartBox ? "cart" : co ? "checkout" : "other";
+  var nextCard = qs("[data-next]");   // №22: картка варіанта наступного видання — свій крок, час на ній окремо
+  var step = pdp ? "pdp" : nextCard ? "next" : cartBox ? "cart" : co ? "checkout" : "other";
   var t0 = Date.now(), maxDepth = 0, maxPx = 0, marks = { 50: false, 90: false };
   // 24.10: scroll був 0 у 45 із 49 мобільних сесій, зокрема в тих, що вибирали тон нижче згину. Позицію беремо
   // з усіх трьох джерел (вбудовані браузери Instagram/Facebook не завжди ведуть W.scrollY), px — окремо від %
@@ -394,7 +395,7 @@
       // scroll_px — найглибша позиція в px, vh — висота екрана, ph — висота сторінки: лише числа, без ПД
       track("leave", { step: payShown ? "payment" : step, seconds: Math.round((Date.now() - t0) / 1000), scroll: maxDepth,
                        scroll_px: maxPx, vh: W.innerHeight, ph: D.documentElement.scrollHeight,
-                       product: pdp ? pdp.getAttribute("data-product") : "" }, { pixel: false });
+                       product: (pdp || nextCard) ? (pdp || nextCard).getAttribute("data-product") : "" }, { pixel: false });
     }
     // tracking.js не встиг завантажитися — черга їде на наступну сторінку
     try { if (!W.alumaTrack && W.alumaQ && W.alumaQ.length) sessionStorage.setItem(CARRY_KEY, JSON.stringify(W.alumaQ.slice(-30))); } catch (e) {}

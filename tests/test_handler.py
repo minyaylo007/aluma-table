@@ -558,21 +558,36 @@ class NotifyTests(HandlerTestCase):
 
     def test_delivery_line_and_total_with_fee(self):
         """Хвиля 1: спосіб отримання в сповіщенні; ціна доставки — з content.json, не з браузера."""
-        self.assertEqual(h.SHIP_FEES, {"pickup": 0, "door": 350})
+        self.assertEqual(h.SHIP_FEES, {"pickup": 0, "door": 950, "assembled": 1150})
         text = h.lead_message(self.sample_item(cart="tavor:200×100:natural:oak:1", order_total=5290, delivery="door"))
-        self.assertRegex(text, r"(?m)^🚚 Доставка: до двери — ₪350$")
-        self.assertRegex(text, r"(?m)^Итого: ₪5,640 \(товары ₪5,290 \+ доставка ₪350\)$")
+        self.assertRegex(text, r"(?m)^🚚 Доставка: до двери — ₪950$")
+        self.assertRegex(text, r"(?m)^Итого: ₪6,240 \(товары ₪5,290 \+ доставка ₪950\)$")
+        # №19 (слово 25.10): третій спосіб — доставка зі складанням
+        text = h.lead_message(self.sample_item(cart="tavor:200×100:natural:oak:1", order_total=5290, delivery="assembled"))
+        self.assertRegex(text, r"(?m)^🚚 Доставка: до двери со сборкой — ₪1,150$")
+        self.assertRegex(text, r"(?m)^Итого: ₪6,440 \(товары ₪5,290 \+ доставка ₪1,150\)$")
         text = h.lead_message(self.sample_item(cart="tavor:200×100:natural:oak:1", order_total=5290, delivery="pickup"))
         self.assertRegex(text, r"(?m)^🚚 Доставка: самовывоз — ₪0$")
         self.assertRegex(text, r"(?m)^Итого: ₪5,290$")
         # форма без вибору — рядка доставки нема, нічого не вигадуємо
         self.assertNotIn("🚚", h.lead_message(self.sample_item(product_id="tavor", size_label="160×90")))
 
+    def test_ship_fees_match_content_json_and_build(self):
+        """№19: одне джерело цифр — content.json; handler і build.py (DATA.ship у кошику) рахують однаково."""
+        import build
+        content = json.loads((ROOT / "content.json").read_text(encoding="utf-8"))
+        door = int(content["DELIVERY_ILS"])
+        want = {"pickup": int(content["PICKUP_ILS"]), "door": door, "assembled": door + int(content["ASSEMBLY_ILS"])}
+        self.assertEqual(h.SHIP_FEES, want)
+        self.assertEqual(build.ship_fees(), want)
+        self.assertEqual(set(h.VALID_DELIVERY), set(want))
+
     def test_delivery_is_stored_only_from_the_allowed_list(self):
-        self.post_lead(lead_payload(delivery="door"))
+        self.post_lead(lead_payload(delivery="assembled"))
+        self.post_lead(lead_payload(delivery="door", phone="".join(("05", "2", "7", "65", "4321"))))
         self.post_lead(lead_payload(delivery="free; ₪0", phone="".join(("05", "4", "7", "65", "4321"))))  # складено з частин — сканер шукає цілі номери
         got = sorted(i.get("delivery") for i in self.leads_t.items)
-        self.assertEqual(got, ["", "door"])
+        self.assertEqual(got, ["", "assembled", "door"])
         self.assertIn("delivery", h.CSV_COLUMNS)
 
     def test_missing_content_json_keeps_the_way_without_a_sum(self):

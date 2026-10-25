@@ -35,6 +35,8 @@ PAGES = SITE / "pages"
 DIST = ROOT / "dist"
 I18N = ROOT / "i18n"
 CATALOG = pathlib.Path(os.environ.get("ALUMA_CATALOG") or (ROOT / "catalog" / "products.json"))
+# «наступне видання» (№22): варіанти на перевірку попиту — свої сторінки /p/<slug>/ з голосом, поза каталогом і кошиком
+NEXT_CATALOG = pathlib.Path(os.environ.get("ALUMA_NEXT") or (ROOT / "catalog" / "next.json"))
 # Зразки тонів: шматок справжнього скану шпону (tools/oak_tones.py) — або ФОТО зразка з фабрики.
 # Фото кладемо сюди як <тон>.jpg (tools/oak_tones.py --factory фото.jpg <тон>): воно заміняє скан. README.md поруч.
 FINISH_SCANS = SITE / "assets" / "products" / "finishes"
@@ -200,6 +202,29 @@ def load_catalog() -> list:
         out.append(p)
     if not out:
         raise SystemExit("catalog: no visible products")
+    return out
+
+
+def load_next(products: list) -> list:
+    """catalog/next.json -> варіанти «наступного видання». Ціна — лише з товару like (TAVOR того ж розміру): своєї нема.
+
+    Slug не може збігтися з товаром каталогу; без файлу — порожньо (сайт збирається й без варіантів)."""
+    if not NEXT_CATALOG.is_file():
+        return []
+    by_slug = {p["slug"]: p for p in products}
+    out = []
+    for n in json.loads(read_text(NEXT_CATALOG)).get("items") or []:
+        slug = str(n.get("slug") or "")
+        like = by_slug.get(n.get("like"))
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug) or slug in by_slug or any(o["slug"] == slug for o in out):
+            raise SystemExit(f"next: bad or duplicate slug {slug!r}")
+        if not like:
+            raise SystemExit(f"next: {slug} — like {n.get('like')!r} не в каталозі")
+        size = next((z for z in like["sizes"] if z.get("label") == n.get("size")), None)
+        n["price_ils"] = int(size["price_ils"]) if size else int(like.get("price_from_ils") or 0)
+        n["like_p"] = like
+        n.setdefault("images", [])
+        out.append(n)
     return out
 
 
@@ -522,7 +547,7 @@ def specs(p: dict, loc: str) -> str:
     # строк першої серії — оцінка з каталогу (lead_time_weeks); точна дата — лише в підтвердженні замовлення
     rows.append(("{{t.spec_lead}}", "{{t.lead_series}}" if listed("SERIES_PRODUCTS", p) else "{{t.lead_exact}}"))
     rows.append(("{{t.spec_incl}}", "{{t.spec_incl_v}}"))
-    rows.append(("{{t.spec_ship}}", '{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi> · {{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'))
+    rows.append(("{{t.spec_ship}}", " · ".join(f'{{{{t.{w}}}}} — <bdi dir="ltr">{{{{{t}}}}}</bdi>' for _, w, t in SHIP_WAYS)))
     rows.append(("{{t.spec_warranty}}", "{{t.spec_warranty_v}}"))
     rows.append(("{{t.spec_assembly}}", "{{t.ship_assembly_long}}" if listed("ASSEMBLY_PRODUCTS", p) else "{{t.assembly_other}}"))
     return '<dl class="specs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
@@ -576,29 +601,68 @@ def listed(key: str, p: dict) -> bool:
     return p.get("slug") in [x.strip() for x in str(CONTENT.get(key) or "").split(",")]
 
 
+# Три способи отримання (слово власника 25.10): ключ кошика/заявки, ключ i18n, токен ціни. Порядок — як на екрані.
+SHIP_WAYS = (("door", "ship_door", "DELIVERY_PRICE"), ("assembled", "ship_assembled", "ASSEMBLED_PRICE"),
+             ("pickup", "ship_pickup", "PICKUP_PRICE"))
+
+
+def ship_fees() -> dict:
+    """Ціни способів отримання з content.json; «зі складанням» = доставка + складання (окремо не зберігається).
+    Те саме рахує api/handler.py:_load_ship_fees — tests/test_handler.py звіряє обидва."""
+    door = int(CONTENT["DELIVERY_ILS"])
+    return {"pickup": int(CONTENT["PICKUP_ILS"]), "door": door, "assembled": door + int(CONTENT["ASSEMBLY_ILS"])}
+
+
 def ship_terms(p: dict, loc: str) -> str:
-    """Рядок під ціною: самовивіз, доставка до дверей, складання — числа лише з content.json (токени)."""
-    items = ['{{t.ship_pickup}} — <bdi dir="ltr">{{PICKUP_PRICE}}</bdi>', '{{t.ship_door}} — <bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>']
+    """Рядок під ціною: до дверей, зі складанням, самовивіз (+ складання самому) — числа лише з content.json (токени)."""
+    items = [f'{{{{t.{w}}}}} — <bdi dir="ltr">{{{{{t}}}}}</bdi>' for _, w, t in SHIP_WAYS]
     if listed("ASSEMBLY_PRODUCTS", p):
         items.append("{{t.ship_assembly}}")
     return '<ul class="pdp-terms" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
-def trust_row() -> str:
-    """Рядок довіри під умовами доставки: шпон, гарантія, письмове підтвердження до оплати, своя фабрика.
-    Лише наявні факти (гарантія — WARRANTY_MONTHS із content.json); без відгуків, лічильників і знижок."""
-    items = ["{{t.trust_veneer}}", "{{t.inc_warranty}}", "{{t.pt_2}}", "{{t.trust_own}}"]
-    return '<ul class="pdp-trust" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+# Смуга довіри (№19, слово 25.10): ключ i18n trust_strip_<k>_h/_p, куди веде заголовок, іконка 24×24 (штрих currentColor)
+TRUST_STRIP = (
+    ("pay", "/how/", '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="m9.5 14 2 2 3.5-4"/>'),
+    ("warranty", "/faq/", '<path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/>'),
+    ("own", "/about/", '<path d="M3 20V9l6 4V9l6 4V4h5v16z"/><path d="M2 20h20"/>'),
+    ("ship", "/faq/", '<path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/>'
+                      '<circle cx="17" cy="17.5" r="1.8"/>'),
+)
+
+
+def trust_strip(p: dict | None, loc: str) -> str:
+    """Смуга довіри одразу під кнопками картки (p) або над «להזמנה» у кошику (p=None — компактна, лише заголовки).
+    Лише підтверджені факти: оплата не на сайті, гарантія WARRANTY_MONTHS, своя фабрика, ціни доставки з content.json;
+    без відгуків, лічильників, років і знижок. Кожен пункт — посилання на розділ, де про це докладно."""
+    svg = ('<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" '
+           'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{}</svg>')
+    pdf = assembly_pdf(p, loc) if p else ""
+    lis = []
+    for k, href, icon in TRUST_STRIP:
+        key = f"trust_strip_{k}_s" if p is None and k in ("own", "ship") else f"trust_strip_{k}_h"  # кошик: два рядки
+        head = f'<a class="ts-h" href="{{{{PREFIX}}}}{href}">{{{{t.{key}}}}}</a>'
+        sub = "" if p is None else f'<span class="ts-p">{{{{t.trust_strip_{k}_p}}}}' + (
+            f' · <a href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">{{{{t.trust_strip_pdf}}}}</a>'
+            if k == "ship" and pdf else "") + "</span>"
+        lis.append(f"<li>{svg.format(icon)}<span>{head}{sub}</span></li>")
+    cls = "trust-strip" if p else "trust-strip trust-strip--compact"
+    return f'<ul class="{cls}" role="list" aria-label="{{{{t.trust_strip_label}}}}">' + "".join(lis) + "</ul>"
 
 
 def ship_choice() -> str:
-    """Вибір «самовивіз / до дверей» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
-    # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—350 ₪»), тому &nbsp;
-    opts = [("door", '{{t.ship_door}} —&nbsp;<bdi dir="ltr">{{DELIVERY_PRICE}}</bdi>'),
-            ("pickup", '{{t.ship_pickup}} —&nbsp;<bdi dir="ltr">{{PICKUP_PRICE}}</bdi>')]
+    """Вибір «до дверей / зі складанням / самовивіз» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
+    # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—950 ₪»), тому &nbsp;
+    opts = [(v, f'{{{{t.{w}}}}} —&nbsp;<bdi dir="ltr">{{{{{t}}}}}</bdi>') for v, w, t in SHIP_WAYS]
     chips = "".join(f'<label class="chip"><input type="radio" name="ship" value="{v}"><span>{x}</span></label>' for v, x in opts)
     return (f'<fieldset class="f f-choice ship-choice" data-ship-choice><legend>{{{{t.ship_legend}}}}</legend>'
             f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
+
+
+def assembly_pdf(p: dict, loc: str) -> str:
+    """Інструкція збирання site/assets/docs/<slug>-assembly-<мова>.pdf; нема своєї мови — en; нема зовсім — ""."""
+    return next((f"/assets/docs/{p['slug']}-assembly-{lang}.pdf" for lang in (loc, "en")
+                 if (SITE / "assets" / "docs" / f"{p['slug']}-assembly-{lang}.pdf").is_file()), "")
 
 
 def inside(p: dict, loc: str) -> str:
@@ -608,8 +672,7 @@ def inside(p: dict, loc: str) -> str:
         return ""
     rows = ["top", "board", "edge", "legs", "mech", "finish", "origin"]
     lis = "".join(f"<li>{{{{t.inside_{k}}}}}</li>" for k in rows)
-    pdf = next((f"/assets/docs/{p['slug']}-assembly-{lang}.pdf" for lang in (loc, "en")
-                if (SITE / "assets" / "docs" / f"{p['slug']}-assembly-{lang}.pdf").is_file()), "")
+    pdf = assembly_pdf(p, loc)
     link = (f'<p><a class="pdp-pdf" href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">'
             f'{{{{t.{"assembly_pdf" if pdf.endswith(f"-{loc}.pdf") else "assembly_pdf_en"}}}}}</a></p>') if pdf else ""
     return (f'<div class="pdp-inside"><h3 class="h3">{{{{t.inside_h}}}}</h3><ul class="pdp-inside-list" role="list">{lis}</ul>'
@@ -806,7 +869,7 @@ def organization_jsonld(loc: str, url: str) -> str:
 
 def faq_jsonld(items: list) -> str:
     # відповідь у schema.org — чистий текст, без розмітки сторінки
-    # <bdi> — обгортка всередині речення (ціна в RTL), знімаємо без пробілу: «₪350.», а не «₪350 .»
+    # <bdi> — обгортка всередині речення (ціна в RTL), знімаємо без пробілу: «₪950.», а не «₪950 .»
     plain = lambda h: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", re.sub(r"</?bdi[^>]*>", "", h)))).strip()  # noqa: E731
     return ld_script({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
         {"@type": "Question", "name": plain(it["q"]), "acceptedAnswer": {"@type": "Answer", "text": plain(it["a"])}}
@@ -899,6 +962,7 @@ def main() -> None:
     DIST.mkdir()
     locales = load_locales()
     products = load_catalog()
+    next_items = load_next(products)
     layout = read_text(SITE / "_layout.html")
     templates = {f.stem: read_text(f) for f in sorted(PAGES.glob("*.html"))}
     tracking = (SITE / "assets" / "tracking.js").is_file()
@@ -919,16 +983,16 @@ def main() -> None:
             "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
             **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),
-            # доставка й самовивіз — числа з content.json, у форматі ціни мови (₪350 / 350 ₪)
-            "DELIVERY_PRICE": money(int(CONTENT["DELIVERY_ILS"]), loc), "PICKUP_PRICE": money(int(CONTENT["PICKUP_ILS"]), loc),
-            "SHIP_CHOICE": ship_choice(),
+            # способи отримання — числа з content.json, у форматі ціни мови (₪950 / 950 ₪)
+            **{t: money(ship_fees()[v], loc) for v, _, t in SHIP_WAYS},
+            "SHIP_CHOICE": ship_choice(), "TRUST_CART": trust_strip(None, loc),
             "CITY_OPTIONS": "".join(f'<option value="{esc(c["id"])}">{esc(c["name"])}</option>' for c in s.get("cities", [])),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
             "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),
             "DATA": json.dumps({"lang": loc, "prefix": prefix, "consent": CONTENT.get("CONSENT_VERSION", "v1"),
                                 "s": s.get("js", {}), "products": product_data(products, loc),
                                 "cities": s.get("cities", []),
-                                "ship": {"pickup": int(CONTENT["PICKUP_ILS"]), "door": int(CONTENT["DELIVERY_ILS"])}},
+                                "ship": ship_fees()},
                                ensure_ascii=False).replace("</", "<\\/"),
         }
         hero_p = next((p for p in products if p["slug"] == CONTENT.get("HERO_PRODUCT")), products[0])
@@ -1002,7 +1066,7 @@ def main() -> None:
                 "P_MONTHLY": money(math.ceil((p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0)
                                              / int(CONTENT["INSTALLMENTS"])), loc),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
-                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc), "P_TRUST": trust_row(),
+                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc), "P_TRUST": trust_strip(p, loc),
                 "P_PRICE_NOTE": "{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}", "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
@@ -1010,6 +1074,27 @@ def main() -> None:
             }
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{p['slug']}/index.html",
                  templates["product"], tokens, "", "", path)
+            pages_out.append(prefix + path)
+
+        # «наступне видання»: картка без кошика й конфігуратора — одна кнопка «אני רוצה כזה» (lead_source=vote)
+        for n in next_items:
+            path = f"/p/{n['slug']}/"
+            like = n["like_p"]
+            like_name = esc(L(like.get("name"), loc))
+            tokens = {
+                "TITLE": esc(L(n.get("name"), loc)) + " — {{t.brand_name}}",
+                "DESC": esc(L(n.get("tagline"), loc)),
+                "BODY_CLASS": "page-product page-next",
+                "P_ID": esc(n["id"]), "P_SLUG": n["slug"], "P_NAME": esc(L(n.get("name"), loc)),
+                "P_TAGLINE": esc_bidi(L(n.get("tagline"), loc)), "P_DESC": esc_bidi(L(n.get("description"), loc)),
+                "P_PRICE": money(n["price_ils"], loc), "P_PRICE_PLAIN": str(n["price_ils"]),
+                "P_GALLERY": gallery(n, loc),
+                "N_LIKE": like["slug"], "N_LIKE_NAME": like_name,
+                "N_PRICE_NOTE": esc(s.get("next_price_note", "")).replace("{like}", like_name),
+                "N_SPECS": "".join(f"<li>{esc_bidi(x)}</li>" for x in (n.get("specs") or {}).get(loc) or []),
+            }
+            emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{n['slug']}/index.html",
+                 templates["next"], tokens, "", "", path)
             pages_out.append(prefix + path)
         missing |= render.missing
 

@@ -81,10 +81,13 @@ class CallButtonTests(unittest.TestCase):
         a = self.actions()
         self.assertRegex(a, r'\{\{t\.ask_hint\}\}</p>\s*<button class="btn btn--line btn--block pdp-call" type="button" '
                             r'data-call data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg [^>]*aria-hidden="true"'
-                            r'.*?</svg>\{\{t\.call_cta\}\}</button>\s*<form class="callback" id="callback" data-source="callback"')
+                            r'.*?</svg>\{\{t\.call_cta\}\}</button>\s*<p class="pdp-call-hint muted small">\{\{t\.call_hint\}\}</p>\s*'
+                            r'<form class="callback" id="callback" data-source="callback"')
         form = re.search(r'<form class="callback".*?</form>', a, re.S).group(0)
         self.assertIn(' hidden>', form.split("\n")[0])
-        self.assertEqual(re.findall(r'name="(\w+)"', form), ["phone", "website", "consent"], "лише телефон + згода + приманка")
+        # №20: «що вам зручно» (три чипи) + телефон, e-mail для «деталей», зручний час; згода й приманка як були
+        self.assertEqual(re.findall(r'name="(\w+)"', form),
+                         ["contact_pref"] * 3 + ["phone", "email", "preferred_time", "website", "consent"])
         for part in ('type="tel"', "{{t.callback_send}}", "{{t.callback_hours}}", 'role="status"', 'class="hp"'):
             self.assertIn(part, form)
         self.assertNotIn("tel:", TEMPLATE, "реального номера нема — жодного tel:")
@@ -105,9 +108,62 @@ class CallButtonTests(unittest.TestCase):
         self.assertIn('track("cta_call", { content_ids: [cur.id], cta: b.getAttribute("data-cta") || "" }, { pixel: false })',
                       block)
         self.assertIn("b.hidden = true", block, "форми нема — кнопок нема")
-        self.assertIn('if (callback) data.lead_source = "callback";', JS)
-        self.assertIn("if (!callback && data.name.length < 2)", JS)
+        self.assertIn('data.lead_source = "callback";', JS)
+        self.assertIn("if (!callback && !vote && data.name.length < 2)", JS)
         self.assertIn("if (cbForm) wireForm(cbForm);", JS)
+
+
+class ContactPrefTests(unittest.TestCase):
+    """№20 (слово 25.10): «התקשרו אלינו» — дзвінок, відеодзвінок або «надішліть деталі», зручний час."""
+
+    def form(self):
+        return re.search(r'<form class="callback".*?</form>', TEMPLATE, re.S).group(0)
+
+    def test_three_choices_first_checked_each_described(self):
+        form = self.form()
+        chips = re.findall(r'<input type="radio" name="contact_pref" value="(\w+)"( checked)? aria-describedby="cb-h-(\w+)">', form)
+        self.assertEqual(chips, [("call", " checked", "call"), ("video", "", "video"), ("info", "", "info")])
+        self.assertRegex(form, r'<fieldset class="f f-choice">\s*<legend>\{\{t\.cb_pref\}\}</legend>')
+        for v in ("call", "video", "info"):
+            self.assertRegex(form, rf'<p class="muted small" id="cb-h-{v}" data-pref-hint="{v}"( hidden)?>'
+                                   rf'\{{\{{t\.cb_hint_{v}\}}\}}</p>')
+
+    def test_email_and_time_fields_labelled_and_bounded(self):
+        form = self.form()
+        self.assertRegex(form, r'<div class="f" data-cb-email hidden><label for="cb-email">\{\{t\.f_email\}\}.*?</label>'
+                               r'<input id="cb-email" name="email" type="email" inputmode="email" autocomplete="email" dir="ltr" '
+                               r'maxlength="120" aria-describedby="cb-e-email"><p class="f-err" id="cb-e-email" hidden></p></div>')
+        self.assertRegex(form, r'<label for="cb-time">\{\{t\.cb_time\}\} <span class="opt-l">\{\{t\.f_optional\}\}</span>'
+                               r'</label><input id="cb-time" name="preferred_time" type="text" maxlength="80"')
+
+    def test_js_info_needs_phone_or_email_others_phone(self):
+        block = JS[JS.index('data.lead_source = "callback";'):]
+        block = block[:block.index("if (!data.consent)")]
+        for part in ('data.contact_pref = data.contact_pref || "call";',
+                     'data.preferred_time = fv("preferred_time").slice(0, 80);',
+                     'if (data.contact_pref === "info") data.email = fv("email").slice(0, 120);',
+                     'if (!data.phone && !data.email) { setErr("phone", S.e_contact);',
+                     'if (data.email && !EMAIL_OK.test(data.email)) { setErr("email", S.e_email);',
+                     '} else if (!phoneOk(data.phone)) { setErr("phone", S.e_phone);'):
+            self.assertIn(part, block)
+        sync = JS[JS.index("var cbSync"):JS.index("cbSync();")]
+        self.assertIn("if (em) em.hidden = !info;", sync)
+
+    def test_strings_three_languages_honest(self):
+        want = {"he": "טלפון, שיחת וידאו או פרטים במייל — לפי הנוחות שלכם",
+                "en": "Phone, video call or details by email — whatever suits you",
+                "ru": "Телефон, видеозвонок или детали на почту — как вам удобнее"}
+        keys = ("call_hint", "cb_pref", "cb_pref_call", "cb_pref_video", "cb_pref_info", "cb_hint_call", "cb_hint_video",
+                "cb_hint_info", "cb_or_email", "cb_or_phone", "f_email", "cb_time", "cb_time_ph", "callback_thanks")
+        for lang, line in want.items():
+            t = i18n(lang)
+            with self.subTest(lang=lang):
+                self.assertEqual(t["call_hint"], line)
+                self.assertTrue(t["js"]["e_contact"] and t["js"]["e_email"])
+                blob = " ".join(t[k] for k in keys)
+                # без шоуруму, «наживо», зразка в Ізраїлі, номерів і знижок — цього нема
+                self.assertIsNone(re.search(r"\d|showroom|шоурум|אולם תצוגה|in person|вживую|наживо|sample|образец|דוגמה|"
+                                            r"הנחה|скидк|discount|\+972", blob, re.I), blob)
 
 
 if __name__ == "__main__":

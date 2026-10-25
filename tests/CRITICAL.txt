@@ -21,3 +21,5 @@ tests.test_funnel_digest      # дайджест воронки в Telegram: л�
 tests.test_box_env            # оточення прода без друку значень
 tests.test_deploy_box             # викат на прод: лише свій юніт, rsync з --chmod, відкат
 tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy
+tests.test_next_variants      # №22: голос vote, Telegram, воронка, варіанти поза каталогом
+tests.test_next_build         # №22: /p/tavor-fluted/, /p/tavor-oval/ трьома мовами, sitemap, поза каталогом і кошиком

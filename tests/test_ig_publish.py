@@ -392,7 +392,8 @@ class StoryFilesTests(unittest.TestCase):
 
 
 class PostFilesTests(unittest.TestCase):
-    """docs/ig/: кожен пост — пара NN-слаг.jpg + .txt; підпис чесний («הדמיה»), без цін, у межах Instagram."""
+    """docs/ig/: кожен пост — пара NN-слаг.jpg + .txt; без цін, у межах Instagram. «הדמיה» — лише в уже
+    опублікованих 01–03 (їх не правимо); з 04 слова нема (слово власника 24.10: «не пиши, что это визуализация»)."""
     DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig"
 
     def test_pairs_and_captions(self):
@@ -403,7 +404,11 @@ class PostFilesTests(unittest.TestCase):
             self.assertNotIn(b"\r", raw, txt.name)
             text = raw.decode("utf-8")
             ig_publish.check_caption(text)
-            self.assertIn("הדמיה", text, txt.name)
+            if txt.name[:2] in ("01", "02", "03"):
+                self.assertIn("הדמיה", text, txt.name)
+            else:
+                self.assertNotIn("הדמיה", text, txt.name)
+                self.assertIn("הפריט בייצור.", text, txt.name)
             self.assertNotRegex(text, r"₪|\bNIS\b|ש״ח|шек", txt.name)
             jpg = txt.with_suffix(".jpg")
             self.assertEqual(jpg.read_bytes()[:3], b"\xff\xd8\xff", jpg.name)

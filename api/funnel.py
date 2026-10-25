@@ -13,6 +13,9 @@ import re
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
+# міні-форма «התקשרו אלינו» (№20): як людина хоче — дзвінок, відео, деталі (той самий список, що в handler.py)
+CALLBACK_PREFS = ("call", "video", "info")
+
 try:
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     try:
@@ -215,6 +218,7 @@ def compute(events, leads) -> dict:
     asks = defaultdict(set)                                  # м'який крок картки: cta → сесії з cta_ask
     calls = defaultdict(set)                                 # «התקשרו אלינו» (24.10): cta → сесії з cta_call
     pdp_depth = defaultdict(list)                            # mobile/desktop → глибина картки в екранах (leave)
+    card_seconds = defaultdict(list)                         # №22: товар → секунди на картці (leave pdp / next)
 
     for e in events:
         sid = e.get("session_id") or ""
@@ -238,6 +242,8 @@ def compute(events, leads) -> dict:
                 seconds[str(p.get("step") or "other")[:20]].append(s)
             # №15: scroll_px — найглибша позиція в px, vh — висота екрана; лише там, де обидва > 0
             px, vh = _num(p.get("scroll_px")), _num(p.get("vh"))
+            if s is not None and p.get("step") in ("pdp", "next") and p.get("product"):
+                card_seconds[str(p["product"])[:40]].append(s)
             if p.get("step") == "pdp" and px and vh and px > 0 and vh > 0:
                 dev = "desktop" if e.get("device") == "desktop" else "mobile"
                 pdp_depth[dev].append(px / vh)
@@ -263,9 +269,16 @@ def compute(events, leads) -> dict:
 
     # Заявка без події Lead у браузері (блокувальник, обірвана сторінка) — теж Lead своєї сесії.
     lead_rows = callbacks = 0
+    votes = Counter()                                        # №22: «אני רוצה כזה» — голоси за варіанти наступного видання
+    call_prefs = Counter({k: 0 for k in CALLBACK_PREFS})
     for l in leads:
         lead_rows += 1
-        callbacks += l.get("lead_source") == "callback"
+        if l.get("lead_source") == "callback":
+            callbacks += 1
+            # №20: як людина хоче — заявки до 25.10 без поля рахуються як дзвінок
+            call_prefs[l.get("contact_pref") if l.get("contact_pref") in CALLBACK_PREFS else "call"] += 1
+        if l.get("lead_source") == "vote":
+            votes[str(l.get("product_id") or "?")[:40]] += 1
         sid = l.get("session_id") or ""
         if not sid:
             continue
@@ -305,8 +318,12 @@ def compute(events, leads) -> dict:
         # кнопка дзвінка: сесії з натисканням і заявки з міні-форми (lead_source=callback)
         "call": {"sessions": len(set().union(*calls.values())) if calls else 0,
                  "by_cta": {k: len(v) for k, v in sorted(calls.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
-                 "leads": callbacks},
+                 "leads": callbacks, "by_pref": {k: call_prefs[k] for k in CALLBACK_PREFS}},
+        # голоси — окремим рядком, не замовлення: заявки lead_source=vote за товаром
+        "vote": {"leads": sum(votes.values()), "by_product": dict(sorted(votes.items(), key=lambda kv: (-kv[1], kv[0])))},
         "median_seconds": {k: sorted(v)[len(v) // 2] for k, v in seconds.items() if v},
+        # час на картці кожного товару (варіанти наступного видання проти TAVOR): медіана секунд і n
+        "card_seconds": {k: {"median": sorted(v)[len(v) // 2], "n": len(v)} for k, v in sorted(card_seconds.items())},
         # глибина картки товару в екранах: лише агрегати (медіана, q75, n), без сесій
         "pdp_depth": {d: depth(pdp_depth.get(d)) for d in ("mobile", "desktop")},
         "price_points": [
@@ -357,6 +374,12 @@ def text(rep: dict) -> str:
     call = rep.get("call") or {}
     lines.append(f"«Позвоните нам»: {call.get('sessions', 0)}, заявок на звонок {call.get('leads', 0)}"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in call["by_cta"].items()) if call.get("by_cta") else ""))
+    if call.get("leads"):
+        words = {"call": "звонок", "video": "видео", "info": "детали"}
+        lines.append("  как: " + ", ".join(f"{words.get(k, k)} {v}" for k, v in (call.get("by_pref") or {}).items()))
+    vote = rep.get("vote") or {}
+    lines.append(f"Голоса «אני רוצה כזה» (следующее издание): {vote.get('leads', 0)}"
+                 + (" · " + ", ".join(f"{k} {v}" for k, v in vote["by_product"].items()) if vote.get("by_product") else ""))
     lines.append("Реклама Meta, сессии: " + " · ".join(f"{a['ru']} {a['n']}" for a in rep.get("by_audience") or [])
                  + (" (шаги выше — только люди)" if rep.get("people_only") else ""))
     if any(a["key"] == "ads_meta_est" and a["n"] for a in rep.get("by_audience") or []):
@@ -372,6 +395,9 @@ def text(rep: dict) -> str:
         lines += ["", "Уходы со страницы по шагу: " + ", ".join(f"{k} {v}" for k, v in rep["leave_by_step"].items())]
     if rep["median_seconds"]:
         lines.append("Медиана секунд на шаге: " + ", ".join(f"{k} {v}" for k, v in rep["median_seconds"].items()))
+    if rep.get("card_seconds"):
+        lines.append("Секунд на карточке (медиана, n): " + ", ".join(
+            f"{k} {v['median']} (n={v['n']})" for k, v in rep["card_seconds"].items()))
     dep = rep.get("pdp_depth") or {}
     if any(dep.values()):
         lines.append("Глубина на карточке (экранов): " + " · ".join(

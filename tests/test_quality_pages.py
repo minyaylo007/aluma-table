@@ -232,7 +232,10 @@ class PagesQualityTests(unittest.TestCase):
         self.known("ld", bad)
 
     def test_every_product_card_has_product_ld(self):
-        cards = [rel for rel in self.parsed if re.match(r"(en/)?p/[^/]+/index\.html$", rel)]
+        # «наступне видання» (catalog/next.json) — не товар на продаж, лише голос: Product-LD без пропозиції там не ставимо
+        nxt = {n["id"] for n in json.loads((PROJECT / "catalog" / "next.json").read_text(encoding="utf-8"))["items"]}
+        cards = [rel for rel in self.parsed
+                 if (m := re.match(r"(?:en/)?p/([^/]+)/index\.html$", rel)) and m.group(1) not in nxt]
         self.assertGreaterEqual(len(cards), 2)
         self.known("product", [rel for rel in cards
                                if "Product" not in {i.get("@type") for i in self.parsed[rel].ld_items()}])

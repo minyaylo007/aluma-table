@@ -16,7 +16,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { ROOT, TYPES, LANGS, localize, local, esc, fontFaces, fill, priceVars, headlineOf } = require('./build');
+const { ROOT, TYPES, LANGS, localize, local, esc, dropEmptyMark, fontFaces, fill, priceVars, headlineOf } = require('./build');
 
 process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/ihor/aluma-table/ms-playwright';
 const { chromium } = require('@playwright/test');
@@ -131,10 +131,10 @@ function html(template, cfg, f, plan, fonts, id) {
   const shots = plan.imgs.map((file, i) => `<div class="shot${fullIn(file, f) ? ' full' : ''}${frameFor(file, f) !== file ? ' tall' : ''}"><img src="${ORIGIN}/img/${id}/${i}" alt=""></div>`).join('');
   const map = { ...lang, FONTS: fonts.css, SERIF: fonts.serif, W: f.width, H: f.height, FORMAT: f.id, SHOTS: shots,
     CARD: plan.card, MARK: esc(cfg.mark), TIMELINE: JSON.stringify(plan.timeline) };
-  return template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
+  return dropEmptyMark(template.replace(/\{\{(\w+)\}\}/g, (m, k) => {
     if (!(k in map)) throw new Error(`шаблон: невідомий ${m}`);
     return String(map[k]);
-  });
+  }));
 }
 
 // У сторінці, на кадрі часу t: що з тексту видно, де воно, який контраст; «הדמיה»; переповнення картки.
@@ -176,7 +176,7 @@ function inspect(safe) {
     out.push({ text: el.textContent.trim().slice(0, 30), alpha: a, contrast: bg ? (x + 0.05) / (y + 0.05) : 0,
       inside: r.left >= 0 && r.right <= W && r.top >= safe * H - 0.5 && r.bottom <= (1 - safe) * H + 0.5 });
   }
-  const mark = document.querySelector('.mark'); const m = mark.getBoundingClientRect();
+  const mark = document.querySelector('.mark'); const m = mark ? mark.getBoundingClientRect() : { top: 0, left: 0, width: 0 };
   const card = document.querySelector('.card');
   const over = [card, ...card.querySelectorAll('.item')].some((e) => e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1);
   // Товар не під карткою: де кадр — смуга (9:16, 4:5), картка починається нижче за неї; у 9:16 картка ще й вище нижніх 20 %.
@@ -187,9 +187,9 @@ function inspect(safe) {
   const fullTooHigh = !!document.querySelector('.shot.tall') && cr.top < 1000;
   const fullNot916 = [...document.querySelectorAll('.shot.tall img')].some((i) => i.naturalWidth * 16 !== i.naturalHeight * 9);
   const low = safe > 0 && cr.bottom > 0.8 * H + 0.5;
-  return { texts: out, covered, low, fullTooHigh, fullNot916, mark: mark.textContent.trim(), markAlpha: alpha(mark), markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
+  return { texts: out, covered, low, fullTooHigh, fullNot916, mark: mark ? mark.textContent.trim() : '', markAlpha: mark ? alpha(mark) : 1, markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
     over, imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
-    fontsOk: fontFor(mark.textContent.trim(), '600') };
+    fontsOk: mark ? fontFor(mark.textContent.trim(), '600') : document.fonts.check('600 26px "IBM Plex Sans Hebrew"', 'א') };
 }
 
 function ffmpeg(argv) {
@@ -281,7 +281,7 @@ async function main() {
           await page.evaluate((x) => window.render(x), t);
           if (i % (FPS / 2) === 0) {
             const c = await page.evaluate(inspect, safe);
-            if (c.mark !== cfg.mark || c.markAlpha < 0.999 || !c.markInside) problems.add(`${t.toFixed(1)} с: нема «${cfg.mark}»`);
+            if (cfg.mark && (c.mark !== cfg.mark || c.markAlpha < 0.999 || !c.markInside)) problems.add(`${t.toFixed(1)} с: нема «${cfg.mark}»`);
             if (c.over) problems.add(`${t.toFixed(1)} с: картка переповнена`);
             if (c.covered) problems.add(`${t.toFixed(1)} с: картка закриває кадр товару`);
             if (c.fullNot916) problems.add('вертикальний рендер не 9:16');
