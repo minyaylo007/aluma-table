@@ -596,11 +596,33 @@ def ship_terms(p: dict, loc: str) -> str:
     return '<ul class="pdp-terms" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
-def trust_row() -> str:
-    """Рядок довіри під умовами доставки: шпон, гарантія, письмове підтвердження до оплати, своя фабрика.
-    Лише наявні факти (гарантія — WARRANTY_MONTHS із content.json); без відгуків, лічильників і знижок."""
-    items = ["{{t.trust_veneer}}", "{{t.inc_warranty}}", "{{t.pt_2}}", "{{t.trust_own}}"]
-    return '<ul class="pdp-trust" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+# Смуга довіри (№19, слово 25.10): ключ i18n trust_strip_<k>_h/_p, куди веде заголовок, іконка 24×24 (штрих currentColor)
+TRUST_STRIP = (
+    ("pay", "/how/", '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="m9.5 14 2 2 3.5-4"/>'),
+    ("warranty", "/faq/", '<path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/>'),
+    ("own", "/about/", '<path d="M3 20V9l6 4V9l6 4V4h5v16z"/><path d="M2 20h20"/>'),
+    ("ship", "/faq/", '<path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/>'
+                      '<circle cx="17" cy="17.5" r="1.8"/>'),
+)
+
+
+def trust_strip(p: dict | None, loc: str) -> str:
+    """Смуга довіри одразу під кнопками картки (p) або над «להזמנה» у кошику (p=None — компактна, лише заголовки).
+    Лише підтверджені факти: оплата не на сайті, гарантія WARRANTY_MONTHS, своя фабрика, ціни доставки з content.json;
+    без відгуків, лічильників, років і знижок. Кожен пункт — посилання на розділ, де про це докладно."""
+    svg = ('<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" '
+           'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{}</svg>')
+    pdf = assembly_pdf(p, loc) if p else ""
+    lis = []
+    for k, href, icon in TRUST_STRIP:
+        key = f"trust_strip_{k}_s" if p is None and k in ("own", "ship") else f"trust_strip_{k}_h"  # кошик: два рядки
+        head = f'<a class="ts-h" href="{{{{PREFIX}}}}{href}">{{{{t.{key}}}}}</a>'
+        sub = "" if p is None else f'<span class="ts-p">{{{{t.trust_strip_{k}_p}}}}' + (
+            f' · <a href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">{{{{t.trust_strip_pdf}}}}</a>'
+            if k == "ship" and pdf else "") + "</span>"
+        lis.append(f"<li>{svg.format(icon)}<span>{head}{sub}</span></li>")
+    cls = "trust-strip" if p else "trust-strip trust-strip--compact"
+    return f'<ul class="{cls}" role="list" aria-label="{{{{t.trust_strip_label}}}}">' + "".join(lis) + "</ul>"
 
 
 def ship_choice() -> str:
@@ -612,6 +634,12 @@ def ship_choice() -> str:
             f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
 
 
+def assembly_pdf(p: dict, loc: str) -> str:
+    """Інструкція збирання site/assets/docs/<slug>-assembly-<мова>.pdf; нема своєї мови — en; нема зовсім — ""."""
+    return next((f"/assets/docs/{p['slug']}-assembly-{lang}.pdf" for lang in (loc, "en")
+                 if (SITE / "assets" / "docs" / f"{p['slug']}-assembly-{lang}.pdf").is_file()), "")
+
+
 def inside(p: dict, loc: str) -> str:
     """«מה בפנים»: з чого зроблено (числа — content.json, специфікація 22.10) + інструкція збирання PDF своєю мовою.
     Лише для товарів INSIDE_PRODUCTS; PDF шукаємо site/assets/docs/<slug>-assembly-<мова>.pdf, нема своєї мови — en."""
@@ -619,8 +647,7 @@ def inside(p: dict, loc: str) -> str:
         return ""
     rows = ["top", "board", "edge", "legs", "mech", "finish", "origin"]
     lis = "".join(f"<li>{{{{t.inside_{k}}}}}</li>" for k in rows)
-    pdf = next((f"/assets/docs/{p['slug']}-assembly-{lang}.pdf" for lang in (loc, "en")
-                if (SITE / "assets" / "docs" / f"{p['slug']}-assembly-{lang}.pdf").is_file()), "")
+    pdf = assembly_pdf(p, loc)
     link = (f'<p><a class="pdp-pdf" href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">'
             f'{{{{t.{"assembly_pdf" if pdf.endswith(f"-{loc}.pdf") else "assembly_pdf_en"}}}}}</a></p>') if pdf else ""
     return (f'<div class="pdp-inside"><h3 class="h3">{{{{t.inside_h}}}}</h3><ul class="pdp-inside-list" role="list">{lis}</ul>'
@@ -932,7 +959,7 @@ def main() -> None:
             "SIZE_BARS": size_bars(products),
             # способи отримання — числа з content.json, у форматі ціни мови (₪950 / 950 ₪)
             **{t: money(ship_fees()[v], loc) for v, _, t in SHIP_WAYS},
-            "SHIP_CHOICE": ship_choice(),
+            "SHIP_CHOICE": ship_choice(), "TRUST_CART": trust_strip(None, loc),
             "CITY_OPTIONS": "".join(f'<option value="{esc(c["id"])}">{esc(c["name"])}</option>' for c in s.get("cities", [])),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
             "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),
@@ -1013,7 +1040,7 @@ def main() -> None:
                 "P_MONTHLY": money(math.ceil((p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0)
                                              / int(CONTENT["INSTALLMENTS"])), loc),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
-                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc), "P_TRUST": trust_row(),
+                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc), "P_TRUST": trust_strip(p, loc),
                 "P_PRICE_NOTE": "{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}", "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",

@@ -14,6 +14,7 @@
         <p class="cart-row"><span>{{t.ship_h}}</span> <bdi dir="ltr" data-sum-ship></bdi></p>
         <p class="cart-total"><span>{{t.cart_total}}</span> <bdi dir="ltr" data-cart-total></bdi></p>
         <p class="price-incl">{{t.price_incl}} · {{t.installments}}</p>
+        {{TRUST_CART}}
         <a class="btn btn--dark btn--block" href="{{PREFIX}}/checkout/" data-cart-pay data-cta="cart">{{t.cart_pay}}</a>
         <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a>
         <p class="f-fine">{{t.cart_fine}}</p>
