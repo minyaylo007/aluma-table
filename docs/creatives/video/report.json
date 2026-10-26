@@ -13,7 +13,7 @@
       "height": 1920,
       "duration": 8,
       "fps": 30,
-      "bytes": 1398367,
+      "bytes": 1121546,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -22,7 +22,7 @@
       "images": [
         "site/assets/products/tavor/open-9x16.jpg",
         "site/assets/products/tavor/mechanism-half-1600.webp",
-        "site/assets/products/tavor/home-9x16.jpg"
+        "site/assets/products/tavor/life-1600.webp"
       ]
     },
     {
@@ -31,7 +31,7 @@
       "height": 1350,
       "duration": 8,
       "fps": 30,
-      "bytes": 744209,
+      "bytes": 833187,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -40,7 +40,7 @@
       "images": [
         "site/assets/products/tavor/open-1600.webp",
         "site/assets/products/tavor/mechanism-half-1600.webp",
-        "site/assets/products/tavor/home-1600.webp"
+        "site/assets/products/tavor/life-1600.webp"
       ]
     },
     {
@@ -49,7 +49,7 @@
       "height": 1080,
       "duration": 8,
       "fps": 30,
-      "bytes": 676018,
+      "bytes": 769075,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -58,7 +58,7 @@
       "images": [
         "site/assets/products/tavor/open-1600.webp",
         "site/assets/products/tavor/mechanism-half-1600.webp",
-        "site/assets/products/tavor/home-1600.webp"
+        "site/assets/products/tavor/life-1600.webp"
       ]
     },
     {
@@ -67,14 +67,14 @@
       "height": 1920,
       "duration": 8,
       "fps": 30,
-      "bytes": 1364103,
+      "bytes": 971531,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
         "sahar"
       ],
       "images": [
-        "site/assets/products/sahar/home-9x16.jpg",
+        "site/assets/products/sahar/life-1600.webp",
         "site/assets/products/sahar/open-9x16.jpg"
       ]
     },
@@ -84,14 +84,14 @@
       "height": 1350,
       "duration": 8,
       "fps": 30,
-      "bytes": 704312,
+      "bytes": 795527,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
         "sahar"
       ],
       "images": [
-        "site/assets/products/sahar/home-1600.webp",
+        "site/assets/products/sahar/life-1600.webp",
         "site/assets/products/sahar/open-1600.webp"
       ]
     },
@@ -101,14 +101,14 @@
       "height": 1080,
       "duration": 8,
       "fps": 30,
-      "bytes": 621232,
+      "bytes": 697949,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
         "sahar"
       ],
       "images": [
-        "site/assets/products/sahar/home-1600.webp",
+        "site/assets/products/sahar/life-1600.webp",
         "site/assets/products/sahar/open-1600.webp"
       ]
     },
@@ -118,7 +118,7 @@
       "height": 1920,
       "duration": 10,
       "fps": 30,
-      "bytes": 2916384,
+      "bytes": 1520911,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -129,11 +129,11 @@
         "tal"
       ],
       "images": [
-        "site/assets/products/tavor/home-9x16.jpg",
-        "site/assets/products/sahar/home-9x16.jpg",
-        "site/assets/products/ofek/home-9x16.jpg",
-        "site/assets/products/saf/home-9x16.jpg",
-        "site/assets/products/tal/hero-1264.webp"
+        "site/assets/products/tavor/life-1600.webp",
+        "site/assets/products/sahar/life-1600.webp",
+        "site/assets/products/ofek/life-1600.webp",
+        "site/assets/products/saf/life-1600.webp",
+        "site/assets/products/tal/life-1600.webp"
       ]
     },
     {
@@ -142,7 +142,7 @@
       "height": 1350,
       "duration": 10,
       "fps": 30,
-      "bytes": 1753151,
+      "bytes": 1496703,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -153,11 +153,11 @@
         "tal"
       ],
       "images": [
-        "site/assets/products/tavor/home-1600.webp",
-        "site/assets/products/sahar/home-1600.webp",
-        "site/assets/products/ofek/home-1600.webp",
-        "site/assets/products/saf/home-1600.webp",
-        "site/assets/products/tal/hero-1264.webp"
+        "site/assets/products/tavor/life-1600.webp",
+        "site/assets/products/sahar/life-1600.webp",
+        "site/assets/products/ofek/life-1600.webp",
+        "site/assets/products/saf/life-1600.webp",
+        "site/assets/products/tal/life-1600.webp"
       ]
     },
     {
@@ -166,7 +166,7 @@
       "height": 1080,
       "duration": 10,
       "fps": 30,
-      "bytes": 1487851,
+      "bytes": 1303783,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -177,11 +177,11 @@
         "tal"
       ],
       "images": [
-        "site/assets/products/tavor/home-1600.webp",
-        "site/assets/products/sahar/home-1600.webp",
-        "site/assets/products/ofek/home-1600.webp",
-        "site/assets/products/saf/home-1600.webp",
-        "site/assets/products/tal/hero-1264.webp"
+        "site/assets/products/tavor/life-1600.webp",
+        "site/assets/products/sahar/life-1600.webp",
+        "site/assets/products/ofek/life-1600.webp",
+        "site/assets/products/saf/life-1600.webp",
+        "site/assets/products/tal/life-1600.webp"
       ]
     }
   ]

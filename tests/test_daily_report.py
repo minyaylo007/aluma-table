@@ -104,27 +104,51 @@ class DailyReportSqliteTests(unittest.TestCase):
 
     # ------------------------------------------------------------ load()
 
-    def test_window_and_test_rows(self):
-        b, now = self.box, self.now
+    def _window_and_test_rows(self, now: datetime):
+        # Час заморожено, а «вчора» — остання хвилина попередньої доби Єрусалима, не now−24 год:
+        # 25.10.2026 (кінець літнього часу) доба Єрусалима — 25 год, і now−24 год о 23:53 лишався «сьогодні»;
+        # а живий now() у setUp і в load() о 23:59:59 міг потрапити в різні доби. Обидва — флак CI біля півночі.
+        b = self.box
+        # північ Єрусалима — рахуємо тут, а не window_start(), який перевіряємо
+        local = now.astimezone(report.shop.TZ)
+        today = local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
         b.event("page_view", now, session="a")
-        b.event("page_view", now - timedelta(days=1), session="b")
+        b.event("page_view", today, session="first")                    # перша мить сьогодні — у вікні
+        b.event("page_view", today - timedelta(minutes=1), session="b")  # 23:59 учора — лише у 7 днях
         b.event("page_view", now - timedelta(days=10), session="old")   # поза вікном 7 днів
         b.event("page_view", now, session="t", is_test=True)
-        b.lead(now - timedelta(hours=1))
+        b.lead(max(now - timedelta(hours=1), today))
         b.lead(now - timedelta(days=10))                                 # поза вікном
-        b.lead(now - timedelta(hours=2), is_test=True)
+        b.lead(max(now - timedelta(hours=2), today), is_test=True)
 
-        events, leads = report.load(7, False, self.tables())
-        self.assertEqual(sorted(e["session_id"] for e in events), ["a", "b"])
-        self.assertEqual(len(leads), 1)
-        self.assertFalse(leads[0].get("is_test"))
+        with frozen(now):
+            events, leads = report.load(7, False, self.tables())
+            self.assertEqual(sorted(e["session_id"] for e in events), ["a", "b", "first"])
+            self.assertEqual(len(leads), 1)
+            self.assertFalse(leads[0].get("is_test"))
 
-        events, leads = report.load(7, True, self.tables())
-        self.assertEqual(sorted(e["session_id"] for e in events), ["a", "b", "t"])
-        self.assertEqual(len(leads), 2)
+            events, leads = report.load(7, True, self.tables())
+            self.assertEqual(sorted(e["session_id"] for e in events), ["a", "b", "first", "t"])
+            self.assertEqual(len(leads), 2)
 
-        events, _ = report.load(1, False, self.tables())
-        self.assertEqual([e["session_id"] for e in events], ["a"])
+            events, _ = report.load(1, False, self.tables())
+            self.assertEqual(sorted(e["session_id"] for e in events), ["a", "first"])
+
+    def test_window_and_test_rows(self):
+        self._window_and_test_rows(datetime(2026, 10, 20, 10, 0, tzinfo=timezone.utc))
+
+    def test_window_at_2359_and_0001_jerusalem(self):
+        """Кордон доби Asia/Jerusalem, зима й літо: о 23:59 і о 00:01 «сьогодні» — від півночі, 23:59 учора — ні."""
+        tz = report.shop.TZ
+        for at in (datetime(2026, 10, 20, 23, 59, 59, tzinfo=tz), datetime(2026, 10, 21, 0, 1, tzinfo=tz),
+                   datetime(2026, 7, 1, 23, 59, tzinfo=tz), datetime(2026, 7, 2, 0, 1, tzinfo=tz)):
+            with self.subTest(at=at.isoformat()):
+                self.setUp()
+                self._window_and_test_rows(at.astimezone(timezone.utc))
+
+    def test_window_on_dst_end_day(self):
+        """25.10.2026 21:53 UTC = 23:53 Єрусалима, доба в 25 год — саме тут CI впав у PR №143."""
+        self._window_and_test_rows(datetime(2026, 10, 25, 21, 53, tzinfo=timezone.utc))
 
     def test_pages_through_more_than_one_query_page(self):
         # 1000 подій і 500 заявок на сторінку — беремо більше, щоб пройти по LastEvaluatedKey.

@@ -165,6 +165,23 @@ function inspect(safe) {
     return !faces.some((f) => f.status === 'error') && faces.some((f) => f.status === 'loaded'
       && f.family.replace(/"/g, '') === 'IBM Plex Sans Hebrew' && String(f.weight) === weight && covers(f, cp));
   };
+  // Без позначки (he/ru з 25.10): кожен текст кадру має завантажене обличчя своєї родини й ваги, що покриває його
+  // першу літеру. fonts.check() не годиться: обличчя hebrew і latin однієї ваги — без unicode-range, і невикористане
+  // (status «unloaded», бо його гліфи не потрібні) робить check() хибним, хоча текст іде правильним шрифтом.
+  const textsFontsOk = () => {
+    const faces = [...document.fonts];
+    if (faces.some((f) => f.status === 'error')) return false;
+    const weightOk = (f, w) => { const [a, b] = String(f.weight).split(' ').map(Number); return b ? w >= a && w <= b : w === a; };
+    return [...document.querySelectorAll('[data-text]')].every((el) => {
+      const letter = (el.textContent.match(/\p{L}/u) || [])[0];
+      if (!letter) return true;
+      const cs = getComputedStyle(el);
+      const family = cs.fontFamily.split(',')[0].trim().replace(/"/g, '');
+      const cp = letter.codePointAt(0);
+      return faces.some((f) => f.status === 'loaded' && f.family.replace(/"/g, '') === family
+        && weightOk(f, Number(cs.fontWeight)) && covers(f, cp));
+    });
+  };
   const W = innerWidth, H = innerHeight;
   const out = [];
   for (const el of document.querySelectorAll('[data-text]')) {
@@ -189,7 +206,7 @@ function inspect(safe) {
   const low = safe > 0 && cr.bottom > 0.8 * H + 0.5;
   return { texts: out, covered, low, fullTooHigh, fullNot916, mark: mark ? mark.textContent.trim() : '', markAlpha: mark ? alpha(mark) : 1, markInside: m.top >= safe * H - 0.5 && m.left >= 0 && m.width > 0,
     over, imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
-    fontsOk: mark ? fontFor(mark.textContent.trim(), '600') : document.fonts.check('600 26px "IBM Plex Sans Hebrew"', 'א') };
+    fontsOk: mark ? fontFor(mark.textContent.trim(), '600') : textsFontsOk() };
 }
 
 function ffmpeg(argv) {

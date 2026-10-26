@@ -162,8 +162,9 @@ class RussianCreativeTests(unittest.TestCase):
             self.assertEqual(self.catalog[p]["name"]["ru"], self.catalog[p]["name"]["en"], "назви — латиницею, як у каталозі")
 
     def test_words_are_the_site_words(self):
-        """Позначка, строк, що входить у ціну, і застереження — дослівно як на /ru/."""
-        self.assertEqual(self.cfg["mark"], self.site["viz_tag"])
+        """Строк, що входить у ціну, і застереження — дослівно як на /ru/; позначки нема."""
+        # з 24.10 (слово власника «не пиши, что это визуализация») — без плашки, як he; viz_tag на сайті не тут
+        self.assertEqual(self.cfg["mark"], "")
         self.assertEqual(self.cfg["cta_note"], self.site["lead_exact"])
         # з 23.10 — як на сайті після хвилі 1 (faq «Это цена первой серии, с НДС; доставка — отдельно»)
         self.assertEqual(self.cfg["price_note"], self.site["series_price"])
