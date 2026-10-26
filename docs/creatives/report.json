@@ -11,7 +11,7 @@
       "file": "tavor-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 144696,
+      "bytes": 148841,
       "jpeg_quality": 88,
       "tiles": [
         0.6333
@@ -29,7 +29,7 @@
       "file": "tavor-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 164807,
+      "bytes": 170426,
       "jpeg_quality": 88,
       "tiles": [
         0.6667
@@ -47,7 +47,7 @@
       "file": "tavor-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 174831,
+      "bytes": 180886,
       "jpeg_quality": 88,
       "tiles": [
         0.5188
@@ -65,7 +65,7 @@
       "file": "sahar-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 150396,
+      "bytes": 154647,
       "jpeg_quality": 88,
       "tiles": [
         0.6333
@@ -83,7 +83,7 @@
       "file": "sahar-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 170265,
+      "bytes": 176037,
       "jpeg_quality": 88,
       "tiles": [
         0.6667
@@ -101,7 +101,7 @@
       "file": "sahar-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 178747,
+      "bytes": 185549,
       "jpeg_quality": 88,
       "tiles": [
         0.5188
@@ -119,7 +119,7 @@
       "file": "collection-1080x1080.jpg",
       "width": 1080,
       "height": 1080,
-      "bytes": 176668,
+      "bytes": 179540,
       "jpeg_quality": 88,
       "tiles": [
         0.2556,
@@ -149,7 +149,7 @@
       "file": "collection-1080x1350.jpg",
       "width": 1080,
       "height": 1350,
-      "bytes": 215519,
+      "bytes": 219036,
       "jpeg_quality": 88,
       "tiles": [
         0.2667,
@@ -179,7 +179,7 @@
       "file": "collection-1080x1920.jpg",
       "width": 1080,
       "height": 1920,
-      "bytes": 239303,
+      "bytes": 243372,
       "jpeg_quality": 88,
       "tiles": [
         0.1688,
