@@ -384,8 +384,13 @@ CARD_SIZES = "(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw"
 CARD_SIZES_TWO_UP = "(min-width: 1000px) 30vw, 46vw"
 
 
-def card(p: dict, loc: str, prefix: str, eager: bool = False, sizes: str = CARD_SIZES) -> str:
-    """Картка товару: фото 4:5 (другий кадр — при наведенні), назва, ціна «מ־₪», кружки тонувань."""
+# №27: над назвою — що це за річ (назва «תבור» нічого не каже тому, хто прийшов з реклами); рядки — i18n cat_<category>
+CARD_KINDS = ("dining_table", "media_unit", "console", "coffee_table")
+
+
+def card(p: dict, loc: str, prefix: str, eager: bool = False, sizes: str = CARD_SIZES, cta: bool = False) -> str:
+    """Картка товару: фото 4:5 (другий кадр — при наведенні), тип виробу, назва, ціна «מ־₪», кружки тонувань;
+    cta — видима кнопка до деталей (каталог, куди веде реклама «collection»: 86 % ішли, не торкнувшись картки)."""
     price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"], loc)}</bdi></span>'
              if p.get("price_from_ils") else "")
     sz = sizes
@@ -400,9 +405,11 @@ def card(p: dict, loc: str, prefix: str, eager: bool = False, sizes: str = CARD_
                    for f in (p.get("finishes") or [])[:6] if f.get("hex"))
     names = ", ".join(esc(L(f.get("name"), loc)) for f in (p.get("finishes") or [])[:6] if f.get("hex"))
     sw = (f'<span class="card-dots" role="img" aria-label="{{{{t.finishes_label}}}}: {names}">{dots}</span>' if dots else "")
+    kind = f'<span class="card-kind">{{{{t.cat_{p["category"]}}}}}</span>' if p.get("category") in CARD_KINDS else ""
+    btn = '<span class="card-cta">{{t.card_cta}}</span>' if cta else ""
     return (f'<li class="card"><a class="card-link" href="{prefix}/p/{p["slug"]}/" data-product="{esc(p["id"])}">'
-            f'{pic}<span class="card-body"><span class="card-row"><span class="card-name">{esc(L(p.get("name"), loc))}</span>'
-            f'{price}</span>{sw}</span></a></li>')
+            f'{pic}<span class="card-body">{kind}<span class="card-row"><span class="card-name">{esc(L(p.get("name"), loc))}</span>'
+            f'{price}</span>{sw}{btn}</span></a></li>')
 
 
 def badges(p: dict, loc: str) -> str:
@@ -413,9 +420,12 @@ def badges(p: dict, loc: str) -> str:
         f'<li class="badge">{esc(L(b.get("label"), loc))}</li>' for b in items) + "</ul>"
 
 
-def grid(products: list, loc: str, prefix: str, limit: int | None = None, sizes: str = CARD_SIZES) -> str:
+def grid(products: list, loc: str, prefix: str, limit: int | None = None, sizes: str = CARD_SIZES,
+         eager: int = 0, cta: bool = False) -> str:
+    """eager — скільки перших фото вантажити одразу (каталог: чотири картки першого екрана телефона — не «lazy»)."""
     items = products[:limit] if limit else products
-    return '<ul class="cards" role="list">' + "".join(card(p, loc, prefix, eager=False, sizes=sizes) for p in items) + "</ul>"
+    return '<ul class="cards" role="list">' + "".join(card(p, loc, prefix, eager=i < eager, sizes=sizes, cta=cta)
+                                                       for i, p in enumerate(items)) + "</ul>"
 
 
 def size_dims(s: dict) -> str:
@@ -979,7 +989,7 @@ def main() -> None:
                          'var s=document.createElement("script");s.src="/assets/tracking.js";document.head.appendChild(s)})})</script>'
                          if tracking else ""),
             "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
-            "GRID_ALL": grid(products, loc, prefix, sizes=CARD_SIZES_TWO_UP), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
+            "GRID_ALL": grid(products, loc, prefix, sizes=CARD_SIZES_TWO_UP, eager=4, cta=True), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
             "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
             **catalog_facts(products, loc),
             "SIZE_BARS": size_bars(products),

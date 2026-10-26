@@ -121,6 +121,36 @@ test('catalog lists every product with a link to its card', async ({ page }) => 
   for (const p of PRODUCTS) await expect(page.locator(`a[href="/p/${p.slug}/"]`).first()).toBeVisible();
 });
 
+// №27: реклама «collection» веде в каталог, 86 % ішли без картки — на телефоні кожна картка каже, що це за річ,
+// має видиму кнопку всередині посилання, фото першого екрана не «lazy», а другий кадр (hover) на тачі не вантажиться
+for (const prefix of ['', '/ru']) {
+  test(`catalog 390 ${prefix || 'he'}: every card names its kind and shows a button inside the link; first-screen photos are eager`, async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    const page = await ctx.newPage();
+    await mockApi(page);
+    await page.goto(`${prefix}/catalog/`);
+    const r = await page.evaluate(() => [...document.querySelectorAll('.cards .card')].map(c => {
+      const btn = c.querySelector('.card-link .card-cta'), b = btn && btn.getBoundingClientRect();
+      return { kind: (c.querySelector('.card-kind') || {}).textContent || '', btn: btn ? btn.textContent.trim() : '', h: b ? b.height : 0,
+        loading: c.querySelector('.card-media img').getAttribute('loading'),
+        alt: c.querySelector('.card-alt') ? getComputedStyle(c.querySelector('.card-alt')).display : 'none' };
+    }));
+    expect(r.length).toBe(PRODUCTS.length);
+    for (const c of r) {
+      expect(c.kind.trim().length).toBeGreaterThan(0);
+      expect(c.kind).not.toContain('{{');
+      expect(c.btn.length).toBeGreaterThan(0);
+      expect(c.h).toBeGreaterThanOrEqual(40);
+      expect(c.alt).toBe('none');
+    }
+    expect(r.slice(0, 4).map(c => c.loading)).toEqual(['eager', 'eager', 'eager', 'eager']);
+    expect(r.slice(4).every(c => c.loading === 'lazy')).toBe(true);
+    await page.goto(prefix + '/');
+    expect(await page.locator('.cards .card-cta').count()).toBe(0);       // головна — як була, без кнопок
+    await ctx.close();
+  });
+}
+
 test('every page of both languages answers 200 with one h1', async ({ page }) => {
   test.setTimeout(120000);  // 20 сторінок на однопотоковому serve-preview
   await mockApi(page);
