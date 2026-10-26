@@ -31,3 +31,4 @@ tests.test_i18n_material      # блок матеріалу: фанера — ф
 tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy
 tests.test_ig_publish         # пости в Instagram: порядок викликів, FINISHED/ERROR, dry-run без POST, токен не друкується, refresh 0600
 tests.test_next_variants      # №22 «наступне видання»: голос vote (телефон або e-mail), «Голос за» у Telegram, воронка — варіант окремим товаром, голоси окремо
+tests.test_render_products_alt  # tools/render_products.js --add: ru alt і невідомі мови в каталозі лишаються (№25)

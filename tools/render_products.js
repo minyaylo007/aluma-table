@@ -17,7 +17,6 @@
 // майстра, без збільшення.
 // Герой AVIF ≤ 180 КБ: якість знижується, поки файл не влізе.
 
-const { chromium } = require('playwright');
 const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -42,56 +41,74 @@ const opt = Object.fromEntries(argv.filter(a => a.startsWith('--')).map(a => { c
 // Розмір для кадрів — типовий у сітці (середній), щоб пропорції на фото відповідали найходовішому.
 const MAIN_SIZE = { tavor: '180×90', sahar: null, ofek: '180', saf: '130', tal: '100×60' };
 
-// Підписи кадрів (alt): he/en, за змістом — доступність (ת"י 5568): що за річ, тонування, ракурс. Без «הדמיה» /
+// Підписи кадрів (alt): [he, en, ru], за змістом — доступність (ת"י 5568): що за річ, тонування, ракурс. Без «הדמיה» /
 // «visualization» (власник 24.10: «не пиши, що це візуалізація»); застереження про кадри — у terms_html, розділ «תמונות».
+// ru — дослівно з catalog/products.json (№25): без нього --add=life затирав ru у каталозі. Де ru нема (round, tavor
+// detail рендером, «steel base») — altFor ru не дає, і лишається ru наявного запису (mergeAlt).
 const KIND = {
-  tavor: ['שולחן אוכל נפתח', 'extendable dining table'],
-  sahar: ['שולחן אוכל עגול נפתח', 'round extendable dining table'],
-  ofek:  ['מזנון טלוויזיה תלוי', 'wall-mounted media unit'],
-  saf:   ['קונסולה', 'console table'],
-  tal:   ['שולחן סלון', 'coffee table']
+  tavor: ['שולחן אוכל נפתח', 'extendable dining table', 'Раздвижной обеденный стол'],
+  sahar: ['שולחן אוכל עגול נפתח', 'round extendable dining table', 'Круглый раздвижной обеденный стол'],
+  ofek:  ['מזנון טלוויזיה תלוי', 'wall-mounted media unit', 'Подвесная тумба под ТВ'],
+  saf:   ['קונסולה', 'console table', 'Консоль'],
+  tal:   ['שולחן סלון', 'coffee table', 'Журнальный стол']
 };
 const VIEW_ALT = {
-  hero:   ['בחלל מגורים באור יום', 'in a living room in daylight'],
-  home:   ['בבית, ליד חלון באור יום, על ריצוף טראצו', 'at home by a window in daylight, on a terrazzo floor'],
-  life:   ['בבית, באור יום מהחלון, ועליו ספר, כד וקערת לימונים', 'at home in daylight from the window, with a book, a jug and a bowl of lemons on it'],
-  angle:  ['במבט נמוך מהצד', 'low three-quarter view'],
-  open:   ['פתוח עם התוספת', 'extended with the leaf'],
+  hero:   ['בחלל מגורים באור יום', 'in a living room in daylight', 'в гостиной при дневном свете'],
+  home:   ['בבית, ליד חלון באור יום, על ריצוף טראצו', 'at home by a window in daylight, on a terrazzo floor',
+           'дома у окна при дневном свете, на полу из терраццо'],
+  life:   ['בבית, באור יום מהחלון, ועליו ספר, כד וקערת לימונים', 'at home in daylight from the window, with a book, a jug and a bowl of lemons on it',
+           'дома, в дневном свете из окна, с книгой, кувшином и миской лимонов на нём'],
+  angle:  ['במבט נמוך מהצד', 'low three-quarter view', 'вид в три четверти снизу'],
+  open:   ['פתוח עם התוספת', 'extended with the leaf', 'в разложенном виде, со вставкой'],
   round:  ['בגרסה העגולה Ø80', 'round version, Ø80'],
   'mechanism-half':   ['מנגנון הפתיחה: פתוח למחצה, רואים את המסילות ואת פלטת ההארכה המקופלת מתחת למשטח',
-                       'opening mechanism: half open, showing the runners and the folded leaf under the top'],
-  'mechanism-closed': ['מנגנון הפתיחה: סגור, קו החיבור באמצע המשטח', 'opening mechanism: closed, the seam in the middle of the top'],
-  'light-morning':    ['באור בוקר קריר מהחלון', 'in cool morning light from the window'],
-  'light-evening':    ['באור ערב חם של מנורה מעל השולחן', 'in warm evening light from a lamp above the table'],
-  texture:            ['תקריב של פורניר האלון ושל קנט האלון המלא', 'close-up of the oak veneer and the solid-oak edge'],
-  wide:               ['בחלל מגורים מואר, מבט רחב', 'in a bright room, wide view']
+                       'opening mechanism: half open, showing the runners and the folded leaf under the top',
+                       'механизм раскладки: наполовину раскрыт, видны направляющие и сложенная вставка под столешницей'],
+  'mechanism-closed': ['מנגנון הפתיחה: סגור, קו החיבור באמצע המשטח', 'opening mechanism: closed, the seam in the middle of the top',
+                       'механизм раскладки: в сложенном виде, стык посередине столешницы'],
+  'light-morning':    ['באור בוקר קריר מהחלון', 'in cool morning light from the window', 'в холодном утреннем свете из окна'],
+  'light-evening':    ['באור ערב חם של מנורה מעל השולחן', 'in warm evening light from a lamp above the table',
+                       'в тёплом вечернем свете лампы над столом'],
+  texture:            ['תקריב של פורניר האלון ושל קנט האלון המלא', 'close-up of the oak veneer and the solid-oak edge',
+                       'крупный план: дубовый шпон и кромка из массива дуба'],
+  wide:               ['בחלל מגורים מואר, מבט רחב', 'in a bright room, wide view', 'в светлой комнате, общий план']
 };
 // крупний план — своя деталь у кожного товару
 const DETAIL_ALT = {
   tavor: ['תקריב של הקנט המשופע מלמטה ושל הרגל המתחדדת', 'close-up of the edge bevelled underneath and the tapered leg'],
-  sahar: ['תקריב של הפלטה העגולה ושל קו החיבור באמצע', 'close-up of the round top and the seam where it opens'],
-  ofek:  ['תקריב של החזיתות עם חריצים אנכיים, בלי ידיות', 'close-up of the fluted fronts with no handles'],
-  saf:   ['תקריב של המגירה עם חריץ אחיזה במקום ידית', 'close-up of the drawer with a finger groove instead of a handle'],
-  tal:   ['תקריב של הפינה המעוגלת ושל הרגל העגולה העבה', 'close-up of the rounded corner and the chunky round leg']
+  sahar: ['תקריב של הפלטה העגולה ושל קו החיבור באמצע', 'close-up of the round top and the seam where it opens',
+          'крупный план: круглая столешница и стык, по которому она раскрывается'],
+  ofek:  ['תקריב של החזיתות עם חריצים אנכיים, בלי ידיות', 'close-up of the fluted fronts with no handles',
+          'крупный план: реечные фасады без ручек'],
+  saf:   ['תקריב של המגירה עם חריץ אחיזה במקום ידית', 'close-up of the drawer with a finger groove instead of a handle',
+          'крупный план: ящик с пазом под пальцы вместо ручки'],
+  tal:   ['תקריב של הפינה המעוגלת ושל הרגל העגולה העבה', 'close-up of the rounded corner and the chunky round leg',
+          'крупный план: скруглённый угол и толстая круглая ножка']
 };
-function altFor(p, view, fin, base, key) {
-  const [kh, ke] = KIND[p.id], [vh, ve] = view === 'detail' ? DETAIL_ALT[p.id]
-    : view === 'angle' && ANGLE_ALT[p.id] ? ANGLE_ALT[p.id] : VIEW_ALT[key || view];
-  const bh = base === 'steel' && view !== 'steel' ? ', בסיס פלדה' : '', be = base === 'steel' && view !== 'steel' ? ', steel base' : '';
-  return {
-    he: `${kh} ${p.name.he}, גוון ${fin.he}, ${vh}${bh}`,
-    en: `${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}${be}`
+// Підпис {he, en[, ru]}: ru — лише коли є і назва виробу, і ракурс ru; «steel base» по-російськи в каталозі нема.
+function altLine(p, fin, [vh, ve, vr], steel) {
+  const [kh, ke, kr] = KIND[p.id];
+  const alt = {
+    he: `${kh} ${p.name.he}, גוון ${fin.he}, ${vh}${steel ? ', בסיס פלדה' : ''}`,
+    en: `${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}${steel ? ', steel base' : ''}`
   };
+  if (kr && vr && !steel) alt.ru = `${kr} ${p.name.ru || p.name.en}, тон «${fin.ru.toLowerCase()}», ${vr}`;
+  return alt;
+}
+function altFor(p, view, fin, base, key) {
+  const v = view === 'detail' ? DETAIL_ALT[p.id]
+    : view === 'angle' && ANGLE_ALT[p.id] ? ANGLE_ALT[p.id] : VIEW_ALT[key || view];
+  return altLine(p, fin, v, base === 'steel' && view !== 'steel');
 }
 
-// Підпис кадру AI_FRAMES: та сама схема, що в altFor, плюс ru (його altFor не дає — у каталозі ru дописано окремо).
-function aiAlt(p, fin, [vh, ve, vr]) {
-  const [kh, ke] = KIND[p.id], kr = { tavor: 'раздвижной обеденный стол' }[p.id];
-  return {
-    he: `${kh} ${p.name.he}, גוון ${fin.he}, ${vh}`,
-    en: `${p.name.en} ${ke}, ${fin.en.toLowerCase()} finish, ${ve}`,
-    ru: `${kr ? kr[0].toUpperCase() + kr.slice(1) : ''} ${p.name.ru || p.name.en}, тон «${fin.ru.toLowerCase()}», ${vr}`.trim()
-  };
+// Підпис кадру AI_FRAMES: та сама схема, що в altFor; alt кадру — [he, en, ru] саме його сцени.
+function aiAlt(p, fin, v) {
+  return altLine(p, fin, v, false);
+}
+
+// Злиття з наявним записом каталогу (№25): мови, яких скрипт не знає, лишаються як були, а не затираються.
+function mergeAlt(prev, alt) {
+  return Object.assign({}, prev && prev.alt, alt);
 }
 
 // Кадри товару: перший — герой (головна картинка картки), далі низький ракурс (Blender), крупний план,
@@ -105,7 +122,8 @@ const ANGLE = {
   saf:   { az: -34, eye: 0.6, margin: 0.05, sun: 7.0, window: 180, end_chair: false },
   tal:   { az: 36, eye: 0.85, margin: 0.08, end_chair: false }
 };
-const ANGLE_ALT = { sahar: ['תקריב של הרגל ושל המסגרת מתחת למשטח', 'close-up of a leg and the apron under the top'] };
+const ANGLE_ALT = { sahar: ['תקריב של הרגל ושל המסגרת מתחת למשטח', 'close-up of a leg and the apron under the top',
+  'крупный план: ножка и царга под столешницей'] };
 // Світло героя (HERO_RENDER): крупний план під тим самим світлом, інакше шпон виходить темнішим і теплішим, ніж у героя.
 const HERO_LIGHT = { sun: 7.0, window: 180, hdri_strength: 0.18, exposure: 1.6 };
 // Крупний план дуба: кут стільниці — торець, кромка і шпон; fit — частка габариту (x, y, z), об'єктив 85 мм.
@@ -288,7 +306,32 @@ function encode(src, dstBase, W, hero, widths, max800 = CARD_800_AVIF_MAX) {
   run('convert', [src, '-resize', W + 'x', '-strip', '-sampling-factor', '4:2:0', '-interlace', 'JPEG', '-quality', '82', `${dstBase}-${W}.jpg`]);
 }
 
+// Запис images для каталогу. Формат вітрини (build.py picture()): src — WebP від кореня сайту, srcset/srcset_avif —
+// рядки, jpg — запасний; alt зливається з наявним записом того самого кадру (mergeAlt).
+function nameOf(im) {
+  return im.src.split('/').pop().replace(/-\d+\.webp$/, '');
+}
+function imageRecord(p, f, W, H, widths) {
+  const fin = p.finishes.find(x => x.id === f.finish).name;
+  const rel = `/assets/products/${p.id}/${f.name}`, set = ext => widths.map(x => `${rel}-${x}.${ext} ${x}w`).join(', ');
+  const prev = (p.images || []).find(im => nameOf(im) === f.name);
+  const im = {
+    src: `${rel}-${W}.webp`, srcset: set('webp'), srcset_avif: set('avif'), jpg: `${rel}-${W}.jpg`,
+    width: W, height: H, view: f.view, finish: f.finish, base: f.base, state: f.state || 'closed', size: f.size || sizeFor(p).label,
+    alt: mergeAlt(prev, f.alt ? aiAlt(p, fin, f.alt) : altFor(p, f.view, fin, f.base, f.name)), kind: 'visualization', source: f.source
+  };
+  if (f.light) im.light = f.light;
+  return im;
+}
+// --add: нові записи замість старих того самого кадру, порядок — за framesFor
+function mergeImages(p, images) {
+  const order = framesFor(p).map(f => f.name);
+  return [...images, ...p.images.filter(im => !images.some(n => nameOf(n) === nameOf(im)))]
+    .sort((a, b) => order.indexOf(nameOf(a)) - order.indexOf(nameOf(b)));
+}
+
 async function openPage() {
+  const { chromium } = require('playwright');
   const browser = await chromium.launch({ args: [
     '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist',
     '--allow-file-access-from-files'
@@ -300,7 +343,7 @@ async function openPage() {
   return { browser, page };
 }
 
-(async () => {
+async function main() {
   if (!fs.existsSync(path.join(ROOT, 'renders-master', 'textures', 'tone-black-albedo-2048.jpg'))) {
     throw new Error('немає renders-master/textures — python3 tools/fetch_assets.py && python3 tools/bake_textures.py && python3 tools/oak_tones.py');
   }
@@ -352,15 +395,7 @@ async function openPage() {
       const widths = widthsFor(f.view, W);
       encode(src, path.join(dir, f.name), W, f.view === 'hero', widths,
         p.id === HERO_PRODUCT ? HERO_800_AVIF_MAX : CARD_800_AVIF_MAX);
-      const size = sizeFor(p), fin = p.finishes.find(x => x.id === f.finish).name;
-      // формат вітрини (build.py picture()): src — WebP від кореня сайту, srcset/srcset_avif — рядки, jpg — запасний
-      const rel = `/assets/products/${p.id}/${f.name}`, set = ext => widths.map(x => `${rel}-${x}.${ext} ${x}w`).join(', ');
-      images.push({
-        src: `${rel}-${W}.webp`, srcset: set('webp'), srcset_avif: set('avif'), jpg: `${rel}-${W}.jpg`,
-        width: W, height: H, view: f.view, finish: f.finish, base: f.base, state: f.state || 'closed', size: f.size || size.label,
-        alt: f.alt ? aiAlt(p, fin, f.alt) : altFor(p, f.view, fin, f.base, f.name), kind: 'visualization', source: f.source
-      });
-      if (f.light) images[images.length - 1].light = f.light;
+      images.push(imageRecord(p, f, W, H, widths));
       console.log(`${p.id}/${f.name} ${W}×${H}`);
     }
     if (FINISH_SET[p.id] && (!add || add.includes('finish'))) {
@@ -411,11 +446,7 @@ async function openPage() {
     }
     if (add) {
       // --add=<кадри>: нові кадри стають на своє місце за framesFor, старі записи images лишаються; wide — лише якщо названо
-      const order = framesFor(p).map(f => f.name), nameOf = im => im.src.split('/').pop().replace(/-\d+\.webp$/, '');
-      if (!opt.preview) {
-        p.images = [...images, ...p.images.filter(im => !images.some(n => nameOf(n) === nameOf(im)))]
-          .sort((a, b) => order.indexOf(nameOf(a)) - order.indexOf(nameOf(b)));
-      }
+      if (!opt.preview) p.images = mergeImages(p, images);
       if (!add.includes('wide')) continue;
     } else if (!opt.preview) p.images = images;
     // широкий кадр 16:9 (Figma AI або рендер, WIDE_RENDER) — для шапки й обкладинок Meta; окреме поле, не в images: у галерею картки не йде
@@ -442,7 +473,7 @@ async function openPage() {
       const rel = `/assets/products/${p.id}/wide`, set = ext => widths.map(x => `${rel}-${x}.${ext} ${x}w`).join(', ');
       p.wide = { src: `${rel}-${W}.webp`, srcset: set('webp'), srcset_avif: set('avif'), jpg: `${rel}-${W}.jpg`, width: W, height: H,
         view: 'wide', finish: 'natural', base: p.bases.length ? 'oak' : 'none', state: 'closed', size: sizeFor(p).label,
-        alt: altFor(p, 'wide', p.finishes.find(x => x.id === 'natural').name, 'oak'), kind: 'visualization',
+        alt: mergeAlt(p.wide, altFor(p, 'wide', p.finishes.find(x => x.id === 'natural').name, 'oak')), kind: 'visualization',
         source: WIDE_RENDER[p.id] ? 'render' : 'ai' };
       console.log(`${p.id}/wide ${W}×${H}`);
     } else delete p.wide;
@@ -450,4 +481,8 @@ async function openPage() {
   }
   if (!opt.preview) fs.writeFileSync(CATALOG, JSON.stringify(catalog, null, 2) + '\n');
   await browser.close();
-})().catch(e => { console.error(e); process.exit(1); });
+}
+
+// require() без запуску — для tests/test_render_products_alt.py: лише запис каталогу, без Blender і браузера.
+if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
+module.exports = { framesFor, altFor, mergeAlt, imageRecord, mergeImages, nameOf };
