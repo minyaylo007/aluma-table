@@ -641,8 +641,10 @@ test('first screen 390×844 of a card: no sticky bar with the notice open; after
 
 // 24.10: реклама веде на картку з телефона. Без прокрутки (банер ще не показано) — кадр, назва, гасло, ціна з підписом
 // серії, умови й ОБИДВІ кнопки «הוספה לסל» + «שאלה?»; «השאירו פרטים» — під ними, плитки розмірів — нижче.
-// Банер (№15) — лише коли не накриває пари й «התקשרו», на 360 і на 390. Смуги на першому екрані нема; 3D — чип на кадрі
-for (const [w, h] of [[390, 844], [360, 780]]) {
+// Банер (№15) — лише коли не накриває пари й «התקשרו», на 360 і на 390. Смуги на першому екрані нема; 3D — чип на кадрі.
+// №28 (26.10): чверть мобільних заходів — вікно ≤ 650 px (вбудований браузер Instagram), половина йшла без прокрутки:
+// на 650 теж видно кадр, назву, рядок фактів, ціну, рядок доставки й пару «הוספה לסל» + «שאלה?» в один ряд
+for (const [w, h] of [[390, 844], [360, 780], [390, 650], [360, 650]]) {
   for (const [prefix, lang] of [['', 'he'], ['/en', 'en'], ['/ru', 'ru']]) {
     for (const slug of ['tavor', 'sahar', 'tal']) {
       test(`first screen ${w}×${h} of ${prefix}/p/${slug}/ (${lang}): photo, name, price, terms and both buttons without scrolling`, async ({ page }) => {
@@ -658,30 +660,34 @@ for (const [w, h] of [[390, 844], [360, 780]]) {
           const n = document.getElementById('notice');
           return { y: scrollY, vh: innerHeight, notice: n.hidden ? innerHeight : box('#notice').top,
             img: box('.g-track'), chip: box('.g-3d'), h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
-            incl: box('.pdp-price .price-incl'), trust: box('.trust-strip'), cart: box('.pdp-pair [data-add-cart]'),
+            incl: box('.pdp-price .price-incl'), facts: box('.pdp-facts'), ship: box('.pdp-ship'), trust: box('.trust-strip'), cart: box('.pdp-pair [data-add-cart]'),
             ask: box('.pdp-pair [data-ask]'), call: box('.pdp-actions [data-call]'), lead: box('.pdp-ask'), tile: box('label.pill:has(input[name="size"])'),
             inclLH: parseFloat(getComputedStyle(document.querySelector('.pdp-price .price-incl')).lineHeight) };
         });
         const r = await measure();
         expect(r.y).toBe(0);
-        for (const b of [r.img, r.h1, r.tag, r.price, r.incl, r.cart, r.ask]) {
+        for (const b of [r.img, r.h1, r.tag, r.facts, r.price, r.incl, r.ship, r.cart, r.ask]) {
           expect(b.top).toBeGreaterThan(0); expect(b.bottom).toBeLessThanOrEqual(r.vh);
         }
         expect(r.incl.height).toBeLessThan(r.inclLH * 1.5);            // підпис серії — один рядок
-        // порядок на екрані: ціна → умови → кошик → питання → «התקשרו» → смуга довіри (№19) → «השאירו פרטים» → плитки
-        expect(r.cart.top).toBeGreaterThan(r.price.bottom);
-        expect(r.ask.top).toBeGreaterThan(r.cart.bottom - 1);
+        // порядок на екрані (№28): факти → ціна → доставка → кошик і питання в один ряд → «התקשרו» → плитки розмірів →
+        // смуга довіри (№19) → «השאירו פרטים»
+        expect(r.price.top).toBeGreaterThan(r.facts.bottom - 1);
+        expect(r.ship.top).toBeGreaterThan(r.price.top);
+        expect(r.cart.top).toBeGreaterThan(r.ship.bottom);
+        expect(Math.abs(r.ask.top - r.cart.top)).toBeLessThan(2);
         expect(r.call.top).toBeGreaterThan(r.ask.bottom);
-        expect(r.trust.top).toBeGreaterThan(r.call.bottom);
+        expect(r.tile.top).toBeGreaterThan(r.call.bottom);
+        expect(r.trust.top).toBeGreaterThan(r.tile.bottom);
         expect(r.lead.top).toBeGreaterThan(r.trust.bottom);
-        expect(r.tile.top).toBeGreaterThan(r.lead.bottom);
         expect(r.chip.top).toBeGreaterThanOrEqual(r.img.top);         // чип 3D лежить на кадрі
         expect(r.chip.bottom).toBeLessThanOrEqual(r.img.bottom);
         expect(r.chip.width).toBeLessThan(r.img.width / 2);
         // №15: банер з'являється лише тоді, коли не накриває жодної з трьох кнопок — крок прокрутки 40 px, як пальцем
         await nudge(page);
         await page.waitForTimeout(100);
-        await expect(page.locator('#notice')).toBeHidden();           // на місці — накрив би «התקשרו»
+        // на місці накрив би «התקשרו» — лише коли та в зоні банера (130 px знизу); №28: на 844 трійка вже над нею — банер одразу
+        if (r.call.bottom > r.vh - 130) await expect(page.locator('#notice')).toBeHidden();
         for (let i = 0; i < 25 && await page.locator('#notice').isHidden(); i++) {
           await page.mouse.wheel(0, 40);
           await page.waitForTimeout(60);
@@ -730,9 +736,9 @@ test('cookie notice on 360: no 6 s timer, only after a scroll (catalog and card)
   await expect(page.locator('#notice')).toBeVisible();
 });
 
-// №15: Tab іде так, як видно — DOM картки = екран, без CSS order: ціна → кошик → «שאלה?» → «התקשרו» → «השאירו פרטים» → тон/розмір
+// №15: Tab іде так, як видно — DOM картки = екран, без CSS order: ціна → кошик → «שאלה?» → «התקשרו» → тон/розмір (№28) → смуга → «השאירו פרטים»
 for (const [w, h] of [[390, 844], [1280, 800]]) {
-  test(`focus order on a card at ${w}px follows the screen: actions, the trust strip, then the lead link, then the config`, async ({ page }) => {
+  test(`focus order on a card at ${w}px follows the screen: actions, the config, the trust strip, then the lead link`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: h });
     await mockApi(page);
     await page.goto('/p/tavor/');
@@ -746,14 +752,14 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeGreaterThanOrEqual(tops[i - 1] - 2);   // DOM-порядок = зверху вниз
     await page.locator('.pdp-pair [data-add-cart]').focus();
     const seq = [];
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 12; i++) {
       await page.keyboard.press('Tab');
       seq.push(await page.evaluate(() => { const a = document.activeElement;
         return a.matches('[data-ask]') ? 'ask' : a.matches('[data-call]') ? 'call' : a.matches('.pdp-ask') ? 'lead'
           : a.closest('.trust-strip') ? 'strip' : a.closest('.pdp-config') ? 'config' : a.tagName; }));
     }
-    // №19: смуга довіри — між «התקשרו» і «השאירו פרטים»: 4 заголовки + PDF збирання (у tavor він є)
-    expect(seq).toEqual(['ask', 'call', 'strip', 'strip', 'strip', 'strip', 'strip', 'lead', 'config']);
+    // №19: смуга довіри — перед «השאירו פרטים»: 4 заголовки + PDF збирання (у tavor він є); №28: тон/розмір — одразу під діями
+    expect(seq).toEqual(['ask', 'call', 'config', 'config', 'config', 'config', 'strip', 'strip', 'strip', 'strip', 'strip', 'lead']);
   });
 }
 

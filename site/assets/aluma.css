@@ -144,6 +144,9 @@ bdi { unicode-bidi: isolate; }
 .menu-btn[aria-expanded="true"] .menu-ico::before { transform: translateY(7px) rotate(45deg); }
 .menu-btn[aria-expanded="true"] .menu-ico::after { transform: translateY(-7px) rotate(-45deg); }
 .launch-bar { text-align: center; font-size: .82rem; padding: 6px var(--gut); background: var(--esp); color: var(--cream); }
+/* №28: на телефоні — короткий текст в один рядок (два рядки з'їдали ~25 px першого екрана картки) */
+.launch-bar .lb-short { display: none; }
+@media (max-width: 599px) { .launch-bar { padding-block: 5px; font-size: .78rem; } .launch-bar .lb-long { display: none; } .launch-bar .lb-short { display: inline; } }
 @media (max-width: 900px) {
   .menu-btn { display: block; flex: none; }
   .top-cta:not(.top-cart) { display: none; }
@@ -561,6 +564,14 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 /* «משלוח עד הדלת — ₪950 · משלוח והרכבה — ₪1,150 · איסוף עצמי — ₪0 · מרכיבים לבד» — один рядок через «·», на вузькому переноситься по пунктах */
 .pdp-terms { display: flex; flex-wrap: wrap; gap: 2px 0; margin: 4px 0 0; padding: 0; list-style: none; font-size: .88rem; color: var(--muted); }
 .pdp-terms li:not(:last-child)::after { content: "·"; margin-inline: 8px; }
+/* №28: під гаслом — габарити, місця, матеріал, строк; під ціною — один рядок доставки «від … до …» → повний перелік у #inc */
+.pdp-facts { display: flex; flex-wrap: wrap; gap: 2px 0; margin: 8px 0 0; padding: 0; list-style: none; font-size: .9rem; line-height: 1.4; }
+.pdp-facts li:not(:last-child)::after { content: "·"; margin-inline: 8px; color: var(--muted); }
+.pdp-facts a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pdp-ship { margin: 4px 0 0; font-size: .88rem; line-height: 1.35; color: var(--muted); }
+.pdp-ship a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pdp-inc-h3 { font-size: .95rem; font-weight: 700; margin: 14px 0 6px; }
+.pdp-inc .pdp-terms { margin: 0; }
 /* смуга довіри (№19, 25.10) — одразу під кнопками: іконка + заголовок-посилання + один короткий рядок.
    Телефон — стовпчиком; від 600 px — 2×2: колонка покупки на десктопі ~480 px, а на планшеті рядок із чотирьох
    розсипав би кожен пункт на 3–4 рядки. Компактна (кошик) — лише заголовки, 2×2 = два рядки. */
@@ -580,26 +591,31 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-ask { margin-block-start: 12px; }
 /* телефон, 24.10: на 390×844 і 360×780 без прокрутки — кадр, назва, ціна, умови, рядок довіри й ОБИДВІ кнопки (.pdp-pair).
    Кадр 16:10 замість 4:3, мініатюри 44 px; «סדרת השקה · נפתח» — у смузі над шапкою й у гаслі, тут не дублюємо.
-   Дії стоять одразу під рядком довіри — у DOM теж (№15, без CSS order: фокус = екран), «השאירו פרטים», конфігуратор і решта — під ними:
-   кошик бере вибране за замовчуванням, змінити тон/розмір — нижче, тоді вже з липкою смугою. */
+   №28 (26.10): і на 650 (вбудований браузер Instagram) — кадр, назва, факти, ціна, рядок доставки й пара кнопок в один ряд.
+   Порядок у DOM = на екрані (№15, без CSS order: фокус = екран): дії → тон/розмір → смуга довіри → «השאירו פרטים» → «מה כלול»;
+   кошик бере вибране за замовчуванням, змінити тон/розмір — одразу під кнопками. */
 @media (max-width: 599px) {
   .price { font-size: 1.9rem; }
   .pdp-terms { line-height: 1.35; }
-  .page-product .crumbs { padding-block: 8px 4px; }
-  .pdp { gap: 12px; }
+  /* №28 (26.10): 55 % мобільних із реклами йшли з картки без прокрутки — крихти на телефоні не показуємо (каталог — у меню),
+     3D — малий чип у куті, не на півкадру; під гаслом — рядок фактів, доставка — одним рядком */
+  .page-product .crumbs { display: none; }
+  .pdp { gap: 8px; padding-block-start: 10px; }
+  .g-3d { inset-block-start: 8px; inset-inline-end: 8px; min-height: 36px; padding: 0 10px; font-size: .78rem; gap: 4px; }
+  .pdp-facts { margin-block-start: 2px; font-size: .85rem; line-height: 1.35; }
   .gallery { gap: 6px; }
   .g-slide .media, .gallery .media--hero { aspect-ratio: 16 / 10; }
   .g-thumbs { gap: 6px; padding-block-end: 0; }
-  .g-thumb { width: 44px; }
+  .g-thumb { width: 40px; }
   .pdp-buy { display: flex; flex-direction: column; }
   .pdp-buy > .pdp-kicker { display: none; }
   .pdp-buy > .pdp-actions { margin-block: 10px 4px; gap: 6px; }
   .pdp-h1 { font-size: 2rem; }
   .pdp-tag { margin-block-start: 2px; font-size: .95rem; line-height: 1.4; }
-  .pdp-price { margin-block: 8px 0; padding-block-start: 8px; row-gap: 0; }
+  .pdp-price { margin-block: 6px 0; padding-block-start: 6px; row-gap: 0; }
   .pdp-price .price-incl { line-height: 1.3; } /* «מחיר השקה לסדרה הראשונה · 12 שולחנות» — окремим рядком */
   .pdp-pair { gap: 8px; }
-  .pdp-pair .btn { min-height: 46px; }
+  .pdp-pair .btn { min-height: 46px; padding-block: 4px; line-height: 1.15; }
   .pdp-buy .pdp-ask { align-self: flex-start; margin-block-start: 8px; }
 }
 .reg-promise { font-weight: 600; }
@@ -644,7 +660,9 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
    у парі текст переноситься всередині кнопки, обидві тягнуться до однієї висоти (align-items: stretch) */
 .pdp-pair .btn { white-space: normal; text-wrap: balance; text-align: center; line-height: 1.25;
   padding-block: 8px; padding-inline: 20px; }
-@media (max-width: 480px) { .pdp-pair { flex-direction: column; } .pdp-pair .btn { flex: none; width: 100%; } }
+/* №28: ≤ 480 px — теж один ряд (стовпчиком «שאלה?» опинялася за краєм екрана 650 px — вбудований браузер Instagram);
+   текст питання переноситься у два рядки всередині своєї половини */
+@media (max-width: 480px) { .pdp-pair { flex-wrap: nowrap; } .pdp-pair .btn { flex: 1 1 0; padding-inline: 10px; font-size: .92rem; hyphens: manual; } }
 .pdp-ask-hint { margin: -2px 0 0; line-height: 1.4; }
 /* «התקשרו אלינו» (24.10): третя кнопка на всю ширину + міні-форма з телефоном під нею */
 .pdp-call svg, .sticky-call svg { flex: none; }

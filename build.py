@@ -603,7 +603,34 @@ def included(p: dict, loc: str) -> str:
     rows += [("incl", "{{t.inc_vat}}"), ("warranty", "{{t.inc_warranty}}"), ("own", "{{t.inc_own}}")]
     lis = "".join(f'<li><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">{INC_ICONS[k]}</svg>'
                   f"<span>{v}</span></li>" for k, v in rows)
-    return f'<section class="pdp-inc" aria-labelledby="inc-h"><h2 class="pdp-inc-h" id="inc-h">{{{{t.inc_h}}}}</h2><ul role="list">{lis}</ul></section>'
+    # №28: повний перелік способів отримання — тут (під ціною лише рядок «від … до …» з посиланням #inc)
+    return (f'<section class="pdp-inc" id="inc" aria-labelledby="inc-h"><h2 class="pdp-inc-h" id="inc-h">{{{{t.inc_h}}}}</h2>'
+            f'<ul role="list">{lis}</ul><h3 class="pdp-inc-h3">{{{{t.ship_h}}}}</h3>{ship_terms(p, loc)}</section>')
+
+
+def facts(p: dict, loc: str) -> str:
+    """№28: рядок під гаслом — те, що покупець столу шукає першим: габарити (посилання на плитки розмірів), розкладений,
+    місця, матеріал (тижні — не в блоці купівлі, хвиля 1, 22.10: вони в .pdp-lead нижче). Лише з каталогу й content.json; чого нема в товару — того й нема в рядку."""
+    sizes = p.get("sizes") or []
+    dims = lambda s: (str(s.get("label")) if str(s.get("label") or "").startswith("Ø")  # noqa: E731
+                      else "×".join(str(s[k]) for k in ("length_cm", "width_cm") if s.get(k)))
+    items = []
+    if sizes:
+        # три й більше прямокутних — діапазон довжин (ширина й точні пари — у плитках #config); інакше — кожен розмір
+        if len(sizes) > 2 and not any(str(s.get("label") or "").startswith("Ø") for s in sizes):
+            d = seat_span(sorted({int(s["length_cm"]) for s in sizes}))
+        else:
+            d = " / ".join(dict.fromkeys(dims(s) for s in sizes))
+        ext = [int(s["extended_cm"]) for s in sizes if s.get("extended_cm")]
+        open_ = f', {{{{t.facts_open}}}} <bdi dir="ltr">{max(ext)}</bdi>' if ext else ""
+        items.append(f'<a href="#config"><bdi dir="ltr">{d}</bdi>&nbsp;{{{{t.cm}}}}{open_}</a>')
+    seats = p.get("seats") or {}
+    if seats.get("extended"):
+        # «до N» — найбільше місць у розкладеному вигляді; скільки складеним — у «מה כלול במחיר» і в плані
+        items.append(f'{{{{t.facts_upto}}}} <bdi dir="ltr">{int(seats["extended"][-1])}</bdi> {{{{t.unfold_seats}}}}')
+    if "veneer" in L(p.get("material"), "en"):
+        items.append("{{t.facts_oak}}")
+    return '<ul class="pdp-facts" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
 def listed(key: str, p: dict) -> bool:
@@ -1076,8 +1103,8 @@ def main() -> None:
                 "P_MONTHLY": money(math.ceil((p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0)
                                              / int(CONTENT["INSTALLMENTS"])), loc),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
-                "P_INC": included(p, loc), "P_TERMS": ship_terms(p, loc), "P_TRUST": trust_strip(p, loc),
-                "P_PRICE_NOTE": "{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}", "P_SIZE_HELP": size_help(p, loc),
+                "P_INC": included(p, loc), "P_FACTS": facts(p, loc), "P_TRUST": trust_strip(p, loc),
+                "P_PRICE_NOTE": "{{t.vat_incl}} · " + ("{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}"), "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
