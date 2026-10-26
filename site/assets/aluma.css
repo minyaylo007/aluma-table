@@ -339,6 +339,8 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .card .media .sil { transition: transform .6s var(--ease); }
 .card-alt { position: absolute; inset: 0; opacity: 0; transition: opacity .6s var(--ease); }
 .card-alt img { width: 100%; height: 100%; object-fit: cover; }
+/* №27: на тач-екрані другий кадр не показується ніколи — display:none, і «lazy» його не вантажить (було 2× трафіку) */
+@media (hover: none) { .card-alt { display: none; } }
 @media (hover: hover) {
   .card-link:hover .card-alt, .card-link:focus-visible .card-alt { opacity: 1; }
   .card-link:hover .media img, .card-link:hover .media .sil { transform: scale(1.03); }
@@ -348,6 +350,13 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .card-name { font-size: 1.45rem; line-height: 1.2; }
 .card-price { font-size: .95rem; font-variant-numeric: tabular-nums; }
 .card-dots { display: flex; gap: 6px; }
+.card-kind { font-size: .8rem; letter-spacing: .02em; color: var(--muted); }
+/* №27: каталог — видима кнопка: уся картка й так посилання, але без неї сітку на телефоні дивилися й ішли */
+.card-cta { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; margin-block-start: 6px;
+  padding-inline: 12px; border: 1px solid var(--ink); border-radius: 999px; font-size: .9rem; font-weight: 600; }
+.card-cta::after { content: "→"; content: "→" / ""; }
+[dir="rtl"] .card-cta::after { content: "←"; content: "←" / ""; }
+.card-link:hover .card-cta, .card-link:focus-visible .card-cta { background: var(--ink); color: var(--paper); }
 /* зразки тонів — шматочки шпону (скан або фото з фабрики, --i), колір каталогу — підкладка (--c) */
 .card-dot { width: 18px; height: 18px; border-radius: 3px; background: var(--i, none) center / cover, var(--c);
   box-shadow: inset 0 0 0 1px rgba(33, 28, 23, .18); }
@@ -367,6 +376,10 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .page-catalog .card-price { font-size: .9rem; }
   .page-catalog .card-dots { gap: 4px; }
   .page-catalog .card-dot { width: 12px; height: 12px; border-radius: 2px; }
+  /* №27: тип виробу й кнопка додали два рядки — на 360×780 чотири ціни все одно на першому екрані */
+  .page-catalog .sec-head .h1 { font-size: 1.85rem; }
+  .page-catalog .card-kind { font-size: .75rem; line-height: 1.25; }
+  .page-catalog .card-cta { min-height: 40px; margin-block-start: 2px; font-size: .85rem; }
 }
 
 /* ---------------------------------------------------------------- розміри */
