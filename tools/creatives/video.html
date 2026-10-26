@@ -67,8 +67,9 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 /* ru 9:16: русський рядок довший за іврит — дрібніші заголовок і підзаголовок (в один рядок), щоб картка лишалась
    нижче 1000 px над вертикальним рендером. he ці правила не зачіпають. */
 html[lang="ru"] .f-9x16 { --h1: 50px; --fs-sub: 26px; }
-html[lang="ru"] .f-9x16 .card { padding: 34px 48px; }
-html[lang="ru"] .f-9x16 .price small { font-size: 22px; }
+html[lang="ru"] .f-9x16 .card { padding: 30px 48px; gap: 10px; }
+/* з 23.10 (#130) примітка ціни довша («доставка или самовывоз — отдельно…») — дрібніша, щоб картка лишалась нижче 1000 px */
+html[lang="ru"] .f-9x16 .price small { font-size: 21px; line-height: 1.2; }
 </style>
 </head>
 <body>
