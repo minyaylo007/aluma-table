@@ -91,7 +91,8 @@ class BuiltSiteTests(unittest.TestCase):
                     incl = re.search(r'<span class="price-incl">([^<]*)</span>', html)
                     self.assertIsNotNone(incl)
                     want = t["series_price_n" if p["slug"] in series else "series_price"]
-                    self.assertEqual(incl.group(1), want.replace("{{SERIES_SIZE}}", content["SERIES_SIZE"]))
+                    # №28: «כולל מע״מ ·» — у тому ж рядку під ціною (окремий рядок не влазив у перший екран 650 px)
+                    self.assertEqual(incl.group(1), t["vat_incl"] + " · " + want.replace("{{SERIES_SIZE}}", content["SERIES_SIZE"]))
                     self.assertIsNone(re.search(r"משוער|estimate|ориентировоч", incl.group(1), re.I))
                     self.assertLess(incl.start(), html.index('name="size"'), "рядок під ціною — над плитками")
 
@@ -121,7 +122,8 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertIsNotNone(inc)
                     dining = p["category"] == "dining_table"
                     # + гарантія (хвиля 1, WARRANTY_MONTHS)
-                    self.assertEqual(inc.group(0).count("<li>"), 6 + bool(p.get("seats")) + dining)
+                    # №28: під <h3> — перелік способів доставки (pdp-terms), його рядки тут не рахуємо
+                    self.assertEqual(inc.group(0).split("<h3")[0].count("<li>"), 6 + bool(p.get("seats")) + dining)
                     self.assertRegex(inc.group(0), rf"\b{content['WARRANTY_MONTHS']}\b")
                     if p.get("seats"):
                         lo, hi = p["seats"]["closed"][0], p["seats"]["extended"][-1]
@@ -152,7 +154,8 @@ class BuiltSiteTests(unittest.TestCase):
     def test_card_shows_delivery_terms_and_lead_cta_under_the_price(self):
         # №19 (слово 25.10): під ціною — «משלוח עד הדלת — ₪950 · משלוח והרכבה — ₪1,150 · איסוף עצמי — ₪0
         # (· מרכיבים לבד או מזמינים הרכבה)», ціни — з content.json; кнопка «השאירו פרטים» → #register ще до плиток (перший екран телефона); «משוער» про ціну — ні.
-        # №15: DOM = екран — рядок довіри → дії (кошик, «שאלה?», «התקשרו») → «השאירו פרטים» → плитки; без CSS order
+        # №15: DOM = екран, без CSS order. №28 (26.10): під ціною — лише рядок «משלוח: מ־₪0 … עד ₪1,150 …» з посиланням на #inc,
+        # повний перелік способів — у «מה כלול במחיר»; дії → плитки → смуга довіри → «השאירו פרטים»
         content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
         assembly = [x.strip() for x in content["ASSEMBLY_PRODUCTS"].split(",")]
         door = int(content["DELIVERY_ILS"])
@@ -164,22 +167,29 @@ class BuiltSiteTests(unittest.TestCase):
             for p in PRODUCTS:
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 buy = re.search(r'<div class="pdp-buy">.*?class="pdp-inc"', html, re.S).group(0)
+                inc = re.search(r'<section class="pdp-inc".*?</section>', html, re.S).group(0)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
-                    terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', buy, re.S).group(1)
+                    ship = re.search(r'<p class="pdp-ship"><a href="#inc">(.*?)</a></p>', buy, re.S).group(1)
+                    for n in (fees["ship_pickup"], fees["ship_assembled"]):
+                        self.assertIn(f'<bdi dir="ltr">{money[lang](n)}</bdi>', ship)
+                    self.assertLess(buy.index("pdp-ship"), buy.index("data-add-cart"))
+                    self.assertNotIn("pdp-terms", buy)
+                    terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', inc, re.S).group(1)
                     # ціна — у <bdi dir="ltr"> (в RTL «₪950» інакше читається навиворіт; tests/responsive.spec.js)
                     for key, n in fees.items():
                         self.assertIn(f'{t[key]} — <bdi dir="ltr">{money[lang](n)}</bdi>', terms)
                     self.assertEqual(terms.count("<li>"), 4 if p["slug"] in assembly else 3)
                     ask = re.search(r'<a class="btn[^"]*pdp-ask" href="#register"[^>]*>([^<]+)</a>', buy)
                     self.assertEqual(ask.group(1), t["lead_cta"])
-                    self.assertLess(ask.start(), buy.index('name="size"'))
+                    self.assertLess(buy.index('name="size"'), ask.start())
                     self.assertIsNone(re.search(r"מחיר משוער|[Ee]stimated price|[Оо]риентировочная цена", buy))
                     self.assertIn(f'<p class="pdp-est muted small">{t["price_est"]}</p>', buy)
                     # №19 (25.10): смуга довіри — одразу під діями (кошик, «שאלה?», «התקשרו»), перед «השאירו פרטים»;
                     # старого текстового рядка над кнопками й «— поінтів» під плитками нема
                     strip_m = re.search(r'<ul class="trust-strip"[^>]*>.*?</ul>', buy, re.S)
                     self.assertIsNotNone(strip_m)
-                    self.assertLess(buy.index('data-call data-cta="pdp"'), strip_m.start())
+                    self.assertLess(buy.index('data-call data-cta="pdp"'), buy.index('name="size"'))
+                    self.assertLess(buy.index('name="size"'), strip_m.start())
                     self.assertLess(strip_m.end(), ask.start())
                     self.assertNotIn("pdp-trust", buy)
                     self.assertNotIn("pdp-points", html)

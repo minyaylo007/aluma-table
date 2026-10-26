@@ -7,12 +7,13 @@
     <div class="pdp-kicker"><p class="eyebrow">{{t.launch_series}}</p>{{P_BADGES}}</div>
     <h1 class="pdp-h1">{{P_NAME}}</h1>
     <p class="pdp-tag">{{P_TAGLINE}}</p>
+    {{P_FACTS}}
     <div class="pdp-price">
       <span class="price" data-price><bdi dir="ltr">{{P_PRICE}}</bdi></span>
       <span class="pdp-pay" data-installments="{{INSTALLMENTS}}">{{t.installments}} · <bdi dir="ltr" data-monthly>≈&nbsp;{{P_MONTHLY}}</bdi>{{t.per_month}}</span>
       <span class="price-incl">{{P_PRICE_NOTE}}</span>
     </div>
-    {{P_TERMS}}
+    <p class="pdp-ship"><a href="#inc">{{t.ship_line}}</a></p>
     <div class="pdp-actions">
       <div class="pdp-pair">
         <button class="btn btn--dark" type="button" data-add-cart data-cta="pdp">{{t.add_to_cart}}</button>
@@ -46,10 +47,10 @@
       <p class="thanks callback-thanks" data-callback-thanks hidden tabindex="-1">{{t.callback_thanks}}</p>
       <a class="btn btn--wa btn--block js-wa" data-wa="pdp" href="#" hidden>{{t.whatsapp_ask}}</a>
     </div>
+    <form class="pdp-config" id="config" data-config onsubmit="return false">{{P_CONFIG}}</form>
+    <p class="pdp-est muted small">{{t.price_est}}</p>
     {{P_TRUST}}
     <a class="btn btn--line btn--sm pdp-ask" href="#register" data-cta="top">{{t.lead_cta}}</a>
-    <form class="pdp-config" data-config onsubmit="return false">{{P_CONFIG}}</form>
-    <p class="pdp-est muted small">{{t.price_est}}</p>
     <p class="pdp-lead"><span class="dot" aria-hidden="true"></span>{{t.lead_exact}}</p>
     {{P_INC}}
     {{P_SIZE_HELP}}
