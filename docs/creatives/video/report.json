@@ -13,7 +13,7 @@
       "height": 1920,
       "duration": 8,
       "fps": 30,
-      "bytes": 1121546,
+      "bytes": 1117585,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -31,7 +31,7 @@
       "height": 1350,
       "duration": 8,
       "fps": 30,
-      "bytes": 833187,
+      "bytes": 829662,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -49,7 +49,7 @@
       "height": 1080,
       "duration": 8,
       "fps": 30,
-      "bytes": 769075,
+      "bytes": 772963,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -67,7 +67,7 @@
       "height": 1920,
       "duration": 8,
       "fps": 30,
-      "bytes": 971531,
+      "bytes": 955570,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -84,7 +84,7 @@
       "height": 1350,
       "duration": 8,
       "fps": 30,
-      "bytes": 795527,
+      "bytes": 792081,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -101,7 +101,7 @@
       "height": 1080,
       "duration": 8,
       "fps": 30,
-      "bytes": 697949,
+      "bytes": 717717,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -118,7 +118,7 @@
       "height": 1920,
       "duration": 10,
       "fps": 30,
-      "bytes": 1520911,
+      "bytes": 1506573,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -142,7 +142,7 @@
       "height": 1350,
       "duration": 10,
       "fps": 30,
-      "bytes": 1496703,
+      "bytes": 1478035,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
@@ -166,7 +166,7 @@
       "height": 1080,
       "duration": 10,
       "fps": 30,
-      "bytes": 1303783,
+      "bytes": 1318899,
       "crf": 22,
       "min_contrast": 5.88,
       "products": [
