@@ -264,13 +264,13 @@ for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
   });
 }
 
-test('телефон 390: «שאלה?» у липкій панелі — висота та сама, клік веде до форми; основні кнопки — стовпчиком', async ({ page }) => {
+test('телефон 390: «שאלה?» у липкій панелі — висота та сама, клік веде до форми; основні кнопки — в один ряд (№28)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const net = await setup(page);
   await page.goto(`${ORIGIN}/p/tavor/`);
   const [cart, a] = await Promise.all([page.locator('.pdp-actions [data-add-cart]').boundingBox(),
     page.locator('.pdp-actions [data-ask]').boundingBox()]);
-  expect(a.y).toBeGreaterThan(cart.y + cart.height - 1);
+  expect(Math.abs(a.y - cart.y)).toBeLessThan(2);   // №28: «הוספה לסל» і «שאלה?» в один ряд і на 390
   await page.evaluate(() => scrollTo(0, document.querySelector('#spec').getBoundingClientRect().top + scrollY));
   const sticky = page.locator('[data-sticky]');
   await expect(sticky).toHaveClass(/is-on/);
