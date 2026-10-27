@@ -261,13 +261,16 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .hero .display { font-size: 1.85rem; line-height: 1.12; }
   .hero-product { margin-block-start: 10px; }
   .hero .actions { flex-wrap: nowrap; gap: 10px; margin-block-start: 14px; }
-  .hero .actions .btn { flex: 1 1 auto; padding-inline: 12px; font-size: .92rem; white-space: nowrap; }
+  /* один рядок на 390, але на 320 і при тексті 200 % підпис переноситься всередині кнопки — без гориз. прокрутки */
+  .hero .actions .btn { flex: 1 1 auto; min-width: 0; padding: 6px 12px; font-size: .92rem; line-height: 1.2;
+    white-space: normal; text-align: center; }
 }
 @media (min-width: 720px) { .hero-facts { color: rgba(246, 241, 233, .9); } .hero-name { font-size: 1.9rem; } }
 @media (min-width: 720px) { .hero:has(.hero-media--tile) .hero-facts { color: var(--muted); } }
 /* №33: картка — одне посилання на всю площу (порожній кут теж веде на /p/<slug>/); фокус і наведення видно на всій картці */
 .card-open { font-size: .8rem; line-height: 1.35; color: var(--muted); }
-.card-open .nw, .hero-facts .nw { white-space: nowrap; }
+/* фраза переходить на новий рядок цілою, а ширша за рядок (текст 200 %) — переноситься всередині: без nowrap-переповнення */
+.card-open .nw, .hero-facts .nw { display: inline-block; }
 .card-link:focus-visible { outline-offset: 6px; border-radius: 4px; }
 .card-link:hover .card-name { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 
