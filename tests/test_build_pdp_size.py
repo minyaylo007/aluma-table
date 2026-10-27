@@ -62,8 +62,8 @@ class PdpSizeTests(unittest.TestCase):
 
     def test_size_table_is_accessible_and_from_catalog(self):
         html = build.size_table(BY["tavor"], "he")
-        # при шрифті 200 % на 390 таблиця гортається у власній рамці, не сторінка (responsive.spec.js); гортання з клавіатури
-        self.assertIn('<div class="sizes-scroll" tabindex="0" role="group" aria-labelledby="sizes-h"><table class="sizes-tbl">', html)
+        # при шрифті 200 % на 390 таблиця гортається у власній рамці, не сторінка (responsive.spec.js); без tabindex — порядок Tab redesign.spec.js
+        self.assertIn('<div class="sizes-scroll"><table class="sizes-tbl">', html)
         self.assertEqual(html.count('scope="col"'), 4)
         self.assertEqual(html.count('scope="row"'), len(BY["tavor"]["sizes"]))
         self.assertIn("200 → 280", html)
