@@ -692,6 +692,13 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-inc svg { flex: none; margin-block-start: 1px; fill: none; stroke: var(--esp); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .pdp-size ul { display: grid; gap: 6px; padding-inline-start: 1.1em; list-style: disc; font-size: .95rem; }
 .pdp-size p { margin: 10px 0 0; }
+/* №36: «איזה גודל מתאים לכם» — під селектором розміру; 4 колонки вміщаються в 358 px без прокрутки */
+.pdp-sizes { margin-block: 4px 18px; }
+.sizes-tbl { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.sizes-tbl th, .sizes-tbl td { padding: 7px 4px; text-align: start; border-bottom: 1px solid var(--line); vertical-align: top; }
+.sizes-tbl thead th { font-size: .76rem; font-weight: 600; color: var(--muted); line-height: 1.3; hyphens: manual; }
+.sizes-tbl tbody th, .sizes-tbl td { font-weight: 600; white-space: nowrap; }
+.sizes-tbl td { font-weight: 400; }
 .pdp-detail { display: grid; gap: 32px; }
 .pdp-detail > * { min-width: 0; }
 @media (min-width: 900px) { .pdp-detail { grid-template-columns: 5fr 7fr; gap: 80px; } }

@@ -67,7 +67,8 @@
         "width_cm": 100,
         "height_cm": 75,
         "extended_cm": 280,
-        "price_ils": 5290
+        "price_ils": 5290,
+        "default": true
       }
     ],
     "seats": {

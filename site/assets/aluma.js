@@ -289,6 +289,10 @@
         if (monthly && payN > 0) monthly.textContent = "≈\u00a0" + money(Math.ceil(Number(sz.getAttribute("data-price")) / payN));
       }
     };
+    // №36: ?size=200x100 (або #size=…) у посиланні — має пріоритет над розміром за замовчуванням із build.py
+    var want = (new URLSearchParams(location.search).get("size") || (location.hash.match(/size=([^&]+)/) || [])[1] || "");
+    want = decodeURIComponent(want).replace(/x/gi, "×");
+    if (want && config) qsa('input[name="size"]', config).forEach(function (r) { if (r.value === want) r.checked = true; });
     if (config) config.addEventListener("change", function (e) {
       var t = e.target;
       if (t.name === "finish" && finishName) finishName.textContent = t.getAttribute("data-name") || "";
@@ -302,7 +306,8 @@
     syncAll();
     showPlan(val("size"));
     if (P) {
-      var first = P.sizes[0];
+      // ціна в ViewContent — обраного розміру (з №36 за замовчуванням не перший), як і в hero
+      var v0 = val("size"), first = P.sizes.filter(function (x) { return x.label === v0; })[0] || P.sizes[0];
       track("ViewContent", { content_ids: [P.id], content_type: "product", content_name: P.name, value: first ? first.price : P.from, currency: "ILS" });
     }
   }

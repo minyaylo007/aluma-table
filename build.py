@@ -438,6 +438,26 @@ def size_dims(s: dict) -> str:
     return "×".join(parts)
 
 
+def default_size(p: dict) -> dict:
+    """Розмір, обраний на картці одразу: позначений у каталозі `"default": true` (TAVOR — 200×100, звіт 27.10 §4(д)),
+    без позначки — перший. Від нього — ціна hero, розстрочка й план; «מ־» на картках каталогу лишається від price_from_ils."""
+    sizes = p.get("sizes") or []
+    return next((s for s in sizes if s.get("default") is True), sizes[0] if sizes else {})
+
+
+def size_seats(p: dict, s: dict) -> tuple[int, int] | None:
+    """Місця складеним і розкладеним для одного розміру — та сама геометрія, що в плані (plan_seats, SEAT_CM),
+    у межах діапазону товару `seats`. Нема розкладки чи місць у каталозі — None."""
+    seats = p.get("seats") or {}
+    if not s.get("extended_cm") or not seats.get("closed") or not seats.get("extended"):
+        return None
+    round_ = str(s.get("label") or "").startswith("Ø")
+    length = float(s.get("length_cm") or 0)
+    width = float(s.get("width_cm") or length)
+    return (plan_seats(length, width, round_, seats["closed"]),
+            plan_seats(float(s["extended_cm"]), width, False, seats["extended"]))
+
+
 def first_frame(p: dict) -> dict | None:
     """Перший кадр товару з src; без кадру — None."""
     return next((i for i in p.get("images") or [] if i.get("src")), None)
@@ -480,12 +500,18 @@ def configurator(p: dict, loc: str) -> str:
     sizes = p.get("sizes") or []
     if sizes:
         out.append('<fieldset class="opt" data-opt="size"><legend>{{t.pick_size}}</legend><div class="pills">')
-        for i, s in enumerate(sizes):
-            ext = (f'<span class="pill-sub"><bdi dir="ltr">→ {esc(s["extended_cm"])}</bdi></span>'
+        pick = default_size(p)
+        for s in sizes:
+            # №36: у плитці — три факти з каталогу: розмір · розкладається до · місць будні–свято
+            ext = (f'<span class="pill-sub">{{{{t.facts_open}}}} <bdi dir="ltr">{esc(s["extended_cm"])}</bdi></span>'
                    if s.get("extended_cm") else "")
+            st = size_seats(p, s)
+            if st:
+                ext += (f'<span class="pill-sub"><bdi dir="ltr">{st[0]}–{st[1]}</bdi>'
+                        f' {{{{t.{few("unfold_seats", st[1], loc)}}}}}</span>')
             out.append(
                 f'<label class="pill"><input type="radio" name="size" value="{esc(s.get("label"))}"'
-                f' data-price="{int(s["price_ils"])}"{" checked" if i == 0 else ""}>'
+                f' data-price="{int(s["price_ils"])}"{" checked" if s is pick else ""}>'
                 f'<span class="pill-main"><bdi dir="ltr">{esc(size_dims(s))}</bdi></span>{ext}'
                 f'<span class="pill-price"><bdi dir="ltr">{money(s["price_ils"], loc)}</bdi></span>'
                 # «הנבחר ביותר» — лише коли каталог сам позначив розмір; вигаданої популярності не показуємо
@@ -631,6 +657,24 @@ def facts(p: dict, loc: str) -> str:
     if "veneer" in L(p.get("material"), "en"):
         items.append("{{t.facts_oak}}")
     return '<ul class="pdp-facts" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+
+
+def size_table(p: dict, loc: str) -> str:
+    """№36: «איזה גודל מתאים לכם» під селектором — розмір → складений / розкладений → місць будні / свято → ціна.
+    Усе з каталогу (місця — size_seats, як у плані); лише коли розкладних розмірів два й більше (SAHAR — одна плитка)."""
+    rows = [(s, size_seats(p, s)) for s in p.get("sizes") or []]
+    rows = [(s, st) for s, st in rows if st]
+    if len(rows) < 2:
+        return ""
+    body = "".join(
+        f'<tr><th scope="row"><bdi dir="ltr">{esc(s.get("label"))}</bdi></th>'
+        f'<td><bdi dir="ltr">{esc(s["length_cm"])} → {esc(s["extended_cm"])}</bdi></td>'
+        f'<td><bdi dir="ltr">{st[0]} / {st[1]}</bdi></td>'
+        f'<td><bdi dir="ltr">{money(s["price_ils"], loc)}</bdi></td></tr>' for s, st in rows)
+    return ('<section class="pdp-sizes" aria-labelledby="sizes-h"><h2 class="pdp-inc-h" id="sizes-h">{{t.sizes_h}}</h2>'
+            '<table class="sizes-tbl"><thead><tr><th scope="col">{{t.sizes_col_size}}</th>'
+            '<th scope="col">{{t.sizes_col_len}}</th><th scope="col">{{t.sizes_col_seats}}</th>'
+            '<th scope="col">{{t.sizes_col_price}}</th></tr></thead><tbody>' + body + '</tbody></table></section>')
 
 
 def buy_terms(p: dict) -> str:
@@ -817,8 +861,11 @@ def plan(p: dict, loc: str) -> str:
     if not sizes or not seats.get("closed") or not seats.get("extended"):
         return ""
     span = max(float(s["extended_cm"]) for s in sizes)
+    pick = str(default_size(p).get("label") or "")
+    if pick not in {str(s.get("label") or "") for s in sizes}:
+        pick = str(sizes[0].get("label") or "")
     out = []
-    for i, s in enumerate(sizes):
+    for s in sizes:
         lab = str(s.get("label") or "")
         round_ = lab.startswith("Ø")
         length = float(s.get("length_cm") or str(lab).lstrip("Ø") or 0)
@@ -831,7 +878,7 @@ def plan(p: dict, loc: str) -> str:
             figs.append(f'<figure class="plan-fig">{plan_svg(ln, width, span, n, round_, state)}'
                         f'<figcaption><b>{{{{t.unfold_{state}}}}}</b> · <bdi dir="ltr">{dims}</bdi>&nbsp;{{{{t.cm}}}}'
                         f' · {n} {{{{t.{few("unfold_seats", n, loc)}}}}}</figcaption></figure>')
-        out.append(f'<div class="plan-size" data-plan-size="{esc(lab)}"{"" if i == 0 else " hidden"}>{"".join(figs)}</div>')
+        out.append(f'<div class="plan-size" data-plan-size="{esc(lab)}"{"" if lab == pick else " hidden"}>{"".join(figs)}</div>')
     return '<div class="plan" data-plan>' + "".join(out) + '<p class="muted small">{{t.unfold_plan_note}}</p></div>'
 
 
@@ -1130,6 +1177,8 @@ def main() -> None:
         for p in products:
             path = f"/p/{p['slug']}/"
             p_how, p_light = how(p, loc), light(p, loc)
+            # №36: ціна hero — розміру за замовчуванням (default_size), не першого в списку
+            p_price = int(default_size(p).get("price_ils") or p.get("price_from_ils") or 0)
             tokens = {
                 "TITLE": esc(L(p.get("name"), loc)) + " — {{t.brand_name}}",
                 "DESC": esc(L(p.get("tagline"), loc) or L(p.get("description"), loc) or s.get("catalog_desc", "")),
@@ -1137,12 +1186,10 @@ def main() -> None:
                 "P_ID": esc(p["id"]), "P_SLUG": p["slug"], "P_NAME": esc(L(p.get("name"), loc)),
                 "P_TAGLINE": esc_bidi(L(p.get("tagline"), loc)), "P_DESC": esc_bidi(L(p.get("description"), loc)),
                 "P_BADGES": badges(p, loc),
-                "P_PRICE": money(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0, loc),
-                "P_PRICE_PLAIN": str(p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0),
-                # платіж розстрочки (24.10): мінімальна конфігурація / INSTALLMENTS, вгору до шекеля — не менше реального
-                "P_MONTHLY": money(math.ceil((p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0)
-                                             / int(CONTENT["INSTALLMENTS"])), loc),
-                "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
+                "P_PRICE": money(p_price, loc), "P_PRICE_PLAIN": str(p_price),
+                # платіж розстрочки (24.10): ціна обраного розміру / INSTALLMENTS, вгору до шекеля — не менше реального
+                "P_MONTHLY": money(math.ceil(p_price / int(CONTENT["INSTALLMENTS"])), loc),
+                "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc), "P_SIZES": size_table(p, loc),
                 "P_INC": included(p, loc), "P_FACTS": facts(p, loc), "P_TERMS": buy_terms(p), "P_TRUST": trust_strip(p, loc),
                 "P_PRICE_NOTE": "{{t.vat_incl}} · " + ("{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}"), "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
