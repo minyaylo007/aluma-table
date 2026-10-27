@@ -178,8 +178,11 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertNotIn("pdp-terms", buy)
                     terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', inc, re.S).group(1)
                     # ціна — у <bdi dir="ltr"> (в RTL «₪950» інакше читається навиворіт; tests/responsive.spec.js)
+                    # №30: з фактом району самовивіз — «איסוף עצמי (район)»
+                    area = content["OWNER_FACTS"].get(f"SHOWROOM_AREA_{lang.upper()}", "")
+                    label = {**t, "ship_pickup": t["ship_pickup_area"].replace("{{SHOWROOM_AREA}}", area) if area else t["ship_pickup"]}
                     for key, n in fees.items():
-                        self.assertIn(f'{t[key]} — <bdi dir="ltr">{money[lang](n)}</bdi>', terms)
+                        self.assertIn(f'{label[key]} — <bdi dir="ltr">{money[lang](n)}</bdi>', terms)
                     self.assertEqual(terms.count("<li>"), 4 if p["slug"] in assembly else 3)
                     ask = re.search(r'<a class="btn[^"]*pdp-ask" href="#register"[^>]*>([^<]+)</a>', buy)
                     self.assertEqual(ask.group(1), t["lead_cta"])
@@ -237,11 +240,14 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertIsNotNone(strip)
                     self.assertEqual(strip.group(1), t["trust_strip_label"])
                     items = re.findall(r"<li>(.*?)</li>", strip.group(2), re.S)
-                    self.assertEqual(len(items), 4)
+                    # №30: п'ята плитка «לראות מקרוב» — лише з фактом району (tests/test_build_showroom.py)
+                    visit = bool(content["OWNER_FACTS"].get(f"SHOWROOM_AREA_{lang.upper()}"))
+                    self.assertEqual(len(items), 5 if visit else 4)
                     for li in items:
                         self.assertIn('aria-hidden="true"', li.split("</svg>")[0])  # іконка — декоративна
                     hrefs = re.findall(r'<a class="ts-h" href="([^"]+)"', strip.group(2))
-                    self.assertEqual(hrefs, [f"/{prefix}how/", f"/{prefix}faq/", f"/{prefix}about/", f"/{prefix}faq/"])
+                    self.assertEqual(hrefs, [f"/{prefix}how/", f"/{prefix}faq/", f"/{prefix}about/", f"/{prefix}faq/"]
+                                     + (["#register"] if visit else []))
                     self.assertIn(money[lang](door), items[3])
                     self.assertIn(money[lang](assembled), items[3])
                     self.assertIn(months, items[1])

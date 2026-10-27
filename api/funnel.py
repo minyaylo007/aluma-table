@@ -218,6 +218,7 @@ def compute(events, leads) -> dict:
     asks = defaultdict(set)                                  # м'який крок картки: cta → сесії з cta_ask
     calls = defaultdict(set)                                 # «התקשרו אלינו» (24.10): cta → сесії з cta_call
     seen = {"see_price_block": set(), "see_sizes": set()}     # №32: хто дійшов до «מה כלול במחיר» і плиток розмірів
+    visits = defaultdict(set)                                # №30 «לראות מקרוב»: cta → сесії з cta_visit
     pdp_depth = defaultdict(list)                            # mobile/desktop → глибина картки в екранах (leave)
     card_seconds = defaultdict(list)                         # №22: товар → секунди на картці (leave pdp / next)
 
@@ -254,6 +255,8 @@ def compute(events, leads) -> dict:
             calls[str(p.get("cta") or "other")[:20]].add(sid)
         if name in seen:
             seen[name].add(sid)
+        if name == "cta_visit":
+            visits[str(p.get("cta") or "other")[:20]].add(sid)
         if not step:
             continue
         for bucket in (total, by_source[src], by_day[day], by_lang[lang]):
@@ -271,7 +274,7 @@ def compute(events, leads) -> dict:
             price_points[cart_price[sid]][step].add(sid)
 
     # Заявка без події Lead у браузері (блокувальник, обірвана сторінка) — теж Lead своєї сесії.
-    lead_rows = callbacks = 0
+    lead_rows = callbacks = visit_leads = 0
     votes = Counter()                                        # №22: «אני רוצה כזה» — голоси за варіанти наступного видання
     call_prefs = Counter({k: 0 for k in CALLBACK_PREFS})
     for l in leads:
@@ -280,6 +283,8 @@ def compute(events, leads) -> dict:
             callbacks += 1
             # №20: як людина хоче — заявки до 25.10 без поля рахуються як дзвінок
             call_prefs[l.get("contact_pref") if l.get("contact_pref") in CALLBACK_PREFS else "call"] += 1
+        if l.get("lead_source") == "visit":
+            visit_leads += 1
         if l.get("lead_source") == "vote":
             votes[str(l.get("product_id") or "?")[:40]] += 1
         sid = l.get("session_id") or ""
@@ -324,6 +329,10 @@ def compute(events, leads) -> dict:
                  "leads": callbacks, "by_pref": {k: call_prefs[k] for k in CALLBACK_PREFS}},
         # №32: видимість блоків картки — сесії, що побачили «מה כלול במחיר» / плитки розмірів, проти сесій картки
         "seen": {"price": len(seen["see_price_block"]), "sizes": len(seen["see_sizes"]), "product": len(total["product"])},
+        # №30: хочуть подивитись живцем — сесії з натисканням плитки і заявки lead_source=visit
+        "visit": {"sessions": len(set().union(*visits.values())) if visits else 0,
+                  "by_cta": {k: len(v) for k, v in sorted(visits.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
+                  "leads": visit_leads},
         # голоси — окремим рядком, не замовлення: заявки lead_source=vote за товаром
         "vote": {"leads": sum(votes.values()), "by_product": dict(sorted(votes.items(), key=lambda kv: (-kv[1], kv[0])))},
         "median_seconds": {k: sorted(v)[len(v) // 2] for k, v in seconds.items() if v},
@@ -384,6 +393,9 @@ def text(rep: dict) -> str:
     if call.get("leads"):
         words = {"call": "звонок", "video": "видео", "info": "детали"}
         lines.append("  как: " + ", ".join(f"{words.get(k, k)} {v}" for k, v in (call.get("by_pref") or {}).items()))
+    visit = rep.get("visit") or {}
+    lines.append(f"Визит: cta_visit {visit.get('sessions', 0)}, заявок visit {visit.get('leads', 0)}"
+                 + (" · " + ", ".join(f"{k} {v}" for k, v in visit["by_cta"].items()) if visit.get("by_cta") else ""))
     vote = rep.get("vote") or {}
     lines.append(f"Голоса «אני רוצה כזה» (следующее издание): {vote.get('leads', 0)}"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in vote["by_product"].items()) if vote.get("by_product") else ""))

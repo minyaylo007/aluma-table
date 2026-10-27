@@ -341,6 +341,21 @@
       setTimeout(function () { if (fName) { try { fName.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
     });
   });
+  // №30: плитка «לראות מקרוב ב…» у смузі довіри (є лише з фактом власника) → та сама форма #register;
+  // cta_visit — у нашу аналітику, заявка з цієї форми після натискання — lead_source=visit.
+  var visits = qsa("[data-visit]"), visitIntent = false;
+  if (visits.length && !(reg0 && form)) visits.forEach(function (b) { var li = b.closest("li"); (li || b).hidden = true; });
+  else visits.forEach(function (b) {
+    b.addEventListener("click", function (e) {
+      e.preventDefault();
+      visitIntent = true;
+      var cur = pdp && currentProduct();
+      if (cur && fProduct && !fProduct.value) syncFormProduct(cur.id);
+      track("cta_visit", { content_ids: cur ? [cur.id] : [], content_type: "product", cta: b.getAttribute("data-cta") || "" }, { pixel: false });
+      reg0.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+      setTimeout(function () { if (fName) { try { fName.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
+    });
+  });
   // ---------------------------------------------------------------- картка: «התקשרו אלינו» — номера нема, є зворотний дзвінок
   // [data-call] під парою кнопок і іконка в липкій смузі → міні-форма #callback (телефон + згода, lead_source=callback).
   // №20: «що вам зручно» — дзвінок, відеодзвінок або «надішліть деталі» (тоді e-mail або телефон, хоч один).
@@ -564,6 +579,7 @@
         if (data.contact_pref === "info" && !asked) data.email = fv("email").slice(0, 120);
       }
       if (vote) { data.lead_source = "vote"; data.contact_pref = "info"; data.email = fv("email").slice(0, 120); }
+      if (visitIntent && form.id === "lead-form") data.lead_source = "visit";
       // спосіб отримання, якщо вже вибрали в кошику (shop.js, fx_ship_v1); нового поля у формі нема
       try { var way = sessionStorage.getItem("fx_ship_v1"); if (way === "pickup" || way === "door" || way === "assembled") data.delivery = way; } catch (x) {}
       var bad = [];

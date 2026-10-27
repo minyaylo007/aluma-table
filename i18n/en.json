@@ -101,7 +101,8 @@
   "s4_long": "Once the order is confirmed, the workshop makes the piece in the size and finish you chose. The exact delivery time is given on order confirmation, and we keep you updated along the way.",
   "s5_h": "Delivery or pickup",
   "s5_p": "We bring it to your door, bring it and assemble it, or you pick it up from the warehouse. Assembly is simple, instructions are in the box.",
-  "s5_long": "Delivery to your door nationwide — {{DELIVERY_PRICE}}; delivery with assembly — {{ASSEMBLED_PRICE}}; pickup from a warehouse in central Israel — {{PICKUP_PRICE}}. We agree on a date; you put the table together in about {{ASSEMBLY_MIN}} minutes with the instructions in the box, or order assembly.",
+  "s5_long": "Delivery to your door nationwide — {{DELIVERY_PRICE}}; delivery with assembly — {{ASSEMBLED_PRICE}}; pickup from a warehouse in central Israel — {{PICKUP_PRICE}}. We agree on a date; you put the table together in about {{ASSEMBLY_MIN}} minutes with the instructions in the box, or order assembly. We assemble and deliver ourselves.",
+  "s5_visit": "You can see the table in person and pick it up in {{SHOWROOM_AREA}}, by appointment.",
   "ws_eyebrow": "The workshop",
   "ws_h2": "Made by us. Not from someone else's catalogue.",
   "ws_p": "ALUMA furniture is made at an established furniture factory in Chernivtsi, Ukraine. There are no middlemen in between — which is why size and finish can be adjusted.",
@@ -280,6 +281,10 @@
       "a": "Wipe with a damp, well-wrung cloth, without harsh cleaners. Use coasters for hot dishes. Full instructions come with the piece."
     }
   ],
+  "faq_visit": {
+    "q": "Can I see the table before ordering?",
+    "a": "Yes, in {{SHOWROOM_AREA}}, by appointment. Leave your details in the form and we’ll get back to you to arrange a time."
+  },
   "js": {
     "v3d_loading": "Loading the 3D view…",
     "v3d_err_webgl": "This browser can't show 3D. The images and dimensions on this page describe the piece in full.",
@@ -474,6 +479,7 @@
   "ship_h": "Delivery",
   "ship_legend": "Delivery, assembly or pickup",
   "ship_pickup": "Pickup",
+  "ship_pickup_area": "Pickup ({{SHOWROOM_AREA}})",
   "ship_door": "Door delivery",
   "ship_assembled": "With assembly",
   "ship_hint": "Delivery to your door — anywhere in the country; you assemble it: about {{ASSEMBLY_MIN}} minutes, instructions in the box. Delivery with assembly — we bring it and put it together. Pickup — from a warehouse in central Israel; the address and time are arranged with you. The box is as long as the piece, so pickup needs a suitable vehicle.",
@@ -524,6 +530,8 @@
   "trust_strip_pdf": "Assembly guide PDF",
   "trust_strip_own_s": "Our own factory",
   "trust_strip_ship_s": "Delivery {{DELIVERY_PRICE}}",
+  "trust_strip_visit_h": "See it in person in {{SHOWROOM_AREA}}",
+  "trust_strip_visit_p": "By appointment",
   "foot_social_label": "ALUMA on social media",
   "foot_instagram": "ALUMA on Instagram",
   "foot_facebook": "ALUMA on Facebook",
