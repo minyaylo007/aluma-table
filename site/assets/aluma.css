@@ -248,6 +248,28 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .hero-media img { animation: hero-in 1.4s var(--ease) both; }
   @keyframes hero-in { from { transform: scale(1.06); } to { transform: none; } }
 }
+/* №33: перший екран головної — сам стіл: назва й ціна (діапазон розмірів), факти, кнопка на картку. На телефоні
+   390×650 кадр 16:10, заголовок менший, дві кнопки в ряд — усе до кнопок видно без прокрутки */
+.hero-product { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; margin-block-start: 16px; }
+.hero-name { font-family: var(--serif); font-size: 1.55rem; line-height: 1.2; }
+.hero-price { font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hero-facts { margin-block-start: 4px; font-size: .95rem; line-height: 1.45; color: var(--muted); max-width: 52ch; }
+@media (max-width: 719px) {
+  .hero-media { aspect-ratio: 16 / 10; }
+  .hero-inner { padding-block-start: 16px; }
+  .hero .eyebrow { display: none; } /* «שולחן אוכל נפתח» — те саме каже заголовок; рядок віддано кнопкам */
+  .hero .display { font-size: 1.85rem; line-height: 1.12; }
+  .hero-product { margin-block-start: 10px; }
+  .hero .actions { flex-wrap: nowrap; gap: 10px; margin-block-start: 14px; }
+  .hero .actions .btn { flex: 1 1 auto; padding-inline: 12px; font-size: .92rem; white-space: nowrap; }
+}
+@media (min-width: 720px) { .hero-facts { color: rgba(246, 241, 233, .9); } .hero-name { font-size: 1.9rem; } }
+@media (min-width: 720px) { .hero:has(.hero-media--tile) .hero-facts { color: var(--muted); } }
+/* №33: картка — одне посилання на всю площу (порожній кут теж веде на /p/<slug>/); фокус і наведення видно на всій картці */
+.card-open { font-size: .8rem; line-height: 1.35; color: var(--muted); }
+.card-open .nw, .hero-facts .nw { white-space: nowrap; }
+.card-link:focus-visible { outline-offset: 6px; border-radius: 4px; }
+.card-link:hover .card-name { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 
 /* ---------------------------------------------------------------- «подих»: крупний план на всю ширину */
 .band { position: relative; margin: 0; height: clamp(320px, 62vw, 720px); overflow: hidden; background: var(--sand); }

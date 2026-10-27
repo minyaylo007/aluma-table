@@ -388,11 +388,40 @@ CARD_SIZES_TWO_UP = "(min-width: 1000px) 30vw, 46vw"
 CARD_KINDS = ("dining_table", "media_unit", "console", "coffee_table")
 
 
+def price_span(p: dict, loc: str) -> str:
+    """№33: ціна товару з каталогу — «₪4,490–5,290» (мін–макс розмірів; ru «4 490–5 290 ₪»), один розмір чи одна ціна
+    на всі — одне число. Доплат за тон чи опору в каталозі нема, тож діапазон — повна правда без «מ־»."""
+    prices = sorted({int(s["price_ils"]) for s in p.get("sizes") or [] if s.get("price_ils")})
+    if not prices:
+        return f'{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"], loc)}</bdi>' if p.get("price_from_ils") else ""
+    lo, hi = prices[0], prices[-1]
+    if lo == hi:
+        return f'<bdi dir="ltr">{money(lo, loc)}</bdi>'
+    if loc == "ru":
+        return f'<bdi dir="ltr">{money(lo, loc)[:-2]}–{money(hi, loc)}</bdi>'
+    return f'<bdi dir="ltr">{money(lo, loc)}–{money(hi, loc)[1:]}</bdi>'
+
+
+def open_seats(p: dict, loc: str) -> str:
+    """№33: «נפתח עד 280 ס״מ · עד 12 סועדים» — для столу, що розкладається; числа — найбільші з каталогу. Інакше — порожньо."""
+    ext = [int(s["extended_cm"]) for s in p.get("sizes") or [] if s.get("extended_cm")]
+    seats = (p.get("seats") or {}).get("extended")
+    if not ext or not seats:
+        return ""
+    n = int(seats[-1])
+    # кожна половина — без розриву всередині: вузька плитка каталогу переносить лише по « · »
+    return (f'<span class="nw">{{{{t.facts_open}}}} <bdi dir="ltr">{max(ext)}</bdi>&nbsp;{{{{t.cm}}}}</span> · '
+            f'<span class="nw">{{{{t.facts_upto}}}} <bdi dir="ltr">{n}</bdi> {{{{t.{few("unfold_seats", n, loc)}}}}}</span>')
+
+
 def card(p: dict, loc: str, prefix: str, eager: bool = False, sizes: str = CARD_SIZES, cta: bool = False) -> str:
-    """Картка товару: фото 4:5 (другий кадр — при наведенні), тип виробу, назва, ціна «מ־₪», кружки тонувань;
+    """Картка товару: фото 4:5 (другий кадр — при наведенні), тип виробу, назва, ціна (діапазон розмірів), для
+    розкладного столу — «נפתח עד … · עד …», кружки тонувань; уся картка — одне посилання (№33);
     cta — видима кнопка до деталей (каталог, куди веде реклама «collection»: 86 % ішли, не торкнувшись картки)."""
-    price = (f'<span class="card-price">{{{{t.from}}}}<bdi dir="ltr">{money(p["price_from_ils"], loc)}</bdi></span>'
-             if p.get("price_from_ils") else "")
+    pr = price_span(p, loc)
+    price = f'<span class="card-price">{pr}</span>' if pr else ""
+    ext = open_seats(p, loc)
+    ext = f'<span class="card-open">{ext}</span>' if ext else ""
     sz = sizes
     imgs = [i for i in p.get("images") or [] if i.get("src")]
     if imgs:
@@ -409,7 +438,7 @@ def card(p: dict, loc: str, prefix: str, eager: bool = False, sizes: str = CARD_
     btn = '<span class="card-cta">{{t.card_cta}}</span>' if cta else ""
     return (f'<li class="card"><a class="card-link" href="{prefix}/p/{p["slug"]}/" data-product="{esc(p["id"])}">'
             f'{pic}<span class="card-body">{kind}<span class="card-row"><span class="card-name">{esc(L(p.get("name"), loc))}</span>'
-            f'{price}</span>{sw}{btn}</span></a></li>')
+            f'{price}</span>{ext}{sw}{btn}</span></a></li>')
 
 
 def badges(p: dict, loc: str) -> str:
@@ -1045,7 +1074,18 @@ def main() -> None:
             f'<div class="hero-media">{picture(hero_imgs[0], loc, eager=True, sizes="100vw")}'
             f'</div>' if hero_imgs
             else f'<div class="hero-media hero-media--tile">{silhouette(hero_p, "sil--hero")}</div>')
-        band = next((i for i in hero_imgs if i.get("view") == "detail"), None)
+        # №33: перший екран головної — сам стіл: назва, факти й ціна з каталогу (людина з реклами бачить, що й за скільки)
+        hero_lens = sorted({int(z["length_cm"]) for z in hero_p["sizes"] if z.get("length_cm")})
+        hero_facts = ["{{t.facts_oak}}"] if "veneer" in L(hero_p.get("material"), "en") else []
+        if hero_lens and not any(str(z.get("label") or "").startswith("Ø") for z in hero_p["sizes"]):
+            hero_facts.append(f'<bdi dir="ltr">{seat_span(hero_lens)}</bdi>&nbsp;{{{{t.cm}}}}')
+        if open_seats(hero_p, loc):
+            hero_facts.append(open_seats(hero_p, loc))
+        base_tokens.update({
+            "HERO_NAME": esc(L(hero_p.get("name"), loc)), "HERO_SLUG": hero_p["slug"],
+            "HERO_PRICE": price_span(hero_p, loc), "HERO_FACTS": " · ".join(hero_facts),
+        })
+        band =next((i for i in hero_imgs if i.get("view") == "detail"), None)
         base_tokens["BAND_MEDIA"] = (
             f'<figure class="band">{picture(band, loc, sizes="100vw")}'
             f'<figcaption class="band-cap"><span class="wrap">{{{{t.band_cap}}}}</span></figcaption></figure>' if band else "")

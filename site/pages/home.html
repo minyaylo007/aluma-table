@@ -4,10 +4,12 @@
     <div class="hero-copy">
       <p class="eyebrow">{{t.hero_eyebrow}}</p>
       <h1 class="display">{{t.hero_h1}}</h1>
+      <p class="hero-product"><span class="hero-name">{{HERO_NAME}}</span><span class="hero-price">{{HERO_PRICE}}</span></p>
+      <p class="hero-facts">{{HERO_FACTS}}</p>
       <p class="lede">{{t.hero_lede}}</p>
       <div class="actions">
-        <a class="btn btn--dark" href="{{PREFIX}}/catalog/" data-cta="hero-catalog">{{t.cta_collection}}</a>
-        <a class="btn btn--line" href="#register" data-cta="hero-register">{{t.cta_register}}</a>
+        <a class="btn btn--dark" href="{{PREFIX}}/p/{{HERO_SLUG}}/" data-cta="hero-tavor">{{t.hero_cta_product}}</a>
+        <a class="btn btn--line" href="{{PREFIX}}/catalog/" data-cta="hero-catalog">{{t.cta_collection}}</a>
       </div>
       <p class="hero-note">{{t.hero_note}}</p>
     </div>

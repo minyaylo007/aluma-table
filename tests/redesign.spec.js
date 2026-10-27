@@ -151,6 +151,75 @@ for (const prefix of ['', '/ru']) {
   });
 }
 
+// №33: уся плитка каталогу — одне посилання: точка в порожньому куті картки (поруч із типом виробу, з протилежного
+// боку від тексту) належить <a> і веде на /p/<slug>/; ціна — діапазон розмірів з каталогу; розкладний стіл — «до N»
+const priceText = (p, ru) => {
+  const ps = [...new Set(p.sizes.map(s => s.price_ils))].sort((a, b) => a - b);
+  const f = n => ru ? String(n).replace(/\B(?=(\d{3})+$)/g, ' ') : n.toLocaleString('en-US');
+  const lo = ps[0], hi = ps[ps.length - 1];
+  if (lo === hi) return ru ? `${f(lo)} ₪` : `₪${f(lo)}`;
+  return ru ? `${f(lo)}–${f(hi)} ₪` : `₪${f(lo)}–${f(hi)}`;
+};
+for (const prefix of ['', '/ru']) {
+  test(`catalog 390 ${prefix || 'he'}: the whole tile is one link, price is the size range, extending tables show "up to"`, async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    const page = await ctx.newPage();
+    await mockApi(page);
+    await page.goto(`${prefix}/catalog/`);
+    const r = await page.evaluate(() => [...document.querySelectorAll('.cards .card')].map(c => {
+      c.scrollIntoView({ block: 'center', behavior: 'instant' });                              // elementFromPoint бачить лише вікно
+      const a = c.querySelector('a.card-link'), box = a.getBoundingClientRect(), k = c.querySelector('.card-kind').getBoundingClientRect();
+      const y = k.top + k.height / 2, rtl = document.dir === 'rtl';
+      const x = rtl ? box.left + 3 : box.right - 3;                       // порожній бік рядка типу виробу
+      const hit = document.elementFromPoint(x, y);
+      return { href: a.getAttribute('href'), corner: !!(hit && hit.closest('a.card-link') === a), x, y,
+        price: c.querySelector('.card-price').textContent.trim(), open: (c.querySelector('.card-open') || {}).textContent || '' };
+    }));
+    expect(r.map(c => c.href)[0]).toBe(`${prefix}/p/tavor/`);             // TAVOR — перший
+    for (const [i, c] of r.entries()) {
+      const p = PRODUCTS[i];
+      expect(c.href).toBe(`${prefix}/p/${p.slug}/`);
+      expect(c.corner).toBe(true);
+      expect(c.price).toBe(priceText(p, prefix === '/ru'));
+      const ext = Math.max(0, ...p.sizes.map(s => s.extended_cm || 0));
+      if (ext && p.seats && p.seats.extended) {
+        expect(c.open).toContain(String(ext));
+        expect(c.open).toContain(String(p.seats.extended[p.seats.extended.length - 1]));
+      } else expect(c.open).toBe('');
+    }
+    await page.evaluate(() => document.querySelectorAll('.cards .card')[1].scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const second = await page.evaluate(() => {
+      const c = document.querySelectorAll('.cards .card')[1], a = c.querySelector('a.card-link').getBoundingClientRect();
+      const k = c.querySelector('.card-kind').getBoundingClientRect();
+      return { href: c.querySelector('a.card-link').getAttribute('href'), x: document.dir === 'rtl' ? a.left + 3 : a.right - 3, y: k.top + k.height / 2 };
+    });
+    await page.mouse.click(second.x, second.y);
+    await expect(page).toHaveURL(new RegExp(`${second.href}$`));
+    await ctx.close();
+  });
+}
+
+// №33: перший екран головної — стіл: назва, діапазон ціни, факти й кнопка на /p/tavor/ видно на 390×650 без прокрутки
+for (const [prefix, ru] of [['', false], ['/ru', true], ['/en', false]]) {
+  test(`home 390×650 ${prefix || 'he'}: hero shows TAVOR with its price range and links to /p/tavor/ above the fold`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 650 });
+    await mockApi(page);
+    await page.goto(prefix + '/');
+    await page.evaluate(() => document.fonts.ready);
+    const tavor = PRODUCTS.find(p => p.slug === 'tavor');
+    const cta = page.locator('.hero a[data-cta="hero-tavor"]');
+    await expect(cta).toHaveAttribute('href', `${prefix}/p/tavor/`);
+    await expect(page.locator('.hero .hero-price')).toHaveText(priceText(tavor, ru));
+    await expect(page.locator('.hero .hero-facts')).toContainText('280');
+    await expect(page.locator('.hero a[data-cta="hero-catalog"]')).toHaveAttribute('href', `${prefix}/catalog/`);
+    await expect(page.locator('.hero a[href="#register"]')).toHaveCount(0);
+    const bottom = await page.evaluate(() => Math.max(...[...document.querySelectorAll('.hero .actions .btn, .hero-price, .hero-facts')]
+      .map(e => e.getBoundingClientRect().bottom)));
+    expect(bottom).toBeLessThanOrEqual(650);
+    expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+  });
+}
+
 test('every page of both languages answers 200 with one h1', async ({ page }) => {
   test.setTimeout(120000);  // 20 сторінок на однопотоковому serve-preview
   await mockApi(page);
