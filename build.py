@@ -668,6 +668,28 @@ TRUST_STRIP = (
 )
 
 
+def showroom_area(loc: str) -> str:
+    """Район, де можна подивитись стіл живцем і забрати самовивозом (№30): факт власника SHOWROOM_AREA_<МОВА>.
+    Порожній — нічого про район не рендеримо (ні маркера, ні плитки, ні питання FAQ)."""
+    return str((CONTENT.get("OWNER_FACTS") or {}).get(f"SHOWROOM_AREA_{loc.upper()}") or "").strip()
+
+
+def with_showroom(s: dict, loc: str) -> dict:
+    """Рядки мови з районом показу, коли факт заповнено: самовивіз «(район)», питання FAQ після питання про
+    доставку, фраза в кроці «משלוח או איסוף». Без факту — рядки без змін."""
+    if not showroom_area(loc):
+        return s
+    s = dict(s)
+    s["ship_pickup"] = s["ship_pickup_area"]
+    faq = list(s.get("faq") or [])
+    at = next((i + 1 for i, it in enumerate(faq) if "{{PICKUP_PRICE}}" in it.get("a", "")), len(faq))
+    s["faq"] = faq[:at] + [s["faq_visit"]] + faq[at:]
+    s["s5_long"] = s["s5_long"] + " " + s["s5_visit"]
+    return s
+
+TRUST_VISIT_ICON = '<path d="M12 21s-6.5-5.8-6.5-11a6.5 6.5 0 0 1 13 0c0 5.2-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'
+
+
 def trust_strip(p: dict | None, loc: str) -> str:
     """Смуга довіри одразу під кнопками картки (p) або над «להזמנה» у кошику (p=None — компактна, лише заголовки).
     Лише підтверджені факти: оплата не на сайті, гарантія WARRANTY_MONTHS, своя фабрика, ціни доставки з content.json;
@@ -683,6 +705,10 @@ def trust_strip(p: dict | None, loc: str) -> str:
             f' · <a href="{pdf}" target="_blank" rel="noopener" data-cta="assembly_pdf">{{{{t.trust_strip_pdf}}}}</a>'
             if k == "ship" and pdf else "") + "</span>"
         lis.append(f"<li>{svg.format(icon)}<span>{head}{sub}</span></li>")
+    if p and showroom_area(loc):
+        # №30: подивитись живцем — веде на форму «שאלה על השולחן?» (aluma.js: cta_visit, lead_source=visit)
+        head = '<a class="ts-h" href="#register" data-visit data-cta="trust">{{t.trust_strip_visit_h}}</a>'
+        lis.append(f'<li>{svg.format(TRUST_VISIT_ICON)}<span>{head}<span class="ts-p">{{{{t.trust_strip_visit_p}}}}</span></span></li>')
     cls = "trust-strip" if p else "trust-strip trust-strip--compact"
     return f'<ul class="{cls}" role="list" aria-label="{{{{t.trust_strip_label}}}}">' + "".join(lis) + "</ul>"
 
@@ -1014,10 +1040,10 @@ def main() -> None:
     pages_out = []                              # (мова, шлях) для sitemap
 
     for loc, prefix in LOCALES.items():
-        s = locales[loc]
+        s = locales[loc] = with_showroom(locales[loc], loc)
         render = Renderer(s, loc)
         base_tokens = {
-            "LANG": loc, "DIR": s["dir"], "PREFIX": prefix,
+            "LANG": loc, "DIR": s["dir"], "PREFIX": prefix, "SHOWROOM_AREA": esc(showroom_area(loc)),
             # піксель і Clarity не потрібні для першого кадру — вантажимо після load, коли потік вільний
             "TRACKING": ('<script>addEventListener("load",function(){(window.requestIdleCallback||setTimeout)(function(){'
                          'var s=document.createElement("script");s.src="/assets/tracking.js";document.head.appendChild(s)})})</script>'

@@ -22,4 +22,6 @@ tests.test_box_env            # оточення прода без друку з
 tests.test_deploy_box             # викат на прод: лише свій юніт, rsync з --chmod, відкат
 tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy
 tests.test_next_variants      # №22: голос vote, Telegram, воронка, варіанти поза каталогом
+tests.test_visit_lead         # №30: lead_source=visit, Telegram, воронка «Визит»
 tests.test_next_build         # №22: /p/tavor-fluted/, /p/tavor-oval/ трьома мовами, sitemap, поза каталогом і кошиком
+tests.test_build_showroom     # №30: район показу з факту власника — порожній нічого не рендерить, заповнений у трьох мовах
