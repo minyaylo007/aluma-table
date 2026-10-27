@@ -692,8 +692,13 @@ def ship_choice() -> str:
     # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—950 ₪»), тому &nbsp;
     opts = [(v, f'{{{{t.{w}}}}} —&nbsp;<bdi dir="ltr">{{{{{t}}}}}</bdi>') for v, w, t in SHIP_WAYS]
     chips = "".join(f'<label class="chip"><input type="radio" name="ship" value="{v}"><span>{x}</span></label>' for v, x in opts)
-    return (f'<fieldset class="f f-choice ship-choice" data-ship-choice><legend>{{{{t.ship_legend}}}}</legend>'
-            f'<div class="chips">{chips}</div><p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
+    # №31: без передвибору — спосіб обирає людина; на кроці «משלוח» без вибору далі не йдемо (#ship-err).
+    # PDF збирання — біля «עד הדלת»: shop.js показує посилання лише для товарів у кошику, що мають PDF (DATA.products[].pdf)
+    pdf = ('<p class="f-hint ship-pdf" data-ship-pdf hidden data-l-own="{{t.assembly_pdf}}" data-l-en="{{t.assembly_pdf_en}}"'
+           ' data-l-door="{{t.ship_door}}"></p>')
+    return (f'<fieldset class="f f-choice ship-choice" data-ship-choice aria-describedby="ship-err"><legend>{{{{t.ship_legend}}}}</legend>'
+            f'<div class="chips">{chips}</div>{pdf}<p class="f-err" id="ship-err" hidden></p>'
+            f'<p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
 
 
 def assembly_pdf(p: dict, loc: str) -> str:
@@ -922,7 +927,9 @@ def product_data(products: list, loc: str) -> list:
                        for s in p["sizes"]],
              "finishes": [{"id": f.get("id"), "name": L(f.get("name"), loc)} for f in p["finishes"]],
              "bases": [{"id": b.get("id"), "name": L(b.get("name"), loc)} for b in p["bases"]],
-             "from": int(p.get("price_from_ils") or 0), "img": thumb_src(p)} for p in products]
+             "from": int(p.get("price_from_ils") or 0), "img": thumb_src(p), "pdf": assembly_pdf(p, loc),
+             # PDF не своєю мовою (ru → en): shop.js підписує «(PDF, באנגלית)»; ім'я файлу після збірки — з хешем
+             "pdf_en": not assembly_pdf(p, loc).endswith(f"-{loc}.pdf")} for p in products]
 
 
 # --------------------------------------------------------------------------- рендер
