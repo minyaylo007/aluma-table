@@ -520,3 +520,58 @@ test('сервер не прийняв заявку (429) — текст пом�
   expect(net.leads).toHaveLength(1);
   expect(await fbNamed(page, 'Lead')).toEqual([]);
 });
+
+// №30 «לראות מקרוב»: район — лише з факту власника (27.10 — Холон). Порожній факт — у dist нема ні плитки, ні питання
+// FAQ, самовивіз без дужок (той тест пропускається, коли факт є; порожній стан — tests/test_build_showroom.py).
+// Без факту плитку (як її рендерить build.py) вставляємо в сторінку тут; з фактом — вона вже в dist. Далі: клік → форма #register, cta_visit лише в нашу аналітику, заявка з lead_source=visit; axe на смузі довіри.
+const fs = require('fs');
+const path = require('path');
+const AxeBuilder = require('@axe-core/playwright').default;
+const FACT = { '': CONTENT.OWNER_FACTS.SHOWROOM_AREA_HE, '/ru': CONTENT.OWNER_FACTS.SHOWROOM_AREA_RU };
+const AREA = { '': FACT[''] || 'שכונת־בדיקה', '/ru': FACT['/ru'] || 'Тестрайон' };
+const factEmpty = !CONTENT.OWNER_FACTS.SHOWROOM_AREA_HE && !CONTENT.OWNER_FACTS.SHOWROOM_AREA_RU;
+for (const [prefix, t] of [['', HE], ['/ru', RU]]) {
+  test(`${prefix || '/'} порожній район: нема плитки «לראות מקרוב», питання FAQ, дужок у самовивозі`, async ({ page }) => {
+    test.skip(!factEmpty, 'факт району заповнено');
+    await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    await expect(page.locator('.trust-strip li')).toHaveCount(4);
+    await expect(page.locator('[data-visit]')).toHaveCount(0);
+    await expect(page.locator('.pdp-terms')).not.toContainText('(');
+    await page.goto(`${ORIGIN}${prefix}/faq/`);
+    await expect(page.locator('.faq summary', { hasText: t.faq_visit.q })).toHaveCount(0);
+    await page.goto(`${ORIGIN}${prefix}/checkout/`);
+    await expect(page.locator('[data-ship-choice]')).not.toContainText('(');
+  });
+
+  test(`${prefix || '/'} 390: плитка «לראות מקרוב» → форма, cta_visit без Meta, lead_source=visit, axe`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    const file = path.join(__dirname, '..', 'dist', prefix.slice(1), 'p', 'tavor', 'index.html');
+    const head = t.trust_strip_visit_h.replace('{{SHOWROOM_AREA}}', AREA[prefix]);
+    const li = `<li><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"></svg><span>`
+      + `<a class="ts-h" href="#register" data-visit data-cta="trust">${head}</a><span class="ts-p">${t.trust_strip_visit_p}</span></span></li>`;
+    // факт заповнено — плитка вже в dist (build.py), нічого не вставляємо
+    if (!FACT[prefix]) await page.route(`${ORIGIN}${prefix}/p/tavor/`, (route) => route.fulfill({
+      contentType: 'text/html; charset=utf-8',
+      body: fs.readFileSync(file, 'utf8').replace(/(<ul class="trust-strip"[^>]*>[\s\S]*?)<\/ul>/, `$1${li}</ul>`),
+    }));
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    const tile = page.locator('.trust-strip [data-visit]');
+    await expect(tile).toHaveText(head);
+    const axe = await new AxeBuilder({ page }).include('.trust-strip').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(axe.violations.filter((v) => ['serious', 'critical'].includes(v.impact)).map((v) => v.id)).toEqual([]);
+    await tile.click();
+    await expect(page.locator('#register')).toBeInViewport();
+    await expect(page.locator('#f-name')).toBeFocused();
+    await expect.poll(() => firstParty(net, 'cta_visit').length, { timeout: 8000 }).toBe(1);
+    expect(firstParty(net, 'cta_visit')[0].props).toMatchObject({ content_ids: ['tavor'], cta: 'trust' });
+    expect(await fbNamed(page, 'cta_visit')).toHaveLength(0);
+    await page.locator('#f-name').fill('Zzqx');
+    await page.locator('#f-phone').fill(PHONE);
+    await page.locator('#lead-form input[name="consent"]').check();
+    await page.locator('#lead-form button[type="submit"]').click();
+    await expect.poll(() => net.leads.length, { timeout: 8000 }).toBe(1);
+    expect(net.leads[0]).toMatchObject({ lead_source: 'visit', product_id: 'tavor' });
+  });
+}

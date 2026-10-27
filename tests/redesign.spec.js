@@ -3,6 +3,7 @@
 const { test, expect } = require('@playwright/test');
 
 const CATALOG = require('../catalog/products.json');
+const SHOWROOM = !!require('../content.json').OWNER_FACTS.SHOWROOM_AREA_HE;   // №30: плитка «לראות מקרוב» — лише з факту
 const PRODUCTS = (CATALOG.products || CATALOG).filter(p => !p.hidden);
 const EMPTY_CONFIG = { pixel_id: null, wa_number: null, clarity_id: null, contact: { name: null, phone: null, email: null, city: null }, launch_mode: true };
 const FULL_CONFIG = { ...EMPTY_CONFIG, wa_number: '972500000000', contact: { name: 'ALUMA', phone: null, email: 'hello@example.com', city: null } };
@@ -821,14 +822,16 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeGreaterThanOrEqual(tops[i - 1] - 2);   // DOM-порядок = зверху вниз
     await page.locator('.pdp-pair [data-add-cart]').focus();
     const seq = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 13; i++) {
       await page.keyboard.press('Tab');
       seq.push(await page.evaluate(() => { const a = document.activeElement;
         return a.matches('[data-ask]') ? 'ask' : a.matches('[data-call]') ? 'call' : a.matches('.pdp-ask') ? 'lead'
           : a.closest('.trust-strip') ? 'strip' : a.closest('.pdp-config') ? 'config' : a.tagName; }));
     }
-    // №19: смуга довіри — перед «השאירו פרטים»: 4 заголовки + PDF збирання (у tavor він є); №28: тон/розмір — одразу під діями
-    expect(seq).toEqual(['ask', 'call', 'config', 'config', 'config', 'config', 'strip', 'strip', 'strip', 'strip', 'strip', 'lead']);
+    // №19: смуга довіри — перед «השאירו פרטים»: 4 заголовки + PDF збирання (у tavor він є); №28: тон/розмір — одразу під діями;
+    // №30: з фактом району — ще плитка «לראות מקרוב»
+    const strip = Array(SHOWROOM ? 6 : 5).fill('strip');
+    expect(seq.slice(0, 7 + strip.length)).toEqual(['ask', 'call', 'config', 'config', 'config', 'config', ...strip, 'lead']);
   });
 }
 

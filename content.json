@@ -40,6 +40,9 @@
   "OWNER_FACTS": {
     "COMPANY_NAME": "",
     "COMPANY_ID": "",
-    "CONFIRMED_PRICES": ""
+    "CONFIRMED_PRICES": "",
+    "SHOWROOM_AREA_HE": "חולון",
+    "SHOWROOM_AREA_EN": "Holon",
+    "SHOWROOM_AREA_RU": "Холон"
   }
 }
