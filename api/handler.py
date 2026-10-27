@@ -102,7 +102,7 @@ LEAD_EVENT_ID = re.compile(r"[A-Za-z0-9_.\-]{8,64}")
 CART_ITEM = re.compile(r"[a-z0-9-]{1,40}:[\w ×x*.,/\-–]{1,40}:[a-z0-9-]{0,30}:[a-z0-9-]{0,30}:[1-9]")
 CART_MAX = 300
 ORDER_TOTAL_MAX = 200_000
-VALID_LEAD_SOURCES = ("callback", "checkout", "form", "quick", "vote")
+VALID_LEAD_SOURCES = ("callback", "checkout", "form", "quick", "vote", "visit")   # visit — №30, «לראות מקרוב»
 
 # Каталог товарів (catalog/products.json) — лише для людських імен у сповіщенні власнику.
 # Шукаємо в корені репозиторію і поруч із файлом (бандл лямбди — це api/ без catalog/).
@@ -731,6 +731,7 @@ CONTACT_WORDS = {"whatsapp": "WhatsApp", "call": "звонок"}
 # міні-форма картки: як людина хоче — перший рядок сповіщення і рядок «Как:»
 CALLBACK_HEADS = {"call": "📞 Обратный звонок — позвонить", "video": "🎥 Видеозвонок — договориться о времени",
                   "info": "📄 Выслать детали — спецификация, чертёж, сборка"}
+VISIT_HEAD = "👀 Хочет посмотреть стол вживую — договориться о показе"
 CALLBACK_WORDS = {"call": "звонок", "video": "видеозвонок", "info": "выслать детали"}
 DELIVERY_WORDS = {"pickup": "самовывоз", "door": "до двери", "assembled": "до двери со сборкой"}
 TELEGRAM_TEXT_MAX = 4000   # ліміт Telegram — 4096 символів; запас на всяк випадок
@@ -791,6 +792,8 @@ def lead_message(item) -> str:
     pref = item.get("contact_pref") if item.get("contact_pref") in CALLBACK_PREFS else "call"
     if callback:                                     # кнопка «התקשרו אלינו»: людина чекає відповіді, як обрала
         lines = [CALLBACK_HEADS[pref], *lines]
+    elif source == "visit":                          # №30: плитка «לראות מקרוב» — домовитись про показ столу
+        lines = [VISIT_HEAD, *lines]
 
     lines.append(f"👤 {_line(item.get('name')) or '(без имени)'}")
     phone = item.get("phone") or ""
@@ -1463,6 +1466,10 @@ def admin_funnel(event):
     ) + f"<tr><td>заявки callback</td><td class='n'>{call_rep.get('leads', 0)}</td></tr>" + "".join(
         f"<tr><td>· {CALLBACK_WORDS_HE[k]} ({k})</td><td class='n'>{v}</td></tr>"
         for k, v in (call_rep.get("by_pref") or {}).items() if k in CALLBACK_WORDS_HE)
+    visit_rep = rep.get("visit") or {}
+    visit = f"<tr><td>сессии</td><td class='n'>{visit_rep.get('sessions', 0)}</td></tr>" + "".join(
+        f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td></tr>" for k, v in (visit_rep.get("by_cta") or {}).items()
+    ) + f"<tr><td>заявки visit</td><td class='n'>{visit_rep.get('leads', 0)}</td></tr>"
     vote_rep = rep.get("vote") or {}
     vote = f"<tr><td>голоса (lead_source=vote)</td><td class='n'>{vote_rep.get('leads', 0)}</td></tr>" + "".join(
         f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v}</td></tr>" for k, v in (vote_rep.get("by_product") or {}).items())
@@ -1518,6 +1525,7 @@ def admin_funnel(event):
   <section class="card"><h2>איפה עזבו · последний шаг сессии</h2><table>{dropped}</table></section>
   <section class="card"><h2>שאלה מכרטיס המוצר · вопрос с карточки (cta_ask)</h2><table>{ask}</table></section>
   <section class="card"><h2>התקשרו אלינו · «позвоните нам» (cta_call)</h2><table>{call}</table></section>
+  <section class="card"><h2>לראות מקרוב · визит (cta_visit)</h2><table>{visit}</table></section>
   <section class="card"><h2>מהדורה הבאה · голоса «אני רוצה כזה»</h2><table>{vote}</table></section>
   <section class="card"><h2>זמן בכרטיס · секунд на карточке</h2>
     <table><thead><tr><th>מוצר</th><th>медиана</th><th>n</th></tr></thead><tbody>{card_s}</tbody></table></section>
