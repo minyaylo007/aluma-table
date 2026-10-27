@@ -672,9 +672,10 @@ def size_table(p: dict, loc: str) -> str:
         f'<td><bdi dir="ltr">{st[0]} / {st[1]}</bdi></td>'
         f'<td><bdi dir="ltr">{money(s["price_ils"], loc)}</bdi></td></tr>' for s, st in rows)
     return ('<section class="pdp-sizes" aria-labelledby="sizes-h"><h2 class="pdp-inc-h" id="sizes-h">{{t.sizes_h}}</h2>'
-            '<table class="sizes-tbl"><thead><tr><th scope="col">{{t.sizes_col_size}}</th>'
+            # гортається сама лише при шрифті 200 % на 390 (1.4.4/1.4.10), сторінка — ні; tabindex — гортати з клавіатури
+            '<div class="sizes-scroll" tabindex="0" role="group" aria-labelledby="sizes-h"><table class="sizes-tbl"><thead><tr><th scope="col">{{t.sizes_col_size}}</th>'
             '<th scope="col">{{t.sizes_col_len}}</th><th scope="col">{{t.sizes_col_seats}}</th>'
-            '<th scope="col">{{t.sizes_col_price}}</th></tr></thead><tbody>' + body + '</tbody></table></section>')
+            '<th scope="col">{{t.sizes_col_price}}</th></tr></thead><tbody>' + body + '</tbody></table></div></section>')
 
 
 def buy_terms(p: dict) -> str:

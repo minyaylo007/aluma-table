@@ -694,10 +694,13 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-size p { margin: 10px 0 0; }
 /* №36: «איזה גודל מתאים לכם» — під селектором розміру; 4 колонки вміщаються в 358 px без прокрутки */
 .pdp-sizes { margin-block: 4px 18px; }
+.sizes-scroll { overflow-x: auto; }
 .sizes-tbl { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
 .sizes-tbl th, .sizes-tbl td { padding: 7px 4px; text-align: start; border-bottom: 1px solid var(--line); vertical-align: top; }
 .sizes-tbl thead th { font-size: .76rem; font-weight: 600; color: var(--muted); line-height: 1.3; hyphens: manual; }
-.sizes-tbl tbody th, .sizes-tbl td { font-weight: 600; white-space: nowrap; }
+/* неразривні лише розмір і сума («₪» не відривається); «160 → 240», «6 / 10» переносяться — шрифт 200 % на 390 (1.4.4) */
+.sizes-tbl tbody th { font-weight: 600; white-space: nowrap; }
+.sizes-tbl td:last-child { white-space: nowrap; }
 .sizes-tbl td { font-weight: 400; }
 .pdp-detail { display: grid; gap: 32px; }
 .pdp-detail > * { min-width: 0; }
