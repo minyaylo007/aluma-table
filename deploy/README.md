@@ -443,7 +443,7 @@ systemctl --user enable --now ihor-aluma-journal-watch.timer
 | Що | Де / як |
 |---|---|
 | токен | `~/.config/aluma/ig.env`, права 600: `IG_USER_ID`, `IG_ACCESS_TOKEN` (60 днів). Значення не друкувати — наявність лише рахунком: `grep -c '^IG_' ~/.config/aluma/ig.env` → 2. Секрет застосунку Meta не потрібен і в нас його нема |
-| пост | `docs/ig/NN-слаг.jpg` (1080×1080, JPEG, без тексту, цін, кнопок, плашок) + `NN-слаг.txt` (підпис UTF-8, LF, «הדמיה» обовʼязково, цін нема). Картинку Meta бере з `raw.githubusercontent.com` — лише після злиття в `master`. У `/srv/aluma` не класти: rsync `--delete-after` зітре |
+| пост | `docs/ig/NN-слаг.jpg` (JPEG ≤ 1 МБ: 01–05 — 1080×1080 без тексту; з 06 — 1080×1350 з текстом, `tools/ig_series.js`) + `NN-слаг.txt` (підпис UTF-8, LF, ≤ 400 знаків, ≤ 10 хештегів, одне речення російською в кінці). «הדמיה» — лише в уже опублікованих 01–03; з 04 слова нема, є «הפריט בייצור.» (слово власника 24.10 і 27.10); з 06 ціни — рівно як на сайті. Картинку Meta бере з `raw.githubusercontent.com` — лише після злиття в `master`. У `/srv/aluma` не класти: rsync `--delete-after` зітре |
 | скрипт | `POST /media` → чекати `FINISHED` (`--wait`, типово 60 с) → `POST /media_publish` → `permalink`. `--dry-run`: перевірки локально + рівно один `GET /me`, нічого не створює. Помилка Meta — тіло з вирізаним `access_token`, код 1 |
 | оновлення | `ihor-aluma-ig-refresh.timer`: 1-го і 15-го о 04:00, `Persistent=true`; `--refresh` атомарно (тимчасовий файл + `os.replace`, 600) пише новий токен у той самий `ig.env`, у журнал — лише `expires_in_days` |
 | журнал | `journalctl --user -u ihor-aluma-ig-refresh -n 3` — `{"event": "ig_token_refreshed", "expires_in_days": N}` або `ig_publish: …` у stderr, код 1 |
@@ -477,6 +477,42 @@ S=https://raw.githubusercontent.com/minyaylo007/aluma-table/master/docs/ig/stori
 python3 scripts/ig_publish.py --story --video-url $S/02-sahar.mp4 --dry-run
 python3 scripts/ig_publish.py --story --image-url $S/03-tones.jpg            # СПРАВЖНЯ історія
 ```
+
+**Серія 2 (№35)** — пости, історії 06–12, обкладинки «Актуального» і Reels робить `node tools/ig_series.js`
+(`--only posts,stories,highlights,reels`; слова — `tools/ig_series.json`, числа й назви — з `catalog/products.json` і
+`content.json`; 3D-кадри — `tools/ig_3d.html` у swiftshader). Перевіряє контраст ≥ 4.5:1, межі тексту, шрифт сайту,
+розмір файлів, тривалість reel 10–15 с; браузери — `PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright`.
+`scripts/ig_stories.js` лишився для 01–05.
+
+```bash
+R=https://raw.githubusercontent.com/minyaylo007/aluma-table/master/docs/ig
+python3 scripts/ig_publish.py --reel --video-url $R/reels/01-tavor-open.mp4 --caption-file docs/ig/reels/01-tavor-open.txt --dry-run
+python3 scripts/ig_publish.py --reel --video-url $R/reels/01-tavor-open.mp4 --caption-file docs/ig/reels/01-tavor-open.txt   # СПРАВЖНІЙ reel
+python3 scripts/ig_publish.py --insights --days 7      # охоплення: акаунт + кожна публікація за 7 днів, таблиця в stdout
+```
+
+`--reel` — `media_type=REELS`, `share_to_feed=true`, чекає `FINISHED` до 5 хв, після публікації перевіряє
+`media_product_type=REELS`. `--insights` нічого не створює, лише читає; метрики, яких Meta для типу не дає, — «—».
+
+Календар серії 2 (пости о 19:00 за Єрусалимом, історії ~12:00 того ж дня):
+
+| дата | пост | історія | reel |
+|---|---|---|---|
+| 28.10 | 06-tavor-280 | 06 | — |
+| 30.10 | 07-included | 07 | 01-tavor-open |
+| 01.11 | 08-sahar | 08 | — |
+| 03.11 | 09-inside | 09 | 02-tones |
+| 05.11 | 10-delivery | 10 | — |
+| 07.11 | 11-series | 11 | 03-series |
+| 09.11 | 12-how | 12 | — |
+
+**«Актуальне» (highlights) — лише руками**: API Instagram їх не створює. Обкладинки — `docs/ig/highlights/1-models.jpg`
+(דגמים), `2-prices` (מחירים), `3-delivery` (משלוח), `4-factory` (המפעל), `5-faq` (שאלות). Власнику, 5 кроків:
+1. Скачати 5 обкладинок на телефон (GitHub → `docs/ig/highlights/` → файл → Download).
+2. Instagram → профіль @aluma.il → «+» → «Актуальное» (або відкрити свою історію → «Выделить»).
+3. Обрати історії теми (з архіву історій) → «Далее».
+4. Назва — те саме слово, що на обкладинці; «Изменить обложку» → значок галереї → відповідна обкладинка.
+5. «Добавить»; повторити для 5 тем; порядок — утримати й перетягнути: דגמים, מחירים, משלוח, המפעל, שאלות.
 
 **Токен протух** (`HTTP 400`, `OAuthException`, `code 190`; або таймер не спрацював 60 днів): власник у
 developers.facebook.com → застосунок «ALUMA posts» → «Настройка API для входа в Instagram» → «Создать токен» для

@@ -10,6 +10,8 @@ raw.githubusercontent.com), підпис — з файлу UTF-8.
     python3 scripts/ig_publish.py --refresh          # ihor-aluma-ig-refresh.timer, раз на ~2 тижні
     python3 scripts/ig_publish.py --story --video-url https://…/docs/ig/stories/01-tavor.mp4 --dry-run
     python3 scripts/ig_publish.py --story --image-url https://…/docs/ig/stories/03-tones.jpg
+    python3 scripts/ig_publish.py --reel --video-url https://…/docs/ig/reels/01-tavor-open.mp4 --caption-file docs/ig/reels/01-tavor-open.txt
+    python3 scripts/ig_publish.py --insights --days 7   # охоплення останніх публікацій і акаунта, таблиця в stdout
 
 Кроки Content Publishing API (graph.instagram.com):
     POST /{IG_USER_ID}/media (image_url, caption) → контейнер
@@ -28,6 +30,16 @@ raw.githubusercontent.com), підпис — з файлу UTF-8.
 на файл цього репозиторію (…/master/docs/…), перевіряє локальну копію: JPEG 9:16 (Pillow, якщо є), MP4 9:16 і
 ≤ 60 с (ffprobe, якщо є). Чого нема — пропускаємо з позначкою в рядку dry-run, а не мовчки.
 
+Reel (--reel): POST /media з media_type=REELS, video_url (.mp4 9:16, h264, ≤ 90 с), caption і share_to_feed=true;
+FINISHED чекаємо до 300 с; після публікації — media_product_type має бути REELS. --dry-run — ті самі перевірки файлу,
+що й для ролика історії (HEAD + ffprobe локальної копії), плюс перевірка підпису.
+
+Звіт (--insights [--days 7]): публікації за останні N днів (GET /{IG_USER_ID}/media) і по кожній
+GET /{media}/insights — reach, views (у Reels — колишні plays: Meta замінила метрику у 2025), saved, shares, likes,
+comments; по акаунту — followers_count і за N днів profile_views, website_clicks, reach (metric_type=total_value).
+Метрику, яку API не віддає (нема дозволу, не той тип медіа), друкуємо як «—» і пишемо, що недоступно, — не падаємо.
+Лише агрегати: ні текстів коментарів, ні імен глядачів.
+
 Токен — з ~/.config/aluma/ig.env (IG_ENV або --env), KEY=VALUE без source. Його НІКОЛИ не друкуємо:
 у повідомленнях про помилку тіло відповіді Meta проходить через _redact(), як у api/handler.py.
 Код виходу ≠ 0 при будь-якій помилці.
@@ -36,6 +48,7 @@ raw.githubusercontent.com), підпис — з файлу UTF-8.
 from __future__ import annotations
 
 import argparse
+import calendar
 import json
 import os
 import pathlib
@@ -61,6 +74,10 @@ STORY_WAIT_VIDEO = 300  # с: ролик історії Meta обробляє д
 STORY_IMAGE_MAX = 8 * 1024 * 1024     # межа Instagram на JPEG
 STORY_VIDEO_MAX = 100 * 1024 * 1024   # межа Instagram на ролик історії
 STORY_VIDEO_SECONDS = 60
+REEL_VIDEO_SECONDS = 90   # наша межа для Reels (API дозволяє довші; рекламі й стрічці — коротко)
+REEL_VIDEO_MAX = 300 * 1024 * 1024
+MEDIA_METRICS = ("reach", "views", "saved", "shares", "likes", "comments")  # views у Reels — колишні plays
+ACCOUNT_METRICS = ("profile_views", "website_clicks", "reach")
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 _TOKEN_IN_TEXT = re.compile(r"(access_token=)[^&\s\"']+")
@@ -170,7 +187,7 @@ def check_story_url(url: str, video: bool) -> None:
         raise IgError(f"URL історії має закінчуватися на {' або '.join(ext)}")
 
 
-def check_story_remote(url: str, video: bool) -> str:
+def check_story_remote(url: str, video: bool, video_max: int = STORY_VIDEO_MAX) -> str:
     """HEAD: файл доступний за URL (Meta забере саме його), розмір у межах Instagram. Повертає опис для dry-run."""
     try:
         status, headers = _head(url)
@@ -179,7 +196,7 @@ def check_story_remote(url: str, video: bool) -> str:
     if status != 200:
         raise IgError(f"HEAD {url}: HTTP {status} — файл ще не в master або URL хибний")
     size = int(headers.get("content-length") or 0)
-    limit = STORY_VIDEO_MAX if video else STORY_IMAGE_MAX
+    limit = video_max if video else STORY_IMAGE_MAX
     if size > limit:
         raise IgError(f"{url}: {size} байт > {limit}")
     return f"URL 200, {size // 1024} КБ"
@@ -195,8 +212,8 @@ def _local_copy(url: str) -> pathlib.Path | None:
     return file if file.is_file() and (ROOT / "docs") in file.parents else None
 
 
-def check_story_local(file: pathlib.Path, video: bool, which=shutil.which) -> str:
-    """Формат локальної копії: 9:16 і (для ролика) ≤ 60 с. Без Pillow / ffprobe — позначка «не перевірено»."""
+def check_story_local(file: pathlib.Path, video: bool, which=shutil.which, max_seconds: float = STORY_VIDEO_SECONDS) -> str:
+    """Формат локальної копії: 9:16 і (для ролика) ≤ max_seconds. Без Pillow / ffprobe — позначка «не перевірено»."""
     if video:
         ffprobe = which("ffprobe")
         if not ffprobe:
@@ -213,8 +230,8 @@ def check_story_local(file: pathlib.Path, video: bool, which=shutil.which) -> st
             raise IgError(f"{file.name}: ffprobe не прочитав ролик") from None
         if stream.get("codec_name") != "h264":
             raise IgError(f"{file.name}: кодек {stream.get('codec_name')}, потрібен h264")
-        if seconds > STORY_VIDEO_SECONDS:
-            raise IgError(f"{file.name}: {seconds:.1f} с > {STORY_VIDEO_SECONDS}")
+        if seconds > max_seconds:
+            raise IgError(f"{file.name}: {seconds:.1f} с > {max_seconds:g}")
         kind = f"{width}×{height}, {seconds:.1f} с"
     else:
         try:
@@ -284,6 +301,113 @@ def publish_story(client: Client, url: str, video: bool, wait: float, sleep=time
     return media_id, info.get("media_product_type", ""), info.get("permalink", "")
 
 
+def publish_reel(client: Client, url: str, caption: str, wait: float, sleep=time.sleep) -> tuple[str, str, str]:
+    """Reel: контейнер REELS (+ у стрічку) → FINISHED → media_publish → (media_id, media_product_type, permalink)."""
+    params = {"media_type": "REELS", "video_url": url, "caption": caption, "share_to_feed": "true"}
+    container = client.call("POST", f"{client.user_id}/media", params)
+    container_id = container.get("id")
+    if not container_id:
+        raise IgError("POST /media: немає id контейнера")
+    wait_finished(client, container_id, wait, sleep=sleep)
+    reel = client.call("POST", f"{client.user_id}/media_publish", {"creation_id": container_id})
+    media_id = reel.get("id")
+    if not media_id:
+        raise IgError("POST /media_publish: немає id reel")
+    info = client.call("GET", media_id, {"fields": "media_product_type,permalink"})
+    return media_id, info.get("media_product_type", ""), info.get("permalink", "")
+
+
+def _insight_values(data: dict) -> dict:
+    """Відповідь /insights → {метрика: число}: і values[-1].value (медіа), і total_value.value (акаунт)."""
+    out = {}
+    for item in data.get("data", []):
+        if "total_value" in item:
+            value = (item.get("total_value") or {}).get("value")
+        else:
+            values = item.get("values") or [{}]
+            value = values[-1].get("value")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            out[item.get("name")] = value
+    return out
+
+
+def fetch_metrics(client: Client, path: str, metrics, extra: dict | None = None) -> tuple[dict, list]:
+    """Усі метрики одним запитом; якщо Meta відмовляє — по одній. → ({метрика: число}, [недоступні])."""
+    params = dict(extra or {})
+    try:
+        got = _insight_values(client.call("GET", path, dict(params, metric=",".join(metrics))))
+    except IgError:
+        got = {}
+        for metric in metrics:
+            try:
+                got.update(_insight_values(client.call("GET", path, dict(params, metric=metric))))
+            except IgError:
+                pass
+    return got, [m for m in metrics if m not in got]
+
+
+def _epoch(stamp: str) -> float | None:
+    """«2026-10-28T16:00:05+0000» (Graph API, завжди UTC) → секунди UNIX."""
+    try:
+        return calendar.timegm(time.strptime(stamp[:19], "%Y-%m-%dT%H:%M:%S"))
+    except ValueError:
+        return None
+
+
+def insights(client: Client, days: int, now: float | None = None, limit: int = 50) -> dict:
+    """Агрегати за останні days днів: публікації (кожна окремо) і акаунт. Без текстів і без чужих імен."""
+    now = time.time() if now is None else now
+    since = now - days * 86400
+    listing = client.call("GET", f"{client.user_id}/media", {
+        "fields": "id,media_type,media_product_type,timestamp,permalink", "limit": str(limit)})
+    media = []
+    for item in listing.get("data", []):
+        stamp = item.get("timestamp", "")
+        when = _epoch(stamp)
+        if when is None or when < since or not item.get("id"):
+            continue
+        product = item.get("media_product_type", "")
+        values, missing = fetch_metrics(client, f"{item['id']}/insights", MEDIA_METRICS)
+        media.append({"id": item["id"], "date": stamp[:10], "type": product or item.get("media_type", ""),
+                      "permalink": item.get("permalink", ""), "values": values, "missing": missing})
+    account = {}
+    try:
+        account["followers_count"] = client.call("GET", client.user_id, {"fields": "followers_count"}).get("followers_count")
+    except IgError:
+        account["followers_count"] = None
+    # total_value дозволяє вікно до 30 днів; since/until — секунди UNIX
+    window = {"period": "day", "metric_type": "total_value",
+              "since": str(int(now - min(days, 30) * 86400)), "until": str(int(now))}
+    values, missing = fetch_metrics(client, f"{client.user_id}/insights", ACCOUNT_METRICS, window)
+    account.update(values)
+    return {"days": days, "media": media, "account": account, "account_missing": missing}
+
+
+def format_insights(report: dict) -> str:
+    """Таблиця для stdout: рядок на публікацію, «—» — метрика недоступна."""
+    cols = ("reach", "views", "likes", "comments", "saved", "shares")
+    lines = [f"Instagram @aluma.il — за {report['days']} дн., публікацій: {len(report['media'])}",
+             f"{'дата':<11} {'тип':<8} " + " ".join(f"{c:>8}" for c in cols) + "  посилання"]
+    for m in report["media"]:
+        cells = " ".join(f"{m['values'].get(c, '—')!s:>8}" for c in cols)
+        lines.append(f"{m['date']:<11} {m['type'][:8]:<8} {cells}  {m['permalink']}")
+    total = {c: sum(m["values"].get(c, 0) for m in report["media"]) for c in cols}
+    lines.append(f"{'разом':<20} " + " ".join(f"{total[c]!s:>8}" for c in cols))
+    acc = report["account"]
+
+    def shown(key):
+        return "недоступно" if acc.get(key) is None else acc[key]
+
+    lines.append(f"акаунт: підписників {shown('followers_count')}, переглядів профілю {shown('profile_views')}, "
+                 f"переходів на сайт {shown('website_clicks')}, охоплення {shown('reach')}")
+    if report["account_missing"]:
+        lines.append("недоступно від API (акаунт): " + ", ".join(report["account_missing"]))
+    gaps = sorted({x for m in report["media"] for x in m["missing"]})
+    if gaps:
+        lines.append("метрики публікацій, яких API не віддав (—): " + ", ".join(gaps))
+    return "\n".join(lines)
+
+
 def write_token(env_path: pathlib.Path, new_token: str) -> None:
     """Замінити IG_ACCESS_TOKEN у файлі атомарно: тимчасовий файл поруч (0600) + os.replace. Решта рядків — як були."""
     lines = env_path.read_text(encoding="utf-8").splitlines()
@@ -328,9 +452,12 @@ def main(argv=None, sleep=time.sleep) -> int:
     ap.add_argument("--image-url")
     ap.add_argument("--caption-file")
     ap.add_argument("--story", action="store_true", help="історія: --image-url (.jpg) або --video-url (.mp4), без підпису")
-    ap.add_argument("--video-url", help="лише з --story: ролик .mp4 9:16 ≤ 60 с")
+    ap.add_argument("--video-url", help="з --story: ролик .mp4 9:16 ≤ 60 с; з --reel: .mp4 9:16 ≤ 90 с")
+    ap.add_argument("--reel", action="store_true", help="Reel: --video-url (.mp4 9:16 ≤ 90 с) + --caption-file, і в стрічку")
+    ap.add_argument("--insights", action="store_true", help="звіт охоплень за --days днів, таблиця в stdout")
+    ap.add_argument("--days", type=int, default=7, help="з --insights: вікно в днях (типово 7, акаунт — до 30)")
     ap.add_argument("--dry-run", action="store_true", help="лише перевірки й один GET /me, нічого не створює")
-    ap.add_argument("--wait", type=float, default=None, help="скільки секунд чекати FINISHED (типово 60; ролик історії — 300)")
+    ap.add_argument("--wait", type=float, default=None, help="скільки секунд чекати FINISHED (типово 60; ролик історії й reel — 300)")
     ap.add_argument("--refresh", action="store_true", help="оновити токен і записати його назад у --env")
     args = ap.parse_args(argv)
 
@@ -350,10 +477,19 @@ def main(argv=None, sleep=time.sleep) -> int:
             print(json.dumps({"event": "ig_token_refreshed", "expires_in_days": days}))
             return 0
 
+        if args.story and args.reel:
+            raise IgError("--story і --reel разом не бувають")
+        if args.insights:
+            if args.days < 1:
+                raise IgError("--days має бути ≥ 1")
+            print(format_insights(insights(client, args.days)))
+            return 0
         if args.story:
             return story_main(client, args, sleep)
+        if args.reel:
+            return reel_main(client, args, sleep)
         if args.video_url:
-            raise IgError("--video-url — лише з --story (ролики в стрічку цей скрипт не публікує)")
+            raise IgError("--video-url — лише з --story або --reel")
         if not args.image_url or not args.caption_file:
             raise IgError("потрібні --image-url і --caption-file (або --refresh, або --story)")
         check_image_url(args.image_url)
@@ -398,6 +534,34 @@ def story_main(client: Client, args, sleep) -> int:
     print(f"permalink={link}")
     if product != "STORY":
         raise IgError(f"media {media_id}: media_product_type={product or '—'}, а не STORY")
+    return 0
+
+
+def reel_main(client: Client, args, sleep) -> int:
+    if not args.video_url or args.image_url:
+        raise IgError("--reel: потрібен --video-url (.mp4), без --image-url")
+    if not args.caption_file:
+        raise IgError("--reel: потрібен --caption-file")
+    check_story_url(args.video_url, True)
+    caption = read_caption(pathlib.Path(args.caption_file))
+    check_caption(caption)
+    if args.dry_run:
+        notes = [check_story_remote(args.video_url, True, video_max=REEL_VIDEO_MAX)]
+        local = _local_copy(args.video_url)
+        notes.append(check_story_local(local, True, max_seconds=REEL_VIDEO_SECONDS) if local
+                     else "локальної копії нема — формат не перевірено")
+        me = client.call("GET", "me", {"fields": "username"})
+        tags = len(re.findall(r"#\w+", caption))
+        print(f"dry-run ok: @{me.get('username', '?')}, reel: {'; '.join(notes)}; підпис {len(caption)} знаків, "
+              f"хештегів {tags}; нічого не створено")
+        return 0
+    wait = args.wait if args.wait is not None else STORY_WAIT_VIDEO
+    media_id, product, link = publish_reel(client, args.video_url, caption, wait, sleep=sleep)
+    print(f"media_id={media_id}")
+    print(f"media_product_type={product}")
+    print(f"permalink={link}")
+    if product != "REELS":
+        raise IgError(f"media {media_id}: media_product_type={product or '—'}, а не REELS")
     return 0
 
 

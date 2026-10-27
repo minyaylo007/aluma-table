@@ -7,7 +7,10 @@
 //   nice -n 19 node scripts/ig_stories.js                    # → docs/ig/stories/
 //   nice -n 19 node scripts/ig_stories.js --out "$TMPDIR/st" # чернетка
 //
-// Перевірки (вихід 1 при порушенні): контраст кожного тексту ≥ 4.5:1 до непрозорого тла, «הדמיה» видима, шрифт сайту
+// Історії серії 2 (06–12) робить tools/ig_series.js — тут лише 01–05. «הדמיה» на кадрах більше не ставимо (слово
+// власника 27.10); файли 01–05 у docs/ig/stories/ — ті, що вже вийшли, з позначкою.
+//
+// Перевірки (вихід 1 при порушенні): контраст кожного тексту ≥ 4.5:1 до непрозорого тла, шрифт сайту
 // й кадри завантажені, увесь текст у безпечній смузі історії (нижче 250 px — шапка з аватаром, вище 1620 px — поле
 // відповіді), JPG ≤ 500 КБ, MP4 ≤ 60 с і ≤ 4 МБ. Підпису й стікерів API історій не приймає — усе на кадрі.
 'use strict';
@@ -84,9 +87,6 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 .canvas { position: relative; width: ${W}px; height: ${H}px; overflow: hidden; background: var(--paper); }
 .media { position: absolute; inset: 0; overflow: hidden; }
 .media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* «הדמיה» — непрозора, нижче шапки історії (аватар, смужки прогресу ~ 250 px). */
-.mark { position: absolute; top: 270px; left: 40px; padding: 8px 18px; border-radius: 4px;
-  background: var(--dark); color: var(--cream); font: 600 28px/1.2 var(--sans); letter-spacing: .02em; }
 .panel { position: absolute; left: 48px; right: 48px; top: 1060px; background: var(--paper); border-radius: 12px;
   padding: 40px 52px; display: flex; flex-direction: column; gap: 14px; }
 .brand { font: 600 24px/1 var(--sans); letter-spacing: .32em; color: var(--oak-deep); }
@@ -100,7 +100,7 @@ ${extraCss}
 
 const panelHtml = (cfg, headline, sub) => `<div class="panel"><div class="brand" data-text>${B.esc(cfg.brand)}</div>` +
   `<h1 class="headline" data-text>${headline}</h1><p class="sub" data-text>${sub}</p></div>`;
-const chrome = (cfg) => `<div class="mark" data-text>${B.esc(cfg.mark)}</div><div class="cta" data-text>${B.esc(cfg.cta)}</div>`;
+const chrome = (cfg) => `<div class="cta" data-text>${B.esc(cfg.cta)}</div>`;
 
 // Кадр історії → { html, files }: files — карта /img/<n> → шлях на диску для page.route.
 function frameHtml(cfg, fonts, story, frame, catalog, byId) {
@@ -126,8 +126,7 @@ function frameHtml(cfg, fonts, story, frame, catalog, byId) {
     const css = `.head { position: absolute; top: 250px; left: 48px; right: 48px; display: flex; flex-direction: column; gap: 10px; }
 .bands { position: absolute; top: 470px; left: 0; right: 0; display: grid; gap: 6px; grid-template-rows: repeat(${p.finishes.length}, 186px); }
 .band { position: relative; overflow: hidden; } .band img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.tone { position: absolute; right: 40px; bottom: 18px; background: var(--paper); color: var(--ink); font: 600 30px/1 var(--sans); padding: 12px 20px; border-radius: 4px; }
-.mark { top: 490px; }`;
+.tone { position: absolute; right: 40px; bottom: 18px; background: var(--paper); color: var(--ink); font: 600 30px/1 var(--sans); padding: 12px 20px; border-radius: 4px; }`;
     const body = `<div class="head"><h1 class="headline" data-text>${text(story.headline, p, catalog)}</h1>` +
       `<p class="sub" data-text>${text(story.sub, p, catalog)}</p></div><div class="bands">${bands}</div>${chrome(cfg)}`;
     return { html: page(fonts, body, css), files };
@@ -144,7 +143,7 @@ function frameHtml(cfg, fonts, story, frame, catalog, byId) {
   throw new Error(`${story.id}: невідомий kind ${story.kind}`);
 }
 
-// У сторінці: контраст кожного тексту до непрозорого тла, межі тексту, позначка, кадри, шрифт.
+// У сторінці: контраст кожного тексту до непрозорого тла, межі тексту, кадри, шрифт.
 function measure() {
   const lum = (c) => {
     const [r, g, b] = c.slice(0, 3).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
@@ -166,13 +165,9 @@ function measure() {
     return { text: el.textContent.trim().slice(0, 40), contrast: bg ? (a + 0.05) / (b + 0.05) : 0,
       top: r.top, bottom: r.bottom, left: r.left, right: r.right, overflow: el.scrollWidth > el.clientWidth + 1 };
   });
-  const mark = document.querySelector('.mark');
-  const mbox = mark.getBoundingClientRect();
-  // Позначку не перекриває нічого: точка в її центрі належить їй.
-  const markOnTop = document.elementFromPoint(mbox.left + mbox.width / 2, mbox.top + mbox.height / 2) === mark;
-  return { texts, mark: mark.textContent.trim(), markVisible: mbox.width > 0 && markOnTop,
+  return { texts,
     imagesOk: [...document.images].every((i) => i.complete && i.naturalWidth > 0),
-    fontsOk: ![...document.fonts].some((f) => f.status === 'error') && document.fonts.check('600 28px "IBM Plex Sans Hebrew"', 'הדמיה') };
+    fontsOk: ![...document.fonts].some((f) => f.status === 'error') && document.fonts.check('600 28px "IBM Plex Sans Hebrew"', 'שולחן') };
 }
 
 function ffmpeg(argv) {
@@ -221,7 +216,6 @@ async function render(browser, cfg, fonts, story, frame, catalog, byId, file) {
     if (t.top < SAFE_TOP - 0.5 || t.bottom > SAFE_BOTTOM + 0.5 || t.left < 0 || t.right > W) problems.push(`поза безпечною смугою «${t.text}»`);
     if (t.overflow) problems.push(`не влазить «${t.text}»`);
   }
-  if (m.mark !== cfg.mark || !m.markVisible) problems.push(`нема позначки «${cfg.mark}»`);
   if (!m.imagesOk) problems.push('кадр не завантажився');
   if (!m.fontsOk) problems.push('шрифт сайту не завантажився');
   if (shot.bytes > B.MAX_BYTES) problems.push(`${Math.round(shot.bytes / 1024)} КБ > 500`);

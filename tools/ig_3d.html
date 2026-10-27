@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>ALUMA — 3D-кадри для Instagram</title>
+<script src="/assets/vendor/three.min.js"></script>
+<script src="/assets/products/aluma3d.js"></script>
+<style>html,body{margin:0;background:#f3f0ea;overflow:hidden}canvas{display:block}</style>
+</head><body>
+<script>
+// Сцена tools/ig_series.js: та сама модель і студія, що в 3D-перегляді сайту (site/assets/products/aluma3d.js),
+// але камера фіксується за габаритом РОЗКЛАДЕНОГО столу — кадри «закритий → наполовину → розкладений» з однієї точки,
+// тож у ролику стіл росте на місці, а не камера стрибає. window.shot(job) → PNG (dataURL).
+//   job: { product, size, finish, state, fitState, view: {az, el, fov, margin, shiftY, lift}, w, h, bg }
+let renderer = null;
+window.shot = async function (job) {
+  if (!renderer) {
+    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1);
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+  }
+  renderer.setSize(job.w, job.h);
+  renderer.setClearColor(new THREE.Color(job.bg || '#f3f0ea'), 1);
+  const opts = { product: job.product, size: job.size, finish: job.finish || 'natural', base: 'oak' };
+  // габарит для камери — від стану fitState (типово 'open'): одна точка зйомки на всі стани
+  const fit = await Aluma3D.build(THREE, Object.assign({}, opts, { state: job.fitState || 'open' }));
+  const box = fit.bounds().clone();
+  fit.dispose();
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, job.w / job.h, 0.05, 60);
+  const model = await Aluma3D.build(THREE, Object.assign({}, opts, { state: job.state }));
+  scene.add(model.group);
+  Aluma3D.studio(THREE, scene, renderer, model, {});
+  Aluma3D.frame(THREE, camera, box, Object.assign({ aspect: job.w / job.h }, job.view || {}));
+  renderer.render(scene, camera);
+  renderer.render(scene, camera);   // VSM: другий прохід, тіні вже розмиті
+  const url = renderer.domElement.toDataURL('image/png');
+  model.dispose();
+  if (scene.environment) scene.environment.dispose();
+  return url;
+};
+window.__ready = true;
+</script>
+</body></html>

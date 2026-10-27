@@ -12,6 +12,7 @@ import os
 import pathlib
 import stat
 import tempfile
+import time
 import unittest
 import urllib.parse
 from unittest import mock
@@ -361,22 +362,220 @@ class StoryTests(Base):
             ig_publish.check_story_local(sq, False)
 
 
-class StoryFilesTests(unittest.TestCase):
-    """docs/ig/stories/: кожна історія — NN-слаг.jpg (+ .mp4) + .txt; в описі «הדמיה» і дата виходу; без «знижок»."""
-    DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "stories"
+REEL_MP4 = RAW + "docs/ig/reels/01-tavor-open.mp4"
 
-    def test_five_stories(self):
+
+class ReelTests(Base):
+    """--reel: media_type=REELS, підпис, share_to_feed; ролик чекає до 300 с; результат — саме REELS."""
+
+    def run_reel(self, graph, *args, head=(200, {"content-type": "video/mp4", "content-length": "2000000"})):
+        heads = []
+
+        def fake_head(url):
+            heads.append(url)
+            return head
+
+        with mock.patch.object(ig_publish, "_head", fake_head):
+            res = self.run_main(graph, "--reel", *args)
+        return (*res, heads)
+
+    def test_order_and_params(self):
+        g = FakeGraph(product="REELS")
+        code, out, err, _, heads = self.run_reel(g, "--video-url", REEL_MP4, "--caption-file", str(self.caption))
+        self.assertEqual(code, 0, err)
+        seq = [(m, p.split("/", 2)[-1]) for m, p, _ in g.calls]
+        self.assertEqual(seq, [("POST", f"{USER}/media"), ("GET", "C1"),
+                               ("POST", f"{USER}/media_publish"), ("GET", "M1")])
+        media = g.calls[0][2]
+        self.assertEqual(media["media_type"], "REELS")
+        self.assertEqual(media["video_url"], REEL_MP4)
+        self.assertEqual(media["share_to_feed"], "true")
+        self.assertEqual(media["caption"], self.caption.read_text(encoding="utf-8").strip("\n"))
+        self.assertNotIn("image_url", media)
+        self.assertEqual(g.calls[3][2]["fields"], "media_product_type,permalink")
+        self.assertIn("media_id=M1", out)
+        self.assertIn("media_product_type=REELS", out)
+        self.assertIn("permalink=https://www.instagram.com/p/XYZ/", out)
+        self.assertEqual(heads, [])
+        self.assertNotIn(TOKEN, out + err)
+
+    def test_waits_up_to_300s(self):
+        g = FakeGraph(statuses=("IN_PROGRESS",) * 40 + ("FINISHED",), product="REELS")
+        clock = iter(range(0, 10000, 5))
+        with mock.patch.object(ig_publish.time, "monotonic", lambda: next(clock)):
+            code, _, err, sleeps, _ = self.run_reel(g, "--video-url", REEL_MP4, "--caption-file", str(self.caption))
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(sleeps), 40)
+
+    def test_not_a_reel_is_error(self):
+        code, _, err, _, _ = self.run_reel(FakeGraph(product="FEED"), "--video-url", REEL_MP4,
+                                           "--caption-file", str(self.caption))
+        self.assertEqual(code, 1)
+        self.assertIn("не REELS", err)
+
+    def refused(self, *args, text):
+        g = FakeGraph(product="REELS")
+        code, _, err, _, _ = self.run_reel(g, *args)
+        self.assertEqual(code, 1)
+        self.assertEqual(g.calls, [])
+        self.assertIn(text, err)
+
+    def test_refusals(self):
+        cap = ("--caption-file", str(self.caption))
+        self.refused(*cap, text="--video-url")
+        self.refused("--video-url", REEL_MP4, text="--caption-file")
+        self.refused("--video-url", REEL_MP4, "--image-url", IMG, *cap, text="без --image-url")
+        self.refused("--video-url", IMG, *cap, text=".mp4")
+        self.refused("--video-url", REEL_MP4.replace("https", "http"), *cap, text="https")
+        self.refused("--video-url", REEL_MP4, "--story", *cap, text="разом")
+        self.caption.write_text(" ".join(f"#תג{i}" for i in range(31)), encoding="utf-8")
+        self.refused("--video-url", REEL_MP4, *cap, text="хештегів 31")
+
+    def test_dry_run(self):
+        g = FakeGraph()
+        code, out, err, _, heads = self.run_reel(g, "--video-url", REEL_MP4, "--caption-file", str(self.caption),
+                                                 "--dry-run")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(heads, [REEL_MP4])
+        self.assertEqual([(m, p.rsplit("/", 1)[-1]) for m, p, _ in g.calls], [("GET", "me")])
+        self.assertIn("reel", out)
+        self.assertIn("нічого не створено", out)
+
+    def test_dry_run_reel_bigger_than_story_limit_ok(self):
+        size = str(150 * 1024 * 1024)  # > 100 МБ історії, < 300 МБ reel
+        code, _, err, _, _ = self.run_reel(FakeGraph(), "--video-url", REEL_MP4, "--caption-file", str(self.caption),
+                                           "--dry-run", head=(200, {"content-length": size}))
+        self.assertEqual(code, 0, err)
+
+    def test_local_duration_limit_90(self):
+        f = self.dir / "r.mp4"
+        f.write_bytes(b"x")
+
+        def probe(seconds):
+            out = json.dumps({"streams": [{"codec_name": "h264", "width": 1080, "height": 1920}],
+                              "format": {"duration": str(seconds)}})
+            return mock.Mock(stdout=out)
+
+        with mock.patch.object(ig_publish.subprocess, "run", return_value=probe(75)):
+            self.assertIn("75.0 с", ig_publish.check_story_local(f, True, which=lambda _: "/x/ffprobe",
+                                                                  max_seconds=ig_publish.REEL_VIDEO_SECONDS))
+            with self.assertRaises(ig_publish.IgError):  # історія: та сама тривалість — понад 60
+                ig_publish.check_story_local(f, True, which=lambda _: "/x/ffprobe")
+        with mock.patch.object(ig_publish.subprocess, "run", return_value=probe(95)):
+            with self.assertRaises(ig_publish.IgError):
+                ig_publish.check_story_local(f, True, which=lambda _: "/x/ffprobe",
+                                             max_seconds=ig_publish.REEL_VIDEO_SECONDS)
+
+
+NOW = 1793000000  # 2026-10-27, фіксований «зараз» для --insights
+
+
+class InsightsGraph:
+    """Graph для --insights: дві свіжі публікації й одна стара; метрика views поста — відмова, акаунт без website_clicks."""
+
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self, method, url, data):
+        parts = urllib.parse.urlsplit(url)
+        params = dict(urllib.parse.parse_qsl(parts.query))
+        path = parts.path
+        self.calls.append((method, path, params))
+        if method != "GET":
+            return 400, b'{"error": "read only"}'
+        stamp = lambda days: time.strftime("%Y-%m-%dT%H:%M:%S+0000", time.gmtime(NOW - days * 86400))  # noqa: E731
+        if path.endswith(f"/{USER}/media"):
+            return 200, json.dumps({"data": [
+                {"id": "R1", "media_type": "VIDEO", "media_product_type": "REELS", "timestamp": stamp(1),
+                 "permalink": "https://www.instagram.com/reel/R1/"},
+                {"id": "P1", "media_type": "IMAGE", "media_product_type": "FEED", "timestamp": stamp(3),
+                 "permalink": "https://www.instagram.com/p/P1/"},
+                {"id": "OLD", "media_type": "IMAGE", "media_product_type": "FEED", "timestamp": stamp(20),
+                 "permalink": "https://www.instagram.com/p/OLD/"}]}).encode()
+        metric = params.get("metric", "")
+        if path.endswith("/R1/insights"):
+            return 200, json.dumps({"data": [{"name": m, "values": [{"value": 10 + i}]}
+                                             for i, m in enumerate(metric.split(","))]}).encode()
+        if path.endswith("/P1/insights"):
+            if "views" in metric.split(","):
+                return 400, json.dumps({"error": {"message": f"views unsupported token {TOKEN}"}}).encode()
+            return 200, json.dumps({"data": [{"name": metric, "values": [{"value": 2}]}]}).encode()
+        if path.endswith(f"/{USER}/insights"):
+            if "website_clicks" in metric.split(","):
+                return 400, b'{"error": {"message": "no permission"}}'
+            return 200, json.dumps({"data": [{"name": metric, "total_value": {"value": 7}}]}).encode()
+        if path.endswith(f"/{USER}"):
+            return 200, b'{"followers_count": 3, "id": "1"}'
+        return 404, b'{"error": "unknown"}'
+
+
+class InsightsTests(Base):
+    def run_insights(self, *args):
+        g = InsightsGraph()
+        with mock.patch.object(ig_publish.time, "time", lambda: NOW):
+            code, out, err, _ = self.run_main(g, "--insights", *args)
+        return g, code, out, err
+
+    def test_table_and_fallbacks(self):
+        g, code, out, err = self.run_insights("--days", "7")
+        self.assertEqual(code, 0, err)
+        self.assertIn("публікацій: 2", out)
+        self.assertIn("https://www.instagram.com/reel/R1/", out)
+        self.assertNotIn("OLD", out)  # поза вікном 7 днів — без метрик
+        self.assertFalse(any("/OLD/" in p for _, p, _ in g.calls))
+        reel_row = next(line for line in out.splitlines() if "/reel/R1/" in line)
+        self.assertEqual(reel_row.split()[2:8], ["10", "11", "14", "15", "12", "13"])  # reach views likes comments saved shares
+        post_row = next(line for line in out.splitlines() if "/p/P1/" in line)
+        self.assertEqual(post_row.split()[2:4], ["2", "—"])
+        self.assertIn("підписників 3", out)
+        self.assertIn("переглядів профілю 7", out)
+        self.assertIn("переходів на сайт недоступно", out)
+        self.assertIn("недоступно від API (акаунт): website_clicks", out)
+        self.assertIn("views", out.splitlines()[-1])
+        self.assertTrue(all(m == "GET" for m, _, _ in g.calls))  # звіт нічого не створює
+        self.assertNotIn(TOKEN, out + err)
+
+    def test_account_window_params(self):
+        g, code, _, err = self.run_insights("--days", "45")
+        self.assertEqual(code, 0, err)
+        acc = [p for _, path, p in g.calls if path.endswith(f"/{USER}/insights")][0]
+        self.assertEqual(acc["metric_type"], "total_value")
+        self.assertEqual(acc["period"], "day")
+        self.assertEqual(int(acc["until"]) - int(acc["since"]), 30 * 86400)  # API: вікно до 30 днів
+
+    def test_bad_days(self):
+        g, code, _, err = self.run_insights("--days", "0")
+        self.assertEqual(code, 1)
+        self.assertEqual(g.calls, [])
+
+    def test_insight_values_shapes(self):
+        self.assertEqual(ig_publish._insight_values({"data": [
+            {"name": "reach", "values": [{"value": 5}]}, {"name": "profile_views", "total_value": {"value": 4}},
+            {"name": "bad", "values": [{"value": "x"}]}]}), {"reach": 5, "profile_views": 4})
+
+
+class StoryFilesTests(unittest.TestCase):
+    """docs/ig/stories/: кожна історія — NN-слаг.jpg (+ .mp4) + .txt з датою виходу; без «знижок». «הדמיה» —
+    лише в уже опублікованих 01–05; з 06 її нема (слово власника 27.10)."""
+    DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "stories"
+    OLD = ("01", "02", "03", "04", "05")
+
+    def test_stories(self):
         notes = sorted(self.DIR.glob("[0-9][0-9]-*.txt"))
-        self.assertEqual([t.name[:2] for t in notes], ["01", "02", "03", "04", "05"])
+        self.assertEqual([t.name[:2] for t in notes], [f"{n:02d}" for n in range(1, 13)])
         for txt in notes:
             raw = txt.read_bytes()
             self.assertNotIn(b"\r", raw, txt.name)
             text = raw.decode("utf-8")
-            self.assertIn("הדמיה", text, txt.name)
-            self.assertRegex(text, r"2026-10-2\d", txt.name)
+            if txt.name[:2] in self.OLD:
+                self.assertIn("הדמיה", text, txt.name)
+            else:
+                self.assertIn("Без «הדמיה»", text, txt.name)
+            self.assertRegex(text, r"2026-1[01]-\d\d", txt.name)
             self.assertNotRegex(text, r"נותרו|הנחה|מבצע", txt.name)
             jpg = txt.with_suffix(".jpg")
             self.assertEqual(jpg.read_bytes()[:3], b"\xff\xd8\xff", jpg.name)
+            self.assertLessEqual(jpg.stat().st_size, 1024 * 1024, jpg.name)
             mp4 = txt.with_suffix(".mp4")
             if mp4.exists():
                 self.assertEqual(mp4.read_bytes()[4:8], b"ftyp", mp4.name)
@@ -392,13 +591,13 @@ class StoryFilesTests(unittest.TestCase):
 
 
 class PostFilesTests(unittest.TestCase):
-    """docs/ig/: кожен пост — пара NN-слаг.jpg + .txt; без цін, у межах Instagram. «הדמיה» — лише в уже
-    опублікованих 01–03 (їх не правимо); з 04 слова нема (слово власника 24.10: «не пиши, что это визуализация»)."""
+    """docs/ig/: кожен пост — пара NN-слаг.jpg + .txt у межах Instagram. 01–05 вже вийшли без цін; «הדמיה» — лише
+    в 01–03 (їх не правимо); з 04 слова нема (слово власника 24.10), є «הפריט בייצור.». З 06 ціни — як на сайті."""
     DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig"
 
     def test_pairs_and_captions(self):
         captions = sorted(self.DIR.glob("*.txt"))
-        self.assertEqual(len(captions), 5)
+        self.assertEqual([t.name[:2] for t in captions], [f"{n:02d}" for n in range(1, 13)])
         for txt in captions:
             raw = txt.read_bytes()
             self.assertNotIn(b"\r", raw, txt.name)
@@ -408,10 +607,59 @@ class PostFilesTests(unittest.TestCase):
                 self.assertIn("הדמיה", text, txt.name)
             else:
                 self.assertNotIn("הדמיה", text, txt.name)
-                self.assertIn("הפריט בייצור.", text, txt.name)
-            self.assertNotRegex(text, r"₪|\bNIS\b|ש״ח|шек", txt.name)
+                self.assertRegex(text, r"הפריט(ים)? בייצור\.", txt.name)
+            if txt.name[:2] <= "05":
+                self.assertNotRegex(text, r"₪|\bNIS\b|ש״ח|шек", txt.name)
+            self.assertNotRegex(text, r"נותרו|הנחה|מבצע|וואטסאפ|WhatsApp", txt.name)
             jpg = txt.with_suffix(".jpg")
             self.assertEqual(jpg.read_bytes()[:3], b"\xff\xd8\xff", jpg.name)
+            self.assertLessEqual(jpg.stat().st_size, 1024 * 1024, jpg.name)
+
+
+class HighlightFilesTests(unittest.TestCase):
+    """docs/ig/highlights/: п'ять обкладинок «Актуального» 1080×1920, JPEG."""
+    DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "highlights"
+
+    def test_five_covers(self):
+        covers = sorted(self.DIR.glob("*.jpg"))
+        self.assertEqual([c.name[0] for c in covers], ["1", "2", "3", "4", "5"])
+        for c in covers:
+            self.assertEqual(c.read_bytes()[:3], b"\xff\xd8\xff", c.name)
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow нема")
+        for c in covers:
+            with Image.open(c) as im:
+                self.assertEqual(im.size, (1080, 1920), c.name)
+
+
+class ReelFilesTests(unittest.TestCase):
+    """docs/ig/reels/: NN-слаг.mp4 + обкладинка .jpg + підпис .txt; підпис у межах Instagram, без «הדמיה»."""
+    DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "reels"
+
+    def test_reels(self):
+        videos = sorted(self.DIR.glob("[0-9][0-9]-*.mp4"))
+        self.assertEqual([v.name[:2] for v in videos], ["01", "02", "03"])
+        for mp4 in videos:
+            self.assertEqual(mp4.read_bytes()[4:8], b"ftyp", mp4.name)
+            self.assertLessEqual(mp4.stat().st_size, 8 * 1024 * 1024, mp4.name)
+            self.assertEqual(mp4.with_suffix(".jpg").read_bytes()[:3], b"\xff\xd8\xff", mp4.name)
+            raw = mp4.with_suffix(".txt").read_bytes()
+            self.assertNotIn(b"\r", raw, mp4.name)
+            text = raw.decode("utf-8")
+            ig_publish.check_caption(text)
+            self.assertNotIn("הדמיה", text, mp4.name)
+            self.assertRegex(text, r"הפריט(ים)? בייצור\.", mp4.name)
+
+
+class SeriesSourceTests(unittest.TestCase):
+    """tools/ig_series.json — без «הדמיה», «знижок» і таймерів на кадрах."""
+
+    def test_no_forbidden_words(self):
+        data = json.loads((pathlib.Path(__file__).resolve().parents[1] / "tools" / "ig_series.json").read_text(encoding="utf-8"))
+        data.pop("_comment")  # правила для автора — там ці слова названі як заборонені
+        self.assertNotRegex(json.dumps(data, ensure_ascii=False), r"הדמיה|נותרו|הנחה|מבצע")
 
 
 if __name__ == "__main__":

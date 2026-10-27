@@ -1,7 +1,6 @@
 {
-  "_comment": "Історії @aluma.il 1080×1920 (scripts/ig_stories.js → docs/ig/stories/). Слова — тут, цифри, назви, слогани й тони — з catalog/products.json: {name}, {tagline}, {length}, {extended}, {seats}, {seats_extended}, {n_tones}, {n_products} підставляє ig_stories.js. Ні знижок, ні «נותרו», ні відгуків, ні цін, яких нема на сайті; «הדמיה» — на кожному кадрі. Підпису й стікерів API історій не приймає: усе — на кадрі, посилання — в біо.",
+  "_comment": "Історії @aluma.il 1080×1920 (scripts/ig_stories.js → docs/ig/stories/). Слова — тут, цифри, назви, слогани й тони — з catalog/products.json: {name}, {tagline}, {length}, {extended}, {seats}, {seats_extended}, {n_tones}, {n_products} підставляє ig_stories.js. Ні знижок, ні «נותרו», ні відгуків, ні цін, яких нема на сайті; «הדמיה» на кадрах не ставимо (слово власника 27.10). Історії 06+ — tools/ig_series.json. Підпису й стікерів API історій не приймає: усе — на кадрі, посилання — в біо.",
   "brand": "ALUMA",
-  "mark": "הדמיה",
   "cta": "הפרטים בקישור בביו ↑",
   "stories": [
     {
