@@ -300,7 +300,9 @@ class BuiltSiteTests(unittest.TestCase):
     def test_funnel_steps_and_buttons_never_promise_payment(self):
         # 22.10, аудит (б) №1: оплати на сайті немає — у кроках і кнопках кошика/оформлення ні слова «оплата»;
         # рамка «התשלום לא מתבצע באתר» лишається (вона — пояснення, а не обіцянка)
+        # з 27.10 (№31) кнопка кошика каже прямо «בלי תשלום באתר» — заперечення дозволене, обіцянка ні
         word = {"he": "תשלום", "ru": "оплат", "en": "pay"}
+        honest = {"he": "בלי תשלום באתר", "ru": "без оплаты на сайте", "en": "no payment online"}
         for lang, prefix in DIST_PREFIX.items():
             for rel in ("cart/", "checkout/"):
                 html = self.page(prefix + rel)
@@ -309,8 +311,29 @@ class BuiltSiteTests(unittest.TestCase):
                 with self.subTest(page=prefix + rel):
                     self.assertTrue(bits)
                     for b in bits:
-                        self.assertNotIn(word.get(lang, "pay"), re.sub(r"<[^>]+>", "", b).lower())  # текст, не data-атрибути
+                        text = re.sub(r"<[^>]+>", "", b).lower().replace(honest[lang], "")  # текст, не data-атрибути
+                        self.assertNotIn(word.get(lang, "pay"), text)
+            self.assertIn(honest[lang], self.page(prefix + "cart/").lower())
             self.assertIn("data-co-keep", self.page(prefix + "checkout/"))
+
+    def test_ship_choice_has_no_default_and_knows_the_pdf(self):
+        # 27.10 (№31): «עד הדלת» більше не обрано за замовчуванням (підсумок стрибав на ₪950); на кроці «משלוח»
+        # вибір обов'язковий (#ship-err); PDF збирання біля доставки — з того самого файлу, що й на картці
+        for lang, prefix in DIST_PREFIX.items():
+            for rel in ("cart/", "checkout/"):
+                html = self.page(prefix + rel)
+                with self.subTest(page=prefix + rel):
+                    radios = re.findall(r'<input type="radio" name="ship"[^>]*>', html)
+                    self.assertEqual(len(radios), 3)
+                    self.assertFalse([r for r in radios if "checked" in r])
+                    self.assertIn('id="ship-err"', html)
+                    self.assertIn("data-ship-pdf", html)
+                    data = json.loads(re.search(r'<script[^>]*id="aluma-data"[^>]*>(.*?)</script>', html, re.S).group(1))
+                    for p in data["products"]:
+                        if p["pdf"]:
+                            self.assertTrue((self.dist / p["pdf"].lstrip("/")).is_file(), p["pdf"])
+                            self.assertEqual(p["pdf_en"], f"-{lang}." not in p["pdf"])
+                    self.assertTrue(any(p["pdf"] for p in data["products"]))
 
     def test_workshop_photo_slot_hidden_until_photos(self):
         # 22.10, аудит (а) 6: «תמונות מבית המלאכה יעלו בקרוב» не показуємо, доки WORKSHOP_PHOTOS у content.json не "1";
@@ -326,7 +349,7 @@ class BuiltSiteTests(unittest.TestCase):
         # 22.10, аудит (а) 11: жодного <img> без alt на картці; мініатюра смуги — назва товару
         # (з 24.10 без «הדמיה: » — слово власника; застереження лишилось у terms_html «תמונות»)
         for lang, prefix in DIST_PREFIX.items():
-            viz = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))["viz_tag"]
+            viz = {"he": "הדמיה", "en": "Visualis", "ru": "Визуализ"}[lang]   # ключ viz_tag знято 27.10 (№31)
             for p in PRODUCTS:
                 html = self.page(f"{prefix}p/{p['slug']}/")
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):

@@ -28,7 +28,7 @@ class I18nUnusedTests(unittest.TestCase):
         (tmp / "i18n").mkdir()
         (tmp / "site" / "page.html").write_text("<p>{{t.used}}</p>", encoding="utf-8")
         (tmp / "build.py").write_text('x = f"{{{{t.inside_{k}}}}}" + few("inc_sizes", n, loc)\n', encoding="utf-8")
-        keys = {"_comment": "", "used": "", "dead": "", "inside_legs": "", "inc_sizes": "", "inc_sizes_few": "", "viz_tag": ""}
+        keys = {"_comment": "", "used": "", "dead": "", "inside_legs": "", "inc_sizes": "", "inc_sizes_few": ""}
         for loc in i18n_unused.LOCALES:
             (tmp / "i18n" / f"{loc}.json").write_text(json.dumps(keys), encoding="utf-8")
         self.assertEqual(i18n_unused.unused(tmp), ["dead"])
