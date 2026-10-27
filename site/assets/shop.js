@@ -69,27 +69,52 @@
   var shipWay = function () {
     var v = shipMem;
     try { v = sessionStorage.getItem(SHIP_KEY) || v; } catch (e) {}
-    return v === "pickup" || v === "assembled" ? v : "door";
+    // №31: без передвибору — доки людина не обрала, спосіб "" і в сумі лише товар (раніше «door» за замовчуванням
+    // додавав ₪950 і підсумок у кошику стрибав)
+    return v === "pickup" || v === "assembled" || v === "door" ? v : "";
   };
   var shipFee = function () { return Number(SHIP[shipWay()]) || 0; };
-  // радіо name="ship" у box: показати збережений вибір, на зміну — зберегти й перерахувати суми
-  function wireShip(box, redraw) {
+  // радіо name="ship" у box: показати збережений вибір, на зміну — зберегти, подія select_ship, перерахувати суми
+  function wireShip(box, redraw, where) {
     qsa('input[name="ship"]', box).forEach(function (r) {
       r.checked = r.value === shipWay();
       r.addEventListener("change", function () {
         if (!r.checked) return;
         shipMem = r.value;
         try { sessionStorage.setItem(SHIP_KEY, r.value); } catch (e) {}
+        var err = qs("#ship-err", box);
+        if (err) { err.textContent = ""; err.hidden = true; }
+        track("select_ship", { ship: r.value, fee: shipFee(), step: where }, { pixel: false });
         redraw();
       });
     });
   }
-  // «מוצרים / משלוח / סה״כ»: сума товарів, ціна доставки, разом
+  // «מוצרים / משלוח / סה״כ»: сума товарів, ціна доставки (або «לבחירה למטה», доки не обрано), разом
   function sums(box, lines, totalSel) {
-    var g = qs("[data-sum-goods]", box), f = qs("[data-sum-ship]", box), t = qs(totalSel, box);
+    var g = qs("[data-sum-goods]", box), f = qs("[data-sum-ship]", box), t = qs(totalSel, box), way = shipWay();
     if (g) g.textContent = money(total(lines));
-    if (f) f.textContent = money(shipFee());
+    if (f) {
+      f.textContent = way ? money(shipFee()) : (f.getAttribute("data-none") === "below" ? S.ship_below : S.ship_none) || "";
+      f.setAttribute("dir", way ? "ltr" : "auto");
+    }
     if (t) t.textContent = money(total(lines) + shipFee());
+  }
+  // PDF збирання біля «עד הדלת»: лише для товарів кошика, що мають PDF (своєю мовою, інакше en)
+  function shipPdf(box, lines) {
+    var el = qs("[data-ship-pdf]", box);
+    if (!el) return;
+    var seen = [], links = [];
+    lines.forEach(function (l) { if (l.p.pdf && seen.indexOf(l.p.id) < 0) { seen.push(l.p.id); links.push(l.p); } });
+    el.innerHTML = "";
+    links.forEach(function (p, i) {
+      var own = !p.pdf_en, a = D.createElement("a");
+      a.href = p.pdf; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("data-cta", "assembly_pdf");
+      a.textContent = el.getAttribute("data-l-door") + " · " + el.getAttribute(own ? "data-l-own" : "data-l-en") +
+        (links.length > 1 ? " — " + p.name : "");
+      if (i) el.appendChild(D.createElement("br"));
+      el.appendChild(a);
+    });
+    el.hidden = !links.length;
   }
   var count = function (lines) { return lines.reduce(function (n, l) { return n + l.qty; }, 0); };
   var total = function (lines) { return lines.reduce(function (n, l) { return n + l.qty * l.price; }, 0); };
@@ -152,10 +177,11 @@
       qs("[data-cart-empty]", cartBox).hidden = !!lines.length;
       qs("[data-cart-sum]", cartBox).hidden = !lines.length;
       sums(cartBox, lines, "[data-cart-total]");
+      shipPdf(cartBox, lines);
       return lines;
     };
     var shown = render();
-    wireShip(cartBox, render);
+    wireShip(cartBox, render, "cart");
     track("view_cart", cartParams(shown));
     list.addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest("button[data-act]");
@@ -217,7 +243,8 @@
       lines.forEach(function (l, i) { mini.appendChild(cartRow(l, i, LS)); });
       var coSums = function () { sums(co, lines, "[data-co-total]"); };
       coSums();
-      wireShip(ship, coSums);
+      shipPdf(ship, lines);
+      wireShip(ship, coSums, "checkout");
       var saved = {};
       try { saved = JSON.parse(sessionStorage.getItem(CO_KEY) || "{}") || {}; } catch (e) { saved = {}; }
       var el = ship.elements;
@@ -251,19 +278,21 @@
         if (focus && head) { try { head.focus({ preventScroll: true }); } catch (x) {} W.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }); }
       };
       var readSaved = function () { try { return JSON.parse(sessionStorage.getItem(CO_KEY) || "{}") || {}; } catch (e) { return {}; } };
-      var detailsOk = function (d) { return !!(d.city && find(CITIES, "id", d.city) && d.when); };
+      var detailsOk = function (d) { return !!(d.city && find(CITIES, "id", d.city) && d.when && shipWay()); };
 
       ship.addEventListener("submit", function (e) {
         e.preventDefault();
         var d = { city: el.city.value, when: when(), name: String(el.name.value || "").trim(), phone: String(el.phone.value || "").trim() };
         var bad = null;
-        setErr(ship, "co-e-city", "", el.city); setErr(ship, "co-e-when", "");
-        if (!d.city) { setErr(ship, "co-e-city", S.e_city, el.city); bad = el.city; }
+        setErr(ship, "co-e-city", "", el.city); setErr(ship, "co-e-when", ""); setErr(ship, "ship-err", "");
+        // №31: у кошику спосіб отримання не обраний за замовчуванням — тут він обов'язковий
+        if (!shipWay()) { setErr(ship, "ship-err", S.e_ship); bad = qs('input[name="ship"]', ship); }
+        if (!d.city) { setErr(ship, "co-e-city", S.e_city, el.city); bad = bad || el.city; }
         if (!d.when) { setErr(ship, "co-e-when", S.e_when); bad = bad || qs('input[name="when"]', ship); }
         if (bad) { bad.focus(); return; }
         try { sessionStorage.setItem(CO_KEY, JSON.stringify(d)); } catch (x) {}
         var p = cartParams(lines);
-        p.city = d.city; p.when = d.when; p.has_name = !!d.name; p.has_phone = !!d.phone;
+        p.city = d.city; p.when = d.when; p.ship = shipWay(); p.has_name = !!d.name; p.has_phone = !!d.phone;
         track("checkout_details", p);
         var ph = qs("#pay-phone", co); if (ph && !ph.value && d.phone) ph.value = d.phone;
         var pn = qs("#pay-name", co); if (pn && !pn.value && d.name) pn.value = d.name;

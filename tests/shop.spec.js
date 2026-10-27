@@ -134,10 +134,19 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       await expect(page.locator('.qty-n')).toHaveText('2');
       // ru: «8 980 ₪» з нерозривними пробілами
       const money = (v) => { const n = v.toLocaleString('en-US'); return lang === 'ru' ? n.replace(/,/g, '\u00a0') + '\u00a0₪' : '₪' + n; };
-      // хвиля 1: разом = товар + спосіб отримання; за замовчуванням до дверей (DELIVERY_ILS), самовивіз — PICKUP_ILS
+      // №31: спосіб отримання не обрано за замовчуванням — разом = лише товар, рядок доставки «לבחירה למטה»;
+      // після вибору «עד הדלת» (DELIVERY_ILS) — разом із доставкою, подія select_ship; самовивіз — PICKUP_ILS
       const door = Number(CONTENT.DELIVERY_ILS), pickup = Number(CONTENT.PICKUP_ILS);
+      await expect(page.locator('[data-cart-total]')).toHaveText(money(2 * size.price_ils));
+      await expect(page.locator('[data-cart-sum] [data-sum-ship]')).toHaveText(T.js.ship_below);
+      expect(await page.locator('[data-cart] input[name="ship"]:checked').count()).toBe(0);
+      await expect(page.locator('[data-ship-pdf] a')).toHaveAttribute('href', new RegExp(`/assets/docs/tavor-assembly-${lang}\\.`));
+      await page.locator('[data-cart] label:has(input[name="ship"][value="door"])').click();
       const sum = money(2 * size.price_ils + door);
       await expect(page.locator('[data-cart-total]')).toHaveText(sum);
+      await expect(page.locator('[data-cart-sum] [data-sum-ship]')).toHaveText(money(door));
+      await expect.poll(() => firstParty(net, 'select_ship').map((e) => [e.props.ship, e.props.step]), { timeout: 8000 })
+        .toEqual([['door', 'cart']]);
       await expect(page.locator('[data-cart-sum]')).toContainText(T.price_incl);
       expect(await noOverflow(page)).toBeLessThanOrEqual(0);
       await waitFb(page, 'view_cart');
@@ -174,7 +183,10 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       await expect(page.locator('[data-co-keep] button[type="submit"]')).toHaveText(T.pay_submit);
       // аудит 22.10 (б) №1: оплати на сайті нема — у кроках і кнопках воронки ні слова «оплата»
       const payWord = { he: 'תשלום', ru: 'оплат', en: 'pay' }[lang];
-      for (const t of [await page.locator('.co-steps').innerText(), T.cart_pay, T.co_next, T.pay_submit]) {
+      // №31: кнопка кошика каже «בלי תשלום באתר» — заперечення, не обіцянка
+      const honest = { he: 'בלי תשלום באתר', ru: 'без оплаты на сайте', en: 'no payment online' }[lang];
+      expect(T.cart_pay.toLowerCase()).toContain(honest);
+      for (const t of [await page.locator('.co-steps').innerText(), T.cart_pay.toLowerCase().replace(honest, ''), T.co_next, T.pay_submit]) {
         expect(t.toLowerCase()).not.toContain(payWord);
       }
       await expect(page.locator('#pay-name')).toBeVisible();
@@ -242,6 +254,32 @@ test('порожній кошик: оформлення не показує фо
   await expect(page.locator('[data-cart-empty]')).toBeVisible();
   await expect(page.locator('[data-cart-sum]')).toBeHidden();
 });
+
+// №31: доставку не обрано в кошику — на кроці «משלוח» разом = лише товар, «טרם נבחר», і далі без вибору не пускає
+for (const [prefix, T] of [['', HE], ['/ru', RU]]) {
+  test(`${prefix || '/'} 390: оформлення без обраної доставки — вибір обов'язковий, разом без доставки до вибору`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setup(page);
+    const size = TAVOR.sizes[0];
+    await page.addInitScript((label) => {
+      localStorage.setItem('fx_cart_v1', JSON.stringify({ v: 1, items: [{ id: 'tavor', size: label, finish: 'natural', base: 'oak', qty: 1 }] }));
+    }, size.label);
+    const money = (v) => { const n = v.toLocaleString('en-US'); return prefix === '/ru' ? n.replace(/,/g, ' ') + ' ₪' : '₪' + n; };
+    await page.goto(`${ORIGIN}${prefix}/checkout/`);
+    await expect(page.locator('[data-co-total]')).toHaveText(money(size.price_ils));
+    await expect(page.locator('[data-co-side] [data-sum-ship]')).toHaveText(T.js.ship_none);
+    await page.locator('#co-city').selectOption(T.cities[0].id);
+    await page.locator('label:has(input[name="when"][value="now"])').click();
+    await page.locator('[data-co-ship] button[type="submit"]').click();
+    await expect(page.locator('#ship-err')).toHaveText(T.js.e_ship);
+    await expect(page.locator('[data-co-pay]')).toBeHidden();
+    await page.locator('[data-co-ship] label:has(input[name="ship"][value="assembled"])').click();
+    await expect(page.locator('#ship-err')).toBeHidden();
+    await expect(page.locator('[data-co-total]')).toHaveText(money(size.price_ils + Number(CONTENT.DELIVERY_ILS) + Number(CONTENT.ASSEMBLY_ILS)));
+    await page.locator('[data-co-ship] button[type="submit"]').click();
+    await expect(page.locator('[data-co-pay]')).toBeVisible();
+  });
+}
 
 // 23.10: м'який крок поруч із кошиком «שאלה? נחזור אליכם»; cta_ask — лише наша аналітика.
 // №32 (27.10): клік відкриває міні-форму #callback на місці (не скрол на 7 826 px до анкети): лише телефон і згода,
@@ -558,6 +596,7 @@ test('сервер не прийняв заявку (429) — текст пом�
   await page.addInitScript((size) => {
     localStorage.setItem('fx_cart_v1', JSON.stringify({ v: 1, items: [{ id: 'tavor', size, finish: 'natural', base: 'oak', qty: 1 }] }));
     sessionStorage.setItem('fx_checkout_v1', JSON.stringify({ city: 'tel-aviv', when: '1-3m', name: '', phone: '' }));
+    sessionStorage.setItem('fx_ship_v1', 'door');   // №31: без обраного способу #pay веде назад на крок «משלוח»
   }, TAVOR.sizes[0].label);
   await page.goto(`${ORIGIN}/checkout/#pay`);
   const cityOk = await page.locator('#co-city option[value="tel-aviv"]').count();

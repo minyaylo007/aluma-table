@@ -20,9 +20,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LOCALES = ("he", "en", "ru")
 TEXT = {".html", ".js", ".css", ".json", ".svg", ".txt", ".xml", ".webmanifest"}
-# Свідомо лишені без посилань у site/: viz_tag — слово «הדמיה» для креативів (рівність ru-креативів і /ru/ —
-# tests/test_quality_creatives.py), рішення диригента 25.10
-KEEP = {"viz_tag"}
+# Свідомо лишені без посилань у site/ (порожньо: viz_tag «הדמיה» знято 27.10, №31 — рішення власника 24.10)
+KEEP: set[str] = set()
 
 
 def corpus(root: pathlib.Path) -> str:
