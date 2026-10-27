@@ -170,8 +170,10 @@ class BuiltSiteTests(unittest.TestCase):
                 inc = re.search(r'<section class="pdp-inc".*?</section>', html, re.S).group(0)
                 with self.subTest(page=f"{prefix}p/{p['slug']}/"):
                     ship = re.search(r'<p class="pdp-ship"><a href="#inc">(.*?)</a></p>', buy, re.S).group(1)
-                    for n in (fees["ship_pickup"], fees["ship_assembled"]):
-                        self.assertIn(f'<bdi dir="ltr">{money[lang](n)}</bdi>', ship)
+                    # №32: три числа одним рядком — «₪0 איסוף · ₪950 משלוח · ₪1,150 עם הרכבה», у порядку від дешевшого
+                    nums = [money[lang](fees[k]) for k in ("ship_pickup", "ship_door", "ship_assembled")]
+                    self.assertEqual(re.findall(r'<bdi dir="ltr">([^<]+)</bdi>', ship), nums)
+                    self.assertEqual(ship.count(" · "), 2)
                     self.assertLess(buy.index("pdp-ship"), buy.index("data-add-cart"))
                     self.assertNotIn("pdp-terms", buy)
                     terms = re.search(r'<ul class="pdp-terms" role="list">(.*?)</ul>', inc, re.S).group(1)
@@ -196,6 +198,28 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertLess(strip_m.end(), ask.start())
                     self.assertNotIn("pdp-trust", buy)
                     self.assertNotIn("pdp-points", html)
+
+    def test_terms_line_under_the_price(self):
+        # №32 (27.10): під ціною — «אספקה משוערת 10–12 שבועות · אחריות 24 חודשים» (строк — лише товари серії, оцінка
+        # з каталогу; гарантія — WARRANTY_MONTHS), далі рядок доставки; «כולל מע״מ» — у .price-incl, «אלון» — у фактах вище
+        content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
+        series = [x.strip() for x in content["SERIES_PRODUCTS"].split(",")]
+        weeks = {(p.get("lead_time_weeks") or [10, 12])[0] for p in PRODUCTS}
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for p in PRODUCTS:
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    m = re.search(r'</div>\s*<p class="pdp-sub">([^<]*)</p>\s*<p class="pdp-ship">', html)
+                    self.assertIsNotNone(m, "рядок — між ціною й доставкою")
+                    parts = m.group(1).split(" · ")
+                    warranty = t["inc_warranty"].replace("{{WARRANTY_MONTHS}}", content["WARRANTY_MONTHS"])
+                    self.assertEqual(parts[-1], warranty)
+                    self.assertEqual(len(parts), 2 if p["slug"] in series else 1)
+                    if p["slug"] in series:
+                        self.assertRegex(parts[0], rf"{min(weeks)}–\d+")
+                    self.assertLess(m.start(), html.index("data-add-cart"))
+                    self.assertIn(t["vat_incl"], re.search(r'<span class="price-incl">([^<]*)</span>', html).group(1))
 
     def test_trust_strip_on_every_card_and_in_cart(self):
         # №19: чотири пункти з іконкою й посиланням — оплата не на сайті (how), гарантія WARRANTY_MONTHS (faq),
@@ -496,11 +520,13 @@ class BuiltSiteTests(unittest.TestCase):
 
     def test_no_lead_weeks_early_registration_or_free_promise(self):
         # specs/003: «10–12 שבועות» → «זמן אספקה מדויק — באישור ההזמנה»; без «הרשמה מוקדמת» і «ללא תשלום וללא התחייבות».
-        # Хвиля 1 (22.10): тижні — лише чесною оцінкою першої серії («אספקה משוערת 10–12 שבועות»), не в блоці купівлі
+        # Хвиля 1 (22.10): тижні — лише чесною оцінкою першої серії («אספקה משוערת 10–12 שבועות»). №32 (рішення диригента
+        # 27.10): та сама оцінка тепер і в блоці купівлі, рядком під ціною (.pdp-sub) — чверть мобільних іде за 10 с, не
+        # побачивши строку; правило лишається: тижні — тільки зі словом «оцінка», точна дата — у підтвердженні замовлення
         for rel, html in self.all_html():
             text = re.sub(r"<script\b.*?</script>|<[^>]+>", " ", html, flags=re.S)
             for m in re.finditer(r"\d+\s*[–-]\s*\d+\s*(שבועות|weeks|недель)", text):
-                self.assertRegex(text[max(0, m.start() - 40):m.start()], r"אספקה משוערת|estimated delivery|срок поставки", rel)
+                self.assertRegex(text[max(0, m.start() - 40):m.start()], r"(?i)אספקה משוערת|estimated delivery|срок поставки", rel)
             for phrase in ("הרשמה מוקדמת", "ללא תשלום וללא התחייבות", "Early registration", "No payment, no commitment"):
                 self.assertNotIn(phrase, text, rel)
         for p in PRODUCTS:
@@ -540,7 +566,8 @@ class BuiltSiteTests(unittest.TestCase):
                     self.assertIsNotNone(actions)
                     self.assertEqual(actions.group(1), t["ask_hint"])
                     self.assertRegex(actions.group(0), r'data-add-cart data-cta="pdp">[^<]+</button>\s*<button class="btn '
-                                     r'btn--line" type="button" data-ask data-cta="pdp">' + re.escape(t["ask_cta"]) + "<")
+                                     r'btn--line" type="button" data-ask data-cta="pdp" aria-expanded="false" aria-controls="callback">'
+                                     + re.escape(t["ask_cta"]) + "<")
                     sticky = re.search(r'<div class="sticky-cta[^"]*" data-sticky hidden>.*?</div>', html, re.S).group(0)
                     self.assertRegex(sticky, r'data-ask data-cta="sticky">' + re.escape(t["ask_cta_short"]) + "<")
                     self.assertNotIn(t["ask_hint"], sticky)

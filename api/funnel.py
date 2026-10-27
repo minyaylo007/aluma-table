@@ -217,6 +217,7 @@ def compute(events, leads) -> dict:
     seconds = defaultdict(list)
     asks = defaultdict(set)                                  # м'який крок картки: cta → сесії з cta_ask
     calls = defaultdict(set)                                 # «התקשרו אלינו» (24.10): cta → сесії з cta_call
+    seen = {"see_price_block": set(), "see_sizes": set()}     # №32: хто дійшов до «מה כלול במחיר» і плиток розмірів
     visits = defaultdict(set)                                # №30 «לראות מקרוב»: cta → сесії з cta_visit
     pdp_depth = defaultdict(list)                            # mobile/desktop → глибина картки в екранах (leave)
     card_seconds = defaultdict(list)                         # №22: товар → секунди на картці (leave pdp / next)
@@ -252,6 +253,8 @@ def compute(events, leads) -> dict:
             asks[str(p.get("cta") or "other")[:20]].add(sid)
         if name == "cta_call":
             calls[str(p.get("cta") or "other")[:20]].add(sid)
+        if name in seen:
+            seen[name].add(sid)
         if name == "cta_visit":
             visits[str(p.get("cta") or "other")[:20]].add(sid)
         if not step:
@@ -324,6 +327,8 @@ def compute(events, leads) -> dict:
         "call": {"sessions": len(set().union(*calls.values())) if calls else 0,
                  "by_cta": {k: len(v) for k, v in sorted(calls.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
                  "leads": callbacks, "by_pref": {k: call_prefs[k] for k in CALLBACK_PREFS}},
+        # №32: видимість блоків картки — сесії, що побачили «מה כלול במחיר» / плитки розмірів, проти сесій картки
+        "seen": {"price": len(seen["see_price_block"]), "sizes": len(seen["see_sizes"]), "product": len(total["product"])},
         # №30: хочуть подивитись живцем — сесії з натисканням плитки і заявки lead_source=visit
         "visit": {"sessions": len(set().union(*visits.values())) if visits else 0,
                   "by_cta": {k: len(v) for k, v in sorted(visits.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
@@ -380,6 +385,8 @@ def text(rep: dict) -> str:
     cart = next((s["n"] for s in rep["steps"] if s["key"] == "cart"), 0)
     lines.append(f"Вопрос с карточки: {ask.get('sessions', 0)} (корзина {cart})"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in ask["by_cta"].items()) if ask.get("by_cta") else ""))
+    seen = rep.get("seen") or {}
+    lines.append(f"Видели цену/размеры: {seen.get('price', 0)}/{seen.get('sizes', 0)} из {seen.get('product', 0)} сессий карточки")
     call = rep.get("call") or {}
     lines.append(f"«Позвоните нам»: {call.get('sessions', 0)}, заявок на звонок {call.get('leads', 0)}"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in call["by_cta"].items()) if call.get("by_cta") else ""))

@@ -610,7 +610,7 @@ def included(p: dict, loc: str) -> str:
 
 def facts(p: dict, loc: str) -> str:
     """№28: рядок під гаслом — те, що покупець столу шукає першим: габарити (посилання на плитки розмірів), розкладений,
-    місця, матеріал (тижні — не в блоці купівлі, хвиля 1, 22.10: вони в .pdp-lead нижче). Лише з каталогу й content.json; чого нема в товару — того й нема в рядку."""
+    місця, матеріал (тижні — не тут: з №32 оцінкою в рядку під ціною, buy_terms(), і в .pdp-lead нижче). Лише з каталогу й content.json; чого нема в товару — того й нема в рядку."""
     sizes = p.get("sizes") or []
     dims = lambda s: (str(s.get("label")) if str(s.get("label") or "").startswith("Ø")  # noqa: E731
                       else "×".join(str(s[k]) for k in ("length_cm", "width_cm") if s.get(k)))
@@ -631,6 +631,13 @@ def facts(p: dict, loc: str) -> str:
     if "veneer" in L(p.get("material"), "en"):
         items.append("{{t.facts_oak}}")
     return '<ul class="pdp-facts" role="list">' + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+
+
+def buy_terms(p: dict) -> str:
+    """№32: рядок під ціною — строк першої серії (лише товари SERIES_PRODUCTS, оцінка з каталогу) і гарантія.
+    «Без ПДВ / з ПДВ» — уже в .price-incl, «אלון» — у рядку фактів над ціною: не дублюємо, бо 650 px."""
+    items = (["{{t.terms_lead}}"] if listed("SERIES_PRODUCTS", p) else []) + ["{{t.inc_warranty}}"]
+    return '<p class="pdp-sub">' + " · ".join(items) + "</p>"
 
 
 def listed(key: str, p: dict) -> bool:
@@ -1136,7 +1143,7 @@ def main() -> None:
                 "P_MONTHLY": money(math.ceil((p["sizes"][0]["price_ils"] if p["sizes"] else p.get("price_from_ils") or 0)
                                              / int(CONTENT["INSTALLMENTS"])), loc),
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc),
-                "P_INC": included(p, loc), "P_FACTS": facts(p, loc), "P_TRUST": trust_strip(p, loc),
+                "P_INC": included(p, loc), "P_FACTS": facts(p, loc), "P_TERMS": buy_terms(p), "P_TRUST": trust_strip(p, loc),
                 "P_PRICE_NOTE": "{{t.vat_incl}} · " + ("{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}"), "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",

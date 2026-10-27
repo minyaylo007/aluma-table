@@ -101,7 +101,10 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       await expect(page.locator('.pdp-price .price-incl')).toHaveText(T.vat_incl + ' · ' + T.series_price_n.replace('{{SERIES_SIZE}}', CONTENT.SERIES_SIZE));   // №28: «כולל מע״מ ·» поруч
       await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'משוער' : /estimate|ориентировоч/i);
       await expect(page.locator('.pdp-price')).not.toContainText(lang === 'he' ? 'טרם אושר' : /not yet confirmed|не подтвержден/i);
-      await expect(page.locator('.pdp-buy')).not.toContainText(lang === 'he' ? 'שבועות' : /weeks|(^|[^а-яё])недел/i);
+      // №32 (27.10): строк — лише оцінкою «אספקה משוערת» у рядку під ціною (.pdp-sub), поза ним у блоці купівлі тижнів нема
+      await expect(page.locator('.pdp-sub')).toContainText(T.terms_lead.split('{{LEAD_WEEKS}}')[0]);
+      expect(await page.locator('.pdp-buy').evaluate((el) => { const c = el.cloneNode(true); c.querySelector('.pdp-sub').remove(); return c.innerText; }))
+        .not.toMatch(lang === 'he' ? /שבועות/ : /weeks|(^|[^а-яё])недел/i);
       await expect(page.locator('.pdp-lead')).toHaveText(T.lead_exact);
       await page.locator(`label:has(input[name="size"][value="${size.label}"])`).first().click();
       await page.locator(`label:has(input[name="finish"][value="${fin}"])`).first().click();
@@ -278,9 +281,11 @@ for (const [prefix, T] of [['', HE], ['/ru', RU]]) {
   });
 }
 
-// 23.10: м'який крок поруч із кошиком — «שאלה? נחזור אליכם» веде до форми з цим столом; cta_ask — лише наша аналітика
+// 23.10: м'який крок поруч із кошиком «שאלה? נחזור אליכם»; cta_ask — лише наша аналітика.
+// №32 (27.10): клік відкриває міні-форму #callback на місці (не скрол на 7 826 px до анкети): лише телефон і згода,
+// contact_pref=info, lead_source=callback; подяка — тут же, текстом «питання»
 for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
-  test(`«${t.ask_cta}» на картці ${prefix}/p/tavor/: форма з TAVOR, фокус на імені, cta_ask без Meta`, async ({ page }) => {
+  test(`«${t.ask_cta}» на картці ${prefix}/p/tavor/: міні-форма поруч, лише телефон, cta_ask без Meta`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     const net = await setup(page);
     await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
@@ -291,18 +296,77 @@ for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
     const [cart, a] = await Promise.all([page.locator('.pdp-actions [data-add-cart]').boundingBox(), ask.boundingBox()]);
     expect(Math.abs(cart.y - a.y)).toBeLessThan(2);
     await page.evaluate(() => { document.querySelector('#f-product').value = ''; });
+    const form = page.locator('#callback');
+    await expect(form).toBeHidden();
     await ask.click();
-    await expect(page.locator('#register')).toBeInViewport();
-    await expect(page.locator('#f-name')).toBeFocused();
+    await expect(form).toBeVisible();
+    await expect(form).toBeInViewport();
+    await expect(ask).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#cb-phone')).toBeFocused();
     await expect(page.locator('#f-product')).toHaveValue('tavor');
+    await expect(form.locator('.f-choice')).toBeHidden();
+    await expect(form.locator('[data-cb-email]')).toBeHidden();
+    await expect(form.locator('[data-cb-time]')).toBeHidden();
+    await expect(form.locator('input[name="consent"]')).toBeVisible();
     await expect.poll(() => firstParty(net, 'cta_ask').length, { timeout: 8000 }).toBe(1);
     const [ev] = firstParty(net, 'cta_ask');
     expect(ev.props).toMatchObject({ content_ids: ['tavor'], content_type: 'product', cta: 'pdp' });
     expect(await fbNamed(page, 'cta_ask')).toHaveLength(0);
+    // повторний клік — згорнути
+    await ask.click();
+    await expect(form).toBeHidden();
+    await expect(ask).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test(`${prefix || '/'} 390×650: «${t.ask_cta}» → форма в межах екрана від кнопки, заявка info, подяка на місці`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 650 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    const ask = page.locator('.pdp-pair [data-ask]');
+    await ask.click();
+    const form = page.locator('#callback');
+    await expect(form).toBeVisible();
+    await expect(page.locator('#cb-phone')).toBeInViewport();
+    // поруч: від верху кнопки до низу кнопки відправки — менше за один екран
+    const [b, sub] = await Promise.all([ask.boundingBox(), form.locator('button[type="submit"]').boundingBox()]);
+    expect(sub.y + sub.height - b.y).toBeLessThan(650);
+    expect(await noOverflow(page)).toBe(0);
+    await form.locator('input[name="consent"]').check();
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('#cb-e-phone')).toBeVisible();      // телефон обов'язковий: e-mail у цьому режимі нема
+    expect(net.leads).toHaveLength(0);
+    await page.locator('#cb-phone').fill(PHONE);
+    await form.locator('button[type="submit"]').click();
+    const thanks = page.locator('[data-callback-thanks]');
+    await expect(thanks).toBeVisible();
+    await expect(thanks).toHaveText(t.ask_thanks);
+    await expect(thanks).toBeInViewport();
+    await expect(form).toBeHidden();
+    expect(net.leads).toHaveLength(1);
+    expect(net.leads[0]).toMatchObject({ lead_source: 'callback', contact_pref: 'info', phone: PHONE, consent: true,
+      product_id: 'tavor', preferred_time: '' });
+    expect(net.leads[0].email || '').toBe('');
+    await expect(ask).toHaveAttribute('aria-expanded', 'false');
   });
 }
 
-test('телефон 390: «שאלה?» у липкій панелі — висота та сама, клік веде до форми; основні кнопки — в один ряд (№28)', async ({ page }) => {
+test('«התקשרו» після «שאלה?» — знову повна міні-форма з вибором способу (№32)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.goto(`${ORIGIN}/p/tavor/`);
+  const form = page.locator('#callback');
+  await page.locator('.pdp-pair [data-ask]').click();
+  await expect(form.locator('.f-choice')).toBeHidden();
+  await page.locator('.pdp-actions [data-call]').click();
+  await expect(form).toBeVisible();
+  await expect(form.locator('.f-choice')).toBeVisible();
+  await expect(form.locator('input[name="contact_pref"][value="call"]')).toBeChecked();
+  await expect(form.locator('[data-cb-time]')).toBeVisible();
+  await expect(page.locator('.pdp-pair [data-ask]')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('.pdp-actions [data-call]')).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('телефон 390: «שאלה?» у липкій панелі — висота та сама, клік відкриває міні-форму; основні кнопки — в один ряд (№28, №32)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const net = await setup(page);
   await page.goto(`${ORIGIN}/p/tavor/`);
@@ -320,8 +384,34 @@ test('телефон 390: «שאלה?» у липкій панелі — вис�
   expect(Math.abs(btn.y - atc.y)).toBeLessThan(2);
   expect(await noOverflow(page)).toBe(0);
   await s.click();
-  await expect(page.locator('#register')).toBeInViewport();
+  await expect(page.locator('#callback')).toBeVisible();
+  await expect(page.locator('#cb-phone')).toBeInViewport();
+  await expect(page.locator('#callback .f-choice')).toBeHidden();
   await expect.poll(() => firstParty(net, 'cta_ask').map((e) => e.props.cta), { timeout: 8000 }).toEqual(['sticky']);
+});
+
+// №32: події видимості — «מה כלול במחיר» (see_price_block) і плитки розмірів (see_sizes), раз за перегляд, лише наші
+test('картка: see_price_block і see_sizes — раз за перегляд, лише в нашу аналітику, без особистих даних (№32)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const net = await setup(page);
+  await page.goto(`${ORIGIN}/p/tavor/`);
+  await waitFb(page, 'ViewContent');
+  await page.waitForTimeout(500);
+  expect(firstParty(net, 'see_price_block')).toHaveLength(0);
+  await page.locator('label.pill:has(input[name="size"])').first().scrollIntoViewIfNeeded();
+  await expect.poll(() => firstParty(net, 'see_sizes').length, { timeout: 8000 }).toBe(1);
+  await page.locator('#inc').scrollIntoViewIfNeeded();
+  await expect.poll(() => firstParty(net, 'see_price_block').length, { timeout: 8000 }).toBe(1);
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(150);
+    await page.locator('#inc').scrollIntoViewIfNeeded(); await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(1500);
+  expect(firstParty(net, 'see_price_block')).toHaveLength(1);
+  expect(firstParty(net, 'see_sizes')).toHaveLength(1);
+  expect(firstParty(net, 'see_price_block')[0].props).toMatchObject({ content_ids: ['tavor'] });
+  expect(await fbNamed(page, 'see_price_block')).toHaveLength(0);
+  expect(await fbNamed(page, 'see_sizes')).toHaveLength(0);
 });
 
 // 24.10 (слово власника): «עד 12 תשלומים» під ціною, сума платежу йде за розміром; «התקשרו אלינו» → міні-форма

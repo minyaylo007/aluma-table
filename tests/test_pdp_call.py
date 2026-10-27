@@ -139,9 +139,11 @@ class ContactPrefTests(unittest.TestCase):
     def test_js_info_needs_phone_or_email_others_phone(self):
         block = JS[JS.index('data.lead_source = "callback";'):]
         block = block[:block.index("if (!data.consent)")]
-        for part in ('data.contact_pref = data.contact_pref || "call";',
-                     'data.preferred_time = fv("preferred_time").slice(0, 80);',
-                     'if (data.contact_pref === "info") data.email = fv("email").slice(0, 120);',
+        # №32: режим «питання» (data-cb-ask) — завжди info, лише телефон: без e-mail і часу
+        for part in ('data.contact_pref = asked ? "info" : data.contact_pref || "call";',
+                     'data.preferred_time = asked ? "" : fv("preferred_time").slice(0, 80);',
+                     'if (data.contact_pref === "info" && !asked) data.email = fv("email").slice(0, 120);',
+                     'if (vote || (callback && data.contact_pref === "info" && !asked)) {',
                      'if (!data.phone && !data.email) { setErr("phone", S.e_contact);',
                      'if (data.email && !EMAIL_OK.test(data.email)) { setErr("email", S.e_email);',
                      '} else if (!phoneOk(data.phone)) { setErr("phone", S.e_phone);'):

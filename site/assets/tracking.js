@@ -245,5 +245,21 @@
   // події, які aluma.js надіслав до завантаження цього файлу
   var early = window.alumaQ || []; window.alumaQ = [];
   for (var qi = 0; qi < early.length; qi++) try { window.alumaTrack(early[qi][0], early[qi][1], early[qi][2]); } catch (e) {}
+  // №32: чи дійшли до «מה כלול במחיר» (#inc) і плиток розмірів — по разу за показ картки, лише в нашу аналітику, без ПД.
+  // Видно — чверть блоку або 200 px (високий #inc на телефоні цілком у вікно не влазить).
+  (function seen() {
+    var card = doc.querySelector("[data-pdp]");
+    if (!card || !("IntersectionObserver" in window)) return;
+    var pid = card.getAttribute("data-product") || "";
+    var watch = [["see_price_block", doc.getElementById("inc")], ["see_sizes", doc.querySelector('[data-opt="size"]')]];
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting || (en.intersectionRatio < 0.25 && en.intersectionRect.height < 200)) return;
+        io.unobserve(en.target);
+        for (var i = 0; i < watch.length; i++) if (watch[i][1] === en.target) window.alumaTrack(watch[i][0], { content_ids: pid ? [pid] : [] }, { pixel: false });
+      });
+    }, { threshold: [0, 0.25, 0.5] });
+    for (var i = 0; i < watch.length; i++) if (watch[i][1]) io.observe(watch[i][1]);
+  })();
   loadConfig();
 })();

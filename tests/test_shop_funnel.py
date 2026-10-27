@@ -546,6 +546,19 @@ class ComputeTests(unittest.TestCase):
         self.assertEqual(funnel.compute(EVENTS, [])["ask"], {"sessions": 0, "by_cta": {}})
         self.assertIn("Вопрос с карточки: 2 (корзина 2) · pdp 2, sticky 1", funnel.text(funnel.report(events, [], 0)))
 
+    def test_seen_price_block_and_sizes_against_card_sessions(self):
+        # №32: see_price_block / see_sizes (tracking.js, IntersectionObserver) — сесії, що дійшли до «מה כלול במחיר» і
+        # плиток розмірів, проти сесій картки (ViewContent); повтор у тій самій сесії — один раз; кроки не змінюються
+        base = funnel.compute(EVENTS, [])
+        events = EVENTS + [row("see_sizes", "s1", T, content_ids=["tavor"]), row("see_sizes", "s1", T, content_ids=["tavor"]),
+                           row("see_sizes", "s2", T, content_ids=["tavor"]), row("see_price_block", "s2", T, content_ids=["tavor"])]
+        rep = funnel.compute(events, [])
+        product = next(s["n"] for s in base["steps"] if s["key"] == "product")
+        self.assertEqual(rep["seen"], {"price": 1, "sizes": 2, "product": product})
+        self.assertEqual(rep["steps"], base["steps"])
+        self.assertEqual(base["seen"], {"price": 0, "sizes": 0, "product": product})
+        self.assertIn(f"Видели цену/размеры: 1/2 из {product} сессий карточки", funnel.text(funnel.report(events, [], 0)))
+
     def test_call_button_and_callback_leads_counted_aside(self):
         # 24.10: «התקשרו אלינו» (cta_call) — сесії за кнопкою + заявки lead_source=callback; кроки не змінюються
         events = EVENTS + [row("cta_call", "s3", T, content_ids=["saf"], cta="pdp"),

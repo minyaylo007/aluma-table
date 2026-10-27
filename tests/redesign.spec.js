@@ -67,7 +67,11 @@ for (const p of PRODUCTS) {
     await expect(page.locator('.pdp-price')).toContainText('מחיר השקה לסדרה הראשונה');
     await expect(page.locator('.pdp-price')).not.toContainText('משוער');
     await expect(page.locator('.pdp-price')).not.toContainText('טרם אושר');
-    await expect(page.locator('.pdp-buy')).not.toContainText('שבועות');
+    // №32 (27.10): тижні — лише оцінкою «אספקה משוערת» у рядку під ціною і лише в товарів першої серії
+    expect(await page.locator('.pdp-buy').evaluate((el) => { const c = el.cloneNode(true); c.querySelector('.pdp-sub').remove(); return c.innerText; }))
+      .not.toContain('שבועות');
+    const sub = await page.locator('.pdp-sub').innerText();
+    if (sub.includes('שבועות')) expect(sub).toContain('אספקה משוערת');
     // 24.10, слово власника: позначки «הדמיה» на кадрах нема (застереження — у terms_html «תמונות»)
     await expect(page.locator('.viz-tag')).toHaveCount(0);
     expect(await page.locator('main').innerText()).not.toContain('הדמיה');
@@ -645,6 +649,7 @@ test('first screen 390×844 of a card: no sticky bar with the notice open; after
 // Банер (№15) — лише коли не накриває пари й «התקשרו», на 360 і на 390. Смуги на першому екрані нема; 3D — чип на кадрі.
 // №28 (26.10): чверть мобільних заходів — вікно ≤ 650 px (вбудований браузер Instagram), половина йшла без прокрутки:
 // на 650 теж видно кадр, назву, рядок фактів, ціну, рядок доставки й пару «הוספה לסל» + «שאלה?» в один ряд
+// №32 (27.10): + рядок «строк · гарантія» під ціною; доставка — трьома числами; пара кнопок однаково в межах 650
 for (const [w, h] of [[390, 844], [360, 780], [390, 650], [360, 650]]) {
   for (const [prefix, lang] of [['', 'he'], ['/en', 'en'], ['/ru', 'ru']]) {
     for (const slug of ['tavor', 'sahar', 'tal']) {
@@ -661,20 +666,21 @@ for (const [w, h] of [[390, 844], [360, 780], [390, 650], [360, 650]]) {
           const n = document.getElementById('notice');
           return { y: scrollY, vh: innerHeight, notice: n.hidden ? innerHeight : box('#notice').top,
             img: box('.g-track'), chip: box('.g-3d'), h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
-            incl: box('.pdp-price .price-incl'), facts: box('.pdp-facts'), ship: box('.pdp-ship'), trust: box('.trust-strip'), cart: box('.pdp-pair [data-add-cart]'),
+            incl: box('.pdp-price .price-incl'), facts: box('.pdp-facts'), sub: box('.pdp-sub'), ship: box('.pdp-ship'), trust: box('.trust-strip'), cart: box('.pdp-pair [data-add-cart]'),
             ask: box('.pdp-pair [data-ask]'), call: box('.pdp-actions [data-call]'), lead: box('.pdp-ask'), tile: box('label.pill:has(input[name="size"])'),
             inclLH: parseFloat(getComputedStyle(document.querySelector('.pdp-price .price-incl')).lineHeight) };
         });
         const r = await measure();
         expect(r.y).toBe(0);
-        for (const b of [r.img, r.h1, r.tag, r.facts, r.price, r.incl, r.ship, r.cart, r.ask]) {
+        for (const b of [r.img, r.h1, r.tag, r.facts, r.price, r.incl, r.sub, r.ship, r.cart, r.ask]) {
           expect(b.top).toBeGreaterThan(0); expect(b.bottom).toBeLessThanOrEqual(r.vh);
         }
         expect(r.incl.height).toBeLessThan(r.inclLH * 1.5);            // підпис серії — один рядок
         // порядок на екрані (№28): факти → ціна → доставка → кошик і питання в один ряд → «התקשרו» → плитки розмірів →
         // смуга довіри (№19) → «השאירו פרטים»
         expect(r.price.top).toBeGreaterThan(r.facts.bottom - 1);
-        expect(r.ship.top).toBeGreaterThan(r.price.top);
+        expect(r.sub.top).toBeGreaterThan(r.price.top);               // №32: строк і гарантія під ціною, далі доставка числами
+        expect(r.ship.top).toBeGreaterThan(r.sub.bottom - 1);
         expect(r.cart.top).toBeGreaterThan(r.ship.bottom);
         expect(Math.abs(r.ask.top - r.cart.top)).toBeLessThan(2);
         expect(r.call.top).toBeGreaterThan(r.ask.bottom);
