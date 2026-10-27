@@ -217,6 +217,7 @@ def compute(events, leads) -> dict:
     seconds = defaultdict(list)
     asks = defaultdict(set)                                  # м'який крок картки: cta → сесії з cta_ask
     calls = defaultdict(set)                                 # «התקשרו אלינו» (24.10): cta → сесії з cta_call
+    seen = {"see_price_block": set(), "see_sizes": set()}     # №32: хто дійшов до «מה כלול במחיר» і плиток розмірів
     pdp_depth = defaultdict(list)                            # mobile/desktop → глибина картки в екранах (leave)
     card_seconds = defaultdict(list)                         # №22: товар → секунди на картці (leave pdp / next)
 
@@ -251,6 +252,8 @@ def compute(events, leads) -> dict:
             asks[str(p.get("cta") or "other")[:20]].add(sid)
         if name == "cta_call":
             calls[str(p.get("cta") or "other")[:20]].add(sid)
+        if name in seen:
+            seen[name].add(sid)
         if not step:
             continue
         for bucket in (total, by_source[src], by_day[day], by_lang[lang]):
@@ -319,6 +322,8 @@ def compute(events, leads) -> dict:
         "call": {"sessions": len(set().union(*calls.values())) if calls else 0,
                  "by_cta": {k: len(v) for k, v in sorted(calls.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
                  "leads": callbacks, "by_pref": {k: call_prefs[k] for k in CALLBACK_PREFS}},
+        # №32: видимість блоків картки — сесії, що побачили «מה כלול במחיר» / плитки розмірів, проти сесій картки
+        "seen": {"price": len(seen["see_price_block"]), "sizes": len(seen["see_sizes"]), "product": len(total["product"])},
         # голоси — окремим рядком, не замовлення: заявки lead_source=vote за товаром
         "vote": {"leads": sum(votes.values()), "by_product": dict(sorted(votes.items(), key=lambda kv: (-kv[1], kv[0])))},
         "median_seconds": {k: sorted(v)[len(v) // 2] for k, v in seconds.items() if v},
@@ -371,6 +376,8 @@ def text(rep: dict) -> str:
     cart = next((s["n"] for s in rep["steps"] if s["key"] == "cart"), 0)
     lines.append(f"Вопрос с карточки: {ask.get('sessions', 0)} (корзина {cart})"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in ask["by_cta"].items()) if ask.get("by_cta") else ""))
+    seen = rep.get("seen") or {}
+    lines.append(f"Видели цену/размеры: {seen.get('price', 0)}/{seen.get('sizes', 0)} из {seen.get('product', 0)} сессий карточки")
     call = rep.get("call") or {}
     lines.append(f"«Позвоните нам»: {call.get('sessions', 0)}, заявок на звонок {call.get('leads', 0)}"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in call["by_cta"].items()) if call.get("by_cta") else ""))

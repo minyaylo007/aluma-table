@@ -83,7 +83,7 @@ class TemplateTests(unittest.TestCase):
     def test_js_vote_form_and_view_content(self):
         self.assertIn('var vote = form.getAttribute("data-source") === "vote"', JS)
         self.assertIn('if (vote) { data.lead_source = "vote"; data.contact_pref = "info"; data.email = fv("email").slice(0, 120); }', JS)
-        self.assertIn("if (vote || (callback && data.contact_pref === \"info\")) {", JS)
+        self.assertIn("if (vote || (callback && data.contact_pref === \"info\" && !asked)) {", JS)   # №32: «питання» — лише телефон
         block = JS[JS.index('var nextCard = qs("[data-next]")'):]
         self.assertIn('track("ViewContent", { content_ids: [nid], content_type: "product"', block)
         self.assertIn('track("cta_vote", { content_ids: [nid] }, { pixel: false })', block)

@@ -23,14 +23,15 @@ class PdpAskTemplateTests(unittest.TestCase):
     def test_second_button_next_to_cart_with_hint_and_short_one_in_sticky_bar(self):
         actions = re.search(r'<div class="pdp-actions">(.*?)\n    </div>', TEMPLATE, re.S).group(1)
         self.assertRegex(actions, r'data-add-cart data-cta="pdp">\{\{t\.add_to_cart\}\}</button>\s*'
-                                  r'<button class="btn btn--line" type="button" data-ask data-cta="pdp">\{\{t\.ask_cta\}\}</button>')
+                                  r'<button class="btn btn--line" type="button" data-ask data-cta="pdp" aria-expanded="false" '
+                                  r'aria-controls="callback">\{\{t\.ask_cta\}\}</button>')
         self.assertIn('<p class="pdp-ask-hint muted small">{{t.ask_hint}}</p>', actions)
         sticky = re.search(r'<div class="sticky-cta[^"]*" data-sticky hidden>(.*?)</div>', TEMPLATE, re.S).group(1)
         self.assertRegex(sticky, r'type="button" data-ask data-cta="sticky">\{\{t\.ask_cta_short\}\}</button>')
         self.assertNotIn("ask_hint", sticky)
         self.assertEqual(TEMPLATE.count("data-ask"), 2)
         self.assertEqual(TEMPLATE.count("{{t.ask_hint}}"), 1)
-        self.assertIn("{{PART_FORM}}", TEMPLATE, "кнопки ведуть до #register — форма на картці є")
+        self.assertIn("{{PART_FORM}}", TEMPLATE, "«השאירו פרטים» веде до #register — велика анкета на картці лишається")
 
     def test_strings_in_three_languages_without_discounts_or_whatsapp(self):
         for lang in ("he", "en", "ru"):
@@ -50,6 +51,48 @@ class PdpAskTemplateTests(unittest.TestCase):
         self.assertIn('qs("#register")', JS)
         self.assertIn("b.hidden = true", block, "форми нема — кнопок нема")
         self.assertNotIn("timeframe", block)
+
+
+class PdpAskInPlaceTests(unittest.TestCase):
+    """№32 (27.10): «שאלה על השולחן?» відкриває міні-форму #callback на місці — режим «питання»: телефон, згода, кнопка.
+
+    До цього кнопка гнала на 7 826 px униз до анкети з 11 полів: cta_ask — 1 за 6 днів при 318 сесіях картки.
+    Той самий API і той самий lead_source=callback, contact_pref=info («עוד פרטים»); нового коду форми нема.
+    """
+
+    def block(self):
+        b = JS[JS.index("[data-ask], .pdp-ask"):]
+        return b[:b.index("// «Інший розмір»")]
+
+    def test_ask_button_opens_the_callback_form_in_ask_mode(self):
+        b = self.block()
+        self.assertIn('if (cbForm && b.hasAttribute("data-ask")) { cbOpen(b, true); return; }', b)
+        self.assertIn("cbOpen(b, false);", b, "«התקשרו» — та сама функція, повна міні-форма")
+        self.assertIn('cbForm.setAttribute("data-cb-ask", "")', b)
+        self.assertIn('\'input[name="contact_pref"][value="\' + (ask ? "info" : "call")', b)
+        # «השאירו פרטים» (.pdp-ask, без data-ask) — як і раніше, до #register
+        self.assertIn("reg0.scrollIntoView", b)
+        self.assertEqual(JS.count('data.lead_source = "callback"'), 1, "відправка — та сама гілка callback")
+
+    def test_ask_mode_shows_only_phone_consent_and_button(self):
+        css = (ROOT / "site" / "assets" / "aluma.css").read_text(encoding="utf-8")
+        self.assertIn(".callback[data-cb-ask] .f-choice, .callback[data-cb-ask] [data-cb-email], "
+                      ".callback[data-cb-ask] [data-cb-time] { display: none; }", css)
+        form = re.search(r'<form class="callback" id="callback".*?</form>', TEMPLATE, re.S).group(0)
+        self.assertIn('<div class="f" data-cb-time>', form)
+        self.assertIn("data-cb-email hidden", form)
+        self.assertIn('name="consent" required', form)
+        # у «питанні» телефон обов'язковий — e-mail і часу немає, тож і не відправляємо їх
+        self.assertIn('data.preferred_time = asked ? "" : fv("preferred_time").slice(0, 80);', JS)
+        self.assertIn('if (data.contact_pref === "info" && !asked) data.email = fv("email").slice(0, 120);', JS)
+
+    def test_thanks_in_place_in_three_languages(self):
+        self.assertIn('data-cb-ask-text="{{t.ask_thanks}}"', TEMPLATE)
+        for lang in ("he", "en", "ru"):
+            t = json.loads((ROOT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            with self.subTest(lang=lang):
+                self.assertTrue(t["ask_thanks"].strip())
+                self.assertIsNone(re.search(r"\d|₪|WhatsApp|וואטסאפ|הנחה|скидк|discount", t["ask_thanks"], re.I))
 
 
 if __name__ == "__main__":

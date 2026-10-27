@@ -37,6 +37,7 @@ const document = {
   body,
   createElement: el,
   getElementById: (id) => (id === "notice" && sc.hasNotice ? el("div") : id === "aluma-notice" && out.notice && out.notice !== "removed" ? out.notice : null),
+  querySelector: () => null,   // №32: картки (data-pdp) у харнесі нема — спостерігача видимості теж
   getElementsByTagName: () => [firstScript],
   addEventListener: (t, fn) => { listeners[t] = fn; },
   dispatchEvent: (e) => { if (!out.dispatched) out.dispatched = e.type; (out.consentEvents = out.consentEvents || []); if (e.type === "aluma:consent") out.consentEvents.push(e.detail); },

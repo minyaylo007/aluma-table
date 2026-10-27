@@ -307,9 +307,28 @@
     }
   }
   // ---------------------------------------------------------------- картка: м'який крок «שאלה? נחזור אליכם»
-  // [data-ask] біля «הוספה לסל» і в липкій панелі + «השאירו פרטים» під ціною → форма #register з цим столом.
+  // №32: [data-ask] біля «הוספה לסל» і в липкій панелі → та сама міні-форма #callback на місці, у режимі «питання»
+  // (data-cb-ask: лише телефон і згода, contact_pref=info, lead_source=callback). До 27.10 кнопка гнала на 7 826 px
+  // униз до анкети з 11 полів — cta_ask 1 за 6 днів. «השאירו פרטים» під ціною (.pdp-ask) — як і раніше, до #register.
   // cta_ask — лише в нашу аналітику (воронка: «вопрос с карточки»), Meta не потрібна. Форми нема — кнопок теж.
   var asks = qsa("[data-ask], .pdp-ask"), reg0 = qs("#register"), fName = form && qs("#f-name", form);
+  var calls = qsa("[data-call]"), cbForm = qs("#callback"), cbMain = qs('.pdp-call[data-call]'), askMain = qs(".pdp-pair [data-ask]");
+  // відкрити #callback: ask — режим «питання», інакше повна міні-форма «התקשרו»; кнопки картки — перемикачі, смуги — лише відкривають
+  var cbOpen = function (b, ask) {
+    var done = qs("[data-callback-thanks]");
+    if (done && !done.hidden) { done.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }); return; }
+    var same = !cbForm.hidden && cbForm.hasAttribute("data-cb-ask") === ask;
+    var open = !(same && (b === cbMain || b === askMain));
+    cbForm.hidden = !open;
+    if (open) cbMode(ask);
+    if (cbMain) cbMain.setAttribute("aria-expanded", String(open && !ask));
+    if (askMain) askMain.setAttribute("aria-expanded", String(open && ask));
+    if (!open) return;
+    // «питання» — найближче положення (форма й так під кнопками), «התקשרו» — по центру, як і було
+    cbForm.scrollIntoView({ block: ask ? "nearest" : "center", behavior: reduced ? "auto" : "smooth" });
+    var ph = cbForm.elements.phone;
+    setTimeout(function () { if (ph) { try { ph.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
+  };
   if (asks.length && !(reg0 && form)) asks.forEach(function (b) { b.hidden = true; });
   else asks.forEach(function (b) {
     b.addEventListener("click", function (e) {
@@ -317,6 +336,7 @@
       var cur = pdp && currentProduct();
       if (cur && fProduct && !fProduct.value) syncFormProduct(cur.id);
       if (cur) track("cta_ask", { content_ids: [cur.id], content_type: "product", cta: b.getAttribute("data-cta") || "" }, { pixel: false });
+      if (cbForm && b.hasAttribute("data-ask")) { cbOpen(b, true); return; }
       reg0.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
       setTimeout(function () { if (fName) { try { fName.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
     });
@@ -325,34 +345,34 @@
   // [data-call] під парою кнопок і іконка в липкій смузі → міні-форма #callback (телефон + згода, lead_source=callback).
   // №20: «що вам зручно» — дзвінок, відеодзвінок або «надішліть деталі» (тоді e-mail або телефон, хоч один).
   // cta_call — лише в нашу аналітику (воронка: «позвоните нам»), Meta не потрібна.
-  var calls = qsa("[data-call]"), cbForm = qs("#callback"), cbMain = qs('.pdp-call[data-call]');
   if (calls.length && !cbForm) calls.forEach(function (b) { b.hidden = true; });
   else calls.forEach(function (b) {
     b.addEventListener("click", function () {
       var cur = pdp && currentProduct();
       if (cur && fProduct && !fProduct.value) syncFormProduct(cur.id);
       if (cur) track("cta_call", { content_ids: [cur.id], cta: b.getAttribute("data-cta") || "" }, { pixel: false });
-      var done = qs("[data-callback-thanks]");
-      if (done && !done.hidden) { done.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }); return; }
-      var open = b !== cbMain || cbForm.hidden;           // кнопка картки — перемикач; іконка смуги лише відкриває
-      cbForm.hidden = !open;
-      if (cbMain) cbMain.setAttribute("aria-expanded", String(open));
-      if (!open) return;
-      cbForm.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
-      var ph = cbForm.elements.phone;
-      setTimeout(function () { if (ph) { try { ph.focus({ preventScroll: true }); } catch (x) {} } }, reduced ? 0 : 450);
+      cbOpen(b, false);
     });
   });
+  var cbPref = function () { var x = qs('input[name="contact_pref"]:checked', cbForm); return x ? x.value : "call"; };
+  var cbSync = function () {
+    // у режимі «питання» поля e-mail нема — телефон обов'язковий, як і в дзвінку
+    var pref = cbPref(), info = pref === "info" && !cbForm.hasAttribute("data-cb-ask");
+    qsa("[data-pref-hint]", cbForm).forEach(function (h) { h.hidden = h.getAttribute("data-pref-hint") !== pref; });
+    var em = qs("[data-cb-email]", cbForm), opt = qs("[data-phone-opt]", cbForm);
+    if (em) em.hidden = !info;
+    if (opt) opt.hidden = !info;
+    if (cbForm.elements.phone) { if (info) cbForm.elements.phone.removeAttribute("required"); else cbForm.elements.phone.setAttribute("required", ""); }
+  };
+  // «питання» = «עוד פרטים» (info) без вибору способу; «התקשרו» після нього — знову дзвінок, як у розмітці
+  var cbMode = function (ask) {
+    if (ask === cbForm.hasAttribute("data-cb-ask")) return;
+    if (ask) cbForm.setAttribute("data-cb-ask", ""); else cbForm.removeAttribute("data-cb-ask");
+    var r = qs('input[name="contact_pref"][value="' + (ask ? "info" : "call") + '"]', cbForm);
+    if (r) r.checked = true;
+    cbSync();
+  };
   if (cbForm) {
-    var cbPref = function () { var x = qs('input[name="contact_pref"]:checked', cbForm); return x ? x.value : "call"; };
-    var cbSync = function () {
-      var pref = cbPref(), info = pref === "info";
-      qsa("[data-pref-hint]", cbForm).forEach(function (h) { h.hidden = h.getAttribute("data-pref-hint") !== pref; });
-      var em = qs("[data-cb-email]", cbForm), opt = qs("[data-phone-opt]", cbForm);
-      if (em) em.hidden = !info;
-      if (opt) opt.hidden = !info;
-      if (cbForm.elements.phone) { if (info) cbForm.elements.phone.removeAttribute("required"); else cbForm.elements.phone.setAttribute("required", ""); }
-    };
     qsa('input[name="contact_pref"]', cbForm).forEach(function (r) { r.addEventListener("change", cbSync); });
     cbSync();
   }
@@ -536,11 +556,12 @@
       data.color = data.finish_id.slice(0, 40);
       data.size = data.size_label.replace(/[^0-9]/g, "").slice(0, 3);
       ATTR_KEYS.forEach(function (k) { data[k] = ap[k] || ""; });
+      var asked = callback && form.hasAttribute("data-cb-ask");   // №32: «שאלה?» — лише телефон
       if (callback) {
         data.lead_source = "callback";
-        data.contact_pref = data.contact_pref || "call";
-        data.preferred_time = fv("preferred_time").slice(0, 80);
-        if (data.contact_pref === "info") data.email = fv("email").slice(0, 120);
+        data.contact_pref = asked ? "info" : data.contact_pref || "call";
+        data.preferred_time = asked ? "" : fv("preferred_time").slice(0, 80);
+        if (data.contact_pref === "info" && !asked) data.email = fv("email").slice(0, 120);
       }
       if (vote) { data.lead_source = "vote"; data.contact_pref = "info"; data.email = fv("email").slice(0, 120); }
       // спосіб отримання, якщо вже вибрали в кошику (shop.js, fx_ship_v1); нового поля у формі нема
@@ -548,7 +569,7 @@
       var bad = [];
       setErr("name", ""); setErr("phone", ""); setErr("email", ""); setErr("consent", "");
       if (!callback && !vote && data.name.length < 2) { setErr("name", S.e_name); bad.push("name"); }
-      if (vote || (callback && data.contact_pref === "info")) {
+      if (vote || (callback && data.contact_pref === "info" && !asked)) {
         // «деталі»: e-mail або телефон — хоч один, і кожен заповнений має бути правильним
         if (!data.phone && !data.email) { setErr("phone", S.e_contact); bad.push("phone"); }
         if (data.phone && !phoneOk(data.phone)) { setErr("phone", S.e_phone); bad.push("phone"); }
@@ -578,6 +599,8 @@
             }
             form.hidden = true;
             if (callback && cbMain) cbMain.setAttribute("aria-expanded", "false");
+            if (callback && askMain) askMain.setAttribute("aria-expanded", "false");
+            if (asked && thanks && thanks.getAttribute("data-cb-ask-text")) thanks.textContent = thanks.getAttribute("data-cb-ask-text");
             if (thanks) { thanks.hidden = false; try { thanks.focus({ preventScroll: true }); } catch (x) {} thanks.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }); }
             if (vote && voteBtn) { voteBtn.hidden = true; voteBtn.setAttribute("aria-expanded", "false"); }
             if (!callback && !vote) D.body.classList.add("is-registered");

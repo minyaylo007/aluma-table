@@ -569,6 +569,8 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-facts li:not(:last-child)::after { content: "·"; margin-inline: 8px; color: var(--muted); }
 .pdp-facts a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
 .pdp-ship { margin: 4px 0 0; font-size: .88rem; line-height: 1.35; color: var(--muted); }
+/* №32: під ціною — строк першої серії й гарантія одним рядком; доставка рядком нижче — трьома числами */
+.pdp-sub { margin: 4px 0 0; font-size: .88rem; line-height: 1.35; color: var(--muted); }
 .pdp-ship a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
 .pdp-inc-h3 { font-size: .95rem; font-weight: 700; margin: 14px 0 6px; }
 .pdp-inc .pdp-terms { margin: 0; }
@@ -613,10 +615,16 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .pdp-h1 { font-size: 2rem; }
   .pdp-tag { margin-block-start: 2px; font-size: .95rem; line-height: 1.4; }
   .pdp-price { margin-block: 6px 0; padding-block-start: 6px; row-gap: 0; }
+  .pdp-sub, .pdp-ship { margin-block-start: 2px; }
   .pdp-price .price-incl { line-height: 1.3; } /* «מחיר השקה לסדרה הראשונה · 12 שולחנות» — окремим рядком */
   .pdp-pair { gap: 8px; }
   .pdp-pair .btn { min-height: 46px; padding-block: 4px; line-height: 1.15; }
   .pdp-buy .pdp-ask { align-self: flex-start; margin-block-start: 8px; }
+}
+/* №32 (27.10): під ціною додались строк/гарантія й доставка трьома числами — на вікні ≤ 700 px заввишки (Instagram)
+   кадр 16:9 замість 16:10 (−20 px), щоб пара кнопок лишилась на першому екрані й на 360, і в ru */
+@media (max-width: 599px) and (max-height: 700px) {
+  .g-slide .media, .gallery .media--hero { aspect-ratio: 16 / 9; }
 }
 .reg-promise { font-weight: 600; }
 .cart-row { display: flex; justify-content: space-between; gap: 12px; margin: 0; color: var(--muted); }
@@ -672,6 +680,8 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .pdp-call-hint { margin: -2px 0 0; line-height: 1.4; }
 .callback .f-choice { margin: 0; padding: 0; border: 0; min-width: 0; }
 .callback .f-choice .muted { margin-block-start: 8px; line-height: 1.4; }
+/* №32: «שאלה על השולחן?» — та сама форма в режимі «питання»: лише телефон, згода й кнопка */
+.callback[data-cb-ask] .f-choice, .callback[data-cb-ask] [data-cb-email], .callback[data-cb-ask] [data-cb-time] { display: none; }
 .callback-thanks { margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); }
 .callback-thanks:focus { outline: none; }
 /* «מה כלול במחיר» і «איך לבחור מידה» — під кнопкою кошика, до «מפרט» */
