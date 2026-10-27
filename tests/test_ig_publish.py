@@ -555,21 +555,27 @@ class InsightsTests(Base):
 
 
 class StoryFilesTests(unittest.TestCase):
-    """docs/ig/stories/: кожна історія — NN-слаг.jpg (+ .mp4) + .txt; в описі «הדמיה» і дата виходу; без «знижок»."""
+    """docs/ig/stories/: кожна історія — NN-слаг.jpg (+ .mp4) + .txt з датою виходу; без «знижок». «הדמיה» —
+    лише в уже опублікованих 01–05; з 06 її нема (слово власника 27.10)."""
     DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "stories"
+    OLD = ("01", "02", "03", "04", "05")
 
-    def test_five_stories(self):
+    def test_stories(self):
         notes = sorted(self.DIR.glob("[0-9][0-9]-*.txt"))
-        self.assertEqual([t.name[:2] for t in notes], ["01", "02", "03", "04", "05"])
+        self.assertEqual([t.name[:2] for t in notes], [f"{n:02d}" for n in range(1, 13)])
         for txt in notes:
             raw = txt.read_bytes()
             self.assertNotIn(b"\r", raw, txt.name)
             text = raw.decode("utf-8")
-            self.assertIn("הדמיה", text, txt.name)
-            self.assertRegex(text, r"2026-10-2\d", txt.name)
+            if txt.name[:2] in self.OLD:
+                self.assertIn("הדמיה", text, txt.name)
+            else:
+                self.assertIn("Без «הדמיה»", text, txt.name)
+            self.assertRegex(text, r"2026-1[01]-\d\d", txt.name)
             self.assertNotRegex(text, r"נותרו|הנחה|מבצע", txt.name)
             jpg = txt.with_suffix(".jpg")
             self.assertEqual(jpg.read_bytes()[:3], b"\xff\xd8\xff", jpg.name)
+            self.assertLessEqual(jpg.stat().st_size, 1024 * 1024, jpg.name)
             mp4 = txt.with_suffix(".mp4")
             if mp4.exists():
                 self.assertEqual(mp4.read_bytes()[4:8], b"ftyp", mp4.name)
@@ -585,13 +591,13 @@ class StoryFilesTests(unittest.TestCase):
 
 
 class PostFilesTests(unittest.TestCase):
-    """docs/ig/: кожен пост — пара NN-слаг.jpg + .txt; без цін, у межах Instagram. «הדמיה» — лише в уже
-    опублікованих 01–03 (їх не правимо); з 04 слова нема (слово власника 24.10: «не пиши, что это визуализация»)."""
+    """docs/ig/: кожен пост — пара NN-слаг.jpg + .txt у межах Instagram. 01–05 вже вийшли без цін; «הדמיה» — лише
+    в 01–03 (їх не правимо); з 04 слова нема (слово власника 24.10), є «הפריט בייצור.». З 06 ціни — як на сайті."""
     DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig"
 
     def test_pairs_and_captions(self):
         captions = sorted(self.DIR.glob("*.txt"))
-        self.assertEqual(len(captions), 5)
+        self.assertEqual([t.name[:2] for t in captions], [f"{n:02d}" for n in range(1, 13)])
         for txt in captions:
             raw = txt.read_bytes()
             self.assertNotIn(b"\r", raw, txt.name)
@@ -601,10 +607,59 @@ class PostFilesTests(unittest.TestCase):
                 self.assertIn("הדמיה", text, txt.name)
             else:
                 self.assertNotIn("הדמיה", text, txt.name)
-                self.assertIn("הפריט בייצור.", text, txt.name)
-            self.assertNotRegex(text, r"₪|\bNIS\b|ש״ח|шек", txt.name)
+                self.assertRegex(text, r"הפריט(ים)? בייצור\.", txt.name)
+            if txt.name[:2] <= "05":
+                self.assertNotRegex(text, r"₪|\bNIS\b|ש״ח|шек", txt.name)
+            self.assertNotRegex(text, r"נותרו|הנחה|מבצע|וואטסאפ|WhatsApp", txt.name)
             jpg = txt.with_suffix(".jpg")
             self.assertEqual(jpg.read_bytes()[:3], b"\xff\xd8\xff", jpg.name)
+            self.assertLessEqual(jpg.stat().st_size, 1024 * 1024, jpg.name)
+
+
+class HighlightFilesTests(unittest.TestCase):
+    """docs/ig/highlights/: п'ять обкладинок «Актуального» 1080×1920, JPEG."""
+    DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "highlights"
+
+    def test_five_covers(self):
+        covers = sorted(self.DIR.glob("*.jpg"))
+        self.assertEqual([c.name[0] for c in covers], ["1", "2", "3", "4", "5"])
+        for c in covers:
+            self.assertEqual(c.read_bytes()[:3], b"\xff\xd8\xff", c.name)
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow нема")
+        for c in covers:
+            with Image.open(c) as im:
+                self.assertEqual(im.size, (1080, 1920), c.name)
+
+
+class ReelFilesTests(unittest.TestCase):
+    """docs/ig/reels/: NN-слаг.mp4 + обкладинка .jpg + підпис .txt; підпис у межах Instagram, без «הדמיה»."""
+    DIR = pathlib.Path(__file__).resolve().parents[1] / "docs" / "ig" / "reels"
+
+    def test_reels(self):
+        videos = sorted(self.DIR.glob("[0-9][0-9]-*.mp4"))
+        self.assertEqual([v.name[:2] for v in videos], ["01", "02", "03"])
+        for mp4 in videos:
+            self.assertEqual(mp4.read_bytes()[4:8], b"ftyp", mp4.name)
+            self.assertLessEqual(mp4.stat().st_size, 8 * 1024 * 1024, mp4.name)
+            self.assertEqual(mp4.with_suffix(".jpg").read_bytes()[:3], b"\xff\xd8\xff", mp4.name)
+            raw = mp4.with_suffix(".txt").read_bytes()
+            self.assertNotIn(b"\r", raw, mp4.name)
+            text = raw.decode("utf-8")
+            ig_publish.check_caption(text)
+            self.assertNotIn("הדמיה", text, mp4.name)
+            self.assertRegex(text, r"הפריט(ים)? בייצור\.", mp4.name)
+
+
+class SeriesSourceTests(unittest.TestCase):
+    """tools/ig_series.json — без «הדמיה», «знижок» і таймерів на кадрах."""
+
+    def test_no_forbidden_words(self):
+        data = json.loads((pathlib.Path(__file__).resolve().parents[1] / "tools" / "ig_series.json").read_text(encoding="utf-8"))
+        data.pop("_comment")  # правила для автора — там ці слова названі як заборонені
+        self.assertNotRegex(json.dumps(data, ensure_ascii=False), r"הדמיה|נותרו|הנחה|מבצע")
 
 
 if __name__ == "__main__":

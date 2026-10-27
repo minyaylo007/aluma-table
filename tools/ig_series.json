@@ -1,0 +1,186 @@
+{
+  "_comment": "Instagram @aluma.il, серія 2 (№35): пости 1080×1350 → docs/ig/NN-*.jpg, історії 1080×1920 → docs/ig/stories/NN-*.jpg, обкладинки highlights → docs/ig/highlights/, Reels 9:16 → docs/ig/reels/. Генератор — tools/ig_series.js. Слова — тут; числа й назви — з catalog/products.json і content.json через {змінні}: {tavor_name}, {tavor_from}, {tavor_p200} (ціна розміру за довжиною), {tavor_x200} (розкладений), {tavor_seats_max}, {delivery}, {delivery_assembly}, {pickup}, {assembly_min}, {warranty}, {top_mm}, {insert_cm}, {installments}, {area}, {series_size}. Ні знижок, ні таймерів, ні «נותרו», ні відгуків, ні номера телефону; «הדמיה» на кадрах не ставимо (слово власника 27.10), але й фото клієнта рендер не називаємо. Посилання — у біо.",
+  "brand": "ALUMA",
+  "cta": "הפרטים בקישור בביו ↑",
+  "posts": [
+    {
+      "id": "06-tavor-280",
+      "kind": "photo",
+      "image": "tavor/open-1600.jpg",
+      "pos": "50% 55%",
+      "headline": "{tavor_name} · <bdi dir=\"ltr\">{tavor_l200} → {tavor_x200}</bdi> ס״מ",
+      "sub": "נפתח לחג: עד {tavor_seats_max} סועדים · <bdi dir=\"ltr\">{tavor_p200}</bdi> כולל מע״מ",
+      "foot": "שולחן אוכל נפתח · פורניר אלון · <bdi dir=\"ltr\">{tavor_l160}</bdi> ס״מ — מ־<bdi dir=\"ltr\">{tavor_from}</bdi>"
+    },
+    {
+      "id": "07-included",
+      "kind": "list",
+      "image": "tavor/angle-1600.jpg",
+      "pos": "50% 50%",
+      "headline": "מה כלול במחיר",
+      "rows": [
+        ["משטח", "פורניר אלון טבעי, קנט אלון מלא, <bdi dir=\"ltr\">{top_mm}</bdi> מ״מ"],
+        ["מנגנון", "מסילות אלומיניום, פלטה <bdi dir=\"ltr\">{insert_cm}</bdi> ס״מ מתחת למשטח"],
+        ["אחריות", "<bdi dir=\"ltr\">{warranty}</bdi> חודשים"],
+        ["מע״מ", "כלול במחיר"],
+        ["הרכבה", "עצמית, כ־{assembly_min} דקות, הוראות בקופסה"],
+        ["תשלום", "עד {installments} תשלומים באשראי"]
+      ],
+      "foot": "המחיר — לשולחן בלבד, בלי כיסאות · משלוח בנפרד"
+    },
+    {
+      "id": "08-sahar",
+      "kind": "photo",
+      "image": "sahar/life-1600.webp",
+      "pos": "50% 50%",
+      "headline": "{sahar_name} · <bdi dir=\"ltr\">Ø{sahar_l115} → {sahar_x115}</bdi> ס״מ",
+      "sub": "{sahar_tagline} · <bdi dir=\"ltr\">{sahar_p115}</bdi> כולל מע״מ",
+      "foot": "שולחן אוכל עגול · פורניר אלון · 5 גוונים"
+    },
+    {
+      "id": "09-inside",
+      "kind": "list",
+      "image": "tavor/mechanism-half-1600.jpg",
+      "pos": "50% 50%",
+      "headline": "מה בפנים",
+      "rows": [
+        ["משטח", "פורניר אלון <bdi dir=\"ltr\">{veneer_mm}</bdi> מ״מ, מאותו גזע לשני החצאים ולפלטה"],
+        ["ליבה", "MDF עמיד לחות <bdi dir=\"ltr\">{board_mm}</bdi> מ״מ, תקן פליטה E1"],
+        ["קנט", "אלון מלא מסביב, משטח <bdi dir=\"ltr\">{top_mm}</bdi> מ״מ"],
+        ["רגליים", "אלון מלא מודבק, עם רגליות פילוס"],
+        ["גימור", "לכה פוליאורטן מט, משני הצדדים"]
+      ],
+      "foot": "מיוצר במפעל שלנו בצ׳רנוביץ, אוקראינה · בלי מתווכים"
+    },
+    {
+      "id": "10-delivery",
+      "kind": "list",
+      "image": "tavor/home-1600.jpg",
+      "pos": "50% 60%",
+      "headline": "שלוש דרכים לקבל את השולחן",
+      "rows": [
+        ["איסוף עצמי", "<bdi dir=\"ltr\">{pickup}</bdi> · ב{area}, בתיאום מראש"],
+        ["משלוח עד הדלת", "<bdi dir=\"ltr\">{delivery}</bdi> · לכל הארץ"],
+        ["משלוח והרכבה", "<bdi dir=\"ltr\">{delivery_assembly}</bdi> · מביאים ומרכיבים"]
+      ],
+      "foot": "את השולחן אפשר לראות מקרוב ב{area}, בתיאום מראש"
+    },
+    {
+      "id": "11-series",
+      "kind": "trio",
+      "products": ["ofek", "saf", "tal"],
+      "image": "life-1600.webp",
+      "headline": "עוד מהסדרה",
+      "sub": "אותו פורניר אלון, אותם 5 גוונים"
+    },
+    {
+      "id": "12-how",
+      "kind": "steps",
+      "image": "tavor/light-morning-1600.jpg",
+      "pos": "50% 50%",
+      "headline": "איך מזמינים",
+      "rows": [
+        ["בוחרים באתר", "דגם, מידה וגוון — בלי תשלום באתר"],
+        ["שיחה ואישור", "חוזרים אליכם, מדייקים מידה וגוון"],
+        ["אישור הזמנה בכתב", "מחיר, מפרט ומועד — לפני כל תשלום"],
+        ["ייצור ומשלוח", "מביאים עד הדלת, או איסוף ב{area}"]
+      ]
+    }
+  ],
+  "stories": [
+    {
+      "id": "06-tavor-280",
+      "kind": "photo",
+      "image": "tavor/open-9x16.jpg",
+      "headline": "<bdi dir=\"ltr\">{tavor_l200} → {tavor_x200}</bdi> ס״מ",
+      "sub": "{tavor_name} נפתח לחג: עד {tavor_seats_max} סועדים · <bdi dir=\"ltr\">{tavor_p200}</bdi>"
+    },
+    {
+      "id": "07-included",
+      "kind": "list",
+      "image": "tavor/angle-1600.jpg",
+      "headline": "מה כלול במחיר",
+      "rows": [
+        ["משטח", "פורניר אלון, <bdi dir=\"ltr\">{top_mm}</bdi> מ״מ"],
+        ["אחריות", "<bdi dir=\"ltr\">{warranty}</bdi> חודשים"],
+        ["מע״מ", "כלול במחיר"],
+        ["תשלום", "עד {installments} תשלומים"]
+      ]
+    },
+    {
+      "id": "08-sahar",
+      "kind": "photo",
+      "image": "sahar/open-9x16.jpg",
+      "headline": "{sahar_name} · <bdi dir=\"ltr\">Ø{sahar_l115} → {sahar_x115}</bdi>",
+      "sub": "{sahar_tagline} · <bdi dir=\"ltr\">{sahar_p115}</bdi>"
+    },
+    {
+      "id": "09-inside",
+      "kind": "photo",
+      "image": "tavor/mechanism-closed-1600.jpg",
+      "headline": "המנגנון בתוך השולחן",
+      "sub": "פלטה <bdi dir=\"ltr\">{insert_cm}</bdi> ס״מ שמורה מתחת למשטח · מסילות אלומיניום"
+    },
+    {
+      "id": "10-delivery",
+      "kind": "list",
+      "image": "tavor/home-1600.jpg", "pos": "40% 50%",
+      "headline": "איך מקבלים",
+      "rows": [
+        ["איסוף ב{area}", "<bdi dir=\"ltr\">{pickup}</bdi>"],
+        ["משלוח עד הדלת", "<bdi dir=\"ltr\">{delivery}</bdi>"],
+        ["משלוח והרכבה", "<bdi dir=\"ltr\">{delivery_assembly}</bdi>"]
+      ]
+    },
+    {
+      "id": "11-series",
+      "kind": "trio",
+      "products": ["ofek", "saf", "tal"],
+      "image": "life-1600.webp",
+      "headline": "עוד מהסדרה",
+      "sub": "{ofek_name} · {saf_name} · {tal_name}"
+    },
+    {
+      "id": "12-how",
+      "kind": "steps",
+      "image": "tavor/light-evening-1600.jpg",
+      "headline": "איך מזמינים",
+      "rows": [
+        ["בוחרים באתר", ""],
+        ["שיחה ואישור", ""],
+        ["אישור הזמנה בכתב", ""],
+        ["ייצור ומשלוח", ""]
+      ]
+    }
+  ],
+  "highlights": [
+    { "id": "1-models", "word": "דגמים", "bg": "#7A5534" },
+    { "id": "2-prices", "word": "מחירים", "bg": "#211C17" },
+    { "id": "3-delivery", "word": "משלוח", "bg": "#5E554C" },
+    { "id": "4-factory", "word": "המפעל", "bg": "#4A3A2A" },
+    { "id": "5-faq", "word": "שאלות", "bg": "#6B4A2E" }
+  ],
+  "reels": [
+    {
+      "id": "01-tavor-open",
+      "frames": [
+        { "kind": "3d", "state": "closed", "seconds": 2.5, "headline": "{tavor_name} · <bdi dir=\"ltr\">{tavor_l200}</bdi> ס״מ", "sub": "ביום רגיל — {tavor_seats_closed_max} סועדים" },
+        { "kind": "3d", "state": "half", "seconds": 1.8, "headline": "מושכים את החצאים", "sub": "הפלטה שמורה מתחת למשטח" },
+        { "kind": "3d", "state": "open", "seconds": 2.7, "headline": "<bdi dir=\"ltr\">{tavor_x200}</bdi> ס״מ", "sub": "בחג — עד {tavor_seats_max} סועדים" },
+        { "kind": "card", "seconds": 3.5, "headline": "שלוש מידות", "rows": ["<bdi dir=\"ltr\">160 → 240</bdi> ס״מ · <bdi dir=\"ltr\">{tavor_p160}</bdi>", "<bdi dir=\"ltr\">180 → 260</bdi> ס״מ · <bdi dir=\"ltr\">{tavor_p180}</bdi>", "<bdi dir=\"ltr\">200 → 280</bdi> ס״מ · <bdi dir=\"ltr\">{tavor_p200}</bdi>"], "sub": "כולל מע״מ · פורניר אלון" }
+      ]
+    },
+    {
+      "id": "02-tones",
+      "frames": "@tones",
+      "seconds": 2.1,
+      "card": { "kind": "card", "seconds": 2.6, "headline": "אותו שולחן, 5 גוונים", "rows": [], "sub": "{tavor_name} · הגוון במסך הוא קירוב" }
+    },
+    {
+      "id": "03-series",
+      "frames": "@series",
+      "seconds": 2.1,
+      "card": { "kind": "card", "seconds": 2.6, "headline": "הסדרה הראשונה", "rows": [], "sub": "5 פריטים · פורניר אלון · מחירים באתר" }
+    }
+  ]
+}
