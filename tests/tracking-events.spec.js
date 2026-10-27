@@ -137,8 +137,10 @@ test.describe('після згоди', () => {
   test('/p/tavor/ — ViewContent з content_ids і value в ILS', async ({ page }) => {
     await open(page, '/p/tavor/', { consent: '1' });
     const [vc] = await waitFb(page, 'ViewContent');
-    const first = Number(await page.locator('input[name="size"]').first().getAttribute('data-price'));
-    expect(vc[2]).toMatchObject({ content_ids: ['tavor'], content_type: 'product', currency: 'ILS', value: first });
+    // №36: ціна обраного розміру (за замовчуванням 200×100), не першої плитки
+    const picked = Number(await page.locator('input[name="size"]:checked').getAttribute('data-price'));
+    expect(picked).not.toBe(Number(await page.locator('input[name="size"]').first().getAttribute('data-price')));
+    expect(vc[2]).toMatchObject({ content_ids: ['tavor'], content_type: 'product', currency: 'ILS', value: picked });
     expect(typeof vc[2].value).toBe('number');
     expect(vc[2].value).toBeGreaterThan(0);
     expect(vc[3].eventID).toBeTruthy();
