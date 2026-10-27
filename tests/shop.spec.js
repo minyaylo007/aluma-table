@@ -424,8 +424,10 @@ for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
     const pay = page.locator('.pdp-pay');
     await expect(pay).toContainText(t.installments.replace('{{INSTALLMENTS}}', CONTENT.INSTALLMENTS));
     const monthly = (n) => Math.ceil(n / Number(CONTENT.INSTALLMENTS)).toLocaleString('en-US');
-    await expect(pay.locator('[data-monthly]')).toContainText(monthly(TAVOR.sizes[0].price_ils));
-    const last = TAVOR.sizes[TAVOR.sizes.length - 1];
+    // №36: hero — розмір за замовчуванням із каталогу (TAVOR 200×100), не перший
+    const def0 = TAVOR.sizes.find((z) => z.default === true) || TAVOR.sizes[0];
+    await expect(pay.locator('[data-monthly]')).toContainText(monthly(def0.price_ils).replace(/,/g, prefix === '/ru' ? ' ' : ','));
+    const last = TAVOR.sizes[0];   // інший за ціною, ніж за замовчуванням
     await page.locator(`label:has(input[name="size"][value="${last.label}"])`).first().click();
     await expect(pay.locator('[data-monthly]')).toContainText(monthly(last.price_ils).replace(/,/g, prefix === '/ru' ? ' ' : ','));
 
@@ -553,6 +555,53 @@ for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
     await expect.poll(() => firstParty(net, 'cta_call').map((e) => e.props.cta), { timeout: 8000 }).toEqual(['sticky']);
   });
 }
+
+// №36 (28.10): 200×100 — вибір 42 % свідомих виборів і всіх свідомих кошиків; у плитці — розклад і місця, під нею таблиця
+const DEF = TAVOR.sizes.find((s) => s.default === true);
+for (const [lang, pre, T] of [['he', '', HE], ['ru', '/ru', RU], ['en', '/en', EN]]) {
+  test(`${lang} 390: TAVOR — ${DEF.label} за замовчуванням, ціна hero і ViewContent його, у кошик іде він; плитка з розкладом, таблиця`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${pre}/p/tavor/`);
+    await expect(page.locator('input[name="size"]:checked')).toHaveValue(DEF.label);
+    const price = await page.locator('.price[data-price]').innerText();
+    expect(price.replace(/[^0-9]/g, '')).toBe(String(DEF.price_ils));
+    const [vc] = await waitFb(page, 'ViewContent');
+    expect(vc[2]).toMatchObject({ content_ids: ['tavor'], value: DEF.price_ils });
+    const pill = page.locator(`label.pill:has(input[value="${DEF.label}"])`);
+    await expect(pill).toContainText(String(DEF.extended_cm));
+    await expect(pill).toContainText(T.facts_open);
+    await expect(pill).toContainText(/8–12/);
+    const tbl = page.locator('.pdp-sizes table');
+    await expect(tbl).toBeVisible();
+    await expect(page.locator('#sizes-h')).toHaveText(T.sizes_h);
+    await expect(tbl.locator('tbody tr')).toHaveCount(TAVOR.sizes.length);
+    await expect(tbl.locator('th[scope="col"]')).toHaveCount(4);
+    await expect(tbl.locator('tbody tr').nth(TAVOR.sizes.indexOf(DEF))).toContainText(`${DEF.length_cm} → ${DEF.extended_cm}`);
+    expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+    await page.locator('.pdp-actions [data-add-cart]').click();
+    await page.waitForURL(`**${pre}/cart/`);
+    await expect(page.locator('.cart-meta')).toContainText(DEF.label);
+    const [atc] = await waitFb(page, 'AddToCart');
+    expect(atc[2]).toMatchObject({ content_ids: ['tavor'], size: DEF.label, value: DEF.price_ils });
+    expect(firstParty(net, 'AddToCart')[0].props).toMatchObject({ size: DEF.label });
+  });
+}
+
+test('?size= у посиланні має пріоритет над розміром за замовчуванням; SAHAR — Ø115 → 155, 4–6, без таблиці', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.goto(`${ORIGIN}/p/tavor/?size=160x90`);
+  await expect(page.locator('input[name="size"]:checked')).toHaveValue('160×90');
+  expect((await page.locator('.price[data-price]').innerText()).replace(/[^0-9]/g, '')).toBe('4490');
+  await expect(page.locator('[data-plan-size="160×90"]')).toBeVisible();
+  await page.goto(`${ORIGIN}/p/sahar/`);
+  const pill = page.locator('label.pill:has(input[name="size"])');
+  await expect(pill).toContainText('Ø115');
+  await expect(pill).toContainText('155');
+  await expect(pill).toContainText('4–6');
+  await expect(page.locator('.pdp-sizes')).toHaveCount(0);
+});
 
 test('липка смуга на телефоні кладе в кошик вибраний розмір', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

@@ -243,7 +243,8 @@ test('size choice changes the price, finish choice its name, and both reach the 
   await mockApi(page);
   await page.goto(`/p/${p.slug}/`);
   await page.locator('[data-notice-no]').click();   // смуга cookies унизу закриває пігулки на телефоні
-  const last = p.sizes[p.sizes.length - 1];
+  // не розмір за замовчуванням (№36: TAVOR відкривається на 200×100) — інакше ціна не зміниться
+  const last = p.sizes.filter(s => s.default !== true && s.price_ils !== (p.sizes.find(z => z.default === true) || p.sizes[0]).price_ils).pop();
   await page.locator(`input[name="size"][value="${last.label}"]`).check({ force: true });
   const shown = '₪' + last.price_ils.toLocaleString('en-US');
   await expect(page.locator('.price[data-price]')).toContainText(shown);
@@ -261,10 +262,11 @@ test('plan "closed / open" follows the chosen size and the mechanism frames carr
   await mockApi(page);
   await page.goto(`/p/${p.slug}/`);
   await page.locator('[data-notice-no]').click();
-  const plans = page.locator('[data-plan-size]');
-  await expect(plans.first()).toBeVisible();
+  // видно план розміру за замовчуванням (№36: позначка default у каталозі, інакше перший)
+  const def = p.sizes.find(s => s.default === true) || p.sizes[0];
+  await expect(page.locator(`[data-plan-size="${def.label}"]`)).toBeVisible();
   await expect(page.locator('[data-plan-size]:visible')).toHaveCount(1);
-  const last = p.sizes[p.sizes.length - 1];
+  const last = p.sizes.find(s => s.label !== def.label && s.extended_cm);
   await page.locator(`label:has(input[name="size"][value="${last.label}"])`).click();
   const shown = page.locator(`[data-plan-size="${last.label}"]`);
   await expect(shown).toBeVisible();
@@ -343,7 +345,7 @@ test('a valid lead from a card sends product, size, finish and lands on the than
   expect(sent.leads).toHaveLength(1);
   const lead = sent.leads[0];
   expect(lead.product_id).toBe(p.id);
-  expect(lead.size_label).toBe(p.sizes[0].label);
+  expect(lead.size_label).toBe((p.sizes.find(s => s.default === true) || p.sizes[0]).label);   // №36: розмір за замовчуванням
   expect(lead.finish_id).toBe(p.finishes[0].id);
   expect(lead.consent).toBe(true);
   expect(lead.consent_marketing).toBe(false);              // חוק התקשורת 30א: не відмічено за замовчуванням

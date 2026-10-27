@@ -53,18 +53,19 @@ class InstallmentsTests(unittest.TestCase):
                 self.assertIsNone(re.search(r"ריבית|interest|процент|беспроцент|без переплат|\d|WhatsApp|הנחה|скидк|discount",
                                             blob.replace("{{INSTALLMENTS}}", ""), re.I), blob)
 
-    def test_monthly_rounded_up_from_minimal_config_tavor(self):
+    def test_monthly_rounded_up_from_default_size_tavor(self):
         sys.path.insert(0, str(ROOT))
         import build
         tavor = next(p for p in json.loads((ROOT / "catalog" / "products.json").read_text(encoding="utf-8"))
                      if p["id"] == "tavor")
-        first = tavor["sizes"][0]["price_ils"]
-        self.assertEqual(first, 4490, "якщо ціна змінилась — оновити очікуване нижче")
-        self.assertEqual((build.money(math.ceil(first / 12), "he"), build.money(math.ceil(first / 12), "ru")),
-                         ("₪375", "375 ₪"), "4490 / 12 = 374.17 → вгору, не 374")
+        # №36: платіж — від розміру за замовчуванням (TAVOR 200×100), не від першого в списку
+        price = build.default_size(tavor)["price_ils"]
+        self.assertEqual(price, 5290, "якщо ціна змінилась — оновити очікуване нижче")
+        self.assertEqual((build.money(math.ceil(price / 12), "he"), build.money(math.ceil(price / 12), "ru")),
+                         ("₪441", "441 ₪"), "5290 / 12 = 440.83 → вгору, не 440")
         src = (ROOT / "build.py").read_text(encoding="utf-8")
-        self.assertRegex(src, r'"P_MONTHLY": money\(math\.ceil\(\(p\["sizes"\]\[0\]\["price_ils"\]')
-        self.assertIn('/ int(CONTENT["INSTALLMENTS"])), loc)', src)
+        self.assertIn('p_price = int(default_size(p).get("price_ils")', src)
+        self.assertIn('"P_MONTHLY": money(math.ceil(p_price / int(CONTENT["INSTALLMENTS"])), loc)', src)
 
     def test_js_updates_monthly_with_the_size_price(self):
         block = JS[JS.index("var updatePrice"):]
