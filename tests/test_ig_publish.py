@@ -12,6 +12,7 @@ import os
 import pathlib
 import stat
 import tempfile
+import time
 import unittest
 import urllib.parse
 from unittest import mock
@@ -359,6 +360,198 @@ class StoryTests(Base):
         Image.new("RGB", (1080, 1080)).save(sq, "JPEG")
         with self.assertRaises(ig_publish.IgError):
             ig_publish.check_story_local(sq, False)
+
+
+REEL_MP4 = RAW + "docs/ig/reels/01-tavor-open.mp4"
+
+
+class ReelTests(Base):
+    """--reel: media_type=REELS, підпис, share_to_feed; ролик чекає до 300 с; результат — саме REELS."""
+
+    def run_reel(self, graph, *args, head=(200, {"content-type": "video/mp4", "content-length": "2000000"})):
+        heads = []
+
+        def fake_head(url):
+            heads.append(url)
+            return head
+
+        with mock.patch.object(ig_publish, "_head", fake_head):
+            res = self.run_main(graph, "--reel", *args)
+        return (*res, heads)
+
+    def test_order_and_params(self):
+        g = FakeGraph(product="REELS")
+        code, out, err, _, heads = self.run_reel(g, "--video-url", REEL_MP4, "--caption-file", str(self.caption))
+        self.assertEqual(code, 0, err)
+        seq = [(m, p.split("/", 2)[-1]) for m, p, _ in g.calls]
+        self.assertEqual(seq, [("POST", f"{USER}/media"), ("GET", "C1"),
+                               ("POST", f"{USER}/media_publish"), ("GET", "M1")])
+        media = g.calls[0][2]
+        self.assertEqual(media["media_type"], "REELS")
+        self.assertEqual(media["video_url"], REEL_MP4)
+        self.assertEqual(media["share_to_feed"], "true")
+        self.assertEqual(media["caption"], self.caption.read_text(encoding="utf-8").strip("\n"))
+        self.assertNotIn("image_url", media)
+        self.assertEqual(g.calls[3][2]["fields"], "media_product_type,permalink")
+        self.assertIn("media_id=M1", out)
+        self.assertIn("media_product_type=REELS", out)
+        self.assertIn("permalink=https://www.instagram.com/p/XYZ/", out)
+        self.assertEqual(heads, [])
+        self.assertNotIn(TOKEN, out + err)
+
+    def test_waits_up_to_300s(self):
+        g = FakeGraph(statuses=("IN_PROGRESS",) * 40 + ("FINISHED",), product="REELS")
+        clock = iter(range(0, 10000, 5))
+        with mock.patch.object(ig_publish.time, "monotonic", lambda: next(clock)):
+            code, _, err, sleeps, _ = self.run_reel(g, "--video-url", REEL_MP4, "--caption-file", str(self.caption))
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(sleeps), 40)
+
+    def test_not_a_reel_is_error(self):
+        code, _, err, _, _ = self.run_reel(FakeGraph(product="FEED"), "--video-url", REEL_MP4,
+                                           "--caption-file", str(self.caption))
+        self.assertEqual(code, 1)
+        self.assertIn("не REELS", err)
+
+    def refused(self, *args, text):
+        g = FakeGraph(product="REELS")
+        code, _, err, _, _ = self.run_reel(g, *args)
+        self.assertEqual(code, 1)
+        self.assertEqual(g.calls, [])
+        self.assertIn(text, err)
+
+    def test_refusals(self):
+        cap = ("--caption-file", str(self.caption))
+        self.refused(*cap, text="--video-url")
+        self.refused("--video-url", REEL_MP4, text="--caption-file")
+        self.refused("--video-url", REEL_MP4, "--image-url", IMG, *cap, text="без --image-url")
+        self.refused("--video-url", IMG, *cap, text=".mp4")
+        self.refused("--video-url", REEL_MP4.replace("https", "http"), *cap, text="https")
+        self.refused("--video-url", REEL_MP4, "--story", *cap, text="разом")
+        self.caption.write_text(" ".join(f"#תג{i}" for i in range(31)), encoding="utf-8")
+        self.refused("--video-url", REEL_MP4, *cap, text="хештегів 31")
+
+    def test_dry_run(self):
+        g = FakeGraph()
+        code, out, err, _, heads = self.run_reel(g, "--video-url", REEL_MP4, "--caption-file", str(self.caption),
+                                                 "--dry-run")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(heads, [REEL_MP4])
+        self.assertEqual([(m, p.rsplit("/", 1)[-1]) for m, p, _ in g.calls], [("GET", "me")])
+        self.assertIn("reel", out)
+        self.assertIn("нічого не створено", out)
+
+    def test_dry_run_reel_bigger_than_story_limit_ok(self):
+        size = str(150 * 1024 * 1024)  # > 100 МБ історії, < 300 МБ reel
+        code, _, err, _, _ = self.run_reel(FakeGraph(), "--video-url", REEL_MP4, "--caption-file", str(self.caption),
+                                           "--dry-run", head=(200, {"content-length": size}))
+        self.assertEqual(code, 0, err)
+
+    def test_local_duration_limit_90(self):
+        f = self.dir / "r.mp4"
+        f.write_bytes(b"x")
+
+        def probe(seconds):
+            out = json.dumps({"streams": [{"codec_name": "h264", "width": 1080, "height": 1920}],
+                              "format": {"duration": str(seconds)}})
+            return mock.Mock(stdout=out)
+
+        with mock.patch.object(ig_publish.subprocess, "run", return_value=probe(75)):
+            self.assertIn("75.0 с", ig_publish.check_story_local(f, True, which=lambda _: "/x/ffprobe",
+                                                                  max_seconds=ig_publish.REEL_VIDEO_SECONDS))
+            with self.assertRaises(ig_publish.IgError):  # історія: та сама тривалість — понад 60
+                ig_publish.check_story_local(f, True, which=lambda _: "/x/ffprobe")
+        with mock.patch.object(ig_publish.subprocess, "run", return_value=probe(95)):
+            with self.assertRaises(ig_publish.IgError):
+                ig_publish.check_story_local(f, True, which=lambda _: "/x/ffprobe",
+                                             max_seconds=ig_publish.REEL_VIDEO_SECONDS)
+
+
+NOW = 1793000000  # 2026-10-27, фіксований «зараз» для --insights
+
+
+class InsightsGraph:
+    """Graph для --insights: дві свіжі публікації й одна стара; метрика views поста — відмова, акаунт без website_clicks."""
+
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self, method, url, data):
+        parts = urllib.parse.urlsplit(url)
+        params = dict(urllib.parse.parse_qsl(parts.query))
+        path = parts.path
+        self.calls.append((method, path, params))
+        if method != "GET":
+            return 400, b'{"error": "read only"}'
+        stamp = lambda days: time.strftime("%Y-%m-%dT%H:%M:%S+0000", time.gmtime(NOW - days * 86400))  # noqa: E731
+        if path.endswith(f"/{USER}/media"):
+            return 200, json.dumps({"data": [
+                {"id": "R1", "media_type": "VIDEO", "media_product_type": "REELS", "timestamp": stamp(1),
+                 "permalink": "https://www.instagram.com/reel/R1/"},
+                {"id": "P1", "media_type": "IMAGE", "media_product_type": "FEED", "timestamp": stamp(3),
+                 "permalink": "https://www.instagram.com/p/P1/"},
+                {"id": "OLD", "media_type": "IMAGE", "media_product_type": "FEED", "timestamp": stamp(20),
+                 "permalink": "https://www.instagram.com/p/OLD/"}]}).encode()
+        metric = params.get("metric", "")
+        if path.endswith("/R1/insights"):
+            return 200, json.dumps({"data": [{"name": m, "values": [{"value": 10 + i}]}
+                                             for i, m in enumerate(metric.split(","))]}).encode()
+        if path.endswith("/P1/insights"):
+            if "views" in metric.split(","):
+                return 400, json.dumps({"error": {"message": f"views unsupported token {TOKEN}"}}).encode()
+            return 200, json.dumps({"data": [{"name": metric, "values": [{"value": 2}]}]}).encode()
+        if path.endswith(f"/{USER}/insights"):
+            if "website_clicks" in metric.split(","):
+                return 400, b'{"error": {"message": "no permission"}}'
+            return 200, json.dumps({"data": [{"name": metric, "total_value": {"value": 7}}]}).encode()
+        if path.endswith(f"/{USER}"):
+            return 200, b'{"followers_count": 3, "id": "1"}'
+        return 404, b'{"error": "unknown"}'
+
+
+class InsightsTests(Base):
+    def run_insights(self, *args):
+        g = InsightsGraph()
+        with mock.patch.object(ig_publish.time, "time", lambda: NOW):
+            code, out, err, _ = self.run_main(g, "--insights", *args)
+        return g, code, out, err
+
+    def test_table_and_fallbacks(self):
+        g, code, out, err = self.run_insights("--days", "7")
+        self.assertEqual(code, 0, err)
+        self.assertIn("публікацій: 2", out)
+        self.assertIn("https://www.instagram.com/reel/R1/", out)
+        self.assertNotIn("OLD", out)  # поза вікном 7 днів — без метрик
+        self.assertFalse(any("/OLD/" in p for _, p, _ in g.calls))
+        reel_row = next(line for line in out.splitlines() if "/reel/R1/" in line)
+        self.assertEqual(reel_row.split()[2:8], ["10", "11", "14", "15", "12", "13"])  # reach views likes comments saved shares
+        post_row = next(line for line in out.splitlines() if "/p/P1/" in line)
+        self.assertEqual(post_row.split()[2:4], ["2", "—"])
+        self.assertIn("підписників 3", out)
+        self.assertIn("переглядів профілю 7", out)
+        self.assertIn("переходів на сайт недоступно", out)
+        self.assertIn("недоступно від API (акаунт): website_clicks", out)
+        self.assertIn("views", out.splitlines()[-1])
+        self.assertTrue(all(m == "GET" for m, _, _ in g.calls))  # звіт нічого не створює
+        self.assertNotIn(TOKEN, out + err)
+
+    def test_account_window_params(self):
+        g, code, _, err = self.run_insights("--days", "45")
+        self.assertEqual(code, 0, err)
+        acc = [p for _, path, p in g.calls if path.endswith(f"/{USER}/insights")][0]
+        self.assertEqual(acc["metric_type"], "total_value")
+        self.assertEqual(acc["period"], "day")
+        self.assertEqual(int(acc["until"]) - int(acc["since"]), 30 * 86400)  # API: вікно до 30 днів
+
+    def test_bad_days(self):
+        g, code, _, err = self.run_insights("--days", "0")
+        self.assertEqual(code, 1)
+        self.assertEqual(g.calls, [])
+
+    def test_insight_values_shapes(self):
+        self.assertEqual(ig_publish._insight_values({"data": [
+            {"name": "reach", "values": [{"value": 5}]}, {"name": "profile_views", "total_value": {"value": 4}},
+            {"name": "bad", "values": [{"value": "x"}]}]}), {"reach": 5, "profile_views": 4})
 
 
 class StoryFilesTests(unittest.TestCase):
