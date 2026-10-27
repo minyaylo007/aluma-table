@@ -656,9 +656,32 @@ class BuiltSiteTests(unittest.TestCase):
             self.assertRegex(html, r'<meta name="description" content="[^"]{20,}">')
 
     def test_share_preview_is_own_language_and_product(self):
-        # WhatsApp/Facebook: головна he/en — власне превью мовою сторінки, товар — свій герой, не старе og.png
-        for rel, name in (("", "home-he"), ("en/", "home-en"), (f"p/{PRODUCTS[0]['slug']}/", PRODUCTS[0]["slug"])):
+        # WhatsApp/Facebook: головна he/en/ru — власне превью мовою сторінки з героєм HERO_PRODUCT (№37), товар — свій герой
+        hero = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))["HERO_PRODUCT"]
+        cases = [(prefix, f"home-{hero}-{loc}") for loc, prefix in DIST_PREFIX.items()]
+        cases += [(f"p/{p['slug']}/", p["slug"]) for p in PRODUCTS]
+        for rel, name in cases:
             self.assertRegex(self.page(rel), rf'property="og:image" content="[^"]*/assets/og/{name}\.[0-9a-f]+\.jpg"', rel)
+
+    def test_share_preview_files_exist_and_fit(self):
+        # кожен og:image зібраних сторінок віддається з dist/, 1200×630, ≤ 300 КБ; старого og.png (GOREN) не роздаємо
+        from tests.test_og_images import MAX_BYTES, jpeg_size
+        seen = set()
+        for rel, html in self.all_html():
+            for url in re.findall(r'property="og:image" content="https?://[^/"]+(/[^"]+)"', html):
+                self.assertNotIn("/assets/og.", url, rel)
+                seen.add(url)
+        self.assertTrue(seen)
+        for url in seen:
+            data = (self.dist / url.lstrip("/")).read_bytes()
+            self.assertEqual(jpeg_size(data), (1200, 630), url)
+            self.assertLessEqual(len(data), MAX_BYTES, url)
+
+    def test_home_og_title_is_hero(self):
+        # og:title головної — hero_h1 без розмітки, не загальний home_title (№37)
+        for loc, prefix in DIST_PREFIX.items():
+            h1 = re.sub(r"<[^>]+>", "", json.loads((PROJECT / "i18n" / f"{loc}.json").read_text(encoding="utf-8"))["hero_h1"])
+            self.assertIn(f'property="og:title" content="{h1} — ', self.page(prefix), loc)
 
     def test_sitemap_lists_products_and_robots_points_to_it(self):
         sm = (self.dist / "sitemap.xml").read_text(encoding="utf-8")

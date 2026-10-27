@@ -34,3 +34,4 @@ tests.test_ig_publish         # пости в Instagram: порядок викл
 tests.test_next_variants      # №22 «наступне видання»: голос vote (телефон або e-mail), «Голос за» у Telegram, воронка — варіант окремим товаром, голоси окремо
 tests.test_render_products_alt  # tools/render_products.js --add: ru alt і невідомі мови в каталозі лишаються (№25)
 tests.test_visit_lead         # №30 «לראות מקרוב»: cta_visit лише в нашу аналітику, lead_source=visit, Telegram, рядок «Визит» у воронці
+tests.test_og_images          # №37: OG-превью головної (герой HERO_PRODUCT, he/en/ru), товарів і «наступного видання» — 1200×630, ≤ 300 КБ
