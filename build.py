@@ -1187,8 +1187,10 @@ def main() -> None:
             toks.setdefault("TITLE", "{{t." + title_key + "}}")
             toks.setdefault("DESC", "{{t." + desc_key + "}}")
             toks.setdefault("JSONLD", "")
-            # загальні сторінки: превью головної своєю мовою (tools/make-og-products.js), інакше старе og.png
-            home_og = f"/assets/og/home-{loc}.jpg"
+            toks.setdefault("OG_TITLE", toks["TITLE"])
+            # загальні сторінки: превью головної своєю мовою з героєм HERO_PRODUCT (tools/make-og-products.js), інакше старе
+            # og.png — його тест не пропускає (№37: hero змінили, превью лишилось старим)
+            home_og = f"/assets/og/home-{CONTENT['HERO_PRODUCT']}-{loc}.jpg"
             toks.setdefault("OG_IMAGE", home_og if (SITE / home_og.lstrip("/")).is_file() else "/assets/og.png")
             toks.setdefault("BODY_CLASS", "")
             toks.setdefault("ROBOTS", "")
@@ -1209,6 +1211,8 @@ def main() -> None:
                 # слот «תמונות מבית המלאכה יעלו בקרוב» — прихований, доки немає фото (content.json WORKSHOP_PHOTOS, аудит 22.10)
                 toks["PHOTO_SLOT_HIDDEN"] = "" if CONTENT.get("WORKSHOP_PHOTOS") == "1" else " hidden"
             if name == "home":
+                # №37: превью посилання = hero (hero_h1 без розмітки), як на картинці home-<HERO>-<loc>.jpg
+                toks["OG_TITLE"] = esc(re.sub(r"<[^>]+>", "", s["hero_h1"])) + " — {{t.brand_name}}"
                 toks["JSONLD"] = organization_jsonld(loc, CONTENT["SITE_URL"] + prefix + "/")
             elif name == "faq" and s.get("faq"):
                 toks["JSONLD"] = faq_jsonld(s["faq"])
@@ -1259,6 +1263,8 @@ def main() -> None:
                 "N_PRICE_NOTE": esc(s.get("next_price_note", "")).replace("{like}", like_name),
                 "N_SPECS": "".join(f"<li>{esc_bidi(x)}</li>" for x in (n.get("specs") or {}).get(loc) or []),
             }
+            if (SITE / "assets" / "og" / f"{n['slug']}.jpg").is_file():
+                tokens["OG_IMAGE"] = f"/assets/og/{n['slug']}.jpg"
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{n['slug']}/index.html",
                  templates["next"], tokens, "", "", path)
             pages_out.append(prefix + path)
