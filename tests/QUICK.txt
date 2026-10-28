@@ -28,6 +28,7 @@ tests.test_i18n_parity        # he/en/ru: ті самі ключі й токен
 tests.test_i18n_unused        # i18n: нема ключів без посилань у site/ і build.py (№23)
 tests.test_pdp_ask            # картка: «שאלה? נחזור אליכם» біля кошика й у липкій панелі, рядки 3 мовами, cta_ask лише в нашу аналітику
 tests.test_pdp_call           # картка: «עד 12 תשלומים» під ціною (+ кошик/оформлення), «התקשרו אלינו» → міні-форма callback, cta_call лише в нашу аналітику
+tests.test_pdp_short          # №39: глави картки під спойлером, «נראה לכם בווידאו» під парою кнопок, липка смуга після першого екрана
 tests.test_i18n_material      # блок матеріалу: фанера — фанера, «אלון מלא» лише про крайки
 tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy
 tests.test_ig_publish         # пости в Instagram: порядок викликів, FINISHED/ERROR, dry-run без POST, токен не друкується, refresh 0600

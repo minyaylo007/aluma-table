@@ -262,6 +262,7 @@ test('plan "closed / open" follows the chosen size and the mechanism frames carr
   await mockApi(page);
   await page.goto(`/p/${p.slug}/`);
   await page.locator('[data-notice-no]').click();
+  await page.locator('#unfold summary').click();   // №39: глава під спойлером
   // видно план розміру за замовчуванням (№36: позначка default у каталозі, інакше перший)
   const def = p.sizes.find(s => s.default === true) || p.sizes[0];
   await expect(page.locator(`[data-plan-size="${def.label}"]`)).toBeVisible();
@@ -294,6 +295,7 @@ test('morning / evening switch swaps the light layer, no tag, hides the inactive
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(`/p/${p.slug}/`);
   await page.locator('[data-notice-no]').click();
+  await page.locator('#light summary').click();   // №39: глава під спойлером
   const fig = page.locator('[data-light-fig]');
   await expect(fig).toHaveAttribute('data-on', 'morning');
   await expect(fig.locator('.viz-tag')).toHaveCount(0);
@@ -830,16 +832,16 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeGreaterThanOrEqual(tops[i - 1] - 2);   // DOM-порядок = зверху вниз
     await page.locator('.pdp-pair [data-add-cart]').focus();
     const seq = [];
-    for (let i = 0; i < 13; i++) {
+    for (let i = 0; i < 14; i++) {
       await page.keyboard.press('Tab');
       seq.push(await page.evaluate(() => { const a = document.activeElement;
-        return a.matches('[data-ask]') ? 'ask' : a.matches('[data-call]') ? 'call' : a.matches('.pdp-ask') ? 'lead'
+        return a.matches('[data-ask]') ? 'ask' : a.matches('[data-video]') ? 'video' : a.matches('[data-call]') ? 'call' : a.matches('.pdp-ask') ? 'lead'
           : a.closest('.trust-strip') ? 'strip' : a.closest('.pdp-config') ? 'config' : a.tagName; }));
     }
     // №19: смуга довіри — перед «השאירו פרטים»: 4 заголовки + PDF збирання (у tavor він є); №28: тон/розмір — одразу під діями;
     // №30: з фактом району — ще плитка «לראות מקרוב»
     const strip = Array(SHOWROOM ? 6 : 5).fill('strip');
-    expect(seq.slice(0, 7 + strip.length)).toEqual(['ask', 'call', 'config', 'config', 'config', 'config', ...strip, 'lead']);
+    expect(seq.slice(0, 8 + strip.length)).toEqual(['ask', 'video', 'call', 'config', 'config', 'config', 'config', ...strip, 'lead']);
   });
 }
 
@@ -950,6 +952,8 @@ for (const [w, h] of [[390, 844], [1440, 900]]) {
     const ids = await nav.locator('a').evaluateAll(as => as.map(a => a.hash.slice(1)));
     expect(ids.length).toBeGreaterThanOrEqual(3);
     for (const id of ids) await expect(page.locator(`#${id}`)).toHaveCount(1);
+    // №39: глави під спойлерами; читач, що гортає главами, їх відкрив — тоді поточна глава стежить за прокруткою
+    await page.evaluate(() => document.querySelectorAll('details[data-acc]').forEach(d => { d.open = true; }));
     for (const id of [ids[ids.length - 1], ids[1], ids[0]]) {
       await page.evaluate(i => document.getElementById(i).scrollIntoView({ behavior: 'instant' }), id);
       await expect(nav.locator('[aria-current="location"]')).toHaveAttribute('href', `#${id}`);
@@ -1024,4 +1028,62 @@ test('3D view without WebGL: a short text inside the viewer, not a silent button
   await expect(msg).toBeVisible();
   await expect(msg).toContainText('תלת־ממד');
   await expect(page.locator('.viewer3d canvas')).toHaveCount(0);
+});
+
+// ---------------------------------------------------------------- №39: коротка картка, відеодзвінок, липка смуга
+test('card 390 he /p/tavor/: no taller than 7 000 px — chapters sit under closed spoilers', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 650 });
+  await page.goto('/p/tavor/');
+  expect(await page.evaluate(() => document.body.scrollHeight)).toBeLessThanOrEqual(7000);
+});
+
+test('spec chapter is closed with its heading visible and opens by mouse, keyboard and the chapter link', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/p/tavor/');
+  const acc = page.locator('#spec details.pdp-acc');
+  const isOpen = () => acc.evaluate(d => d.open);
+  expect(await isOpen()).toBe(false);
+  await expect(page.locator('#spec-h')).toBeVisible();
+  await expect(page.locator('#spec .pdp-acc-body')).toBeHidden();
+  await page.locator('#spec summary').click();
+  await expect.poll(isOpen).toBe(true);
+  await expect(page.locator('#spec .pdp-acc-body')).toBeVisible();
+  await page.locator('#spec summary').focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(isOpen).toBe(false);
+  await page.keyboard.press('Space');
+  await expect.poll(isOpen).toBe(true);
+  // посилання глави відкриває свій спойлер
+  const how = page.locator('#how details.pdp-acc');
+  expect(await how.evaluate(d => d.open)).toBe(false);
+  await page.evaluate(() => { location.hash = '#how'; });
+  await expect.poll(() => how.evaluate(d => d.open)).toBe(true);
+});
+
+for (const [prefix, lang] of [['', 'he'], ['/ru', 'ru']]) {
+  test(`card 390×650 ${lang}: the video button is on the first screen and opens the mini-form with video chosen`, async ({ page }) => {
+    await mockApi(page);
+    await page.setViewportSize({ width: 390, height: 650 });
+    await page.goto(`${prefix}/p/tavor/`);
+    const btn = page.locator('.pdp-buy [data-video]');
+    await expect(btn).toBeVisible();
+    const box = await btn.boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(650);
+    await expect(btn).toHaveAttribute('aria-expanded', 'false');
+    await btn.click();
+    await expect(page.locator('#callback')).toBeVisible();
+    await expect(btn).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#callback input[name="contact_pref"][value="video"]')).toBeChecked();
+  });
+}
+
+test('card 390×650: the sticky bar is off at load without a scroll', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 650 });
+  await page.goto('/p/tavor/');
+  await nudge(page);
+  await page.waitForTimeout(200);
+  await expect(page.locator('[data-sticky]')).not.toHaveClass(/is-on/);
 });

@@ -318,16 +318,20 @@
   // cta_ask — лише в нашу аналітику (воронка: «вопрос с карточки»), Meta не потрібна. Форми нема — кнопок теж.
   var asks = qsa("[data-ask], .pdp-ask"), reg0 = qs("#register"), fName = form && qs("#f-name", form);
   var calls = qsa("[data-call]"), cbForm = qs("#callback"), cbMain = qs('.pdp-call[data-call]'), askMain = qs(".pdp-pair [data-ask]");
-  // відкрити #callback: ask — режим «питання», інакше повна міні-форма «התקשרו»; кнопки картки — перемикачі, смуги — лише відкривають
-  var cbOpen = function (b, ask) {
+  var videoBtn = qs("[data-video]");
+  // відкрити #callback: ask — режим «питання», інакше повна міні-форма «התקשרו»; кнопки картки — перемикачі, смуги — лише відкривають.
+  // №39: video — та сама повна міні-форма з передвибором «שיחת וידאו» (contact_pref=video, lead_source=callback)
+  var cbOpen = function (b, ask, video) {
     var done = qs("[data-callback-thanks]");
     if (done && !done.hidden) { done.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }); return; }
-    var same = !cbForm.hidden && cbForm.hasAttribute("data-cb-ask") === ask;
-    var open = !(same && (b === cbMain || b === askMain));
+    var same = !cbForm.hidden && cbForm.hasAttribute("data-cb-ask") === ask && (!video || cbPref() === "video");
+    var open = !(same && (b === cbMain || b === askMain || b === videoBtn));
     cbForm.hidden = !open;
     if (open) cbMode(ask);
-    if (cbMain) cbMain.setAttribute("aria-expanded", String(open && !ask));
+    if (open && video) { var rv = qs('input[name="contact_pref"][value="video"]', cbForm); if (rv) { rv.checked = true; cbSync(); } }
+    if (cbMain) cbMain.setAttribute("aria-expanded", String(open && !ask && !video));
     if (askMain) askMain.setAttribute("aria-expanded", String(open && ask));
+    if (videoBtn) videoBtn.setAttribute("aria-expanded", String(open && !!video));
     if (!open) return;
     // «питання» — найближче положення (форма й так під кнопками), «התקשרו» — по центру, як і було
     cbForm.scrollIntoView({ block: ask ? "nearest" : "center", behavior: reduced ? "auto" : "smooth" });
@@ -373,6 +377,15 @@
       if (cur) track("cta_call", { content_ids: [cur.id], cta: b.getAttribute("data-cta") || "" }, { pixel: false });
       cbOpen(b, false);
     });
+  });
+  // №39: «נראה לכם את השולחן בווידאו» на першому екрані (власник 25.10: відеодзвінок — так). Номера й посилань нема —
+  // лише зворотний зв'язок; cta_video — у нашу аналітику, Meta не потрібна.
+  if (videoBtn && !cbForm) videoBtn.hidden = true;
+  else if (videoBtn) videoBtn.addEventListener("click", function () {
+    var cur = pdp && currentProduct();
+    if (cur && fProduct && !fProduct.value) syncFormProduct(cur.id);
+    if (cur) track("cta_video", { content_ids: [cur.id], cta: videoBtn.getAttribute("data-cta") || "" }, { pixel: false });
+    cbOpen(videoBtn, false, true);
   });
   var cbPref = function () { var x = qs('input[name="contact_pref"]:checked', cbForm); return x ? x.value : "call"; };
   var cbSync = function () {
@@ -671,7 +684,8 @@
     var apply = function () {
       queued = false;
       var past = anchor ? anchor.getBoundingClientRect().bottom < 0 : W.scrollY > W.innerHeight;
-      var on = past && !noticeOpen() && !visible(reg) && !visible(foot) && !D.body.classList.contains("is-registered");
+      var cb = qs("#callback");   // №39: відкрита міні-форма у вікні — смуга її не накриває
+      var on = past && !noticeOpen() && !visible(reg) && !visible(foot) && !(cb && !cb.hidden && visible(cb)) && !D.body.classList.contains("is-registered");
       sticky.hidden = false;
       sticky.classList.toggle("is-on", on);
       sticky.inert = !on;
@@ -684,6 +698,20 @@
     // банер з'являється після шрифтів, ховається на вибір — межа «вся на екрані» зсувається без прокрутки
     if (notice && W.MutationObserver) new MutationObserver(schedule).observe(notice, { attributes: true, attributeFilter: ["hidden", "class"] });
     apply();
+  }
+
+  // ---------------------------------------------------------------- акордеони картки (№39): посилання на главу відкриває її
+  var accOpen = function (id) {
+    var sec = id && D.getElementById(id), d = sec && qs("details[data-acc]", sec);
+    if (d && !d.open) d.open = true;
+  };
+  if (qs("details[data-acc]")) {
+    D.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (a && a.hash.length > 1) accOpen(decodeURIComponent(a.hash.slice(1)));
+    });
+    if (location.hash.length > 1) accOpen(decodeURIComponent(location.hash.slice(1)));
+    W.addEventListener("hashchange", function () { accOpen(decodeURIComponent(location.hash.slice(1))); });
   }
 
   // ---------------------------------------------------------------- глави картки: aria-current на главі під шапкою
