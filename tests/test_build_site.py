@@ -338,7 +338,31 @@ class BuiltSiteTests(unittest.TestCase):
                         text = re.sub(r"<[^>]+>", "", b).lower().replace(honest[lang], "")  # текст, не data-атрибути
                         self.assertNotIn(word.get(lang, "pay"), text)
             self.assertIn(honest[lang], self.page(prefix + "cart/").lower())
-            self.assertIn("data-co-keep", self.page(prefix + "checkout/"))
+            # №38: оформлення — один екран: одна форма, кроків нема, кнопка та сама, що в кошику («…בלי תשלום באתר»)
+            co = self.page(prefix + "checkout/")
+            self.assertEqual(co.count("data-co-form"), 1)
+            self.assertNotIn("co-steps", co + self.page(prefix + "cart/"))
+            self.assertNotIn("data-co-keep", co)
+            self.assertIn(honest[lang], co.lower())
+
+    def test_checkout_one_screen_phone_required_thanks_in_place(self):
+        # №38: телефон обов'язковий з чесним підписом «כדי שנחזור אליכם»; підтвердження — на тій самій сторінці,
+        # строк — числом із каталогу (LEAD_WEEKS), без WhatsApp, «הדמיה», оплати карткою
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            html = self.page(prefix + "checkout/")
+            with self.subTest(lang=lang):
+                phone = re.search(r'<input id="co-phone"[^>]*>', html).group(0)
+                self.assertIn(" required", phone)
+                self.assertIn('aria-describedby="co-phone-why co-e-phone"', phone)
+                self.assertNotIn(" required", re.search(r'<input id="co-name"[^>]*>', html).group(0))
+                self.assertIn(t["co_phone_why"], html)
+                thanks = re.search(r'<div class="thanks co-thanks" data-co-thanks.*?</div>', html, re.S).group(0)
+                self.assertIn(t["co_thx_h"], thanks)
+                self.assertNotIn("{{", thanks)
+                self.assertRegex(thanks, r"\d+–\d+")
+                for banned in ("whatsapp", "וואטסאפ", "הדמיה", "js-wa"):
+                    self.assertNotIn(banned, thanks.lower())
 
     def test_ship_choice_has_no_default_and_knows_the_pdf(self):
         # 27.10 (№31): «עד הדלת» більше не обрано за замовчуванням (підсумок стрибав на ₪950); на кроці «משלוח»
@@ -498,7 +522,7 @@ class BuiltSiteTests(unittest.TestCase):
 
     def test_cart_and_checkout_offer_pickup_or_door_and_promise_no_payment(self):
         # хвиля 1 (22.10), №19: у кошику й на кроці «משלוח» — до дверей / зі складанням / самовивіз (shop.js рахує суму з
-        # DATA.ship); над кроком оплати — «נחזור תוך יום עסקים… בלי תשלום עכשיו»; «טרם אושר» — ніде
+        # DATA.ship); під кнопкою оформлення — «בלי תשלום עכשיו… נחזור תוך יום עסקים» (cart_fine); «טרם אושר» — ніде
         content = json.loads((PROJECT / "content.json").read_text(encoding="utf-8"))
         for lang, prefix in DIST_PREFIX.items():
             t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
@@ -510,7 +534,6 @@ class BuiltSiteTests(unittest.TestCase):
                         self.assertIn(k, html)
                     self.assertNotIn("טרם אושר", html)
                     self.assertIn(t["cart_fine"], html)
-            self.assertIn(t["reg_promise"], self.page(prefix + "checkout/"))
             self.assertIn(t["reg_promise"], self.page(prefix))
             data = json.loads(re.search(r'<script type="application/json" id="aluma-data">(.*?)</script>',
                                         self.page(prefix + "cart/"), re.S).group(1))

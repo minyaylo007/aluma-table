@@ -174,8 +174,8 @@ itself for any host but `127.0.0.1` / `localhost`. Not in CI.
 
 What it walks (rewritten 2026-10-22 for the shop funnel, `specs/003-shop-funnel`), in Hebrew
 and in Russian (`/ru/`): product page `tavor` → size → `add_to_cart` → cart → `cart_pay` →
-step «משלוח» (city, «מתי צריך?») → `co_next` → step `co_step_pay` → phone + consent →
-`pay_submit` → `pay_thx_h`. Every label is read from `i18n/{he,ru}.json`. Then it signs in to
+one checkout screen (city, delivery way, «מתי צריך?», phone, consent; №38, 28.10) → `cart_pay` →
+`co_thx_h` on the same page. Every label is read from `i18n/{he,ru}.json`. Then it signs in to
 the stack's `/admin` (no redirect following) and finds the lead **by its id** in
 `/admin/leads.csv?test=1`: `is_test = 1`, `lead_source = checkout`, the size, language and
 total from the catalog — and checks that the export without `?test=1` does not contain it.
