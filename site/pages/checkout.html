@@ -1,17 +1,17 @@
 <section class="sec shop" data-shop="checkout">
   <div class="wrap shop-wrap co-grid">
-    <div class="co-main">
-      <ol class="co-steps" aria-label="{{t.co_steps}}">
-        <li><a href="{{PREFIX}}/cart/">{{t.co_step_cart}}</a></li><li data-co-step="ship" aria-current="step">{{t.co_step_ship}}</li><li data-co-step="pay">{{t.co_step_pay}}</li>
-      </ol>
+    <div class="co-head">
       <h1 class="h2 shop-h1" tabindex="-1" data-co-h>{{t.co_h1}}</h1>
       <p class="cart-empty" data-co-empty hidden>{{t.co_empty}} <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a></p>
+    </div>
+    <div class="co-main">
 
-      <form class="lead-form co-form" data-co-ship novalidate hidden>
-        {{SHIP_CHOICE}}
+      <!-- №38: один екран — місто, доставка, «коли», телефон, ім'я, згода, одна кнопка; без кроку «אישור» -->
+      <form class="lead-form co-form" data-co-form novalidate hidden>
         <div class="f"><label for="co-city">{{t.co_city}}</label>
           <select id="co-city" name="city" required aria-describedby="co-e-city"><option value="">{{t.co_city_pick}}</option>{{CITY_OPTIONS}}</select>
           <p class="f-err" id="co-e-city" hidden></p></div>
+        {{SHIP_CHOICE}}
         <fieldset class="f f-choice" aria-describedby="co-e-when">
           <legend>{{t.co_when}}</legend>
           <div class="chips">
@@ -22,53 +22,48 @@
           <p class="f-err" id="co-e-when" hidden></p>
         </fieldset>
         <div class="f-row f-row--2">
+          <div class="f"><label for="co-phone">{{t.co_phone}}</label>
+            <input id="co-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="co-phone-why co-e-phone">
+            <p class="f-hint" id="co-phone-why">{{t.co_phone_why}}</p>
+            <p class="f-err" id="co-e-phone" hidden></p></div>
           <div class="f"><label for="co-name">{{t.co_name}} <span class="opt-l">{{t.f_optional}}</span></label><input id="co-name" name="name" autocomplete="name" maxlength="80"></div>
-          <div class="f"><label for="co-phone">{{t.co_phone}} <span class="opt-l">{{t.f_optional}}</span></label><input id="co-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="40"></div>
         </div>
-        <button class="btn btn--dark btn--block" type="submit">{{t.co_next}}</button>
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <label class="check"><input type="checkbox" name="consent" required aria-describedby="co-e-consent"><span>{{t.f_consent}}</span></label>
+        <p class="f-err" id="co-e-consent" hidden></p>
+        <div class="co-go">
+          <button class="btn btn--dark btn--block" type="submit" data-l-retry="{{t.co_retry}}">{{t.cart_pay}}</button>
+          <p class="f-status" role="status" aria-live="polite"></p>
+        </div>
+        <p class="f-fine">{{t.cart_fine}}</p>
       </form>
 
-      <div class="co-pay" data-co-pay hidden>
-        <h2 class="h3">{{t.pay_h}}</h2>
-        <div class="pay-closed" role="status">
-          <p class="pay-closed-h">{{t.pay_closed_h}}</p>
-          <p>{{t.pay_closed_p}}</p>
-        </div>
-        <form class="lead-form" data-co-keep novalidate>
-          <p class="reg-promise">{{t.reg_promise}}</p>
-          <p>{{t.pay_keep}}</p>
-          <div class="f"><label for="pay-phone">{{t.pay_phone}}</label><input id="pay-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="pay-e-phone"><p class="f-err" id="pay-e-phone" hidden></p></div>
-          <div class="f"><label for="pay-name">{{t.co_name}} <span class="opt-l">{{t.f_optional}}</span></label><input id="pay-name" name="name" autocomplete="name" maxlength="80"></div>
-          <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
-          <label class="check"><input type="checkbox" name="consent" required aria-describedby="pay-e-consent"><span>{{t.f_consent}}</span></label>
-          <p class="f-err" id="pay-e-consent" hidden></p>
-          <button class="btn btn--dark btn--block" type="submit">{{t.pay_submit}}</button>
-          <p class="f-status" role="status" aria-live="polite"></p>
-          <p class="f-fine">{{t.cart_fine}}</p>
-        </form>
-        <div class="thanks" data-co-thanks hidden tabindex="-1">
-          <p class="thanks-mark" aria-hidden="true">✓</p>
-          <p class="h3">{{t.pay_thx_h}}</p>
-          <p>{{t.pay_thx_p}}</p>
-          <ol class="thanks-steps">
-            <li>{{t.pay_thx_1}}</li>
-            <li>{{t.pay_thx_2}}</li>
-            <li>{{t.pay_thx_3}}</li>
-          </ol>
-          <a class="btn btn--line js-wa" data-wa="pay" href="#" hidden>{{t.whatsapp}}</a>
-          <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a>
-        </div>
-        <a class="link-arrow" href="{{PREFIX}}/cart/" data-co-back>{{t.pay_back}}</a>
+      <div class="thanks co-thanks" data-co-thanks hidden tabindex="-1">
+        <p class="thanks-mark" aria-hidden="true">✓</p>
+        <p class="h3">{{t.co_thx_h}}</p>
+        <p>{{t.pay_thx_p}}</p>
+        <ol class="thanks-steps">
+          <li>{{t.co_thx_1}}</li>
+          <li>{{t.co_thx_2}}</li>
+          <li>{{t.co_thx_3}}</li>
+        </ol>
+        <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a>
       </div>
       <noscript><p class="f-status">{{t.cart_nojs}}</p></noscript>
     </div>
     <aside class="co-side" aria-labelledby="co-sum-h" data-co-side hidden data-l-size="{{t.f_size}}" data-l-finish="{{t.f_finish}}" data-l-base="{{t.f_base}}">
-      <h2 class="h3" id="co-sum-h">{{t.co_summary}}</h2>
-      <ul class="cart-list cart-list--mini" role="list" data-co-list></ul>
-      <p class="cart-row"><span>{{t.cart_goods}}</span> <bdi dir="ltr" data-sum-goods></bdi></p>
-      <p class="cart-row"><span>{{t.ship_h}}</span> <bdi dir="ltr" data-sum-ship></bdi></p>
-      <p class="cart-total"><span>{{t.cart_total}}</span> <bdi dir="ltr" data-co-total></bdi></p>
-      <p class="price-incl">{{t.price_incl}} · {{t.installments}}</p>
+      <h2 class="h3 co-sum-h" id="co-sum-h">{{t.co_summary}}</h2>
+      <!-- телефон: підсумок згорнуто в один рядок «תבור 200×100 · משלוח · ₪6,240», розкривається кнопкою -->
+      <button type="button" class="co-sum-line" aria-expanded="false" aria-controls="co-sum-body" data-co-sum-toggle hidden>
+        <span class="co-sum-txt"><span data-co-sum-text></span> · <bdi dir="ltr" data-co-total-line></bdi></span><span class="co-sum-more" aria-hidden="true"></span>
+      </button>
+      <div class="co-sum-body" id="co-sum-body" data-co-sum-body>
+        <ul class="cart-list cart-list--mini" role="list" data-co-list></ul>
+        <p class="cart-row"><span>{{t.cart_goods}}</span> <bdi dir="ltr" data-sum-goods></bdi></p>
+        <p class="cart-row"><span>{{t.ship_h}}</span> <bdi dir="ltr" data-sum-ship></bdi></p>
+        <p class="cart-total"><span>{{t.cart_total}}</span> <bdi dir="ltr" data-co-total></bdi></p>
+        <p class="price-incl">{{t.price_incl}} · {{t.installments}}</p>
+      </div>
     </aside>
   </div>
 </section>

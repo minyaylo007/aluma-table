@@ -949,16 +949,6 @@ html.a11y-still::view-transition-new(*) { animation: none !important; }
 .shop-wrap { max-width: 980px; }
 .shop-h1 { margin-block: 12px 24px; }
 .shop-h1:focus { outline: none; }
-.co-steps { display: flex; flex-wrap: wrap; gap: 8px 14px; list-style: none; padding: 0; margin: 0; font-size: .88rem; color: var(--muted); counter-reset: co; }
-.co-steps li { counter-increment: co; display: flex; align-items: center; gap: 8px; }
-.co-steps li::before { content: counter(co); display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
-  border: 1px solid var(--line); font-size: .78rem; }
-.co-steps li + li::after { content: none; }
-.co-steps li + li { padding-inline-start: 8px; border-inline-start: 1px solid var(--line); }
-.co-steps [aria-current="step"] { color: var(--ink); font-weight: 600; }
-.co-steps [aria-current="step"]::before { background: var(--esp); border-color: var(--esp); color: var(--cream); }
-/* ru на 390: «1 Корзина · 2 Доставка · 3 Подтверждение» в один рядок (аудит 22.10 (б) 3) */
-@media (max-width: 420px) { html[lang="ru"] .co-steps { font-size: .8rem; gap: 8px 10px; } html[lang="ru"] .co-steps li + li { padding-inline-start: 6px; } }
 .cart-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; border-block-start: 1px solid var(--line); }
 .cart-line { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: start; padding-block: 18px; border-block-end: 1px solid var(--line); }
 .cart-img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--r); background: var(--sand); }
@@ -975,12 +965,32 @@ html.a11y-still::view-transition-new(*) { animation: none !important; }
 .cart-sum { display: grid; gap: 12px; margin-block-start: 24px; max-width: 420px; margin-inline-start: auto; }
 .cart-total { display: flex; justify-content: space-between; gap: 12px; font-size: 1.2rem; font-weight: 700; margin: 0; }
 .cart-empty { font-size: 1.05rem; }
-.co-grid { display: grid; gap: 32px; }
-.co-form, .co-pay { display: grid; gap: 18px; }
+/* №38: оформлення — один екран; на телефоні підсумок згорнуто в рядок над формою, кнопка липне донизу */
+.co-grid { display: grid; gap: 20px; }
+.co-head .shop-h1 { margin-block-end: 0; }
+.co-form { display: grid; gap: 18px; }
 .co-side { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; display: grid; gap: 12px; align-self: start; }
+.co-sum-body { display: grid; gap: 12px; }
+.co-sum-body[hidden] { display: none; }
+.co-sum-line { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0; border: 0;
+  background: none; font: inherit; font-weight: 600; color: var(--ink); text-align: start; cursor: pointer; }
+.co-sum-line[hidden] { display: none; }
+.co-sum-more { width: 10px; height: 10px; border-inline-end: 2px solid currentColor; border-block-end: 2px solid currentColor;
+  transform: rotate(45deg); transition: transform .2s; }
+.co-sum-line[aria-expanded="true"] .co-sum-more { transform: rotate(-135deg); }
+.co-go { display: grid; gap: 8px; }
+.co-go .f-status:empty { display: none; }
+.co-thanks { scroll-margin-top: 120px; }
+.co-thanks:focus { outline: none; }
+@media (max-width: 899px) {
+  .co-side { padding: 10px 16px; order: 1; }
+  .co-main { order: 2; }
+  .co-side .co-sum-h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .co-form .ship-choice .f-hint { font-size: .85rem; }
+  .co-go { position: sticky; bottom: 0; z-index: 5; padding-block: 10px; margin-inline: -16px; padding-inline: 16px;
+    background: var(--paper); box-shadow: 0 -1px 0 var(--line); }
+}
 .cart-list--mini .cart-line { grid-template-columns: 56px 1fr auto; padding-block: 12px; }
 .cart-list--mini .cart-img { width: 56px; height: 56px; }
-.pay-closed { border: 1px solid var(--esp); border-radius: var(--r-lg); padding: 18px 20px; background: var(--linen); display: grid; gap: 6px; }
-.pay-closed p { margin: 0; }
-.pay-closed-h { font-weight: 700; font-size: 1.1rem; }
-@media (min-width: 900px) { .co-grid { grid-template-columns: 7fr 5fr; align-items: start; } .co-side { position: sticky; top: 120px; } }
+@media (min-width: 900px) { .co-grid { grid-template-columns: 7fr 5fr; align-items: start; } .co-head { grid-column: 1 / -1; }
+  .co-side { position: sticky; top: 120px; } }

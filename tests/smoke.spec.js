@@ -9,8 +9,8 @@
 //   PLAYWRIGHT_BROWSERS_PATH=/opt/ihor/aluma-table/ms-playwright npx playwright test --config tests/playwright.smoke.config.js
 //
 // Шлях заявки — нинішня воронка (specs/003-shop-funnel): картка tavor → розмір → «הוספה לסל» → кошик →
-// «להזמנה» (cart_pay) → крок «משלוח»: місто й «מתי צריך?» → «המשך לאישור ההזמנה» (co_next) → крок «אישור»
-// (co_step_pay) → телефон + згода → «שלחו לי אישור הזמנה» (pay_submit) → «קיבלנו את ההזמנה לאישור.».
+// «להזמנה» (cart_pay) → оформлення одним екраном (№38): місто, спосіб отримання, «מתי צריך?», телефон + згода →
+// «להזמנה · בלי תשלום באתר» (cart_pay) → підтвердження на місці (co_thx_h).
 // Потім заявку шукаємо за її id у /admin/leads.csv?test=1 того самого стеку: вона є, is_test = 1.
 const { test, expect } = require('@playwright/test');
 
@@ -111,26 +111,19 @@ for (const [lang, pre, T] of [['he', '', HE], ['ru', '/ru', RU]]) {
     await expect(pay).toHaveText(T.cart_pay);
     await pay.click();
 
-    // 3. крок «משלוח»: місто, «коли» → co_next
+    // 3. оформлення одним екраном (№38): місто, спосіб отримання, «коли», телефон, згода → cart_pay
     await page.waitForURL(`**${pre}/checkout/`);
-    await expect(page.locator('.co-steps li')).toHaveText([T.co_step_cart, T.co_step_ship, T.co_step_pay]);
-    await expect(page.locator('[data-co-step="ship"]')).toHaveAttribute('aria-current', 'step');
+    await expect(page.locator('.co-steps')).toHaveCount(0);
+    const form = page.locator('[data-co-form]');
     const city = T.cities[0];
     await page.locator('#co-city').selectOption(city.id);
+    const way = form.locator('input[name="ship"][value="door"]');
+    if (!(await way.isChecked())) await form.locator('label:has(input[name="ship"][value="door"])').click();
     await page.locator('label:has(input[name="when"][value="now"])').click();
-    const next = page.locator('[data-co-ship] button[type="submit"]');
-    await expect(next).toHaveText(T.co_next);
-    await next.click();
-
-    // 4. крок «אישור» (co_step_pay): телефон + згода → pay_submit
-    await expect(page.locator('[data-co-pay]')).toBeVisible();
-    await expect(page.locator('[data-co-step="pay"]')).toHaveAttribute('aria-current', 'step');
-    await expect(page.locator('[data-co-pay] h2')).toHaveText(T.pay_h);
-    const keep = page.locator('[data-co-keep]');
-    await page.locator('#pay-phone').fill(PHONE);
-    await keep.locator('input[name="consent"]').check();
-    const submit = keep.locator('button[type="submit"]');
-    await expect(submit).toHaveText(T.pay_submit);
+    await page.locator('#co-phone').fill(PHONE);
+    await form.locator('input[name="consent"]').check();
+    const submit = form.locator('button[type="submit"]');
+    await expect(submit).toHaveText(T.cart_pay);
     const [leadRes] = await Promise.all([
       page.waitForResponse((r) => r.url() === `${ORIGIN}/api/fx/lead` && r.request().method() === 'POST'),
       submit.click(),
@@ -141,9 +134,9 @@ for (const [lang, pre, T] of [['he', '', HE], ['ru', '/ru', RU]]) {
     expect(body.ok).toBe(true);
     expect(body.id).toBeTruthy();
 
-    // 5. екран подяки
+    // 4. підтвердження на тому ж екрані
     await expect(page.locator('[data-co-thanks]')).toBeVisible();
-    await expect(page.locator('[data-co-thanks]')).toContainText(T.pay_thx_h);
+    await expect(page.locator('[data-co-thanks]')).toContainText(T.co_thx_h);
 
     // 6. сховище стеку: заявка з тим самим id, is_test = 1, кошик і сума з каталогу
     const cookie = await adminCookie(request);

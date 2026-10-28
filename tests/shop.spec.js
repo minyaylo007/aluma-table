@@ -1,4 +1,4 @@
-// Магазин (specs/003-shop-funnel): картка → кошик → оформлення → екран оплати без поля карти → заявка.
+// Магазин (specs/003-shop-funnel): картка → кошик → оформлення одним екраном (№38) → заявка й підтвердження на місці.
 // Без порту й без мережі: dist/ через page.route (tests/dist_route.js), /api/fx/* підмінено тут; підробний fbevents.js
 // пише кожен виклик fbq у sessionStorage, тож Pixel-події видно й після переходу на наступну сторінку.
 //   python3 build.py && npx playwright test --config playwright.tracking.config.js
@@ -12,6 +12,9 @@ const HE = require('../i18n/he.json');
 const EN = require('../i18n/en.json');
 const RU = require('../i18n/ru.json');
 const CONTENT = require('../content.json');
+// «אספקה משוערת 10–12 שבועות» у підтвердженні — як build.py LEAD_WEEKS: з lead_time_weeks каталогу
+const LTS = (CATALOG.products || CATALOG).map((p) => p.lead_time_weeks || [10, 12]);
+const WEEKS = `${Math.min(...LTS.map((l) => l[0]))}–${Math.max(...LTS.map((l) => l[l.length - 1]))}`;
 // вигаданий номер складено з частин — сканер секретів шукає цілі номери
 const PHONE = ['05', '2-98', '7-6543'].join('');
 const DIGITS = PHONE.replace(/-/g, '');
@@ -86,7 +89,7 @@ async function waitFb(page, name, n = 1) {
 
 for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', RU]]) {
   for (const [w, h] of [[390, 844], [1440, 900]]) {
-    test(`${lang} ${w}px: картка → кошик → оформлення → закрита оплата → заявка, події на кожному кроці`, async ({ page }) => {
+    test(`${lang} ${w}px: картка → кошик → оформлення одним екраном → заявка, події на кожному кроці`, async ({ page }) => {
       test.setTimeout(90000);
       await page.setViewportSize({ width: w, height: h });
       const net = await setup(page);
@@ -154,7 +157,7 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       await expect(pay).toHaveText(T.cart_pay);
       await pay.click();
 
-      // 3. оформлення: місто зі списку, «коли», ім'я й телефон необов'язкові
+      // 3. оформлення — один екран (№38): місто, спосіб отримання, «коли», телефон (обов'язковий), ім'я, згода, одна кнопка
       await page.waitForURL(`**${pre}/checkout/`);
       await expect.poll(() => firstParty(net, 'InitiateCheckout').length, { timeout: 5000 }).toBe(1);
       const [ic] = await waitFb(page, 'InitiateCheckout');
@@ -162,55 +165,73 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       expect(ic[2]).toMatchObject({ content_ids: ['tavor'], value: 2 * size.price_ils, currency: 'ILS', num_items: 2 });
       expect(ic[3].eventID).toMatch(/^ic\./);
       await expect(page.locator('[data-co-total]')).toHaveText(sum);
-      // крок «משלוח»: самовивіз — разом перераховано без доставки
-      await page.locator('[data-co-ship] label:has(input[name="ship"][value="pickup"])').click();
+      await expect(page.locator('.co-steps')).toHaveCount(0);
+      await expect(page.locator('[data-co-form] button[type="submit"]')).toHaveCount(1);
+      // телефон: підсумок згорнуто в один рядок із сумою, розкривається; десктоп — завжди розгорнутий
+      if (w < 900) {
+        const line = page.locator('[data-co-sum-toggle]');
+        await expect(line).toBeVisible();
+        await expect(line).toContainText(sum);
+        await expect(page.locator('[data-co-sum-body]')).toBeHidden();
+        await line.click();
+        await expect(line).toHaveAttribute('aria-expanded', 'true');
+        await expect(page.locator('[data-co-sum-body]')).toBeVisible();
+      } else {
+        await expect(page.locator('[data-co-sum-toggle]')).toBeHidden();
+        await expect(page.locator('[data-co-sum-body]')).toBeVisible();
+      }
+      // самовивіз — разом перераховано без доставки
+      await page.locator('[data-co-form] label:has(input[name="ship"][value="pickup"])').click();
       await expect(page.locator('[data-co-total]')).toHaveText(money(2 * size.price_ils + pickup));
-      await page.locator('[data-co-ship] button[type="submit"]').click();
+      const go = page.locator('[data-co-form] button[type="submit"]');
+      await expect(go).toHaveText(T.cart_pay);
+      // аудит 22.10 (б) №1: оплати на сайті нема — у кнопці лише заперечення «בלי תשלום באתר»
+      const payWord = { he: 'תשלום', ru: 'оплат', en: 'pay' }[lang];
+      const honest = { he: 'בלי תשלום באתר', ru: 'без оплаты на сайте', en: 'no payment online' }[lang];
+      expect(T.cart_pay.toLowerCase()).toContain(honest);
+      expect(T.cart_pay.toLowerCase().replace(honest, '')).not.toContain(payWord);
+      await expect(page.locator('input[autocomplete^="cc-"], input[name*="card" i], input[name*="cvv" i], input[name*="cvc" i]')).toHaveCount(0);
+      expect(await page.locator('#co-name').evaluate((i) => i.required)).toBe(false);
+      expect(await page.locator('#co-phone').evaluate((i) => i.required)).toBe(true);
+      await expect(page.locator('#co-phone-why')).toHaveText(T.co_phone_why);
+      expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+      // порожня форма: помилки біля полів (aria-describedby), фокус — на першу, заявки нема
+      await go.click();
       await expect(page.locator('#co-e-city')).toHaveText(T.js.e_city);
       await expect(page.locator('#co-e-when')).toHaveText(T.js.e_when);
-      await expect(page.locator('[data-co-pay]')).toBeHidden();
+      await expect(page.locator('#co-e-phone')).toHaveText(T.js.e_phone);
+      await expect(page.locator('#co-e-consent')).toHaveText(T.js.e_consent);
+      await expect(page.locator('#co-city')).toBeFocused();
+      await expect(page.locator('#co-city')).toHaveAttribute('aria-invalid', 'true');
+      expect(await page.locator('#co-phone').getAttribute('aria-describedby')).toContain('co-e-phone');
+      expect(net.leads).toEqual([]);
       const city = T.cities[0];
       await page.locator('#co-city').selectOption(city.id);
       await page.locator('label:has(input[name="when"][value="now"])').click();
-      await page.locator('[data-co-ship] button[type="submit"]').click();
-
-      // 4. екран оплати: чесна закрита двері, поля карти нема
-      await expect(page.locator('[data-co-pay]')).toBeVisible();
-      await expect(page.locator('.pay-closed')).toContainText(T.pay_closed_h);
-      // чесно: заголовок — підтвердження до оплати, кнопка — «לאישור ההזמנה», ім'я необов'язкове
-      await expect(page.locator('[data-co-pay] h2')).toHaveText(T.pay_h);
-      await expect(page.locator('.pay-closed')).toContainText(T.pay_closed_p);
-      await expect(page.locator('[data-co-keep] button[type="submit"]')).toHaveText(T.pay_submit);
-      // аудит 22.10 (б) №1: оплати на сайті нема — у кроках і кнопках воронки ні слова «оплата»
-      const payWord = { he: 'תשלום', ru: 'оплат', en: 'pay' }[lang];
-      // №31: кнопка кошика каже «בלי תשלום באתר» — заперечення, не обіцянка
-      const honest = { he: 'בלי תשלום באתר', ru: 'без оплаты на сайте', en: 'no payment online' }[lang];
-      expect(T.cart_pay.toLowerCase()).toContain(honest);
-      for (const t of [await page.locator('.co-steps').innerText(), T.cart_pay.toLowerCase().replace(honest, ''), T.co_next, T.pay_submit]) {
-        expect(t.toLowerCase()).not.toContain(payWord);
-      }
-      await expect(page.locator('#pay-name')).toBeVisible();
-      expect(await page.locator('#pay-name').evaluate((i) => i.required)).toBe(false);
-      expect(await page.locator('#pay-phone').evaluate((i) => i.required)).toBe(true);
-      expect(page.url()).toMatch(/#pay$/);
-      await expect(page.locator('input[autocomplete^="cc-"], input[name*="card" i], input[name*="cvv" i], input[name*="cvc" i]')).toHaveCount(0);
-      expect(await noOverflow(page)).toBeLessThanOrEqual(0);
       const [cd] = await waitFb(page, 'checkout_details');
       expect(cd[2]).toMatchObject({ city: city.id, when: 'now', has_name: false, has_phone: false });
-      await waitFb(page, 'reach_payment');
-      const keep = page.locator('[data-co-keep]');
-      await keep.locator('button[type="submit"]').click();
-      await expect(page.locator('#pay-e-phone')).toBeVisible();
-      await expect(page.locator('#pay-e-consent')).toBeVisible();
+      // телефон ще порожній — фокус на нього
+      await go.click();
+      await expect(page.locator('#co-phone')).toBeFocused();
       expect(net.leads).toEqual([]);
-      await page.locator('#pay-phone').fill(PHONE);
-      await keep.locator('input[name="consent"]').check();
-      await keep.locator('button[type="submit"]').click();
-      await expect(page.locator('[data-co-thanks]')).toBeVisible();
-      await expect(page.locator('[data-co-thanks]')).toContainText(T.pay_thx_h);
+      await page.locator('#co-phone').fill(PHONE);
+      await page.locator('[data-co-form] input[name="consent"]').check();
+      await go.click();
+
+      // 4. підтвердження — текстом на тому ж екрані, без переходу; кошик порожній
+      const thanks = page.locator('[data-co-thanks]');
+      await expect(thanks).toBeVisible();
+      await expect(thanks).toBeFocused();
+      await expect(page.locator('[data-co-form]')).toBeHidden();
+      expect(new URL(page.url()).pathname).toBe(`${pre}/checkout/`);
+      await expect(thanks).toContainText(T.co_thx_h);
       const thx = page.locator('[data-co-thanks] .thanks-steps li');
-      await expect(thx).toHaveText([T.pay_thx_1, T.pay_thx_2, T.pay_thx_3]);
-      await expect(page.locator('[data-co-thanks]')).toContainText(T.cart_continue);
+      await expect(thx).toHaveText([T.co_thx_1, T.co_thx_2.replace('{{LEAD_WEEKS}}', WEEKS), T.co_thx_3]);
+      await expect(thanks).toContainText(T.cart_continue);
+      await expect(thanks).not.toContainText(/whatsapp|וואטסאפ|הדמיה/i);
+      await expect(page.locator('[data-cart-n]').first()).toBeHidden();
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem('fx_cart_v1')).items)).toEqual([]);
+      await waitFb(page, 'reach_payment');
 
       // заявка: кошик і сума — з каталогу, джерело checkout
       expect(net.leads).toHaveLength(1);
@@ -249,17 +270,17 @@ test('порожній кошик: оформлення не показує фо
   await setup(page);
   await page.goto(`${ORIGIN}/checkout/`);
   await expect(page.locator('[data-co-empty]')).toBeVisible();
-  await expect(page.locator('[data-co-ship]')).toBeHidden();
+  await expect(page.locator('[data-co-form]')).toBeHidden();
   await page.goto(`${ORIGIN}/en/cart/`);
   await expect(page.locator('[data-cart-empty]')).toBeVisible();
   await expect(page.locator('[data-cart-sum]')).toBeHidden();
 });
 
-// №31: доставку не обрано в кошику — на кроці «משלוח» разом = лише товар, «טרם נבחר», і далі без вибору не пускає
+// №31: доставку не обрано в кошику — на оформленні разом = лише товар, «טרם נבחר», і без вибору заявка не йде
 for (const [prefix, T] of [['', HE], ['/ru', RU]]) {
   test(`${prefix || '/'} 390: оформлення без обраної доставки — вибір обов'язковий, разом без доставки до вибору`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await setup(page);
+    const net = await setup(page);
     const size = TAVOR.sizes[0];
     await page.addInitScript((label) => {
       localStorage.setItem('fx_cart_v1', JSON.stringify({ v: 1, items: [{ id: 'tavor', size: label, finish: 'natural', base: 'oak', qty: 1 }] }));
@@ -270,14 +291,21 @@ for (const [prefix, T] of [['', HE], ['/ru', RU]]) {
     await expect(page.locator('[data-co-side] [data-sum-ship]')).toHaveText(T.js.ship_none);
     await page.locator('#co-city').selectOption(T.cities[0].id);
     await page.locator('label:has(input[name="when"][value="now"])').click();
-    await page.locator('[data-co-ship] button[type="submit"]').click();
+    await page.locator('#co-phone').fill(PHONE);
+    await page.locator('[data-co-form] input[name="consent"]').check();
+    await page.locator('[data-co-form] button[type="submit"]').click();
     await expect(page.locator('#ship-err')).toHaveText(T.js.e_ship);
-    await expect(page.locator('[data-co-pay]')).toBeHidden();
-    await page.locator('[data-co-ship] label:has(input[name="ship"][value="assembled"])').click();
+    await expect(page.locator('[data-co-form] input[name="ship"]').first()).toBeFocused();
+    expect(net.leads).toEqual([]);
+    await page.locator('[data-co-form] label:has(input[name="ship"][value="assembled"])').click();
     await expect(page.locator('#ship-err')).toBeHidden();
-    await expect(page.locator('[data-co-total]')).toHaveText(money(size.price_ils + Number(CONTENT.DELIVERY_ILS) + Number(CONTENT.ASSEMBLY_ILS)));
-    await page.locator('[data-co-ship] button[type="submit"]').click();
-    await expect(page.locator('[data-co-pay]')).toBeVisible();
+    const all = money(size.price_ils + Number(CONTENT.DELIVERY_ILS) + Number(CONTENT.ASSEMBLY_ILS));
+    await expect(page.locator('[data-co-total]')).toHaveText(all);
+    await expect(page.locator('[data-co-sum-toggle]')).toContainText(all);
+    await page.locator('[data-co-form] button[type="submit"]').click();
+    await expect(page.locator('[data-co-thanks]')).toBeVisible();
+    expect(net.leads).toHaveLength(1);
+    expect(net.leads[0]).toMatchObject({ delivery: 'assembled', lead_source: 'checkout' });
   });
 }
 
@@ -638,27 +666,105 @@ test('телефон 390: прокрутка на екран → leave зі scro
   expect(await fbNamed(page, 'leave')).toEqual([]);
 });
 
-test('сервер не прийняв заявку (429) — текст помилки, форма лишається, Lead не йде', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const net = await setup(page, { lead: { ok: false, error: 'rate_limited' } });
-  await page.route(`${ORIGIN}/api/fx/lead`, (route) => { net.leads.push(1); return route.fulfill({ status: 429, json: { ok: false, error: 'rate_limited' } }); });
-  await page.addInitScript((size) => {
-    localStorage.setItem('fx_cart_v1', JSON.stringify({ v: 1, items: [{ id: 'tavor', size, finish: 'natural', base: 'oak', qty: 1 }] }));
-    sessionStorage.setItem('fx_checkout_v1', JSON.stringify({ city: 'tel-aviv', when: '1-3m', name: '', phone: '' }));
-    sessionStorage.setItem('fx_ship_v1', 'door');   // №31: без обраного способу #pay веде назад на крок «משלוח»
-  }, TAVOR.sizes[0].label);
-  await page.goto(`${ORIGIN}/checkout/#pay`);
-  const cityOk = await page.locator('#co-city option[value="tel-aviv"]').count();
-  test.skip(!cityOk, 'у списку міст нема tel-aviv');
-  await expect(page.locator('[data-co-pay]')).toBeVisible();
-  await page.locator('#pay-phone').fill(PHONE);
-  await page.locator('[data-co-keep] input[name="consent"]').check();
-  await page.locator('[data-co-keep] button[type="submit"]').click();
-  await expect(page.locator('[data-co-keep] .f-status')).toHaveText(HE.js.rate);
-  await expect(page.locator('[data-co-keep]')).toBeVisible();
-  expect(net.leads).toHaveLength(1);
-  expect(await fbNamed(page, 'Lead')).toEqual([]);
-});
+// №38: збій заявки — текст помилки, кнопка «לנסות שוב», поля на місці, checkout_error лише в нашу аналітику, Lead не йде;
+// повтор після відновлення — підтвердження
+for (const [kind, reply, msg] of [['offline', null, HE.js.offline], ['429', { status: 429, json: { ok: false, error: 'rate_limited' } }, HE.js.rate]]) {
+  test(`збій заявки (${kind}) — дані не губляться, «${HE.co_retry}», checkout_error`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    let down = true;
+    await page.route(`${ORIGIN}/api/fx/lead`, (route) => {
+      if (!down) { net.leads.push(route.request().postDataJSON()); return route.fulfill({ json: { ok: true, id: 'lead-test-2' } }); }
+      return reply ? route.fulfill(reply) : route.abort('internetdisconnected');
+    });
+    await page.addInitScript((size) => {
+      localStorage.setItem('fx_cart_v1', JSON.stringify({ v: 1, items: [{ id: 'tavor', size, finish: 'natural', base: 'oak', qty: 1 }] }));
+      sessionStorage.setItem('fx_ship_v1', 'door');
+    }, TAVOR.sizes[0].label);
+    await page.goto(`${ORIGIN}/checkout/`);
+    const city = HE.cities[0];
+    await page.locator('#co-city').selectOption(city.id);
+    await page.locator('label:has(input[name="when"][value="1-3m"])').click();
+    await page.locator('#co-phone').fill(PHONE);
+    await page.locator('#co-name').fill('Zzqx');
+    await page.locator('[data-co-form] input[name="consent"]').check();
+    const go = page.locator('[data-co-form] button[type="submit"]');
+    await go.click();
+    await expect(page.locator('[data-co-form] .f-status')).toHaveText(msg);
+    await expect(go).toHaveText(HE.co_retry);
+    await expect(go).toBeEnabled();
+    await expect(page.locator('[data-co-thanks]')).toBeHidden();
+    await expect(page.locator('#co-phone')).toHaveValue(PHONE);
+    await expect(page.locator('#co-name')).toHaveValue('Zzqx');
+    await expect(page.locator('#co-city')).toHaveValue(city.id);
+    await expect(page.locator('[data-co-form] input[name="consent"]')).toBeChecked();
+    await expect.poll(() => firstParty(net, 'checkout_error').map((e) => e.props.code), { timeout: 8000 })
+      .toEqual([kind === 'offline' ? 'offline' : 'rate']);
+    expect(await fbNamed(page, 'checkout_error')).toEqual([]);
+    expect(await fbNamed(page, 'Lead')).toEqual([]);
+    expect(net.leads).toEqual([]);
+    // перезавантаження теж не губить поля (sessionStorage вкладки)
+    await page.reload();
+    await expect(page.locator('#co-phone')).toHaveValue(PHONE);
+    await expect(page.locator('#co-city')).toHaveValue(city.id);
+    down = false;
+    await page.locator('[data-co-form] input[name="consent"]').check();
+    await go.click();
+    await expect(page.locator('[data-co-thanks]')).toBeVisible();
+    expect(net.leads).toHaveLength(1);
+    expect(net.leads[0]).toMatchObject({ lead_source: 'checkout', timeframe: '1-3m', city: city.name, name: 'Zzqx', delivery: 'door' });
+    await waitFb(page, 'Lead');
+    const blob = JSON.stringify(net.events) + JSON.stringify(await pixel(page));
+    for (const s of PII) expect(blob.includes(s), s).toBe(false);
+  });
+}
+
+// 390×650 (найнижчий телефон): місто — перше поле — і кнопка «להזמנה» видно без прокрутки; кнопка видима й на будь-якому полі
+for (const [prefix, T] of [['', HE], ['/ru', RU], ['/en', EN]]) {
+  test(`${prefix || '/'} 390×650: перше поле й кнопка на першому екрані, кнопка не зникає під час заповнення`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 650 });
+    await setup(page);
+    await page.addInitScript((size) => {
+      localStorage.setItem('fx_cart_v1', JSON.stringify({ v: 1, items: [{ id: 'tavor', size, finish: 'natural', base: 'oak', qty: 1 }] }));
+    }, TAVOR.sizes[0].label);
+    await page.goto(`${ORIGIN}${prefix}/checkout/`);
+    const go = page.locator('[data-co-form] button[type="submit"]');
+    await expect(go).toHaveText(T.cart_pay);
+    await expect(page.locator('#co-city')).toBeInViewport();
+    await expect(go).toBeInViewport();
+    for (const sel of ['#co-phone', '[data-co-form] input[name="consent"]']) {
+      await page.locator(sel).scrollIntoViewIfNeeded();
+      await expect(go).toBeInViewport();
+    }
+    expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+  });
+}
+
+// №38: axe на заповненому оформленні he/ru — форма з показаними помилками і підтвердження (a11y.spec.js бачить лише порожній кошик)
+for (const [prefix, T] of [['', HE], ['/ru', RU]]) {
+  test(`${prefix || '/'} axe: оформлення з товаром — помилки й підтвердження без порушень serious/critical`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setup(page);
+    await page.addInitScript((size) => {
+      localStorage.setItem('fx_cart_v1', JSON.stringify({ v: 1, items: [{ id: 'tavor', size, finish: 'natural', base: 'oak', qty: 1 }] }));
+    }, TAVOR.sizes[0].label);
+    await page.goto(`${ORIGIN}${prefix}/checkout/`);
+    const AxeB = require('@axe-core/playwright').default;
+    const bad = async () => (await new AxeB({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze())
+      .violations.filter((v) => ['serious', 'critical'].includes(v.impact)).map((v) => v.id);
+    await page.locator('[data-co-form] button[type="submit"]').click();
+    await expect(page.locator('#co-e-phone')).toHaveText(T.js.e_phone);
+    expect(await bad()).toEqual([]);
+    await page.locator('#co-city').selectOption(T.cities[0].id);
+    await page.locator('[data-co-form] label:has(input[name="ship"][value="pickup"])').click();
+    await page.locator('label:has(input[name="when"][value="now"])').click();
+    await page.locator('#co-phone').fill(PHONE);
+    await page.locator('[data-co-form] input[name="consent"]').check();
+    await page.locator('[data-co-form] button[type="submit"]').click();
+    await expect(page.locator('[data-co-thanks]')).toBeVisible();
+    expect(await bad()).toEqual([]);
+  });
+}
 
 // №30 «לראות מקרוב»: район — лише з факту власника (27.10 — Холон). Порожній факт — у dist нема ні плитки, ні питання
 // FAQ, самовивіз без дужок (той тест пропускається, коли факт є; порожній стан — tests/test_build_showroom.py).

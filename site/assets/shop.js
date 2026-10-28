@@ -1,5 +1,5 @@
-/* ALUMA — магазин: кошик, оформлення, екран оплати без поля карти (specs/003-shop-funnel).
-   Кошик — localStorage fx_cart_v1, дані кроку «משלוח» — sessionStorage fx_checkout_v1; ціни — лише з каталогу (#aluma-data).
+/* ALUMA — магазин: кошик і оформлення одним екраном без оплати на сайті (specs/003-shop-funnel, №38).
+   Кошик — localStorage fx_cart_v1, поля оформлення — sessionStorage fx_checkout_v1; ціни — лише з каталогу (#aluma-data).
    Події — через alumaTrack (tracking.js); поки його нема — черга alumaQ, а перед переходом на іншу сторінку
    вона переїжджає в sessionStorage і програється вже там. Жодних особистих даних у подіях. */
 (function () {
@@ -229,89 +229,155 @@
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
   }
 
-  // ---------------------------------------------------------------- оформлення: «משלוח» → «תשלום»
+  // ---------------------------------------------------------------- оформлення: один екран (№38)
+  // місто, спосіб отримання, «коли», телефон (обов'язковий), ім'я, згода → POST /api/fx/lead (lead_source=checkout);
+  // підтвердження — текстом тут же, без переходу. Події: checkout_details — коли вперше заповнено місто й «коли»,
+  // reach_payment — натиснуто «להזמנה» з правильними полями (крок «payment» воронки), Lead — успіх, checkout_error — збій
   var co = qs('[data-shop="checkout"]');
   var payShown = false;
   if (co) {
     var lines = readCart();
-    var ship = qs("[data-co-ship]", co), payBox = qs("[data-co-pay]", co), side = qs("[data-co-side]", co), head = qs("[data-co-h]", co);
+    var form = qs("[data-co-form]", co), side = qs("[data-co-side]", co);
     if (!lines.length) qs("[data-co-empty]", co).hidden = false;
     else {
-      side.hidden = false;
+      form.hidden = false; side.hidden = false;
       var mini = qs("[data-co-list]", co);
       var LS = function (k) { return k === "qty" ? "" : side.getAttribute("data-l-" + k) || ""; };
       lines.forEach(function (l, i) { mini.appendChild(cartRow(l, i, LS)); });
-      var coSums = function () { sums(co, lines, "[data-co-total]"); };
+      var toggle = qs("[data-co-sum-toggle]", co), body = qs("[data-co-sum-body]", co);
+      // рядок «תבור 200×100 · משלוח עד הדלת · ₪6,240» для телефону
+      var sumLine = function () {
+        var first = lines[0], n = count(lines), way = qs('input[name="ship"]:checked', form);
+        var bits = [first.p.name + " " + first.size + (n > 1 ? " +" + (n - 1) : "")];
+        if (way) bits.push(way.parentNode.textContent.split(" —")[0].trim());
+        qs("[data-co-sum-text]", co).textContent = bits.join(" · ");
+        qs("[data-co-total-line]", co).textContent = money(total(lines) + shipFee());
+      };
+      var coSums = function () { sums(co, lines, "[data-co-total]"); sumLine(); };
+      wireShip(form, coSums, "checkout");
+      shipPdf(form, lines);
       coSums();
-      shipPdf(ship, lines);
-      wireShip(ship, coSums, "checkout");
-      var saved = {};
-      try { saved = JSON.parse(sessionStorage.getItem(CO_KEY) || "{}") || {}; } catch (e) { saved = {}; }
-      var el = ship.elements;
+      var narrow = W.matchMedia ? W.matchMedia("(max-width: 899px)") : { matches: false };
+      var fold = function () {
+        var open = !narrow.matches || toggle.getAttribute("aria-expanded") === "true";
+        toggle.hidden = !narrow.matches; body.hidden = !open;
+      };
+      toggle.addEventListener("click", function () {
+        toggle.setAttribute("aria-expanded", toggle.getAttribute("aria-expanded") === "true" ? "false" : "true");
+        fold();
+      });
+      if (narrow.addEventListener) narrow.addEventListener("change", fold);
+      fold();
+
+      var el = form.elements;
+      var when = function () { var x = qs('input[name="when"]:checked', form); return x ? x.value : ""; };
+      var readSaved = function () { try { return JSON.parse(sessionStorage.getItem(CO_KEY) || "{}") || {}; } catch (e) { return {}; } };
+      // поля переживають перезавантаження й помилку мережі (sessionStorage цієї вкладки, як і раніше)
+      var keep = function () {
+        var d = { city: el.city.value, when: when(), name: String(el.name.value || "").trim(), phone: String(el.phone.value || "").trim() };
+        try { sessionStorage.setItem(CO_KEY, JSON.stringify(d)); } catch (x) {}
+        return d;
+      };
+      var saved = readSaved();
       if (saved.city && find(CITIES, "id", saved.city)) el.city.value = saved.city;
-      if (saved.when) { var r = qs('input[name="when"][value="' + saved.when + '"]', ship); if (r) r.checked = true; }
+      if (saved.when) { var r = qs('input[name="when"][value="' + saved.when + '"]', form); if (r) r.checked = true; }
       if (saved.name) el.name.value = saved.name;
       if (saved.phone) el.phone.value = saved.phone;
 
-      var setErr = function (form, id, msg, input) {
+      var setErr = function (id, msg, input) {
         var err = qs("#" + id, form);
         if (err) { err.textContent = msg || ""; err.hidden = !msg; }
         if (input && input.setAttribute) { if (msg) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid"); }
       };
-      var when = function () { var x = qs('input[name="when"]:checked', ship); return x ? x.value : ""; };
-      el.city.addEventListener("change", function () { setErr(ship, "co-e-city", "", el.city); });
-      qsa('input[name="when"]', ship).forEach(function (x) { x.addEventListener("change", function () { setErr(ship, "co-e-when", ""); }); });
-
-      var showStep = function (step, focus) {
-        var onPay = step === "pay";
-        ship.hidden = onPay; payBox.hidden = !onPay;
-        qsa("[data-co-step]", co).forEach(function (s) {
-          if (s.getAttribute("data-co-step") === step) s.setAttribute("aria-current", "step"); else s.removeAttribute("aria-current");
-        });
-        if (onPay && !payShown) {
-          payShown = true;
-          var pp = cartParams(lines);
-          pp.city = (readSaved().city || "").slice(0, 30);
-          pp.when = readSaved().when || "";
-          track("reach_payment", pp);
-        }
-        if (focus && head) { try { head.focus({ preventScroll: true }); } catch (x) {} W.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }); }
-      };
-      var readSaved = function () { try { return JSON.parse(sessionStorage.getItem(CO_KEY) || "{}") || {}; } catch (e) { return {}; } };
-      var detailsOk = function (d) { return !!(d.city && find(CITIES, "id", d.city) && d.when && shipWay()); };
-
-      ship.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var d = { city: el.city.value, when: when(), name: String(el.name.value || "").trim(), phone: String(el.phone.value || "").trim() };
-        var bad = null;
-        setErr(ship, "co-e-city", "", el.city); setErr(ship, "co-e-when", ""); setErr(ship, "ship-err", "");
-        // №31: у кошику спосіб отримання не обраний за замовчуванням — тут він обов'язковий
-        if (!shipWay()) { setErr(ship, "ship-err", S.e_ship); bad = qs('input[name="ship"]', ship); }
-        if (!d.city) { setErr(ship, "co-e-city", S.e_city, el.city); bad = bad || el.city; }
-        if (!d.when) { setErr(ship, "co-e-when", S.e_when); bad = bad || qs('input[name="when"]', ship); }
-        if (bad) { bad.focus(); return; }
-        try { sessionStorage.setItem(CO_KEY, JSON.stringify(d)); } catch (x) {}
+      var detailsSent = false;
+      var details = function () {
+        var d = keep();
+        if (detailsSent || !d.city || !d.when) return;
+        detailsSent = true;
         var p = cartParams(lines);
         p.city = d.city; p.when = d.when; p.ship = shipWay(); p.has_name = !!d.name; p.has_phone = !!d.phone;
         track("checkout_details", p);
-        var ph = qs("#pay-phone", co); if (ph && !ph.value && d.phone) ph.value = d.phone;
-        var pn = qs("#pay-name", co); if (pn && !pn.value && d.name) pn.value = d.name;
-        try { history.pushState({ step: "pay" }, "", "#pay"); } catch (x) {}
-        showStep("pay", true);
+      };
+      el.city.addEventListener("change", function () { setErr("co-e-city", "", el.city); details(); });
+      qsa('input[name="when"]', form).forEach(function (x) { x.addEventListener("change", function () { setErr("co-e-when", ""); details(); }); });
+      el.phone.addEventListener("input", function () { setErr("co-e-phone", "", el.phone); keep(); });
+      el.name.addEventListener("input", keep);
+      el.consent.addEventListener("change", function () { setErr("co-e-consent", "", el.consent); });
+
+      var status = qs(".f-status", form), btn = qs('button[type="submit"]', form), busy = false, thanks = qs("[data-co-thanks]", co);
+      var fail = function (code, msg) {
+        busy = false; form.removeAttribute("aria-busy"); btn.disabled = false;
+        btn.textContent = btn.getAttribute("data-l-retry") || btn.textContent;
+        status.className = "f-status is-err"; status.textContent = msg || "";
+        track("checkout_error", { code: code, step: "checkout", value: total(lines), num_items: count(lines) }, { pixel: false });
+      };
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (busy) return;
+        var d = keep(), city = find(CITIES, "id", d.city), bad = null;
+        setErr("co-e-city", "", el.city); setErr("ship-err", ""); setErr("co-e-when", "");
+        setErr("co-e-phone", "", el.phone); setErr("co-e-consent", "", el.consent);
+        // перша помилка в порядку полів на екрані: місто → спосіб отримання → «коли» → телефон → згода
+        if (!city) { setErr("co-e-city", S.e_city, el.city); bad = el.city; }
+        if (!shipWay()) { setErr("ship-err", S.e_ship); bad = bad || qs('input[name="ship"]', form); }
+        if (!d.when) { setErr("co-e-when", S.e_when); bad = bad || qs('input[name="when"]', form); }
+        if (!phoneOk(d.phone)) { setErr("co-e-phone", S.e_phone, el.phone); bad = bad || el.phone; }
+        if (!el.consent.checked) { setErr("co-e-consent", S.e_consent, el.consent); bad = bad || el.consent; }
+        if (bad) { status.className = "f-status is-err"; status.textContent = S.invalid || ""; bad.focus(); return; }
+        if (!payShown) {
+          payShown = true;
+          var pp = cartParams(lines);
+          pp.city = d.city.slice(0, 30); pp.when = d.when;
+          track("reach_payment", pp);
+        }
+        var first = lines[0], attr = attribution(), ap = attr.p || {};
+        var data = {
+          name: d.name, phone: d.phone, city: city.name, comment: "",
+          website: el.website ? el.website.value : "", consent: true, consent_marketing: false, marketing_consent: false,
+          ads_consent: adsConsent(), consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
+          product_id: first.id, size_label: first.size, finish_id: first.finish, base_id: first.base,
+          timeframe: d.when, contact_pref: "whatsapp", lead_source: "checkout",
+          cart: cartString(lines), order_total: total(lines), delivery: shipWay(),
+          session_id: sessionId(), page: location.pathname, referrer: D.referrer || "",
+          device: W.matchMedia("(min-width: 900px)").matches ? "desktop" : "mobile", attributed_at: attr.at || ""
+        };
+        data.color = data.finish_id.slice(0, 40);
+        data.size = data.size_label.replace(/[^0-9]/g, "").slice(0, 3);
+        ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"].forEach(function (k) { data[k] = ap[k] || ""; });
+        var eventId = newId("lead");
+        data.event_id = eventId;
+        busy = true; form.setAttribute("aria-busy", "true"); btn.disabled = true;
+        status.className = "f-status"; status.textContent = S.sending || "";
+        fetch("/api/fx/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) })
+          .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { code: r.status, body: b || {} }; }); })
+          .then(function (res) {
+            if (res.code === 200 && res.body.ok) {
+              if (res.body.id !== "hp") {          // приманка для ботів теж «ok» — це не конверсія
+                var lp = cartParams(lines); lp.event_id = eventId;
+                track("Lead", lp);
+              }
+              form.hidden = true;
+              saveCart([]);                         // замовлення пішло — кошик порожній, бейдж зникає
+              try { sessionStorage.removeItem(CO_KEY); } catch (x) {}
+              thanks.hidden = false;
+              try { thanks.focus({ preventScroll: true }); } catch (x) {}
+              try { thanks.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" }); } catch (x) {}
+              D.body.classList.add("is-registered");
+              return;
+            }
+            if (res.code === 422 && res.body && res.body.errors) {
+              if (res.body.errors.phone) setErr("co-e-phone", S.e_phone, el.phone);
+              if (res.body.errors.consent) setErr("co-e-consent", S.e_consent, el.consent);
+            }
+            fail(res.code === 429 ? "rate" : res.code === 422 ? "invalid" : "http_" + res.code,
+                 res.code === 429 ? S.rate : res.code === 503 && res.body && res.body.error === "preview_only" ? S.preview
+                   : res.code === 422 ? S.invalid : S.fail);
+          }, function () { fail("offline", S.offline); });
       });
-      W.addEventListener("popstate", function () { showStep(location.hash === "#pay" && detailsOk(readSaved()) ? "pay" : "ship", true); });
-      var first = location.hash === "#pay" && detailsOk(readSaved()) ? "pay" : "ship";
-      if (first === "pay") {
-        var ph0 = qs("#pay-phone", co), pn0 = qs("#pay-name", co);
-        if (ph0 && saved.phone) ph0.value = saved.phone;
-        if (pn0 && saved.name) pn0.value = saved.name;
-      }
-      showStep(first, false);
-      wireKeep(qs("[data-co-keep]", co), lines, readSaved, setErr);
     }
   }
 
-  // «לאישור ההזמנה» — прохання підтвердити замовлення через /api/fx/lead (телефон обов'язковий, ім'я ні; lead_source=checkout)
+  // телефон заявки: ізраїльський номер (05x…, 0x…, +972…) або міжнародний від 8 цифр
   var PHONE_NATIONAL = /^(?:5\d{8}|[23489]\d{7}|7[2-9]\d{7})$/;
   function phoneOk(raw) {
     var d = String(raw || "").replace(/[^0-9]/g, "");
@@ -334,63 +400,6 @@
     try { id = sessionStorage.getItem("fx_sid"); } catch (e) {}
     if (!id) { id = Date.now().toString(36) + Math.random().toString(36).slice(2, 10); try { sessionStorage.setItem("fx_sid", id); } catch (e) {} }
     return id;
-  }
-  function wireKeep(form, lines, readSaved, setErr) {
-    if (!form) return;
-    var status = qs(".f-status", form), btn = qs('button[type="submit"]', form), busy = false, el = form.elements;
-    var thanks = qs("[data-co-thanks]"), back = qs("[data-co-back]");
-    el.phone.addEventListener("input", function () { setErr(form, "pay-e-phone", "", el.phone); });
-    el.consent.addEventListener("change", function () { setErr(form, "pay-e-consent", "", el.consent); });
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      if (busy) return;
-      var d = readSaved(), city = find(CITIES, "id", d.city), first = lines[0], attr = attribution(), ap = attr.p || {};
-      var data = {
-        name: String(el.name.value || "").trim() || d.name || "", phone: String(el.phone.value || "").trim(), city: city ? city.name : "", comment: "",
-        website: el.website ? el.website.value : "", consent: !!el.consent.checked, consent_marketing: false, marketing_consent: false,
-        ads_consent: adsConsent(), consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
-        product_id: first.id, size_label: first.size, finish_id: first.finish, base_id: first.base,
-        timeframe: d.when || "", contact_pref: "whatsapp", lead_source: "checkout",
-        cart: cartString(lines), order_total: total(lines), delivery: shipWay(),
-        session_id: sessionId(), page: location.pathname, referrer: D.referrer || "",
-        device: W.matchMedia("(min-width: 900px)").matches ? "desktop" : "mobile", attributed_at: attr.at || ""
-      };
-      data.color = data.finish_id.slice(0, 40);
-      data.size = data.size_label.replace(/[^0-9]/g, "").slice(0, 3);
-      ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"].forEach(function (k) { data[k] = ap[k] || ""; });
-      var bad = null;
-      setErr(form, "pay-e-phone", "", el.phone); setErr(form, "pay-e-consent", "", el.consent);
-      if (!phoneOk(data.phone)) { setErr(form, "pay-e-phone", S.e_phone, el.phone); bad = el.phone; }
-      if (!data.consent) { setErr(form, "pay-e-consent", S.e_consent, el.consent); bad = bad || el.consent; }
-      if (bad) { status.className = "f-status is-err"; status.textContent = S.invalid || ""; bad.focus(); return; }
-      var eventId = newId("lead");
-      data.event_id = eventId;
-      busy = true; form.setAttribute("aria-busy", "true"); btn.disabled = true;
-      status.className = "f-status"; status.textContent = S.sending || "";
-      var unlock = function () { busy = false; form.removeAttribute("aria-busy"); btn.disabled = false; };
-      fetch("/api/fx/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) })
-        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { code: r.status, body: b || {} }; }); })
-        .then(function (res) {
-          if (res.code === 200 && res.body.ok) {
-            if (res.body.id !== "hp") {          // приманка для ботів теж «ok» — це не конверсія
-              var lp = cartParams(lines); lp.event_id = eventId;
-              track("Lead", lp);
-            }
-            form.hidden = true; if (back) back.hidden = true;
-            if (thanks) { thanks.hidden = false; try { thanks.focus({ preventScroll: true }); } catch (x) {} }
-            D.body.classList.add("is-registered");
-            return;
-          }
-          unlock(); status.className = "f-status is-err";
-          if (res.code === 429) status.textContent = S.rate || "";
-          else if (res.code === 503 && res.body && res.body.error === "preview_only") status.textContent = S.preview || "";
-          else if (res.code === 422 && res.body && res.body.errors) {
-            if (res.body.errors.phone) setErr(form, "pay-e-phone", S.e_phone, el.phone);
-            if (res.body.errors.consent) setErr(form, "pay-e-consent", S.e_consent, el.consent);
-            status.textContent = S.invalid || "";
-          } else status.textContent = S.fail || "";
-        }, function () { unlock(); status.className = "f-status is-err"; status.textContent = S.offline || ""; });
-    });
   }
 
   // ---------------------------------------------------------------- глибина прокрутки і догляд зі сторінки

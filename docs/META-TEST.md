@@ -242,9 +242,9 @@ utm_source={{site_source_name}}&utm_medium=paid_social&utm_campaign={{campaign.n
 **Кнопка во всех объявлениях — Shop now** (в варианте без пикселя — Learn more, как в §2).
 
 **Воронка на `/ru/`** — те же шаги и события, что в §5: «В корзину» → корзина, «Оформить заказ» (`cart_pay`,
-InitiateCheckout) → шаги «Корзина · Доставка · Подтверждение»: город и «когда», «К подтверждению заказа» (`co_next`,
-checkout_details) → шаг «Подтверждение» (`co_step_pay`, reach_payment) → телефон и согласие, «Получить подтверждение
-заказа» (`pay_submit`, Lead) → «Заказ принят на подтверждение.»
+InitiateCheckout) → с 28.10 (№38) один экран оформления: город и «когда» (checkout_details), доставка, телефон и
+согласие, «Оформить · без оплаты на сайте» (`cart_pay`, reach_payment при верных полях, Lead при успехе) → «Получили,
+свяжемся с вами в течение рабочего дня.» на том же экране; сбой — checkout_error (только наша аналитика).
 
 ### C1 — TAVOR
 
@@ -313,9 +313,9 @@ checkout_details) → шаг «Подтверждение» (`co_step_pay`, reac
 | Клик → карточка | ViewContent | ≥ 80 % кликов (остальное — уход до загрузки) |
 | Карточка → корзина | AddToCart | ≥ 10 % карточек |
 | Корзина → «להזמנה» (`cart_pay`) | InitiateCheckout | ≥ 40 % корзин |
-| Город и «מתי צריך?» → «המשך לאישור ההזמנה» (`co_next`) | checkout_details | ≥ 60 % InitiateCheckout |
-| Шаг «אישור» (`co_step_pay`) | reach_payment | ≈ checkout_details |
-| Телефон + согласие → «שלחו לי אישור הזמנה» (`pay_submit`) | Lead | ≥ 30 % дошедших до «אישור» |
+| Город и «מתי צריך?» на экране оформления (с 28.10 — один экран, №38) | checkout_details | ≥ 60 % InitiateCheckout |
+| «להזמנה · בלי תשלום באתר» с верными полями | reach_payment | ≥ 50 % checkout_details |
+| Заявка принята | Lead | ≈ reach_payment (сбои — checkout_error) |
 | CTR (ссылка) / CPC | — | ≥ 1 % / ≤ ₪3 |
 
 - **Главный ответ — «покупают или нет»:** reach_payment — это человек, который выбрал товар, размер, тон, город
