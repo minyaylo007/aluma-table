@@ -128,6 +128,8 @@ function audit(opts) {
 
 async function settle(page) {
   await page.evaluate(() => document.fonts && document.fonts.ready);
+  // №39: глави картки під спойлерами — міряємо їх відкритими, як їх бачить читач
+  await page.evaluate(() => document.querySelectorAll('details[data-acc]').forEach((d) => { d.open = true; }));
   await page.waitForTimeout(150);
 }
 

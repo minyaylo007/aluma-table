@@ -373,7 +373,7 @@ test('телефон 390: «שאלה?» у липкій панелі — вис�
   const [cart, a] = await Promise.all([page.locator('.pdp-actions [data-add-cart]').boundingBox(),
     page.locator('.pdp-actions [data-ask]').boundingBox()]);
   expect(Math.abs(a.y - cart.y)).toBeLessThan(2);   // №28: «הוספה לסל» і «שאלה?» в один ряд і на 390
-  await page.evaluate(() => scrollTo(0, document.querySelector('#spec').getBoundingClientRect().top + scrollY));
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 300));
   const sticky = page.locator('[data-sticky]');
   await expect(sticky).toHaveClass(/is-on/);
   const s = sticky.locator('[data-ask]');
@@ -527,7 +527,7 @@ for (const [prefix, t] of [['', HE], ['/en', EN], ['/ru', RU]]) {
     await page.setViewportSize({ width: 390, height: 844 });
     const net = await setup(page);
     await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
-    await page.evaluate(() => scrollTo(0, document.querySelector('#spec').getBoundingClientRect().top + scrollY));
+    await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 300));
     const sticky = page.locator('[data-sticky]');
     await expect(sticky).toHaveClass(/is-on/);
     const icon = sticky.locator('[data-call]');
@@ -594,6 +594,7 @@ test('?size= у посиланні має пріоритет над розмір
   await page.goto(`${ORIGIN}/p/tavor/?size=160x90`);
   await expect(page.locator('input[name="size"]:checked')).toHaveValue('160×90');
   expect((await page.locator('.price[data-price]').innerText()).replace(/[^0-9]/g, '')).toBe('4490');
+  await page.locator('#unfold summary').click();   // №39: план — у главі під спойлером
   await expect(page.locator('[data-plan-size="160×90"]')).toBeVisible();
   await page.goto(`${ORIGIN}/p/sahar/`);
   const pill = page.locator('label.pill:has(input[name="size"])');
@@ -609,7 +610,7 @@ test('липка смуга на телефоні кладе в кошик ви�
   await page.goto(`${ORIGIN}/p/tavor/`);
   const last = TAVOR.sizes[TAVOR.sizes.length - 1];
   await page.locator(`label:has(input[name="size"][value="${last.label}"])`).first().click();
-  await page.evaluate(() => scrollTo(0, document.querySelector('#spec').getBoundingClientRect().top + scrollY));
+  await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 300));
   const sticky = page.locator('[data-sticky]');
   await expect(sticky).toHaveClass(/is-on/);
   await sticky.locator('[data-add-cart]').click();
@@ -712,5 +713,30 @@ for (const [prefix, t] of [['', HE], ['/ru', RU]]) {
     await page.locator('#lead-form button[type="submit"]').click();
     await expect.poll(() => net.leads.length, { timeout: 8000 }).toBe(1);
     expect(net.leads[0]).toMatchObject({ lead_source: 'visit', product_id: 'tavor' });
+  });
+}
+
+// №39: «נראה לכם את השולחן בווידאו» на першому екрані → та сама міні-форма з «שיחת וידאו», cta_video — лише наша аналітика
+for (const [prefix, t] of [['', HE], ['/ru', RU]]) {
+  test(`${prefix || '/'} 390: «${t.video_cta}» → міні-форма з відео, cta_video без Meta, заявка callback/video`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const net = await setup(page);
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`);
+    const btn = page.locator('.pdp-buy [data-video]');
+    await expect(btn).toHaveText(t.video_cta);
+    await btn.click();
+    const form = page.locator('#callback');
+    await expect(form).toBeVisible();
+    await expect(form.locator('input[name="contact_pref"][value="video"]')).toBeChecked();
+    await expect(form.locator('[data-pref-hint="video"]')).toBeVisible();
+    await expect.poll(() => firstParty(net, 'cta_video').length, { timeout: 8000 }).toBe(1);
+    expect(firstParty(net, 'cta_video')[0].props).toMatchObject({ content_ids: ['tavor'], cta: 'pdp' });
+    expect(await fbNamed(page, 'cta_video')).toHaveLength(0);
+    await page.locator('#cb-phone').fill(PHONE);
+    await form.locator('input[name="consent"]').check();
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('[data-callback-thanks]')).toBeVisible();
+    expect(net.leads).toHaveLength(1);
+    expect(net.leads[0]).toMatchObject({ lead_source: 'callback', contact_pref: 'video', phone: PHONE, consent: true, product_id: 'tavor' });
   });
 }

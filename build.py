@@ -923,11 +923,23 @@ def light(p: dict, loc: str) -> str:
     hide = ' aria-hidden="true"'
     layers = "".join(f'<div class="light-l" data-l="{k}"{hide if k == "evening" else ""}>'
                      f'{picture(pair[k], loc, sizes="(min-width: 960px) 66vw, 100vw")}</div>' for k in ("morning", "evening"))
-    return (f'<section class="sec sec--paper light" id="light" aria-labelledby="light-h"><div class="wrap">'
-            f'<div class="sec-head"><h2 class="h2" id="light-h">{{{{t.light_h2}}}}</h2><p class="sec-lede">{{{{t.light_lede}}}}</p></div>'
-            f'<div class="light-switch" role="group" aria-label="{{{{t.light_h2}}}}">{btns}</div>'
-            f'<figure class="media media--img light-media" data-light-fig data-on="morning">{layers}'
-            f'</figure></div></section>')
+    return acc("light", "light_h2", f'<p class="pdp-acc-lede">{{{{t.light_lede}}}}</p>'
+               f'<div class="light-switch" role="group" aria-label="{{{{t.light_h2}}}}">{btns}</div>'
+               f'<figure class="media media--img light-media" data-light-fig data-on="morning">{layers}</figure>', "light")
+
+
+def acc(sid: str, h_key: str, body: str, cls: str = "") -> str:
+    """№39: глава картки під спойлером — заголовок видно, вміст закритий (картка на телефоні була 12 000 px, до форми
+    не доїжджали). <details>: клавіатура й пошук на сторінці — з коробки; якір глави відкриває її (aluma.js)."""
+    return (f'<section class="sec sec--acc{" " + cls if cls else ""}" id="{sid}" aria-labelledby="{sid}-h"><div class="wrap">'
+            f'<details class="pdp-acc" data-acc><summary class="pdp-acc-sum"><h2 class="h2 pdp-acc-h" id="{sid}-h">{{{{t.{h_key}}}}}</h2>'
+            f'</summary><div class="pdp-acc-body">{body}</div></details></div></section>')
+
+
+def steps_acc() -> str:
+    """«איך זה עובד» на картці — ті самі п'ять кроків, що й _steps.html на головній, але під спойлером."""
+    lis = "".join(f'<li><span class="step-n">0{i}</span><h3>{{{{t.s{i}_h}}}}</h3><p>{{{{t.s{i}_p}}}}</p></li>' for i in range(1, 6))
+    return acc("how", "how_eyebrow", f'<p class="pdp-acc-lede">{{{{t.how_h2}}}}</p><ol class="steps" role="list">{lis}</ol>')
 
 
 
@@ -954,10 +966,8 @@ def how(p: dict, loc: str) -> str:
     pl = plan(p, loc)
     if not steps and not pl:
         return ""
-    lede = '<p class="sec-lede">{{t.unfold_lede}}</p>' if steps else ""
-    return (f'<section class="sec unfold" id="unfold" aria-labelledby="unfold-h"><div class="wrap">'
-            f'<div class="sec-head"><h2 class="h2" id="unfold-h">{{{{t.unfold_h2}}}}</h2>{lede}</div>{steps}'
-            + (f'<h3 class="h3 plan-h">{{{{t.unfold_plan_h3}}}}</h3>{pl}' if pl else "") + "</div></section>")
+    lede = '<p class="pdp-acc-lede">{{t.unfold_lede}}</p>' if steps else ""
+    return acc("unfold", "unfold_h2", lede + steps + (f'<h3 class="h3 plan-h">{{{{t.unfold_plan_h3}}}}</h3>{pl}' if pl else ""), "unfold")
 
 
 def gallery(p: dict, loc: str) -> str:
@@ -1238,7 +1248,7 @@ def main() -> None:
                 "P_GALLERY": gallery(p, loc), "P_THUMB": thumb(p, loc), "P_CONFIG": configurator(p, loc), "P_SIZES": size_table(p, loc),
                 "P_INC": included(p, loc), "P_FACTS": facts(p, loc), "P_TERMS": buy_terms(p), "P_TRUST": trust_strip(p, loc),
                 "P_PRICE_NOTE": "{{t.vat_incl}} · " + ("{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}"), "P_SIZE_HELP": size_help(p, loc),
-                "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
+                "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "P_STEPS": steps_acc(), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }

@@ -561,8 +561,9 @@ class BuiltSiteTests(unittest.TestCase):
                 with self.subTest(page=rel):
                     self.assertEqual(html.count("data-ask"), 2)
                     self.assertIn('id="register"', html)
-                    actions = re.search(r'<div class="pdp-actions">.*?</div>\s*<p class="pdp-ask-hint[^"]*">([^<]+)</p>',
-                                        html, re.S)
+                    # №39: між парою і рядком — «נראה לכם את השולחן בווידאו»
+                    actions = re.search(r'<div class="pdp-actions">.*?</div>\s*<button class="pdp-video"[^>]*>.*?</button>\s*'
+                                        r'<p class="pdp-ask-hint[^"]*">([^<]+)</p>', html, re.S)
                     self.assertIsNotNone(actions)
                     self.assertEqual(actions.group(1), t["ask_hint"])
                     self.assertRegex(actions.group(0), r'data-add-cart data-cta="pdp">[^<]+</button>\s*<button class="btn '

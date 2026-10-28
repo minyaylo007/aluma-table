@@ -149,7 +149,7 @@ class ContactPrefTests(unittest.TestCase):
                      'if (data.email && !EMAIL_OK.test(data.email)) { setErr("email", S.e_email);',
                      '} else if (!phoneOk(data.phone)) { setErr("phone", S.e_phone);'):
             self.assertIn(part, block)
-        sync = JS[JS.index("var cbSync"):JS.index("cbSync();")]
+        sync = JS[JS.index("var cbSync"):JS.index("cbSync();", JS.index("var cbSync"))]
         self.assertIn("if (em) em.hidden = !info;", sync)
 
     def test_strings_three_languages_honest(self):

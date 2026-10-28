@@ -650,6 +650,7 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
    кадр 16:9 замість 16:10 (−20 px), щоб пара кнопок лишилась на першому екрані й на 360, і в ru */
 @media (max-width: 599px) and (max-height: 700px) {
   .g-slide .media, .gallery .media--hero { aspect-ratio: 16 / 9; }
+  .pdp-buy > .pdp-actions { margin-block-start: 6px; }   /* №39: + рядок відео під парою */
 }
 .reg-promise { font-weight: 600; }
 .cart-row { display: flex; justify-content: space-between; gap: 12px; margin: 0; color: var(--muted); }
@@ -697,6 +698,14 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
    текст питання переноситься у два рядки всередині своєї половини */
 @media (max-width: 480px) { .pdp-pair { flex-wrap: nowrap; } .pdp-pair .btn { flex: 1 1 0; padding-inline: 10px; font-size: .92rem; hyphens: manual; } }
 .pdp-ask-hint { margin: -2px 0 0; line-height: 1.4; }
+/* №39: «נראה לכם את השולחן בווידאו» — тихе посилання-кнопка одразу під парою, щоб влізло в перший екран 650 px */
+.pdp-video { display: inline-flex; align-items: center; gap: 8px; justify-self: start; min-height: 44px; padding: 0;
+  border: 0; background: none; font: inherit; font-size: .92rem; font-weight: 600; color: var(--ink); cursor: pointer; }
+.pdp-video svg { flex: none; }
+.pdp-video span { text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pdp-video:hover span { text-decoration-color: currentColor; }
+.pdp-video:focus-visible { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
+@media (max-width: 599px) { .pdp-video { min-height: 24px; } }
 /* «התקשרו אלינו» (24.10): третя кнопка на всю ширину + міні-форма з телефоном під нею */
 .pdp-call svg, .sticky-call svg { flex: none; }
 .callback { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
@@ -743,7 +752,6 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .specs dd { font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
 
 /* ---------------------------------------------------------------- «איך נפתח השולחן»: кадри механізму + план згори */
-.unfold .sec-head { margin-block-end: 28px; }
 .how-steps { display: grid; grid-auto-flow: column; grid-auto-columns: min(80%, 340px); gap: 16px; overflow-x: auto;
   scroll-snap-type: inline mandatory; padding-block-end: 6px; scrollbar-width: thin; }
 .how-steps > li { scroll-snap-align: start; min-width: 0; }
@@ -764,7 +772,6 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .plan > .small { margin-block-start: 16px; max-width: 64ch; }
 
 /* ---------------------------------------------------------------- «בוקר / ערב»: та сама камера, інше світло */
-.light .sec-head { margin-block-end: 20px; }
 .light-switch { display: inline-flex; gap: 4px; padding: 4px; margin-block-end: 16px; border: 1px solid var(--line); border-radius: 999px; }
 .light-btn { min-height: 44px; min-width: 96px; padding-inline: 18px; border: 0; border-radius: 999px; background: none;
   font: inherit; color: var(--ink); cursor: pointer; }
@@ -773,12 +780,32 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .light-media { aspect-ratio: 4 / 3; }
 /* широкий екран: заголовок і перемикач збоку, кадр на дві третини — без порожньої колонки */
 @media (min-width: 960px) {
-  .light .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-rows: auto 1fr;
+  .light .pdp-acc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-rows: auto 1fr;
     column-gap: clamp(32px, 4vw, 64px); align-items: start; }
-  .light .sec-head { grid-column: 1; grid-row: 1; }
+  .light .pdp-acc-lede { grid-column: 1; grid-row: 1; }
   .light-switch { grid-column: 1; grid-row: 2; justify-self: start; }
   .light-media { grid-column: 2; grid-row: 1 / 3; margin: 0; }
 }
+/* ---------------------------------------------------------------- №39: глави картки під спойлером
+   Картка TAVOR на телефоні була 12 271 px — до форми внизу не доїжджали. Специфікація, «איך נפתח», «בוקר וערב»,
+   «איך זה עובד», «עוד מהסדרה» — <details>, закриті; заголовок видно, весь рядок — ціль натискання */
+.sec--acc { padding-block: 0; }
+.sec--acc + :not(.sec--acc) { border-block-start: 1px solid var(--line); }
+.pdp-acc { border-block-start: 1px solid var(--line); }
+.pdp-acc-sum { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px;
+  padding-block: 14px; cursor: pointer; list-style: none; }
+.pdp-acc-sum::-webkit-details-marker { display: none; }
+.pdp-acc-sum::after { content: ""; flex: none; width: 10px; height: 10px; margin-inline-end: 6px; margin-block-start: -6px;
+  border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); /* фізичні: шеврон униз і в RTL */
+  transition: transform .2s var(--ease), margin .2s var(--ease); }
+.pdp-acc[open] > .pdp-acc-sum::after { transform: rotate(-135deg); margin-block-start: 6px; }
+.pdp-acc-sum:hover .pdp-acc-h { color: var(--oak-deep); }
+.pdp-acc-sum:focus-visible { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
+.pdp-acc-h { margin: 0; font-size: clamp(1.4rem, 2.6vw, 2rem); }
+.pdp-acc-body { padding-block: 4px clamp(32px, 5vw, 56px); }
+.pdp-acc-lede { margin-block: 0 20px; max-width: 64ch; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .pdp-acc-sum::after { transition: none; } }
+
 .light-l { position: absolute; inset: 0; transition: opacity .7s var(--ease); }
 .light-l[data-l="evening"], [data-on="evening"] .light-l[data-l="morning"] { opacity: 0; }
 [data-on="evening"] .light-l[data-l="evening"] { opacity: 1; }

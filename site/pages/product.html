@@ -20,6 +20,7 @@
         <button class="btn btn--dark" type="button" data-add-cart data-cta="pdp">{{t.add_to_cart}}</button>
         <button class="btn btn--line" type="button" data-ask data-cta="pdp" aria-expanded="false" aria-controls="callback">{{t.ask_cta}}</button>
       </div>
+      <button class="pdp-video" type="button" data-video data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5h9.5a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5zM16 10.5l4.5-2.8v8.6L16 13.5"/></svg><span>{{t.video_cta}}</span></button>
       <p class="pdp-ask-hint muted small">{{t.ask_hint}}</p>
       <button class="btn btn--line btn--block pdp-call" type="button" data-call data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg>{{t.call_cta}}</button>
       <p class="pdp-call-hint muted small">{{t.call_hint}}</p>
@@ -60,15 +61,19 @@
 </article>
 {{P_CHAPTERS}}
 
-<section class="sec sec--paper" id="spec">
-  <div class="wrap pdp-detail">
-    <div>
-      <h2 class="h2">{{t.spec_h2}}</h2>
-      <p class="pdp-desc">{{P_DESC}}</p>
-      <p class="muted small">{{t.spec_note}}</p>
-      {{P_INSIDE}}
-    </div>
-    {{P_SPECS}}
+<section class="sec sec--acc" id="spec" aria-labelledby="spec-h">
+  <div class="wrap">
+    <details class="pdp-acc" data-acc>
+      <summary class="pdp-acc-sum"><h2 class="h2 pdp-acc-h" id="spec-h">{{t.spec_h2}}</h2></summary>
+      <div class="pdp-acc-body pdp-detail">
+        <div>
+          <p class="pdp-desc">{{P_DESC}}</p>
+          <p class="muted small">{{t.spec_note}}</p>
+          {{P_INSIDE}}
+        </div>
+        {{P_SPECS}}
+      </div>
+    </details>
   </div>
 </section>
 
@@ -76,12 +81,14 @@
 
 {{P_LIGHT}}
 
-{{PART_STEPS}}
+{{P_STEPS}}
 
-<section class="sec">
+<section class="sec sec--acc" id="more" aria-labelledby="more-h">
   <div class="wrap">
-    <div class="sec-head"><h2 class="h2">{{t.more_h2}}</h2></div>
-    {{P_MORE}}
+    <details class="pdp-acc" data-acc>
+      <summary class="pdp-acc-sum"><h2 class="h2 pdp-acc-h" id="more-h">{{t.more_h2}}</h2></summary>
+      <div class="pdp-acc-body">{{P_MORE}}</div>
+    </details>
   </div>
 </section>
 
