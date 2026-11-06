@@ -426,17 +426,33 @@
   W.addEventListener("scroll", onScroll, { passive: true });
   D.addEventListener("scroll", onScroll, { passive: true, capture: true });   // прокрутка не вікна, а кореня/body
   var left = false;
-  W.addEventListener("pagehide", function () {
-    if (!left) {
-      left = true;
-      onScroll();   // остання позиція — навіть якщо подія scroll так і не прийшла
-      // scroll_px — найглибша позиція в px, vh — висота екрана, ph — висота сторінки: лише числа, без ПД
-      track("leave", { step: payShown ? "payment" : step, seconds: Math.round((Date.now() - t0) / 1000), scroll: maxDepth,
-                       scroll_px: maxPx, vh: W.innerHeight, ph: D.documentElement.scrollHeight,
-                       product: (pdp || nextCard) ? (pdp || nextCard).getAttribute("data-product") : "" }, { pixel: false });
-    }
+  // scroll_px — найглибша позиція в px, vh — висота екрана, ph — висота сторінки: лише числа, без ПД
+  var timing = function () {
+    onScroll();   // остання позиція — навіть якщо подія scroll так і не прийшла
+    return { step: payShown ? "payment" : step, seconds: Math.round((Date.now() - t0) / 1000), scroll: maxDepth,
+             scroll_px: maxPx, vh: W.innerHeight, ph: D.documentElement.scrollHeight,
+             product: (pdp || nextCard) ? (pdp || nextCard).getAttribute("data-product") : "" };
+  };
+  // уход — один на показ сторінки: при pagehide або вже при схованій вкладці (№42: вбудований браузер iOS
+  // pagehide не шле, а visibilitychange → hidden — так); повернувся на вкладку — далі час несе пульс
+  var leave = function () {
+    if (!left) { left = true; track("leave", timing(), { pixel: false }); }
     // tracking.js не встиг завантажитися — черга їде на наступну сторінку
     try { if (!W.alumaTrack && W.alumaQ && W.alumaQ.length) sessionStorage.setItem(CARRY_KEY, JSON.stringify(W.alumaQ.slice(-30))); } catch (e) {}
-  });
-  W.addEventListener("pageshow", function (e) { if (e.persisted) { left = false; t0 = Date.now(); badge(); } });
+  };
+  W.addEventListener("pagehide", leave);
+  D.addEventListener("visibilitychange", function () { if (D.visibilityState === "hidden") leave(); });
+  // №42: пульс на картці кожні 15 с, поки вкладку видно, — час є й без уходу. Не більше 20 на показ (5 хв)
+  // і 60 на сесію (sessionStorage fx_pulse_n): ~4 запити на хвилину, ліміт API — 120 подій на хвилину з IP
+  var PULSE_MS = 15000, PULSE_PER_VIEW = 20, PULSE_PER_SESSION = 60, pulses = 0;
+  if (pdp || nextCard) W.setInterval(function () {
+    if (D.visibilityState === "hidden" || pulses >= PULSE_PER_VIEW) return;
+    var n = 0;
+    try { n = parseInt(sessionStorage.getItem("fx_pulse_n"), 10) || 0; } catch (e) {}
+    if (n >= PULSE_PER_SESSION) return;
+    try { sessionStorage.setItem("fx_pulse_n", String(n + 1)); } catch (e) {}
+    pulses++;
+    track("pulse", timing(), { pixel: false });
+  }, PULSE_MS);
+  W.addEventListener("pageshow", function (e) { if (e.persisted) { left = false; pulses = 0; t0 = Date.now(); badge(); } });
 })();

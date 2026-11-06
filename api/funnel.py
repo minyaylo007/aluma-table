@@ -38,7 +38,12 @@ STEPS = (
 )
 STEP_KEYS = tuple(s[0] for s in STEPS)
 STEP_OF_EVENT = {s[1]: s[0] for s in STEPS if s[1]}
-STEP_OF_EVENT["view_cart"] = "cart"   # корзина з минулого візиту — теж крок «корзина»
+# №42: крок «корзина» — лише AddToCart. Захід на сторінку кошика (view_cart) рахується окремо, «з товаром / порожня»:
+# раніше він ішов у крок, і 14 сесій, що відкрили лише порожній кошик через кнопку «סל» у шапці, роздували крок удвічі.
+TIMED = ("leave", "pulse")             # події з часом на сторінці: уход і пульс кожні 15 с (shop.js)
+PRELOAD_SECONDS = (28, 34)             # пік без прокрутки — схоже на передзавантаження застосунком Facebook (зріз 06.11)
+ENGAGED_SECONDS, ENGAGED_SCREENS = 20, 0.5   # «залучені»: від 20 с і від половини екрана, як у зрізі
+ORDER_SOURCE = "order"                 # №41: форма замовлення на картці
 LANGS = ("he", "en", "ru")             # мова сторінки (<html lang>); решта — «?»
 
 # Реклама Meta (хвиля 1, 22.10): після запуску кампанії 22.10 14:19 за годину прийшло 44 «сесії» з utm_source=facebook
@@ -214,13 +219,15 @@ def compute(events, leads) -> dict:
     price_points = defaultdict(lambda: defaultdict(set))   # (slug, size, ₪) → крок → сесії
     cart_price = {}                                          # сесія → (slug, size, ₪) останнього AddToCart
     leaves = Counter()
-    seconds = defaultdict(list)
     asks = defaultdict(set)                                  # м'який крок картки: cta → сесії з cta_ask
     calls = defaultdict(set)                                 # «התקשרו אלינו» (24.10): cta → сесії з cta_call
     seen = {"see_price_block": set(), "see_sizes": set()}     # №32: хто дійшов до «מה כלול במחיר» і плиток розмірів
     visits = defaultdict(set)                                # №30 «לראות מקרוב»: cta → сесії з cta_visit
-    pdp_depth = defaultdict(list)                            # mobile/desktop → глибина картки в екранах (leave)
-    card_seconds = defaultdict(list)                         # №22: товар → секунди на картці (leave pdp / next)
+    cart_views = {}                                          # №42: сесія → чи бачила кошик із товаром (num_items > 0)
+    views = {}                                               # №42: (сесія, крок, товар) → найбільші секунди / px, vh, пристрій
+    order_open = set()                                       # №41: відкрили форму замовлення на картці
+    form_start = defaultdict(set)                            # №41: форма → сесії, що почали заповнювати
+    form_error = Counter()                                   # №41: (форма, код) → помилок
 
     for e in events:
         sid = e.get("session_id") or ""
@@ -239,16 +246,27 @@ def compute(events, leads) -> dict:
         step = STEP_OF_EVENT.get(name)
         if name == "leave":
             leaves[str(p.get("step") or "other")[:20]] += 1
-            s = _num(p.get("seconds"))
-            if s is not None:
-                seconds[str(p.get("step") or "other")[:20]].append(s)
-            # №15: scroll_px — найглибша позиція в px, vh — висота екрана; лише там, де обидва > 0
-            px, vh = _num(p.get("scroll_px")), _num(p.get("vh"))
-            if s is not None and p.get("step") in ("pdp", "next") and p.get("product"):
-                card_seconds[str(p["product"])[:40]].append(s)
-            if p.get("step") == "pdp" and px and vh and px > 0 and vh > 0:
-                dev = "desktop" if e.get("device") == "desktop" else "mobile"
-                pdp_depth[dev].append(px / vh)
+        if name in TIMED:
+            # №42: час перегляду — найбільший із уходу й пульсів; вбудований браузер iOS уходу не шле, пульс — так
+            st = str(p.get("step") or "other")[:20]
+            key = (sid, st, str(p.get("product") or "")[:40] if st in ("pdp", "next") else "")
+            v = views.setdefault(key, {"s": None, "px": 0, "vh": 0, "dev": "mobile", "leave": False})
+            s, px, vh = _num(p.get("seconds")), _num(p.get("scroll_px")), _num(p.get("vh"))
+            if s is not None and (v["s"] is None or s > v["s"]):
+                v["s"] = s
+            # №15: scroll_px — найглибша позиція в px, vh — висота екрана
+            v["px"] = max(v["px"], px or 0)
+            v["vh"] = vh or v["vh"]
+            v["dev"] = "desktop" if e.get("device") == "desktop" else v["dev"]
+            v["leave"] = v["leave"] or name == "leave"
+        if name == "view_cart":
+            cart_views[sid] = cart_views.get(sid, False) or (_num(p.get("num_items")) or 0) > 0
+        if name == "order_open":
+            order_open.add(sid)
+        if name == "form_start":
+            form_start[str(p.get("form") or "other")[:20]].add(sid)
+        if name == "form_error":
+            form_error[(str(p.get("form") or "other")[:20], str(p.get("code") or "?")[:30])] += 1
         if name == "cta_ask":
             asks[str(p.get("cta") or "other")[:20]].add(sid)
         if name == "cta_call":
@@ -274,7 +292,7 @@ def compute(events, leads) -> dict:
             price_points[cart_price[sid]][step].add(sid)
 
     # Заявка без події Lead у браузері (блокувальник, обірвана сторінка) — теж Lead своєї сесії.
-    lead_rows = callbacks = visit_leads = 0
+    lead_rows = callbacks = visit_leads = order_leads = 0
     votes = Counter()                                        # №22: «אני רוצה כזה» — голоси за варіанти наступного видання
     call_prefs = Counter({k: 0 for k in CALLBACK_PREFS})
     for l in leads:
@@ -285,6 +303,8 @@ def compute(events, leads) -> dict:
             call_prefs[l.get("contact_pref") if l.get("contact_pref") in CALLBACK_PREFS else "call"] += 1
         if l.get("lead_source") == "visit":
             visit_leads += 1
+        if l.get("lead_source") == ORDER_SOURCE:
+            order_leads += 1
         if l.get("lead_source") == "vote":
             votes[str(l.get("product_id") or "?")[:40]] += 1
         sid = l.get("session_id") or ""
@@ -309,6 +329,32 @@ def compute(events, leads) -> dict:
         keys = order or sorted(groups, key=lambda k: -len(groups[k]["sessions"]))
         return [{"key": k, "steps": _steps(groups[k])} for k in keys]
 
+    # №42: час — по переглядах (сесія, крок, товар); пік 28–34 с без прокрутки на картці — не в медіані
+    seconds = defaultdict(list)
+    card_seconds = defaultdict(list)                         # №22: товар → секунди на картці (pdp / next)
+    pdp_depth = defaultdict(list)                            # mobile/desktop → глибина картки в екранах
+    pdp_timed, preload, engaged, pulse_only = set(), set(), set(), set()
+    for (sid, st, product), v in views.items():
+        s = v["s"]
+        screens = v["px"] / v["vh"] if v["px"] > 0 and v["vh"] > 0 else 0.0
+        if st == "pdp" and screens > 0:
+            pdp_depth[v["dev"]].append(screens)
+        if s is None:
+            continue
+        if st == "pdp":
+            pdp_timed.add(sid)
+            if not v["leave"]:
+                pulse_only.add(sid)
+            if screens >= ENGAGED_SCREENS and s >= ENGAGED_SECONDS:
+                engaged.add(sid)
+            if PRELOAD_SECONDS[0] <= s <= PRELOAD_SECONDS[1] and v["px"] == 0:
+                preload.add((sid, product))
+                continue
+        seconds[st].append(s)
+        if st in ("pdp", "next") and product:
+            card_seconds[product].append(s)
+    pdp_s = sorted(seconds["pdp"])
+
     dropped = Counter(last_step.get(sid, "sessions") for sid in total["sessions"]
                       if last_step.get(sid) not in (None, "lead"))
     return {
@@ -327,8 +373,22 @@ def compute(events, leads) -> dict:
         "call": {"sessions": len(set().union(*calls.values())) if calls else 0,
                  "by_cta": {k: len(v) for k, v in sorted(calls.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
                  "leads": callbacks, "by_pref": {k: call_prefs[k] for k in CALLBACK_PREFS}},
-        # №32: видимість блоків картки — сесії, що побачили «מה כלול במחיר» / плитки розмірів, проти сесій картки
+        # №32: видимість блоків картки — сесії, що дійшли до «מה כלול במחיר» (3,4 екрана нижче ціни; сама ціна —
+        # на першому екрані в усіх) і до плиток розмірів, проти сесій картки. Ключ "price" — історичний, це блок
         "seen": {"price": len(seen["see_price_block"]), "sizes": len(seen["see_sizes"]), "product": len(total["product"])},
+        # №42: захід на сторінку кошика — окремо від кроку «корзина» (AddToCart)
+        "cart_view": {"sessions": len(cart_views), "with_items": sum(1 for v in cart_views.values() if v),
+                      "empty": sum(1 for v in cart_views.values() if not v),
+                      "no_add": sum(1 for sid, v in cart_views.items() if v and sid not in total["cart"])},
+        # №42: час на картці. timed — сесії картки з часом (уход або пульс), pulse_only — лише з пульсом,
+        # preload — перегляди 28–34 с без прокрутки (не в медіані), engaged — від 20 с і від пів екрана
+        "pdp_time": {"product": len(total["product"]), "timed": len(pdp_timed), "pulse_only": len(pulse_only),
+                     "no_time": len(total["product"] - pdp_timed), "preload": len(preload),
+                     "engaged": len(engaged), "median": pdp_s[len(pdp_s) // 2] if pdp_s else None, "n": len(pdp_s)},
+        # №41: форма замовлення на картці — відкрили, почали заповнювати (за формами), помилки (форма, код), заявки
+        "order": {"open": len(order_open), "leads": order_leads,
+                  "form_start": {k: len(v) for k, v in sorted(form_start.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
+                  "form_error": {f"{f}:{c}": n for (f, c), n in sorted(form_error.items(), key=lambda kv: (-kv[1], kv[0]))}},
         # №30: хочуть подивитись живцем — сесії з натисканням плитки і заявки lead_source=visit
         "visit": {"sessions": len(set().union(*visits.values())) if visits else 0,
                   "by_cta": {k: len(v) for k, v in sorted(visits.items(), key=lambda kv: (-len(kv[1]), kv[0]))},
@@ -386,7 +446,8 @@ def text(rep: dict) -> str:
     lines.append(f"Вопрос с карточки: {ask.get('sessions', 0)} (корзина {cart})"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in ask["by_cta"].items()) if ask.get("by_cta") else ""))
     seen = rep.get("seen") or {}
-    lines.append(f"Видели цену/размеры: {seen.get('price', 0)}/{seen.get('sizes', 0)} из {seen.get('product', 0)} сессий карточки")
+    lines.append(f"Дошли до «что входит в цену»/выбора размера: {seen.get('price', 0)}/{seen.get('sizes', 0)}"
+                 f" из {seen.get('product', 0)} сессий карточки")
     call = rep.get("call") or {}
     lines.append(f"«Позвоните нам»: {call.get('sessions', 0)}, заявок на звонок {call.get('leads', 0)}"
                  + (" · " + ", ".join(f"{k} {v}" for k, v in call["by_cta"].items()) if call.get("by_cta") else ""))
@@ -403,6 +464,19 @@ def text(rep: dict) -> str:
                  + (" (шаги выше — только люди)" if rep.get("people_only") else ""))
     if any(a["key"] == "ads_meta_est" and a["n"] for a in rep.get("by_audience") or []):
         lines.append("  (оценка — события до флага fbclid_present, только по UA; всплеск проверки Meta — 22.10 14:00–15:30)")
+    cv = rep.get("cart_view") or {}
+    lines.append(f"Заходили на страницу корзины: {cv.get('sessions', 0)} (с товаром {cv.get('with_items', 0)}, "
+                 f"только пустая {cv.get('empty', 0)}; с товаром, но без добавления в этой сессии {cv.get('no_add', 0)})"
+                 " — не шаг «корзина»")
+    order = rep.get("order") or {}
+    lines.append(f"Форма заказа на карточке: открыли {order.get('open', 0)}, заявок order {order.get('leads', 0)}"
+                 + (" · начали: " + ", ".join(f"{k} {v}" for k, v in order["form_start"].items()) if order.get("form_start") else "")
+                 + (" · ошибки: " + ", ".join(f"{k} {v}" for k, v in order["form_error"].items()) if order.get("form_error") else ""))
+    pt = rep.get("pdp_time") or {}
+    lines.append(f"Время на карточке: медиана {pt.get('median') if pt.get('median') is not None else '—'} с (n={pt.get('n', 0)}) · "
+                 f"вовлечённые (от 20 с и от ½ экрана) {pt.get('engaged', 0)} · с временем {pt.get('timed', 0)} из "
+                 f"{pt.get('product', 0)} (только пульс {pt.get('pulse_only', 0)}, без времени {pt.get('no_time', 0)})")
+    lines.append(f"  похоже на предзагрузку (28–34 с без прокрутки, не в медиане): {pt.get('preload', 0)}")
     for title, key in (("По товарам", "by_product"), ("По источнику", "by_source"), ("По языку", "by_lang"),
                        ("По дням", "by_day")):
         lines += ["", title + ":"]
