@@ -263,10 +263,11 @@ def compute(events, leads) -> dict:
             cart_views[sid] = cart_views.get(sid, False) or (_num(p.get("num_items")) or 0) > 0
         if name == "order_open":
             order_open.add(sid)
+        # без поля form — старий form_start лендингу (вересень, сторінка /); №41 шле form завжди
         if name == "form_start":
-            form_start[str(p.get("form") or "other")[:20]].add(sid)
+            form_start[str(p.get("form") or "no_form")[:20]].add(sid)
         if name == "form_error":
-            form_error[(str(p.get("form") or "other")[:20], str(p.get("code") or "?")[:30])] += 1
+            form_error[(str(p.get("form") or "no_form")[:20], str(p.get("code") or "?")[:30])] += 1
         if name == "cta_ask":
             asks[str(p.get("cta") or "other")[:20]].add(sid)
         if name == "cta_call":
