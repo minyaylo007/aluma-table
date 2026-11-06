@@ -755,32 +755,6 @@ class NotifyTests(HandlerTestCase):
         self.assertEqual(len(rec.calls), 1)
 
 
-class DailyReportShapeTests(unittest.TestCase):
-    """The report must carry lang for every lead without touching boto3."""
-
-    def test_lead_rows_include_lang_and_existing_fields(self):
-        spec = importlib.util.spec_from_file_location("daily_report", ROOT / "scripts" / "daily_report.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        leads = [
-            {"ts": "2026-09-09T10:00:00+00:00", "city": "חיפה", "color": "smoked", "size": "220",
-             "lang": "he", "comment": "", "status": "new", "utm_source": "fb", "consent_marketing": True},
-            {"ts": "2026-09-09T11:00:00+00:00"},  # legacy row written before lang existed
-        ]
-        data = mod.analyse([], leads, 7)
-        self.assertEqual(len(data["leads"]), 2)
-        first, legacy = data["leads"]
-        self.assertEqual(
-            set(first),
-            {"ts", "city", "colour", "size", "lang", "comment", "status", "source", "marketing_opt_in"},
-        )
-        self.assertEqual(first["lang"], "he")
-        self.assertEqual(first["size"], "220")
-        self.assertEqual(legacy["lang"], "")
-        self.assertEqual(legacy["size"], "")
-        self.assertEqual(legacy["source"], "direct")
-
-
 class AdminLoginLogTests(HandlerTestCase):
     """Невдалий вхід — один JSON-рядок без користувача, пароля й IP (його рахує scripts/journal_watch.py)."""
 

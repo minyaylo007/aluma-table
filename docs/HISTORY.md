@@ -30,6 +30,8 @@ CLAUDE.md ≤120 рядків). Поточні правила — `CLAUDE.md`; �
   ніхто не робив. Звідси `scripts/deploy-box.sh` і skill `/aluma-deploy` (13.10.2026).
 - Агент викату `deploy/agent/pullagent.py` (T040, розкладка `releases/vX.Y.Z` + `current`) написаний і покритий
   тестами, але **не встановлений**; релізи вимкнені (`RELEASES_ENABLED` не задано). Обидва стани — `docs/DELIVERY.md`.
+- Видалено 06.11.2026, №44: старе превью GOREN (`site/assets/og.png`, `tools/og.html`, `tools/make-og.js`) і невживаний
+  `scripts/daily_report.py` (+ `prompts/daily-analysis.md`); `open_tables`/`load` — тепер `api/funnel_io.py`.
 
 ## Публічний репозиторій (12.09.2026)
 

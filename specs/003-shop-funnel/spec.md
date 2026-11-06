@@ -55,7 +55,7 @@ Telegram и CSV получают `cart` и `order_total`. Лимиты `/api/fx/
 
 ## Отчёт воронки
 
-Один модуль `api/funnel.py` — общий для `/admin/funnel`, `tools/funnel_report.py` и `scripts/daily_report.py`.
+Один модуль `api/funnel.py` — общий для `/admin/funnel`, `tools/funnel_report.py` и `scripts/funnel_digest.py`; строки из базы — `api/funnel_io.py` (до №44 — `scripts/daily_report.py`, удалён 06.11.2026).
 
 - **Окно** — календарные дни Asia/Jerusalem: `days=1` — сегодня, `7` — сегодня и 6 дней до, `0` — всё. День события
   — по серверному времени записи (`sk`), не по часам браузера. Заявки — по `ts`, в том же окне.
@@ -65,7 +65,7 @@ Telegram и CSV получают `cart` и `order_total`. Лимиты `/api/fx/
   (`utm_source / utm_campaign`, пусто → `direct`); по дням. Плюс «где ушли» (последний шаг сессии) и «на какой
   цене» (сумма корзины у тех, кто дошёл до корзины и не оставил Lead — корзины по ценовым ступеням).
 - Без ПД: только счёт, slug, utm, суммы. Тестовые строки исключены (флаг `?test=1` / `--include-test`).
-- `scripts/daily_report.py` берёт то же окно для событий и заявок (замечание ночи: события были UTC-днями, заявки —
+- `api/funnel_io.load()` (бывш. `scripts/daily_report.py`) берёт то же окно для событий и заявок (замечание ночи: события были UTC-днями, заявки —
   скользящими 24 ч × N).
 
 ## Тексты

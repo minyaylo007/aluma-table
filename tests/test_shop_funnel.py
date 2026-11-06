@@ -780,7 +780,7 @@ class FunnelReportScriptTests(unittest.TestCase):
             leads_t.put_item(Item={"pk": "LEAD", "sk": now.isoformat() + "#1", "ts": now.isoformat(),
                                    "session_id": "s1", "name": "Dana", "phone": FAKE_E164})
             out = io.StringIO()
-            with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", db), contextlib.redirect_stdout(out):
+            with mock.patch.object(funnel_report.funnel_io, "FX_DB_PATH", db), contextlib.redirect_stdout(out):
                 self.assertEqual(funnel_report.main(["--days", "1"]), 0)
             text = out.getvalue()
             self.assertIn("Всего:  сессии 1 → карточка 1 (100%)", text)
@@ -788,7 +788,7 @@ class FunnelReportScriptTests(unittest.TestCase):
             self.assertIn("Реклама Meta, сессии: реклама: люди 1 · реклама: проверка Meta 0", text)
             self.assertNotIn("Dana", text)
             self.assertNotIn("501234567", text)
-            with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", os.path.join(tmp, "nope.db")), \
+            with mock.patch.object(funnel_report.funnel_io, "FX_DB_PATH", os.path.join(tmp, "nope.db")), \
                     contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(funnel_report.main([]), 2)
             self.assertFalse(os.path.exists(os.path.join(tmp, "nope.db")))
@@ -815,7 +815,7 @@ class FunnelReportScriptTests(unittest.TestCase):
                 opened.append(readonly)
                 real(self, path, readonly=readonly)
             out = io.StringIO()
-            with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", db), \
+            with mock.patch.object(funnel_report.funnel_io, "FX_DB_PATH", db), \
                     mock.patch.object(h.store.SqliteStore, "__init__", spy), contextlib.redirect_stdout(out):
                 self.assertEqual(funnel_report.main(["--days", "1"]), 0)
             self.assertEqual(opened, [True])

@@ -1301,59 +1301,6 @@
         "ground_ok": null
       },
       "notes": "62 px (at 1x) square of the tabletop face at (1360,397) of the compare-closed master, cut from the 2x frame (124 px) and LANCZOS to 160/240; same region, camera and exposure for the three tones; the face is foreshortened from that low camera, so the grain reads as fine streaks | render/visualisation of provisional procedural geometry (no manufacturer CAD); not a photograph"
-    },
-    {
-      "id": "goren-social",
-      "role": "social",
-      "tone": "natural",
-      "state": "closed",
-      "aspect": "1.91:1",
-      "width": 1200,
-      "height": 630,
-      "widths": [
-        1200
-      ],
-      "formats": [
-        "png"
-      ],
-      "files": {
-        "png": {
-          "1200": {
-            "path": "../og.png",
-            "bytes": 138904
-          }
-        }
-      },
-      "source": "renders-master/product/goren-studio-hero-natural-closed.png + tools/og.html",
-      "pipeline": "node tools/make-og.js (tools/og.html: hero master, inlined logo lockup, IBM Plex Sans Hebrew, ground #F4F1EA)",
-      "reference_version": "goren3d.js 6bae08c+dirty VIEWS.studio",
-      "kind": "composite",
-      "status": "provisional",
-      "camera": {
-        "az": 38,
-        "el": 12.5,
-        "fov_v": 18.6,
-        "position_m": [
-          2.303,
-          1.075,
-          2.849
-        ],
-        "target_m": [
-          0.048,
-          0.263,
-          -0.037
-        ],
-        "height_m": 1.075,
-        "distance_m": 3.752
-      },
-      "table_width_fraction": null,
-      "checks": {
-        "ends_inside": null,
-        "feet_inside": null,
-        "shadow_inside": null,
-        "ground_ok": true
-      },
-      "notes": "1200x630 social preview; Hebrew title + 160/220 line only, no price; the hero render composited on the page ground"
     }
   ]
 }

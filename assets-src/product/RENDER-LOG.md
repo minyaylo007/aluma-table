@@ -1,6 +1,6 @@
 # Product render set — RENDER-LOG
 
-Date: 2026-09-09. Output: `site/assets/product/` (84 WebP/AVIF variants + `manifest.json`), `site/assets/og.png`,
+Date: 2026-09-09. Output: `site/assets/product/` (84 WebP/AVIF variants + `manifest.json`), `site/assets/og.png` (removed 06.11.2026, №44),
 masters in `renders-master/product/` (gitignored; `<id>.png` at nominal size, `<id>.json` camera sidecar,
 `ss2/<id>.png` the 2x frame, `_contact.png` contact sheet). Everything is a render/visualisation of the
 PROVISIONAL procedural geometry in `site/assets/goren3d.js` (no manufacturer CAD) — never a photograph.
@@ -10,7 +10,6 @@ drift at most 2/255 after lossy encoding (limit 3).
 ## Pipeline
 
     node tools/render3d.js --product --ss=2        # 14 masters, 2x supersampled, ~130 s on SwiftShader
-    node tools/make-og.js                          # og.png from the studio master
     python tools/product_assets.py                 # variants + manifest.json + _contact.png
 
 ## Harness changes
@@ -26,7 +25,7 @@ drift at most 2/255 after lossy encoding (limit 3).
   query, a JSON sidecar per id; the legacy view/tone/state mode is unchanged. Bug fixed on the way: option parsing split on every `=`.
 - `tools/product_assets.py` — new encoder (LANCZOS, grain σ 0.5 per asset family, WebP 88/90, AVIF 64/62/60 speed 4, pixel checks,
   finish swatches from the 2x compare-closed frame, manifest, contact sheet).
-- `tools/og.html` — self-contained (no dist/ sheet), ground `#F4F1EA`, ink `#252720`, secondary `#62645C`, IBM Plex Sans Hebrew
+- `tools/og.html` (removed 06.11.2026 with og.png and `tools/make-og.js`, №44) — self-contained (no dist/ sheet), ground `#F4F1EA`, ink `#252720`, secondary `#62645C`, IBM Plex Sans Hebrew
   self-hosted, the studio master, the inlined logo lockup, text only "גורן — שולחן אוכל נפתח" / "מ־160 ל־220 ס״מ". No price.
 
 ## Views — exact numbers

@@ -22,7 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from api import funnel  # noqa: E402
-from scripts import daily_report  # noqa: E402
+from api import funnel_io  # noqa: E402
 
 
 def main(argv=None) -> int:
@@ -32,11 +32,11 @@ def main(argv=None) -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
     try:
-        tables = daily_report.open_tables(daily_report.FX_DB_PATH, readonly=True)
+        tables = funnel_io.open_tables(funnel_io.FX_DB_PATH, readonly=True)
     except FileNotFoundError:
-        print(f"no database at FX_DB_PATH={daily_report.FX_DB_PATH}", file=sys.stderr)
+        print(f"no database at FX_DB_PATH={funnel_io.FX_DB_PATH}", file=sys.stderr)
         return 2
-    events, leads = daily_report.load(args.days, True, tables)
+    events, leads = funnel_io.load(args.days, True, tables)
     rep = funnel.report(events, leads, args.days, include_test=args.include_test)
     print(json.dumps(rep, ensure_ascii=False, indent=2) if args.json else funnel.text(rep), end="" if not args.json else "\n")
     return 0

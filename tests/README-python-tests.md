@@ -17,7 +17,7 @@ Three files:
 | `tests/test_store_sqlite.py` | `api/store.py` — the SQLite twin of the three DynamoDB tables | none |
 | `tests/test_wsgi.py` | `api/wsgi.py` — the same handler under gunicorn | `werkzeug` |
 | `tests/test_lambda_no_fx_storage.py` | Lambda **without** `FX_STORAGE`: read-only `/var/task` → lead and event 500, no notify, health 200 | not root (else skipped) |
-| `tests/test_daily_report.py` | `scripts/daily_report.py` on the box SQLite (no DynamoDB, no boto3) | none |
+| `tests/test_funnel_io.py` | `api/funnel_io.py` — funnel rows from the box SQLite (no DynamoDB, no boto3) | none |
 
 ## Running the suite: three modes (CLAUDE.md §8, skill /aluma-check)
 
@@ -144,19 +144,13 @@ Fallback if the module path ever misbehaves: `python tests/test_handler.py`.
   phrase, `Set-Cookie` per entry of `cookies`, base64 bodies, UTF-8
   `Content-Length`), `wsgiref.validate` compliance, and a lead posted over WSGI
   ending up readable through `load_leads()`.
-- `scripts/daily_report.py::analyse` lead rows include `lang` (and every
-  previous field), with `""` for legacy rows written before `lang` existed.
-- `scripts/daily_report.py` reads the box SQLite through `api/store.py`
-  (`tests/test_daily_report.py`, 7 tests, added 2026-09-11 when the DynamoDB
-  `fx_*` tables were deleted): the day window and `--include-test`, paging past
-  the 1000-event / 500-lead query pages, leads newest-first and events
-  oldest-first (as DynamoDB returned them), import and run with `boto3` blocked,
-  a missing `FX_DB_PATH` → exit 2 without creating a database or a report,
-  `main --no-ai` writes the same funnel/raw report, table names from env like the
-  handler. One-off parity check at the switch (not in the suite): the old
-  DynamoDB `load()` on moto and the new SQLite `load()` on the same 1500 events /
-  620 leads gave identical `analyse()` output and row order for 1/3/7/10 days,
-  with and without test rows.
+- `api/funnel_io.py` (`open_tables`/`load`, moved from `scripts/daily_report.py`
+  when that unused report was removed 06.11.2026, №44) reads the box SQLite
+  through `api/store.py` (`tests/test_funnel_io.py`): the day window and
+  `include_test`, paging past the 1000-event / 500-lead query pages, leads
+  newest-first and events oldest-first (as DynamoDB returned them), import and
+  run with `boto3` blocked, a missing `FX_DB_PATH` → `FileNotFoundError` without
+  creating a database, table names from env like the handler.
 
 ## Not covered (on purpose)
 

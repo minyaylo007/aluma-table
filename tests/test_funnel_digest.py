@@ -31,7 +31,7 @@ TOKEN = "123456:SECRET-token_value"
 
 
 class Box:
-    """Тимчасова база з розкладкою handler.py (як tests/test_daily_report.py)."""
+    """Тимчасова база з розкладкою handler.py (як tests/test_funnel_io.py)."""
 
     def __init__(self, path: str):
         self.events, self.leads, _ = store.tables(path)
@@ -88,7 +88,7 @@ class DigestTests(unittest.TestCase):
     def run_main(self, *argv, post=None):
         buf = io.StringIO()
         post = post or mock.Mock(return_value=mock.Mock(status_code=200))
-        with mock.patch.object(fd.daily_report, "FX_DB_PATH", self.db), \
+        with mock.patch.object(fd.funnel_io, "FX_DB_PATH", self.db), \
                 mock.patch.object(fd, "TELEGRAM_BOT_TOKEN", TOKEN), \
                 mock.patch.object(fd, "OWNER_TELEGRAM_CHAT_ID", "42"), \
                 mock.patch.object(fd.requests, "post", post), contextlib.redirect_stdout(buf):
@@ -181,7 +181,7 @@ class DigestTests(unittest.TestCase):
 
     def test_no_telegram_config(self):
         buf = io.StringIO()
-        with mock.patch.object(fd.daily_report, "FX_DB_PATH", self.db), mock.patch.object(fd, "TELEGRAM_BOT_TOKEN", ""), \
+        with mock.patch.object(fd.funnel_io, "FX_DB_PATH", self.db), mock.patch.object(fd, "TELEGRAM_BOT_TOKEN", ""), \
                 mock.patch.object(fd.requests, "post") as post, contextlib.redirect_stdout(buf):
             self.assertEqual(fd.main([]), 1)
         post.assert_not_called()
@@ -190,7 +190,7 @@ class DigestTests(unittest.TestCase):
     def test_no_db_exit_2_without_trace(self):
         missing = os.path.join(self.tmp.name, "nope.db")
         buf, err = io.StringIO(), io.StringIO()
-        with mock.patch.object(fd.daily_report, "FX_DB_PATH", missing), \
+        with mock.patch.object(fd.funnel_io, "FX_DB_PATH", missing), \
                 contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
             self.assertEqual(fd.main([]), 2)
         self.assertEqual(json.loads(buf.getvalue()), {"event": "digest_failed", "reason": "no_db"})
