@@ -409,9 +409,18 @@
     qsa('input[name="contact_pref"]', cbForm).forEach(function (r) { r.addEventListener("change", cbSync); });
     cbSync();
   }
+  // №43: «הוספת פרטים» — згорнутий блок необов'язкових полів довгої форми (aria-expanded на кнопці)
+  var moreBtn = form && qs("[data-more]", form), extra = form && qs("[data-extra]", form);
+  var openExtra = function (on) {
+    if (!moreBtn || !extra) return;
+    extra.hidden = !on;
+    moreBtn.setAttribute("aria-expanded", on ? "true" : "false");
+  };
+  if (moreBtn) moreBtn.addEventListener("click", function () { openExtra(extra.hidden); });
   // «Інший розмір» → коментар у формі
   qsa(".js-custom").forEach(function (a) {
     a.addEventListener("click", function () {
+      openExtra(true);
       var c = form && qs("#f-comment", form);
       if (c && !c.value) c.value = S.custom_text || "";
       setTimeout(function () { if (c) { try { c.focus({ preventScroll: true }); } catch (e) {} } }, reduced ? 0 : 450);

@@ -12,7 +12,8 @@
         <p class="price-incl">{{t.price_incl}} · {{t.installments}}</p>
         {{SHIP_CHOICE}}
         {{TRUST_CART}}
-        <a class="btn btn--dark btn--block" href="{{PREFIX}}/checkout/" data-cart-pay data-cta="cart">{{t.cart_pay}}</a>
+        <!-- №43: на телефоні кнопка липне до низу екрана, поки видно підсумок, — порядок DOM = екран = Tab не міняється -->
+        <div class="cart-go"><a class="btn btn--dark btn--block" href="{{PREFIX}}/checkout/" data-cart-pay data-cta="cart">{{t.cart_pay}}</a></div>
         <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a>
         <p class="f-fine">{{t.cart_fine}}</p>
       </div>
