@@ -1477,6 +1477,27 @@ def admin_funnel(event):
         f"<tr><td class='mono'>{esc(k)}</td><td class='n'>{v['median']}</td><td class='n'>{v['n']}</td></tr>"
         for k, v in (rep.get("card_seconds") or {}).items()
     ) or "<tr><td colspan='3' class='muted'>אין נתונים · нет данных</td></tr>"
+    # №42: чесні лічильники — блок «מה כלול במחיר» (не сама ціна), захід у кошик окремо від кроку, час без передзавантаження
+    seen_rep, cv, pt, order_rep = (rep.get(k) or {} for k in ("seen", "cart_view", "pdp_time", "order"))
+    seen_rows = (f"<tr><td>дошли до «что входит в цену» (מה כלול במחיר)</td><td class='n'>{seen_rep.get('price', 0)}</td></tr>"
+                 f"<tr><td>дошли до выбора размера</td><td class='n'>{seen_rep.get('sizes', 0)}</td></tr>"
+                 f"<tr><td>сессии карточки</td><td class='n'>{seen_rep.get('product', 0)}</td></tr>")
+    cart_rows = (f"<tr><td>заходили на страницу корзины</td><td class='n'>{cv.get('sessions', 0)}</td></tr>"
+                 f"<tr><td>· с товаром</td><td class='n'>{cv.get('with_items', 0)}</td></tr>"
+                 f"<tr><td>· только пустая</td><td class='n'>{cv.get('empty', 0)}</td></tr>"
+                 f"<tr><td>· с товаром, без добавления в этой сессии</td><td class='n'>{cv.get('no_add', 0)}</td></tr>")
+    time_rows = (f"<tr><td>медиана, с (n={pt.get('n', 0)})</td><td class='n'>{esc(pt.get('median') if pt.get('median') is not None else '—')}</td></tr>"
+                 f"<tr><td>вовлечённые: от 20 с и от ½ экрана</td><td class='n'>{pt.get('engaged', 0)}</td></tr>"
+                 f"<tr><td>похоже на предзагрузку: 28–34 с без прокрутки (не в медиане)</td><td class='n'>{pt.get('preload', 0)}</td></tr>"
+                 f"<tr><td>сессии карточки с временем</td><td class='n'>{pt.get('timed', 0)} / {pt.get('product', 0)}</td></tr>"
+                 f"<tr><td>· только по пульсу (без ухода)</td><td class='n'>{pt.get('pulse_only', 0)}</td></tr>"
+                 f"<tr><td>· без времени</td><td class='n'>{pt.get('no_time', 0)}</td></tr>")
+    order_rows = (f"<tr><td>открыли форму заказа (order_open)</td><td class='n'>{order_rep.get('open', 0)}</td></tr>"
+                  + "".join(f"<tr><td class='mono'>начали: {esc(k)}</td><td class='n'>{v}</td></tr>"
+                            for k, v in (order_rep.get("form_start") or {}).items())
+                  + "".join(f"<tr><td class='mono'>ошибка: {esc(k)}</td><td class='n'>{v}</td></tr>"
+                            for k, v in (order_rep.get("form_error") or {}).items())
+                  + f"<tr><td>заявки order</td><td class='n'>{order_rep.get('leads', 0)}</td></tr>")
     keep_test = "&amp;test=1" if show_test else ""
     nav = " ".join(
         f"<a href='?range={r}{keep_test}' class='{'on' if rng == r else ''}'>{label}</a>"
@@ -1527,6 +1548,10 @@ def admin_funnel(event):
   <section class="card"><h2>התקשרו אלינו · «позвоните нам» (cta_call)</h2><table>{call}</table></section>
   <section class="card"><h2>לראות מקרוב · визит (cta_visit)</h2><table>{visit}</table></section>
   <section class="card"><h2>מהדורה הבאה · голоса «אני רוצה כזה»</h2><table>{vote}</table></section>
+  <section class="card"><h2>עד איפה הגיעו · дошли до блоков карточки</h2><table>{seen_rows}</table></section>
+  <section class="card"><h2>דף הסל · заход на страницу корзины (не шаг «корзина»)</h2><table>{cart_rows}</table></section>
+  <section class="card"><h2>טופס הזמנה · форма заказа на карточке</h2><table>{order_rows}</table></section>
+  <section class="card"><h2>זמן בכרטיס · время на карточке (уход или пульс)</h2><table>{time_rows}</table></section>
   <section class="card"><h2>זמן בכרטיס · секунд на карточке</h2>
     <table><thead><tr><th>מוצר</th><th>медиана</th><th>n</th></tr></thead><tbody>{card_s}</tbody></table></section>
   <section class="card"><h2>יציאה מהדף · уход со страницы (шаг · медиана сек.)</h2><table>{leave}</table></section>

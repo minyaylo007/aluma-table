@@ -41,7 +41,7 @@ TELEGRAM_TIMEOUT_SECONDS = 5   # як у api/handler.py
 TEXT_MAX = 1500                # екран телефона, а не звіт
 
 # Підписи кроків для власника — за ключем funnel.STEPS; checkout/payment — кроки «משלוח» і «אישור» на сайті.
-LABEL = {"sessions": "визиты", "product": "карточка", "cart": "корзина",
+LABEL = {"sessions": "визиты", "product": "карточка", "cart": "в корзину",
          "checkout": "доставка", "payment": "подтверждение", "lead": "заявок"}
 MAX_PRODUCTS = 8
 MAX_SOURCES = 6

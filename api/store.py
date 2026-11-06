@@ -24,6 +24,7 @@ import re
 import sqlite3
 import threading
 import time
+import urllib.parse
 
 __all__ = ["SqliteStore", "SqliteTable", "tables"]
 
@@ -120,9 +121,19 @@ def _parse_update(expression: str, names: dict, values: dict):
 class SqliteStore:
     """Один файл бази (або ":memory:") і одне з'єднання під замком."""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, readonly: bool = False):
         self.path = path
+        self.readonly = readonly
         self._lock = threading.RLock()
+        if readonly:
+            # №42: звіти (tools/funnel_report.py) — лише читання: SQLite сам відмовить у будь-якому записі,
+            # файл не створюється, журнал WAL не перемикається, таблиці не створюються (SqliteTable)
+            uri = "file:" + urllib.parse.quote(os.path.abspath(path)) + "?mode=ro"
+            self._conn = sqlite3.connect(uri, uri=True, timeout=10.0, check_same_thread=False)
+            self._conn.row_factory = sqlite3.Row
+            with self._lock:
+                self._conn.execute("PRAGMA busy_timeout=10000")
+            return
         if path != ":memory:":
             parent = os.path.dirname(os.path.abspath(path))
             if parent:
@@ -163,6 +174,8 @@ class SqliteTable:
         self._store = store
         self.name = name
         self.key_schema = tuple(key_schema)
+        if getattr(store, "readonly", False):
+            return
         store.execute(
             f'CREATE TABLE IF NOT EXISTS "{name}" ('
             " hk TEXT NOT NULL, rk TEXT NOT NULL DEFAULT '',"
@@ -316,13 +329,13 @@ class _BatchWriter:
 
 
 def tables(db_path: str, events: str = "fx_events", leads: str = "fx_leads",
-           sessions: str = "fx_sessions"):
+           sessions: str = "fx_sessions", readonly: bool = False):
     """Три таблиці в тому ж порядку, що й у handler._tables().
 
     Схема ключів продубльована з infra/template.yaml — це єдине місце, де вона
-    записана на боці SQLite, тож тримайте їх однаковими.
+    записана на боці SQLite, тож тримайте їх однаковими. readonly — для звітів (сервер його не передає).
     """
-    store = SqliteStore(db_path)
+    store = SqliteStore(db_path, readonly=readonly)
     return (
         store.table(events, ("pk", "sk")),
         store.table(leads, ("pk", "sk")),
