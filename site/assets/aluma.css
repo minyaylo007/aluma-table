@@ -527,6 +527,14 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .f-fine:empty { display: none; }
 .f-hint { margin: -.25rem 0 .5rem; padding-inline-start: 1.9rem; font-size: .82rem; color: var(--muted); }
 .lead-form[aria-busy="true"] button[type="submit"] { opacity: .7; pointer-events: none; }
+/* №43: «הוספת פרטים» — згорнуті необов'язкові поля; кнопка-посилання 44 px заввишки, стрілка повертається при відкритті */
+.f-more { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; border: 0; background: none; font: inherit;
+  font-size: .92rem; font-weight: 600; color: var(--ink); text-align: start; cursor: pointer; }
+.f-more::before { content: "+"; flex: none; width: 1.2em; font-size: 1.2em; line-height: 1; text-align: center; }
+.f-more[aria-expanded="true"]::before { content: "−"; }
+.f-more:focus-visible { outline: 2px solid var(--oak-deep); outline-offset: 2px; }
+.f-extra { display: grid; gap: 18px; }
+.f-extra[hidden] { display: none; }
 .thanks { display: grid; gap: 14px; justify-items: start; }
 .thanks:focus { outline: none; }
 .thanks-mark { width: 52px; height: 52px; border-radius: 50%; background: var(--esp); color: var(--cream); display: grid; place-items: center; font-size: 1.4rem; }
@@ -652,6 +660,11 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
   .g-slide .media, .gallery .media--hero { aspect-ratio: 16 / 9; }
   .pdp-buy > .pdp-actions { margin-block-start: 6px; }   /* №39: + рядок відео під парою */
 }
+/* №43: 360×640 (11–14 % телефонів реклами) — ru SAHAR з гаслом у два рядки виходив на 640,2 px; кадр 2:1 (−20 px)
+   лише на такому низькому й вузькому вікні, на 390×650 лишається 16:9 */
+@media (max-width: 400px) and (max-height: 645px) {
+  .g-slide .media, .gallery .media--hero { aspect-ratio: 2 / 1; }
+}
 .reg-promise { font-weight: 600; }
 .cart-row { display: flex; justify-content: space-between; gap: 12px; margin: 0; color: var(--muted); }
 .ship-choice .f-hint { margin-block-start: 8px; }
@@ -697,6 +710,11 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 /* №28: ≤ 480 px — теж один ряд (стовпчиком «שאלה?» опинялася за краєм екрана 650 px — вбудований браузер Instagram);
    текст питання переноситься у два рядки всередині своєї половини */
 @media (max-width: 480px) { .pdp-pair { flex-wrap: nowrap; } .pdp-pair .btn { flex: 1 1 0; padding-inline: 10px; font-size: .92rem; hyphens: manual; } }
+/* №43: правило 1.25 вище перебивало телефонне 1.15 (та сама вагомість, пізніше в файлі) — пара була 55 px замість 46;
+   на ≤ 480 px два рядки кнопки тісніші, щоб другий ряд (відео, кошик) влазив у 640 px */
+@media (max-width: 480px) { .pdp-pair .btn { line-height: 1.15; padding-block: 4px; } }
+/* №43: на 360 px доставка трьома числами (ru «самовывоз · доставка · со сборкой») — одним рядком, дрібніше лише на вузькому */
+@media (max-width: 400px) { .pdp-ship, .pdp-sub { font-size: .8rem; } }
 .pdp-ask-hint { margin: -2px 0 0; line-height: 1.4; }
 /* №39: «נראה לכם את השולחן בווידאו» — тихе посилання-кнопка одразу під парою, щоб влізло в перший екран 650 px */
 .pdp-video { display: inline-flex; align-items: center; gap: 8px; justify-self: start; min-height: 44px; padding: 0;
@@ -1014,6 +1032,12 @@ html.a11y-still::view-transition-new(*) { animation: none !important; }
 .cart-sum { display: grid; gap: 12px; margin-block-start: 24px; max-width: 420px; margin-inline-start: auto; }
 .cart-total { display: flex; justify-content: space-between; gap: 12px; font-size: 1.2rem; font-weight: 700; margin: 0; }
 .cart-empty { font-size: 1.05rem; }
+/* №43: «להזמנה» в кошику стояла на 975 px (390×650) — на телефоні липне донизу, як .co-go в оформленні (№38);
+   варіанти отримання й підсумок лишаються на місці, логіка кошика та сама */
+@media (max-width: 899px) {
+  .cart-go { position: sticky; bottom: 0; z-index: 5; padding-block: 10px calc(10px + env(safe-area-inset-bottom));
+    margin-inline: -16px; padding-inline: 16px; background: var(--paper); box-shadow: 0 -1px 0 var(--line); }
+}
 /* №38: оформлення — один екран; на телефоні підсумок згорнуто в рядок над формою, кнопка липне донизу */
 .co-grid { display: grid; gap: 20px; }
 .co-head .shop-h1 { margin-block-end: 0; }

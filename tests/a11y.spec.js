@@ -149,3 +149,21 @@ for (const pagePath of ['/p/tavor/', '/ru/p/tavor/', '/p/sahar/', '/ru/p/sahar/'
     expect(await axeBlocking(page), 'підтвердження замовлення').toEqual([]);
   });
 }
+
+// №43: кошик із товаром на низькому телефоні (кнопка липне знизу) і розгорнутий блок «הוספת פרטים» у #register
+for (const prefix of ['', '/ru']) {
+  test(`a11y №43 ${prefix || '/'}: кошик із товаром 390×650, #register розгорнутий`, async ({ page }) => {
+    await serveDist(page);
+    await page.setViewportSize({ width: 390, height: 650 });
+    await page.goto(`${ORIGIN}${prefix}/p/tavor/`, { waitUntil: 'load' });
+    await page.locator('.pdp-actions [data-add-cart]').click();
+    await page.waitForURL(`**${prefix}/cart/`);
+    await expect(page.locator('[data-cart-pay]')).toBeInViewport();
+    expect(await axeBlocking(page), 'кошик із товаром').toEqual([]);
+    await page.goto(`${ORIGIN}${prefix}/`, { waitUntil: 'load' });
+    await page.locator('#lead-form [data-more]').click();
+    await expect(page.locator('#lead-form [data-more]')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#f-extra')).toBeVisible();
+    expect(await axeBlocking(page), '#register розгорнутий').toEqual([]);
+  });
+}

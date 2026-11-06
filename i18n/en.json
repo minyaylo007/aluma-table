@@ -124,6 +124,7 @@
   "f_phone": "Phone",
   "f_city": "City",
   "f_optional": "(optional)",
+  "f_more": "Add details — city, timing, a note (optional)",
   "f_product": "Piece",
   "f_product_any": "Not decided yet",
   "f_size": "Size",

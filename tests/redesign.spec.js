@@ -321,6 +321,8 @@ test('"other size" link prefills the comment in the form', async ({ page }) => {
   await page.goto(`/p/${PRODUCTS[0].slug}/`);
   await page.locator('.js-custom').first().click();
   await expect(page.locator('#f-comment')).not.toHaveValue('');
+  await expect(page.locator('#f-comment')).toBeVisible();           // №43: блок «הוספת פרטים» розкривається сам
+  await expect(page.locator('#lead-form [data-more]')).toHaveAttribute('aria-expanded', 'true');
 });
 
 // ---------------------------------------------------------------- форма
@@ -358,6 +360,77 @@ test('a valid lead from a card sends product, size, finish and lands on the than
   expect(lead.utm_source).toBe('test');
   expect(lead.lang).toBe('he');
   expect(lead.website).toBe('');
+  expect(lead.contact_pref).toBe('call');                   // №43: за замовчуванням дзвінок, WhatsApp — лише побажання
+});
+
+// №43: #register — на виду ім'я, телефон, згода й кнопка (≤ 900 px на 390), решта під «הוספת פרטים»; розгорнуте й
+// заповнене йде в заявку тими самими полями
+for (const [prefix, lang] of [['', 'he'], ['/ru', 'ru']]) {
+  test(`register form 390 ${lang}: collapsed under 900 px, the toggle opens from the keyboard, opened fields go into the lead`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const sent = await mockApi(page);
+    await page.goto(`${prefix}/p/tavor/`);
+    await page.evaluate(() => document.fonts.ready);
+    const card = page.locator('#register .form-card');
+    expect((await card.boundingBox()).height).toBeLessThanOrEqual(900);
+    const more = page.locator('#lead-form [data-more]');
+    const extra = page.locator('#f-extra');
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    await expect(extra).toBeHidden();
+    await expect(page.locator('#f-name')).toBeVisible();
+    await expect(page.locator('#f-phone')).toBeVisible();
+    await expect(page.locator('#lead-form input[name="consent"]')).toBeVisible();
+    await more.focus();
+    await page.keyboard.press('Enter');
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
+    await expect(extra).toBeVisible();
+    await expect(page.locator('#lead-form input[name="contact_pref"][value="call"]')).toBeChecked();
+    await expect(page.locator('#lead-form input[name="contact_pref"][value="whatsapp"]')).not.toBeChecked();
+    await page.locator('#f-city').fill('Haifa');
+    await page.locator('#f-comment').fill('test note');
+    await page.locator('#lead-form label.chip:has(input[name="timeframe"][value="1-3m"])').click();
+    await page.locator('#lead-form label.chip:has(input[name="contact_pref"][value="whatsapp"])').click();
+    // згорнути знову — значення лишаються й ідуть у заявку
+    await more.click();
+    await expect(extra).toBeHidden();
+    await page.locator('#f-name').fill('Test Person');
+    await page.locator('#f-phone').fill(FAKE_PHONE);
+    await page.locator('#lead-form input[name="consent"]').check();
+    await page.locator('#lead-form button[type="submit"]').click();
+    await expect(page.locator('[data-thanks]')).toBeVisible();
+    expect(sent.leads).toHaveLength(1);
+    expect(sent.leads[0]).toMatchObject({ city: 'Haifa', comment: 'test note', timeframe: '1-3m', contact_pref: 'whatsapp', product_id: 'tavor' });
+  });
+}
+
+test('register form: an empty submit focuses the first error (name), errors are tied by aria-describedby', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page);
+  await page.goto('/p/tavor/');
+  await page.locator('#lead-form button[type="submit"]').click();
+  await expect(page.locator('#f-name')).toBeFocused();
+  for (const [f, e] of [['#f-name', 'e-name'], ['#f-phone', 'e-phone'], ['#lead-form input[name="consent"]', 'e-consent']]) {
+    await expect(page.locator(f)).toHaveAttribute('aria-describedby', e);
+    await expect(page.locator('#' + e)).toBeVisible();
+  }
+});
+
+// №43: у кошику «להזמנה» стояла на 975 px (390×650) — на телефоні вона липне донизу й видна без прокрутки разом із підсумком
+test('cart 390×650 he: the total and the order button are on the first screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 650 });
+  await mockApi(page);
+  await page.goto('/p/tavor/');
+  await page.locator('.pdp-actions [data-add-cart]').click();
+  await page.waitForURL('**/cart/');
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator('[data-cart-total]')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('[data-cart-pay]')).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  // донизу сторінки — кнопка лягає на своє місце під варіантами отримання, не накриває їх
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  const [pay, ship] = await Promise.all([page.locator('[data-cart-pay]').boundingBox(),
+    page.locator('[data-cart] label:has(input[name="ship"])').last().boundingBox()]);
+  expect(pay.y).toBeGreaterThanOrEqual(ship.y + ship.height);
 });
 
 // №22: «наступне видання» — не товар: без кошика, одна кнопка, голос — lead_source=vote, досить телефону
@@ -1080,6 +1153,30 @@ for (const [prefix, lang] of [['', 'he'], ['/ru', 'ru']]) {
     await expect(btn).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('#callback input[name="contact_pref"][value="video"]')).toBeChecked();
   });
+}
+
+// №43: низькі телефони (11–14 % телефонів реклами, до 610–640 px) — ціна, головна кнопка й УВЕСЬ другий ряд
+// (відео + «в кошик») над згином; доставка трьома числами — одним рядком, другий ряд — одним рядком
+for (const [w, h, prefix, lang] of [[360, 640, '', 'he'], [390, 650, '', 'he'], [360, 640, '/ru', 'ru'], [360, 640, '/en', 'en']]) {
+  for (const slug of ['tavor', 'sahar']) {
+    test(`card ${w}×${h} ${lang} /p/${slug}/: price, the main button and the whole second row above the fold`, async ({ page }) => {
+      await mockApi(page);
+      await page.setViewportSize({ width: w, height: h });
+      await page.goto(`${prefix}/p/${slug}/`);
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(200);
+      const r = await page.evaluate(() => {
+        const box = s => document.querySelector(s).getBoundingClientRect();
+        const lh = s => parseFloat(getComputedStyle(document.querySelector(s)).lineHeight);
+        return { y: scrollY, price: box('.pdp-price .price'), order: box('.pdp-pair [data-order]'), video: box('.pdp-row2 [data-video]'),
+          cart: box('.pdp-row2 [data-add-cart]'), ship: box('.pdp-ship'), shipLH: lh('.pdp-ship') };
+      });
+      expect(r.y).toBe(0);
+      for (const b of [r.price, r.order, r.video, r.cart]) { expect(b.top).toBeGreaterThan(0); expect(b.bottom).toBeLessThanOrEqual(h); }
+      expect(Math.abs(r.video.top - r.cart.top)).toBeLessThan(4);      // другий ряд — один рядок
+      expect(r.ship.height).toBeLessThan(r.shipLH * 1.5);               // доставка — один рядок
+    });
+  }
 }
 
 test('card 390×650: the sticky bar is off at load without a scroll', async ({ page }) => {
