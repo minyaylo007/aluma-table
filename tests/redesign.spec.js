@@ -62,13 +62,15 @@ for (const p of PRODUCTS) {
     await page.goto(`/p/${p.slug}/`);
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('input[name="size"]')).toHaveCount(p.sizes.length);
-    await expect(page.locator('.pdp-actions [data-add-cart]')).toHaveText('הוספה לסל');
+    // №41: головна кнопка — замовлення на місці, «הוספה לסל» — посилання другого ряду
+    await expect(page.locator('.pdp-pair [data-order]')).toHaveText('להזמנה · בלי תשלום באתר');
+    await expect(page.locator('.pdp-row2 a[data-add-cart]')).toHaveText('הוספה לסל');
     // хвиля 1 (22.10): ціна тверда — під нею «מחיר השקה לסדרה הראשונה», слова «משוער» біля ціни нема
     await expect(page.locator('.pdp-price')).toContainText('מחיר השקה לסדרה הראשונה');
     await expect(page.locator('.pdp-price')).not.toContainText('משוער');
     await expect(page.locator('.pdp-price')).not.toContainText('טרם אושר');
     // №32 (27.10): тижні — лише оцінкою «אספקה משוערת» у рядку під ціною і лише в товарів першої серії
-    expect(await page.locator('.pdp-buy').evaluate((el) => { const c = el.cloneNode(true); c.querySelector('.pdp-sub').remove(); return c.innerText; }))
+    expect(await page.locator('.pdp-buy').evaluate((el) => { const c = el.cloneNode(true); c.querySelector('.pdp-sub').remove(); c.querySelector('[data-order-thanks]').remove(); return c.innerText; }))
       .not.toContain('שבועות');
     const sub = await page.locator('.pdp-sub').innerText();
     if (sub.includes('שבועות')) expect(sub).toContain('אספקה משוערת');
@@ -366,6 +368,7 @@ for (const slug of ['tavor-fluted', 'tavor-oval']) {
     await page.goto(`/p/${slug}/?utm_campaign=stage2-lead&utm_content=${slug}`);
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('[data-add-cart]')).toHaveCount(0);
+    await expect(page.locator('[data-order]')).toHaveCount(0);
     await expect(page.locator('a[href*="/checkout/"]')).toHaveCount(0);
     await expect(page.locator('#vote')).toBeHidden();
     await page.locator('[data-vote]').click();
@@ -423,7 +426,7 @@ test('mobile: sticky CTA shows only after the add-to-cart button scrolls above t
   await expect(sticky).not.toHaveClass(/is-on/);               // кнопка на екрані — дубль не потрібен
   await page.evaluate(() => scrollTo(0, document.querySelector('.pdp-actions').getBoundingClientRect().bottom + scrollY + 200));
   await expect(sticky).toHaveClass(/is-on/);
-  await expect(sticky.locator('[data-add-cart]')).toHaveText('הוספה לסל');
+  await expect(sticky.locator('[data-order]')).toHaveText('להזמנה');
   await expect(sticky.locator('.sticky-thumb')).toHaveCount(1);
   await expect(sticky.locator('.sticky-thumb')).toHaveAttribute('alt', PRODUCTS[0].name.he);
   await page.locator('#register').scrollIntoViewIfNeeded();
@@ -739,7 +742,7 @@ for (const [w, h] of [[390, 844], [360, 780], [390, 650], [360, 650]]) {
           const n = document.getElementById('notice');
           return { y: scrollY, vh: innerHeight, notice: n.hidden ? innerHeight : box('#notice').top,
             img: box('.g-track'), chip: box('.g-3d'), h1: box('.pdp-h1'), tag: box('.pdp-tag'), price: box('.pdp-price'),
-            incl: box('.pdp-price .price-incl'), facts: box('.pdp-facts'), sub: box('.pdp-sub'), ship: box('.pdp-ship'), trust: box('.trust-strip'), cart: box('.pdp-pair [data-add-cart]'),
+            incl: box('.pdp-price .price-incl'), facts: box('.pdp-facts'), sub: box('.pdp-sub'), ship: box('.pdp-ship'), trust: box('.trust-strip'), cart: box('.pdp-pair [data-order]'),
             ask: box('.pdp-pair [data-ask]'), call: box('.pdp-actions [data-call]'), lead: box('.pdp-ask'), tile: box('label.pill:has(input[name="size"])'),
             inclLH: parseFloat(getComputedStyle(document.querySelector('.pdp-price .price-incl')).lineHeight) };
         });
@@ -830,18 +833,18 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     });
     expect(tops.length).toBeGreaterThan(5);
     for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeGreaterThanOrEqual(tops[i - 1] - 2);   // DOM-порядок = зверху вниз
-    await page.locator('.pdp-pair [data-add-cart]').focus();
+    await page.locator('.pdp-pair [data-order]').focus();
     const seq = [];
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 16; i++) {
       await page.keyboard.press('Tab');
       seq.push(await page.evaluate(() => { const a = document.activeElement;
-        return a.matches('[data-ask]') ? 'ask' : a.matches('[data-video]') ? 'video' : a.matches('[data-call]') ? 'call' : a.matches('.pdp-ask') ? 'lead'
+        return a.matches('[data-ask]') ? 'ask' : a.matches('[data-video]') ? 'video' : a.matches('[data-add-cart]') ? 'cart' : a.matches('[data-call]') ? 'call' : a.matches('.pdp-ask') ? 'lead'
           : a.closest('.trust-strip') ? 'strip' : a.closest('.pdp-config') ? 'config' : a.tagName; }));
     }
     // №19: смуга довіри — перед «השאירו פרטים»: 4 заголовки + PDF збирання (у tavor він є); №28: тон/розмір — одразу під діями;
     // №30: з фактом району — ще плитка «לראות מקרוב»
     const strip = Array(SHOWROOM ? 6 : 5).fill('strip');
-    expect(seq.slice(0, 8 + strip.length)).toEqual(['ask', 'video', 'call', 'config', 'config', 'config', 'config', ...strip, 'lead']);
+    expect(seq.slice(0, 9 + strip.length)).toEqual(['ask', 'video', 'cart', 'call', 'config', 'config', 'config', 'config', ...strip, 'lead']);
   });
 }
 

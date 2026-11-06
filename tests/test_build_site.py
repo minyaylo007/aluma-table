@@ -566,16 +566,52 @@ class BuiltSiteTests(unittest.TestCase):
         self.assertNotIn("/cart/", sitemap)
         self.assertNotIn("/checkout/", sitemap)
 
-    def test_add_to_cart_on_every_product_card_and_sticky_bar(self):
-        for p in PRODUCTS:
-            for rel, label in ((f"p/{p['slug']}/", "הוספה לסל"), (f"en/p/{p['slug']}/", "Add to cart")):
+    def test_order_button_and_cart_link_on_every_product_card(self):
+        # №41: головна кнопка — «להזמנה · בלי תשלום באתר» (форма на місці), «הוספה לסל» — посилання в другому ряду;
+        # у липкій панелі — коротка «להזמנה», що відкриває ту саму форму
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for p in PRODUCTS:
+                rel = f"{prefix}p/{p['slug']}/"
                 html = self.page(rel)
-                self.assertEqual(len(re.findall(r'data-add-cart data-cta="(pdp|sticky)">' + label + "<", html)), 2, rel)
-                self.assertNotIn("data-quick", html, rel)
+                with self.subTest(page=rel):
+                    self.assertIn('data-order data-cta="pdp" aria-expanded="false" aria-controls="order">'
+                                  + t["order_cta"] + "<", html)
+                    self.assertEqual(len(re.findall(r'<a class="pdp-cart-link" href="[^"]*/cart/" data-add-cart data-cta="pdp">'
+                                                    + re.escape(t["add_to_cart"]) + "<", html)), 1)
+                    self.assertEqual(html.count("data-add-cart"), 1)
+                    sticky = re.search(r'<div class="sticky-cta[^"]*" data-sticky hidden>.*?</div>', html, re.S).group(0)
+                    self.assertIn('data-order data-cta="sticky" aria-controls="order">' + t["order_cta_short"] + "<", sticky)
+                    self.assertNotIn("data-quick", html)
 
-    def test_soft_ask_next_to_cart_three_languages(self):
-        # 23.10: «שאלה? נחזור אליכם» поруч із «הוספה לסל» (+ рядок «בלי התחייבות…») і коротка «שאלה?» у липкій
-        # панелі — без рядка; рівно дві [data-ask] на картці, форма #register на сторінці є
+    def test_order_form_fields_three_languages(self):
+        # №41: телефон обов'язковий з поясненням, ім'я необов'язкове, три способи отримання з цінами з content.json,
+        # згода, одна кнопка; помилки — через aria-describedby; підтвердження — текстом на місці
+        for lang, prefix in DIST_PREFIX.items():
+            t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+            for p in PRODUCTS:
+                rel = f"{prefix}p/{p['slug']}/"
+                html = self.page(rel)
+                with self.subTest(page=rel):
+                    form = re.search(r'<form class="order-form" id="order" data-order-form novalidate hidden[^>]*>.*?</form>', html, re.S)
+                    self.assertIsNotNone(form)
+                    f = form.group(0)
+                    self.assertIn('aria-describedby="or-phone-why or-e-phone"', f)
+                    self.assertRegex(f, r'<input id="or-phone" name="phone" type="tel"[^>]* required')
+                    self.assertIn(t["co_phone_why"], f)
+                    self.assertNotRegex(f, r'<input id="or-name"[^>]* required')
+                    self.assertEqual(sorted(re.findall(r'name="ship" value="(\w+)"', f)), ["assembled", "door", "pickup"])
+                    self.assertNotIn("checked", re.sub(r'name="consent"', "", f))   # жодного передвибору
+                    self.assertIn('aria-describedby="or-e-consent"', f)
+                    self.assertEqual(f.count('type="submit"'), 1)
+                    self.assertIn(t["order_send"], f)
+                    self.assertIn("data-order-thanks", html)
+                    self.assertIn(t["co_thx_h"], html)
+
+    def test_soft_ask_next_to_order_three_languages(self):
+        # 23.10: «שאלה? נחזור אליכם» поруч із головною кнопкою (+ рядок «בלי התחייבות…») і коротка «שאלה?» у липкій
+        # панелі — без рядка; рівно дві [data-ask] на картці, форма #register на сторінці є.
+        # №39/№41: під парою — ряд «נראה לכם את השולחן בווידאו» + посилання «הוספה לסל», далі форма замовлення
         for lang, prefix in DIST_PREFIX.items():
             t = json.loads((PROJECT / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
             for p in PRODUCTS:
@@ -584,12 +620,12 @@ class BuiltSiteTests(unittest.TestCase):
                 with self.subTest(page=rel):
                     self.assertEqual(html.count("data-ask"), 2)
                     self.assertIn('id="register"', html)
-                    # №39: між парою і рядком — «נראה לכם את השולחן בווידאו»
-                    actions = re.search(r'<div class="pdp-actions">.*?</div>\s*<button class="pdp-video"[^>]*>.*?</button>\s*'
-                                        r'<p class="pdp-ask-hint[^"]*">([^<]+)</p>', html, re.S)
+                    actions = re.search(r'<div class="pdp-actions">\s*<div class="pdp-pair">(.*?)</div>.*?<div class="pdp-row2">\s*'
+                                        r'<button class="pdp-video"[^>]*>.*?</button>\s*<a class="pdp-cart-link"[^>]*>[^<]+</a>\s*</div>'
+                                        r'.*?<p class="pdp-ask-hint[^"]*">([^<]+)</p>', html, re.S)
                     self.assertIsNotNone(actions)
-                    self.assertEqual(actions.group(1), t["ask_hint"])
-                    self.assertRegex(actions.group(0), r'data-add-cart data-cta="pdp">[^<]+</button>\s*<button class="btn '
+                    self.assertEqual(actions.group(2), t["ask_hint"])
+                    self.assertRegex(actions.group(1), r'data-order data-cta="pdp"[^>]*>[^<]+</button>\s*<button class="btn '
                                      r'btn--line" type="button" data-ask data-cta="pdp" aria-expanded="false" aria-controls="callback">'
                                      + re.escape(t["ask_cta"]) + "<")
                     sticky = re.search(r'<div class="sticky-cta[^"]*" data-sticky hidden>.*?</div>', html, re.S).group(0)

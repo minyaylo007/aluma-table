@@ -132,39 +132,170 @@
 
   function badge(lines) {
     var n = count(lines || readCart());
+    // №41: кнопка кошика в шапці — лише коли в кошику щось є (місце лишається, шапка не стрибає)
+    qsa(".top-cart").forEach(function (el) { if (n) el.removeAttribute("data-empty"); else el.setAttribute("data-empty", ""); });
     qsa("[data-cart-n]").forEach(function (el) { el.textContent = n ? String(n) : ""; el.hidden = !n; });
     qsa("[data-cart-sr]").forEach(function (el) { el.hidden = !n; });
   }
   badge();
 
-  // ---------------------------------------------------------------- картка товару: «הוספה לסל»
+  // ---------------------------------------------------------------- картка товару: замовлення на місці (№41) і «הוספה לסל»
   var pdp = qs("[data-pdp]");
   if (pdp) {
     var config = qs("[data-config]");
     var picked = function (n) { var el = qs('input[name="' + n + '"]:checked', config || pdp); return el ? el.value : ""; };
+    // рядок з того, що зараз обрано в конфігураторі (розмір не обрано — перший розмір товару)
+    var pickedLine = function () {
+      var id = pdp.getAttribute("data-product"), p0 = byId(id);
+      var l = line({ id: id, size: picked("size"), finish: picked("finish"), base: picked("base"), qty: 1 });
+      if (!l && p0) l = line({ id: p0.id, size: (p0.sizes[0] || {}).label, finish: picked("finish"), base: picked("base"), qty: 1 });
+      return l;
+    };
+    // №41: «הוספה לסל» — справжнє посилання на /cart/. Кошик пишемо синхронно, подію — в чергу й маяком,
+    // а перехід робить сам браузер (без preventDefault). Раніше перехід ішов з JS після коду подій
+    // (go() → location.href), і будь-який збій у подіях лишав людину на картці
     qsa("[data-add-cart]").forEach(function (b) {
       b.addEventListener("click", function () {
-        var l = line({ id: pdp.getAttribute("data-product"), size: picked("size"), finish: picked("finish"), base: picked("base"), qty: 1 });
-        if (!l && byId(pdp.getAttribute("data-product"))) {
-          var p0 = byId(pdp.getAttribute("data-product"));
-          l = line({ id: p0.id, size: (p0.sizes[0] || {}).label, finish: picked("finish"), base: picked("base"), qty: 1 });
-        }
+        var l = pickedLine();
         if (!l) return;
         var lines = readCart(), same = null;
         lines.forEach(function (x) { if (x.id === l.id && x.size === l.size && x.finish === l.finish && x.base === l.base) same = x; });
         if (same) same.qty = Math.min(MAX_QTY, same.qty + 1);
         else { if (lines.length >= MAX_LINES) lines.shift(); lines.push(l); }
         saveCart(lines);
-        track("AddToCart", { content_ids: [l.id], content_type: "product", size: l.size, finish: l.finish, base: l.base,
-                             price: l.price, value: l.price, currency: "ILS", num_items: count(lines), cta: b.getAttribute("data-cta") || "" });
-        go(PREFIX + "/cart/");
+        try {
+          track("AddToCart", { content_ids: [l.id], content_type: "product", size: l.size, finish: l.finish, base: l.base,
+                               price: l.price, value: l.price, currency: "ILS", num_items: count(lines), cta: b.getAttribute("data-cta") || "" });
+          if (W.alumaFlush) W.alumaFlush();
+        } catch (e) {}
+        if (b.tagName !== "A") W.location.href = PREFIX + "/cart/";
       });
     });
+    wireOrder(pickedLine);
   }
 
-  // перехід після події: спершу черга tracking.js маяком (pagehide лишається страховкою); якщо tracking.js
-  // ще не прийшов — черга alumaQ переживе сторінку (pagehide нижче)
-  function go(href) { try { if (W.alumaFlush) W.alumaFlush(); } catch (e) {} W.location.href = href; }
+  // №41: коротка форма замовлення під кнопками картки: телефон (обов'язковий), ім'я, спосіб отримання (необов'язковий),
+  // згода → POST /api/fx/lead (lead_source=order) з розміром, тоном, опорою й сумою, як оформлення (№38).
+  // Події: order_open — розкрито, form_error — помилка (form=order, code), Lead — успіх (Meta + CAPI через event_id)
+  function wireOrder(current) {
+    var form = qs("[data-order-form]"), thanks = qs("[data-order-thanks]");
+    if (!form) return;
+    var el = form.elements, status = qs(".f-status", form), btn = qs('button[type="submit"]', form), busy = false;
+    var main = qs(".pdp-pair [data-order]"), cfg = qs("[data-config]");
+    var redraw = function () {
+      var l = current(), pick = qs("[data-order-pick]", form), tot = qs("[data-order-total]", form);
+      if (!l) return;
+      if (pick) pick.textContent = [l.p.name + " " + l.size, l.finishName, l.baseName].filter(Boolean).join(" · ");
+      if (tot) tot.textContent = money(l.price + shipFee());
+    };
+    wireShip(form, redraw, "order");
+    if (cfg) cfg.addEventListener("change", redraw);
+    redraw();
+    var setErr = function (id, msg, input) {
+      var err = qs("#" + id, form);
+      if (err) { err.textContent = msg || ""; err.hidden = !msg; }
+      if (input && input.setAttribute) { if (msg) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid"); }
+    };
+    var say = function (open) { try { D.dispatchEvent(new CustomEvent("aluma:order", { detail: { open: open } })); } catch (x) {} };
+    var open = function (cta) {
+      if (thanks && !thanks.hidden) {             // заявку вже надіслано — показуємо підтвердження
+        try { thanks.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }); } catch (x) {}
+        try { thanks.focus({ preventScroll: true }); } catch (x) {}
+        return;
+      }
+      var was = !form.hidden;
+      form.hidden = false;
+      if (main) main.setAttribute("aria-expanded", "true");
+      redraw();
+      if (!was) {
+        var l = current();
+        track("order_open", { content_ids: l ? [l.id] : [], size: l ? l.size : "", value: l ? l.price : 0, cta: cta || "" }, { pixel: false });
+      }
+      try { form.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" }); } catch (x) {}
+      try { el.phone.focus({ preventScroll: true }); } catch (x) {}
+      say(true);
+    };
+    var close = function () {
+      form.hidden = true;
+      if (main) main.setAttribute("aria-expanded", "false");
+      say(false);
+    };
+    qsa("[data-order]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        // головна кнопка — перемикач (aria-expanded); липка панель лише відкриває, гортає й ставить фокус на телефон
+        if (b === main && !form.hidden) { close(); return; }
+        open(b.getAttribute("data-cta") || "");
+      });
+    });
+    el.phone.addEventListener("input", function () { setErr("or-e-phone", "", el.phone); });
+    el.consent.addEventListener("change", function () { setErr("or-e-consent", "", el.consent); });
+    var fail = function (code, msg) {
+      busy = false; form.removeAttribute("aria-busy"); btn.disabled = false;
+      btn.textContent = btn.getAttribute("data-l-retry") || btn.textContent;
+      status.className = "f-status is-err"; status.textContent = msg || "";
+      track("form_error", { form: "order", code: code }, { pixel: false });
+    };
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (busy) return;
+      var l = current(), bad = null, phone = String(el.phone.value || "").trim();
+      if (!l) return;
+      setErr("or-e-phone", "", el.phone); setErr("or-e-consent", "", el.consent);
+      // перша помилка в порядку полів: телефон → згода; введене не стирається
+      if (!phoneOk(phone)) { setErr("or-e-phone", S.e_phone, el.phone); bad = el.phone; }
+      if (!el.consent.checked) { setErr("or-e-consent", S.e_consent, el.consent); bad = bad || el.consent; }
+      if (bad) {
+        status.className = "f-status is-err"; status.textContent = S.invalid || "";
+        track("form_error", { form: "order", code: "invalid", field: bad === el.phone ? "phone" : "consent" }, { pixel: false });
+        bad.focus();
+        return;
+      }
+      var attr = attribution(), ap = attr.p || {};
+      var data = {
+        name: String(el.name.value || "").trim(), phone: phone, city: "", comment: "",
+        website: el.website ? el.website.value : "", consent: true, consent_marketing: false, marketing_consent: false,
+        ads_consent: adsConsent(), consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
+        product_id: l.id, size_label: l.size, finish_id: l.finish, base_id: l.base,
+        timeframe: "", contact_pref: "call", lead_source: "order",
+        cart: cartString([l]), order_total: l.price, delivery: shipWay(),
+        session_id: sessionId(), page: location.pathname, referrer: D.referrer || "",
+        device: W.matchMedia("(min-width: 900px)").matches ? "desktop" : "mobile", attributed_at: attr.at || ""
+      };
+      data.color = data.finish_id.slice(0, 40);
+      data.size = data.size_label.replace(/[^0-9]/g, "").slice(0, 3);
+      ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"].forEach(function (k) { data[k] = ap[k] || ""; });
+      var eventId = newId("lead");
+      data.event_id = eventId;
+      busy = true; form.setAttribute("aria-busy", "true"); btn.disabled = true;
+      status.className = "f-status"; status.textContent = S.sending || "";
+      fetch("/api/fx/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { code: r.status, body: b || {} }; }); })
+        .then(function (res) {
+          if (res.code === 200 && res.body.ok) {
+            if (res.body.id !== "hp") {            // приманка для ботів теж «ok» — це не конверсія
+              var lp = cartParams([l]); lp.event_id = eventId; lp.lead_source = "order";
+              track("Lead", lp);
+            }
+            busy = false; form.removeAttribute("aria-busy");
+            form.hidden = true;
+            if (main) main.setAttribute("aria-expanded", "false");
+            thanks.hidden = false;
+            try { thanks.focus({ preventScroll: true }); } catch (x) {}
+            try { thanks.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" }); } catch (x) {}
+            D.body.classList.add("is-registered");
+            say(false);
+            return;
+          }
+          if (res.code === 422 && res.body && res.body.errors) {
+            if (res.body.errors.phone) setErr("or-e-phone", S.e_phone, el.phone);
+            if (res.body.errors.consent) setErr("or-e-consent", S.e_consent, el.consent);
+          }
+          fail(res.code === 429 ? "rate" : res.code === 422 ? "invalid" : "http_" + res.code,
+               res.code === 429 ? S.rate : res.code === 503 && res.body && res.body.error === "preview_only" ? S.preview
+                 : res.code === 422 ? S.invalid : S.fail);
+        }, function () { fail("offline", S.offline); });
+    });
+  }
 
   // ---------------------------------------------------------------- сторінка кошика
   var cartBox = qs("[data-cart]");
@@ -205,7 +336,7 @@
       p.event_id = newId("ic");
       p.ads_consent = adsConsent();
       track("InitiateCheckout", p);
-      try { if (W.alumaFlush) W.alumaFlush(); } catch (e) {}   // посилання: маяк до переходу, як у go()
+      try { if (W.alumaFlush) W.alumaFlush(); } catch (e) {}   // посилання: маяк до переходу, як у «הוספה לסל»
     });
   }
 

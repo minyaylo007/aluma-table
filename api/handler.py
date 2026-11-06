@@ -102,7 +102,7 @@ LEAD_EVENT_ID = re.compile(r"[A-Za-z0-9_.\-]{8,64}")
 CART_ITEM = re.compile(r"[a-z0-9-]{1,40}:[\w ×x*.,/\-–]{1,40}:[a-z0-9-]{0,30}:[a-z0-9-]{0,30}:[1-9]")
 CART_MAX = 300
 ORDER_TOTAL_MAX = 200_000
-VALID_LEAD_SOURCES = ("callback", "checkout", "form", "quick", "vote", "visit")   # visit — №30, «לראות מקרוב»
+VALID_LEAD_SOURCES = ("callback", "checkout", "form", "order", "quick", "vote", "visit")   # visit — №30, order — №41 (форма на картці)
 
 # Каталог товарів (catalog/products.json) — лише для людських імен у сповіщенні власнику.
 # Шукаємо в корені репозиторію і поруч із файлом (бандл лямбди — це api/ без catalog/).
@@ -574,7 +574,7 @@ def put_lead(event):
     # на екрані оплати ім'я необов'язкове (specs/003): там просимо лише телефон, щоб зберегти ціну;
     # так само «התקשרו אלינו» на картці (24.10): міні-форма лише з телефоном — зворотний дзвінок
     # голос «אני רוצה כזה» за варіант наступного видання (№22): лише телефон або e-mail
-    if len(name) < 2 and not (source in ("checkout", "callback", "vote") and not name):
+    if len(name) < 2 and not (source in ("checkout", "callback", "vote", "order") and not name):
         errors["name"] = "required"
     phone, plausible = normalize_phone(phone_raw)
     pref = (_pick(data.get("contact_pref"), 10, allowed=CALLBACK_PREFS) or "call") if source == "callback" else ""
@@ -784,7 +784,7 @@ def lead_message(item) -> str:
     відповісти: Telegram сам робить посилання з https://wa.me/… і номера +972….
     """
     source = item.get("lead_source")
-    head = "בקשה לאישור הזמנה" if source == "checkout" else "הצבעה — מהדורה הבאה" if source == "vote" else "ליד חדש"
+    head = "בקשה לאישור הזמנה" if source in ("checkout", "order") else "הצבעה — מהדורה הבאה" if source == "vote" else "ליד חדש"
     lang = item.get("lang") or ""
     lines = [f"{head} — {SITE_DOMAIN}",
              f"Ответить: {LANG_REPLY[lang]}" if lang in LANG_REPLY else "Ответить: язык не указан", ""]

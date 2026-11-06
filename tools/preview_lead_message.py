@@ -4,6 +4,7 @@
     python3 tools/preview_lead_message.py            # заявка з оформлення (кошик), ru
     python3 tools/preview_lead_message.py --form     # заявка з форми, he
     python3 tools/preview_lead_message.py --callback # «התקשרו אלינו» на картці: відеодзвінок і зручний час, he
+    python3 tools/preview_lead_message.py --order    # №41: форма замовлення на картці — лише телефон, he
     python3 tools/preview_lead_message.py --delivery assembled   # спосіб отримання: door / assembled / pickup
 
 Друкує рівно той текст, який notify() надіслав би власнику (api/handler.py lead_message).
@@ -43,14 +44,23 @@ CALLBACK = {
     "base_id": "oak", "page": "/p/tavor/", "utm_source": "fb", "utm_campaign": "launch", "consent_marketing": False,
 }
 
+ORDER = {
+    "id": "0dde12345678", "ts": "2026-11-06T09:15:30+00:00", "lead_source": "order", "lang": "he",
+    "name": "", "phone": "+97253" + "2223344", "phone_raw": "053-" + "222-3344", "city": "", "timeframe": "",
+    "contact_pref": "call", "product_id": "tavor", "size_label": "160×90", "finish_id": "natural", "base_id": "oak",
+    "cart": "tavor:160×90:natural:oak:1", "order_total": 4490, "delivery": "door", "comment": "",
+    "page": "/p/tavor/", "utm_source": "fb", "utm_campaign": "launch", "consent_marketing": False,
+}
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--form", action="store_true", help="заявка з форми замість оформлення")
     ap.add_argument("--callback", action="store_true", help="«התקשרו אלינו» з картки: відеодзвінок")
+    ap.add_argument("--order", action="store_true", help="№41: форма замовлення на картці (lead_source=order)")
     ap.add_argument("--delivery", choices=handler.VALID_DELIVERY, help="спосіб отримання в заявці з оформлення")
     args = ap.parse_args()
-    item = CALLBACK if args.callback else FORM if args.form else dict(CHECKOUT, delivery=args.delivery or "")
+    item = CALLBACK if args.callback else ORDER if args.order else FORM if args.form else dict(CHECKOUT, delivery=args.delivery or "")
     print(handler.lead_message(item))
     return 0
 

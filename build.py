@@ -795,8 +795,10 @@ def trust_strip(p: dict | None, loc: str) -> str:
     return f'<ul class="{cls}" role="list" aria-label="{{{{t.trust_strip_label}}}}">' + "".join(lis) + "</ul>"
 
 
-def ship_choice() -> str:
-    """Вибір «до дверей / зі складанням / самовивіз» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship."""
+def ship_choice(order: bool = False) -> str:
+    """Вибір «до дверей / зі складанням / самовивіз» для кошика й кроку «משלוח»: shop.js читає name="ship", ціни — DATA.ship.
+
+    order=True — коротка форма замовлення на картці (№41): спосіб необов'язковий, без довгої підказки й PDF."""
     # span чипа — inline-flex: <bdi> стає flex-елементом і звичайний пробіл перед ним зникає («—950 ₪»), тому &nbsp;
     opts = [(v, f'{{{{t.{w}}}}} —&nbsp;<bdi dir="ltr">{{{{{t}}}}}</bdi>') for v, w, t in SHIP_WAYS]
     chips = "".join(f'<label class="chip"><input type="radio" name="ship" value="{v}"><span>{x}</span></label>' for v, x in opts)
@@ -804,6 +806,9 @@ def ship_choice() -> str:
     # PDF збирання — біля «עד הדלת»: shop.js показує посилання лише для товарів у кошику, що мають PDF (DATA.products[].pdf)
     pdf = ('<p class="f-hint ship-pdf" data-ship-pdf hidden data-l-own="{{t.assembly_pdf}}" data-l-en="{{t.assembly_pdf_en}}"'
            ' data-l-door="{{t.ship_door}}"></p>')
+    if order:
+        return (f'<fieldset class="f f-choice ship-choice"><legend>{{{{t.ship_legend}}}} <span class="opt-l">{{{{t.f_optional}}}}</span>'
+                f'</legend><div class="chips">{chips}</div></fieldset>')
     return (f'<fieldset class="f f-choice ship-choice" data-ship-choice aria-describedby="ship-err"><legend>{{{{t.ship_legend}}}}</legend>'
             f'<div class="chips">{chips}</div>{pdf}<p class="f-err" id="ship-err" hidden></p>'
             f'<p class="f-hint">{{{{t.ship_hint}}}}</p></fieldset>')
@@ -1150,7 +1155,7 @@ def main() -> None:
             "SIZE_BARS": size_bars(products),
             # способи отримання — числа з content.json, у форматі ціни мови (₪950 / 950 ₪)
             **{t: money(ship_fees()[v], loc) for v, _, t in SHIP_WAYS},
-            "SHIP_CHOICE": ship_choice(), "TRUST_CART": trust_strip(None, loc),
+            "SHIP_CHOICE": ship_choice(), "ORDER_SHIP": ship_choice(order=True), "TRUST_CART": trust_strip(None, loc),
             "CITY_OPTIONS": "".join(f'<option value="{esc(c["id"])}">{esc(c["name"])}</option>' for c in s.get("cities", [])),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
             "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),

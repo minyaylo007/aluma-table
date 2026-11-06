@@ -80,7 +80,9 @@ class CallButtonTests(unittest.TestCase):
 
     def test_third_button_full_width_under_the_pair_then_mini_form(self):
         a = self.actions()
-        self.assertRegex(a, r'\{\{t\.ask_hint\}\}</p>\s*<button class="btn btn--line btn--block pdp-call" type="button" '
+        # №41: між рядком «בלי התחייבות» і «התקשרו» — схована форма замовлення й її підтвердження
+        self.assertRegex(a, r'\{\{t\.ask_hint\}\}</p>\s*(?:<!--[\s\S]*?-->\s*)?<form class="order-form" id="order"[\s\S]*?</form>\s*'
+                            r'<div class="thanks order-thanks"[^>]*>[\s\S]*?</div>\s*<button class="btn btn--line btn--block pdp-call" type="button" '
                             r'data-call data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg [^>]*aria-hidden="true"'
                             r'.*?</svg>\{\{t\.call_cta\}\}</button>\s*<p class="pdp-call-hint muted small">\{\{t\.call_hint\}\}</p>\s*'
                             r'<form class="callback" id="callback" data-source="callback"')
