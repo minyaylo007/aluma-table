@@ -96,6 +96,22 @@ class PreviewTests(unittest.TestCase):
         self.assertIn("🛒 TAVOR", out)
 
 
+class CheckoutContactPrefTests(unittest.TestCase):
+    """№45: на екрані оформлення вибору способу зв'язку нема, обіцяно «перезвонимо» — заявка йде з дзвінком."""
+
+    def test_checkout_lead_sends_call(self):
+        b = SHOP[SHOP.index("track(\"checkout_error\""):]
+        b = b[:b.index('fetch("/api/fx/lead"')]
+        self.assertIn('contact_pref: "call", lead_source: "checkout"', b)
+        self.assertNotIn('"whatsapp"', SHOP, "сайт сам не підставляє WhatsApp — лише явний вибір у довгій формі")
+
+    def test_preview_checkout_message_says_call(self):
+        out = subprocess.run([sys.executable, str(ROOT / "tools" / "preview_lead_message.py")],
+                             capture_output=True, text=True, check=True).stdout
+        self.assertIn("Связь: звонок", out)
+        self.assertNotIn("Связь: WhatsApp", out)
+
+
 class JsTests(unittest.TestCase):
     def block(self):
         return SHOP[SHOP.index("function wireOrder("):SHOP.index("---- сторінка кошика")]

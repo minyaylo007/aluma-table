@@ -239,7 +239,7 @@ for (const [lang, pre, T] of [['he', '', HE], ['en', '/en', EN], ['ru', '/ru', R
       const lead = net.leads[0];
       expect(lead).toMatchObject({ lead_source: 'checkout', product_id: 'tavor', size_label: size.label, finish_id: fin,
         timeframe: 'now', city: city.name, order_total: 2 * size.price_ils, consent: true, ads_consent: true, lang, name: '',
-        delivery: 'pickup' });
+        delivery: 'pickup', contact_pref: 'call' });   // №45: дзвінок — клієнт WhatsApp не обирав
       expect(lead.cart).toBe(`tavor:${size.label}:${fin}:${TAVOR.bases[0].id}:2`);
       const [ld] = await waitFb(page, 'Lead');
       expect(ld[3].eventID).toBe(lead.event_id);
@@ -306,7 +306,7 @@ for (const [prefix, T] of [['', HE], ['/ru', RU]]) {
     await page.locator('[data-co-form] button[type="submit"]').click();
     await expect(page.locator('[data-co-thanks]')).toBeVisible();
     expect(net.leads).toHaveLength(1);
-    expect(net.leads[0]).toMatchObject({ delivery: 'assembled', lead_source: 'checkout' });
+    expect(net.leads[0]).toMatchObject({ delivery: 'assembled', lead_source: 'checkout', contact_pref: 'call' });
   });
 }
 

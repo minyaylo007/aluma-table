@@ -467,7 +467,7 @@
           website: el.website ? el.website.value : "", consent: true, consent_marketing: false, marketing_consent: false,
           ads_consent: adsConsent(), consent_text_version: DATA.consent || "v1", lang: DATA.lang || D.documentElement.lang,
           product_id: first.id, size_label: first.size, finish_id: first.finish, base_id: first.base,
-          timeframe: d.when, contact_pref: "whatsapp", lead_source: "checkout",
+          timeframe: d.when, contact_pref: "call", lead_source: "checkout",   // №45: вибору на екрані нема, обіцяно «перезвонимо»
           cart: cartString(lines), order_total: total(lines), delivery: shipWay(),
           session_id: sessionId(), page: location.pathname, referrer: D.referrer || "",
           device: W.matchMedia("(min-width: 900px)").matches ? "desktop" : "mobile", attributed_at: attr.at || ""

@@ -25,7 +25,7 @@ FAKE_NAMES = ("Анна Тестова", "דנה בדיקה")   # вигадан
 CHECKOUT = {
     "id": "a1b2c3d4e5f6", "ts": "2026-10-23T07:41:12+00:00", "lead_source": "checkout", "lang": "ru",
     "name": FAKE_NAMES[0], "phone": "+97250" + "1234567", "phone_raw": "050-" + "123-4567", "city": "חיפה",
-    "timeframe": "now", "contact_pref": "whatsapp", "product_id": "tavor", "size_label": "160×90",
+    "timeframe": "now", "contact_pref": "call", "product_id": "tavor", "size_label": "160×90",
     "finish_id": "natural", "base_id": "oak", "cart": "tavor:160×90:natural:oak:1;saf:120:smoked:steel:2",
     "order_total": 9470, "comment": "", "page": "/ru/checkout/", "utm_source": "fb", "utm_campaign": "launch",
     "consent_marketing": False,
