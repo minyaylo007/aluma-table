@@ -60,10 +60,12 @@ class AccordionTests(unittest.TestCase):
 
 class VideoCallTests(unittest.TestCase):
     def test_button_right_under_the_pair_opens_callback(self):
-        m = re.search(r'</div>\n      <button class="pdp-video" type="button" data-video data-cta="pdp" aria-expanded="false" '
-                      r'aria-controls="callback"><svg[^>]*aria-hidden="true"[^>]*>.*?</svg><span>\{\{t\.video_cta\}\}</span></button>\n'
-                      r'      <p class="pdp-ask-hint', TEMPLATE, re.S)
-        self.assertIsNotNone(m, "кнопка відео — одразу під парою «הוספה לסל» + «שאלה?»")
+        # №41: другий ряд під парою «להזמנה» + «שאלה?» — відео й посилання «הוספה לסל», далі рядок «בלי התחייבות»
+        m = re.search(r'</div>\n(?:      <!--.*?-->\n)?      <div class="pdp-row2">\n        <button class="pdp-video" type="button" data-video '
+                      r'data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg[^>]*aria-hidden="true"[^>]*>.*?</svg>'
+                      r'<span>\{\{t\.video_cta\}\}</span></button>\n        <a class="pdp-cart-link"[^>]*>\{\{t\.add_to_cart\}\}</a>\n'
+                      r'      </div>\n      <p class="pdp-ask-hint', TEMPLATE, re.S)
+        self.assertIsNotNone(m, "кнопка відео — одразу під парою «להזמנה» + «שאלה?»")
 
     def test_text_three_languages_no_number_no_whatsapp_no_render_word(self):
         for lang in ("he", "en", "ru"):

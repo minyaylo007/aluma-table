@@ -17,11 +17,45 @@
     <p class="pdp-ship"><a href="#inc">{{t.ship_line}}</a></p>
     <div class="pdp-actions">
       <div class="pdp-pair">
-        <button class="btn btn--dark" type="button" data-add-cart data-cta="pdp">{{t.add_to_cart}}</button>
+        <button class="btn btn--dark" type="button" data-order data-cta="pdp" aria-expanded="false" aria-controls="order">{{t.order_cta}}</button>
         <button class="btn btn--line" type="button" data-ask data-cta="pdp" aria-expanded="false" aria-controls="callback">{{t.ask_cta}}</button>
       </div>
-      <button class="pdp-video" type="button" data-video data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5h9.5a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5zM16 10.5l4.5-2.8v8.6L16 13.5"/></svg><span>{{t.video_cta}}</span></button>
+      <!-- №41: другий ряд — відеодзвінок (№39) і «в кошик» звичайним посиланням: перехід робить сам браузер,
+           кошик записано до нього (shop.js), подія не тримає навігацію -->
+      <div class="pdp-row2">
+        <button class="pdp-video" type="button" data-video data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5h9.5a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5zM16 10.5l4.5-2.8v8.6L16 13.5"/></svg><span>{{t.video_cta}}</span></button>
+        <a class="pdp-cart-link" href="{{PREFIX}}/cart/" data-add-cart data-cta="pdp">{{t.add_to_cart}}</a>
+      </div>
       <p class="pdp-ask-hint muted small">{{t.ask_hint}}</p>
+      <!-- №41: коротка форма замовлення на місці — телефон, ім'я, спосіб отримання, згода (lead_source=order) -->
+      <form class="order-form" id="order" data-order-form novalidate hidden aria-labelledby="or-h">
+        <p class="order-h" id="or-h">{{t.order_h}}</p>
+        <p class="order-pick"><span class="muted">{{t.order_pick}}:</span> <span data-order-pick></span></p>
+        <div class="f-row f-row--2">
+          <div class="f"><label for="or-phone">{{t.co_phone}}</label>
+            <input id="or-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required maxlength="40" aria-describedby="or-phone-why or-e-phone">
+            <p class="f-hint" id="or-phone-why">{{t.co_phone_why}}</p>
+            <p class="f-err" id="or-e-phone" hidden></p></div>
+          <div class="f"><label for="or-name">{{t.co_name}} <span class="opt-l">{{t.f_optional}}</span></label><input id="or-name" name="name" autocomplete="name" maxlength="80"></div>
+        </div>
+        {{ORDER_SHIP}}
+        <p class="cart-total order-total"><span>{{t.cart_total}}</span> <bdi dir="ltr" data-order-total>{{P_PRICE}}</bdi></p>
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <label class="check"><input type="checkbox" name="consent" required aria-describedby="or-e-consent"><span>{{t.f_consent}}</span></label>
+        <p class="f-err" id="or-e-consent" hidden></p>
+        <button class="btn btn--dark btn--block" type="submit" data-l-retry="{{t.co_retry}}">{{t.order_send}}</button>
+        <p class="f-status" role="status" aria-live="polite"></p>
+        <p class="f-fine">{{t.cart_fine}}</p>
+      </form>
+      <div class="thanks order-thanks" data-order-thanks hidden tabindex="-1">
+        <p class="h3">{{t.co_thx_h}}</p>
+        <p>{{t.pay_thx_p}}</p>
+        <ol class="thanks-steps">
+          <li>{{t.co_thx_1}}</li>
+          <li>{{t.co_thx_2}}</li>
+          <li>{{t.co_thx_3}}</li>
+        </ol>
+      </div>
       <button class="btn btn--line btn--block pdp-call" type="button" data-call data-cta="pdp" aria-expanded="false" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg>{{t.call_cta}}</button>
       <p class="pdp-call-hint muted small">{{t.call_hint}}</p>
       <form class="callback" id="callback" data-source="callback" data-err="cb-" novalidate hidden>
@@ -97,5 +131,5 @@
   {{P_THUMB}}<span class="sticky-price"><bdi dir="ltr" data-price-mini>{{P_PRICE}}</bdi></span>
   <button class="btn btn--line sticky-call" type="button" data-call data-cta="sticky" aria-label="{{t.call_cta}}" aria-controls="callback"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg></button>
   <button class="btn btn--line sticky-ask" type="button" data-ask data-cta="sticky">{{t.ask_cta_short}}</button>
-  <button class="btn btn--dark" type="button" data-add-cart data-cta="sticky">{{t.add_to_cart}}</button>
+  <button class="btn btn--dark" type="button" data-order data-cta="sticky" aria-controls="order">{{t.order_cta_short}}</button>
 </div>

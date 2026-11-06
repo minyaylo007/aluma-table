@@ -558,6 +558,12 @@
     var vote = form.getAttribute("data-source") === "vote";   // №22: «אני רוצה כזה» — телефон або e-mail
     var thanks = form.id === "lead-form" ? qs("[data-thanks]") : callback ? qs("[data-callback-thanks]") : qs(".thanks", form.parentNode);
     var pre = form.getAttribute("data-err") || "";
+    // №41: form_error — лише в нашу аналітику: яка форма і код (invalid / rate / http_N / offline), без значень полів
+    var formErr = function (code, field) {
+      var p = { form: formName(form), code: code };
+      if (field) p.field = field;
+      track("form_error", p, { pixel: false });
+    };
     var setErr = function (name, msg) {
       var input = form.elements[name], err = qs("#" + pre + "e-" + name, form);
       if (err) { err.textContent = msg || ""; err.hidden = !msg; }
@@ -612,6 +618,7 @@
       if (!data.consent) { setErr("consent", S.e_consent); bad.push("consent"); }
       if (bad.length) {
         status.className = "f-status is-err"; status.textContent = S.invalid || "";
+        formErr("invalid", bad[0]);
         var f = form.elements[bad[0]]; if (f && f.focus) f.focus();
         return;
       }
@@ -641,17 +648,43 @@
             return;
           }
           unlock(); status.className = "f-status is-err";
+          formErr(res.code === 429 ? "rate" : res.code === 422 ? "invalid" : "http_" + res.code);
           if (res.code === 429) status.textContent = S.rate || "";
           else if (res.code === 503 && res.body && res.body.error === "preview_only") status.textContent = S.preview || "";
           else if (res.code === 422 && res.body && res.body.errors) {
             Object.keys(res.body.errors).forEach(function (k) { setErr(k, S["e_" + k] || S.invalid); });
             status.textContent = S.invalid || "";
           } else status.textContent = S.fail || "";
-        }, function () { unlock(); status.className = "f-status is-err"; status.textContent = S.offline || ""; });
+        }, function () { unlock(); status.className = "f-status is-err"; status.textContent = S.offline || ""; formErr("offline"); });
     });
+  }
+  // ім'я форми для подій form_start / form_error: order (№41), ask (№32), callback, register (довга #lead-form), vote
+  function formName(f) {
+    if (f.hasAttribute("data-order-form")) return "order";
+    if (f.getAttribute("data-source") === "callback") return f.hasAttribute("data-cb-ask") ? "ask" : "callback";
+    if (f.getAttribute("data-source") === "vote") return "vote";
+    return f.id === "lead-form" ? "register" : f.id || "form";
   }
   if (form) wireForm(form);
   if (cbForm) wireForm(cbForm);
+  // №41: form_start — перше справжнє торкання форми картки (введення чи вибір, а не фокус: форма замовлення
+  // ставить фокус на телефон сама), раз на форму за сторінку. Лише наша аналітика, без значень полів
+  if (qs("[data-pdp]")) {
+    var started = {};
+    ["#order", "#callback", "#lead-form"].forEach(function (sel) {
+      var f = qs(sel);
+      if (!f) return;
+      var first = function (e) {
+        if (e.target && e.target.name === "website") return;   // приманка для ботів
+        var name = formName(f);
+        if (started[name]) return;
+        started[name] = true;
+        track("form_start", { form: name, content_ids: P ? [P.id] : [] }, { pixel: false });
+      };
+      f.addEventListener("input", first);
+      f.addEventListener("change", first);
+    });
+  }
 
   // ---------------------------------------------------------------- «наступне видання» (№22): картка-голосування
   // [data-next] — варіант на перевірку попиту: без кошика; одна кнопка відкриває міні-форму #vote (lead_source=vote).
@@ -685,7 +718,9 @@
       queued = false;
       var past = anchor ? anchor.getBoundingClientRect().bottom < 0 : W.scrollY > W.innerHeight;
       var cb = qs("#callback");   // №39: відкрита міні-форма у вікні — смуга її не накриває
-      var on = past && !noticeOpen() && !visible(reg) && !visible(foot) && !(cb && !cb.hidden && visible(cb)) && !D.body.classList.contains("is-registered");
+      var od = qs("#order");      // №41: так само форма замовлення
+      var on = past && !noticeOpen() && !visible(reg) && !visible(foot) && !(cb && !cb.hidden && visible(cb)) &&
+        !(od && !od.hidden && visible(od)) && !D.body.classList.contains("is-registered");
       sticky.hidden = false;
       sticky.classList.toggle("is-on", on);
       sticky.inert = !on;
@@ -697,6 +732,7 @@
     W.addEventListener("resize", schedule, { passive: true });
     // банер з'являється після шрифтів, ховається на вибір — межа «вся на екрані» зсувається без прокрутки
     if (notice && W.MutationObserver) new MutationObserver(schedule).observe(notice, { attributes: true, attributeFilter: ["hidden", "class"] });
+    D.addEventListener("aluma:order", schedule);
     apply();
   }
 

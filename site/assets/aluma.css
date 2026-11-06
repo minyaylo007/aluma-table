@@ -718,6 +718,28 @@ html[lang="ru"] :is(.f-fine, .pdp-est) { hyphens: manual; }
 .callback[data-cb-ask] .f-choice, .callback[data-cb-ask] [data-cb-email], .callback[data-cb-ask] [data-cb-time] { display: none; }
 .callback-thanks { margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); }
 .callback-thanks:focus { outline: none; }
+/* №41: другий ряд під парою — відеодзвінок і «הוספה לסל» звичайним посиланням (кошик — вторинний шлях) */
+.pdp-row2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; }
+.pdp-cart-link { display: inline-flex; align-items: center; min-height: 44px; font-size: .92rem; color: var(--ink);
+  text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pdp-cart-link:hover { text-decoration-color: currentColor; }
+@media (max-width: 599px) { .pdp-cart-link { min-height: 24px; } }
+/* №41: коротка форма замовлення на місці — під парою кнопок, як #callback */
+.order-form { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper);
+  scroll-margin-block: 120px 96px; }
+.order-form[hidden], .order-thanks[hidden] { display: none; }
+.order-h { margin: 0; font-weight: 600; }
+.order-pick { margin: 0; font-size: .92rem; line-height: 1.4; }
+.order-form .f-row { gap: 14px; }
+.order-form .f-hint { padding-inline-start: 0; margin: 4px 0 0; }
+.order-form .f-choice { margin: 0; padding: 0; border: 0; min-width: 0; }
+.order-form .cart-total { font-size: 1.05rem; }
+.order-form .f-status:empty { display: none; }
+.order-thanks { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); scroll-margin-block: 120px 96px; }
+@media (prefers-reduced-motion: no-preference) {
+  .order-form:not([hidden]) { animation: order-in .22s var(--ease); }
+  @keyframes order-in { from { opacity: 0; transform: translateY(-4px); } }
+}
 /* «מה כלול במחיר» і «איך לבחור מידה» — під кнопкою кошика, до «מפרט» */
 .pdp-inc, .pdp-size { margin-block-start: 22px; padding-block-start: 16px; border-top: 1px solid var(--line); }
 .pdp-inc-h { font-size: 1rem; font-weight: 700; margin: 0 0 10px; }
@@ -1021,3 +1043,5 @@ html.a11y-still::view-transition-new(*) { animation: none !important; }
 .cart-list--mini .cart-img { width: 56px; height: 56px; }
 @media (min-width: 900px) { .co-grid { grid-template-columns: 7fr 5fr; align-items: start; } .co-head { grid-column: 1 / -1; }
   .co-side { position: sticky; top: 120px; } }
+/* №41: кошик у шапці — лише коли в ньому щось є; visibility, а не display — місце лишається, шапка не стрибає */
+.top-cart[data-empty] { visibility: hidden; }

@@ -22,7 +22,8 @@ KEYS = ("ask_cta", "ask_cta_short", "ask_hint", "lead_cta")
 class PdpAskTemplateTests(unittest.TestCase):
     def test_second_button_next_to_cart_with_hint_and_short_one_in_sticky_bar(self):
         actions = re.search(r'<div class="pdp-actions">(.*?)\n    </div>', TEMPLATE, re.S).group(1)
-        self.assertRegex(actions, r'data-add-cart data-cta="pdp">\{\{t\.add_to_cart\}\}</button>\s*'
+        # №41: поруч із «שאלה?» тепер головна «להזמנה» (форма на місці), «הוספה לסל» — посилання рядом нижче
+        self.assertRegex(actions, r'data-order data-cta="pdp" aria-expanded="false" aria-controls="order">\{\{t\.order_cta\}\}</button>\s*'
                                   r'<button class="btn btn--line" type="button" data-ask data-cta="pdp" aria-expanded="false" '
                                   r'aria-controls="callback">\{\{t\.ask_cta\}\}</button>')
         self.assertIn('<p class="pdp-ask-hint muted small">{{t.ask_hint}}</p>', actions)

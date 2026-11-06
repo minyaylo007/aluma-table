@@ -127,3 +127,25 @@ for (const prefix of ['', '/en', '/ru']) {
     expect(await axeBlocking(page), 'форма голосу з помилками').toEqual([]);
   });
 }
+
+// №41: форма замовлення на картці — відкрита, з помилками (порожня відправка) і підтвердження після заявки (API підмінено)
+for (const pagePath of ['/p/tavor/', '/ru/p/tavor/', '/p/sahar/', '/ru/p/sahar/']) {
+  test(`a11y форма замовлення ${pagePath}: відкрита, помилки, підтвердження`, async ({ page }) => {
+    await serveDist(page);
+    await page.route(`${ORIGIN}/api/fx/lead`, (route) => route.fulfill({ json: { ok: true, id: 'lead-a11y-1' } }));
+    await page.setViewportSize(VIEWPORTS.mobile);
+    await page.goto(ORIGIN + pagePath, { waitUntil: 'load' });
+    await page.locator('.pdp-pair [data-order]').click();
+    await expect(page.locator('#order')).toBeVisible();
+    expect(await axeBlocking(page), 'форма замовлення відкрита').toEqual([]);
+    await page.locator('#order button[type="submit"]').click();
+    await expect(page.locator('#or-phone')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('#or-e-phone')).toBeVisible();
+    expect(await axeBlocking(page), 'форма замовлення з помилками').toEqual([]);
+    await page.locator('#or-phone').fill(['05', '2-98', '7-6543'].join(''));
+    await page.locator('#order input[name="consent"]').check();
+    await page.locator('#order button[type="submit"]').click();
+    await expect(page.locator('[data-order-thanks]')).toBeVisible();
+    expect(await axeBlocking(page), 'підтвердження замовлення').toEqual([]);
+  });
+}
