@@ -59,11 +59,12 @@ def key_eq(name: str, value: str):
     return ("eq", name, value)
 
 
-def open_tables(db_path: str):
-    """(fx_events, fx_leads) з файлу бази. Нема файлу — FileNotFoundError, а не порожня база."""
+def open_tables(db_path: str, readonly: bool = False):
+    """(fx_events, fx_leads) з файлу бази. Нема файлу — FileNotFoundError, а не порожня база.
+    readonly — з'єднання SQLite mode=ro (tools/funnel_report.py, №42): писати в базу звіт не може."""
     if db_path != ":memory:" and not os.path.exists(db_path):
         raise FileNotFoundError(db_path)
-    events_t, leads_t, _sessions = store.tables(db_path, EVENTS_TABLE, LEADS_TABLE, SESSIONS_TABLE)
+    events_t, leads_t, _sessions = store.tables(db_path, EVENTS_TABLE, LEADS_TABLE, SESSIONS_TABLE, readonly=readonly)
     return events_t, leads_t
 
 

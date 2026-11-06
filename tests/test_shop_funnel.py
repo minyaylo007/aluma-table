@@ -557,7 +557,10 @@ class ComputeTests(unittest.TestCase):
         self.assertEqual(rep["seen"], {"price": 1, "sizes": 2, "product": product})
         self.assertEqual(rep["steps"], base["steps"])
         self.assertEqual(base["seen"], {"price": 0, "sizes": 0, "product": product})
-        self.assertIn(f"Видели цену/размеры: 1/2 из {product} сессий карточки", funnel.text(funnel.report(events, [], 0)))
+        txt = funnel.text(funnel.report(events, [], 0))
+        # №42: подія — блок «מה כלול במחיר» за 3,4 екрана нижче ціни, а не сама ціна: підпис каже, що саме рахуємо
+        self.assertIn(f"Дошли до «что входит в цену»/выбора размера: 1/2 из {product} сессий карточки", txt)
+        self.assertNotIn("Видели цену", txt)
 
     def test_call_button_and_callback_leads_counted_aside(self):
         # 24.10: «התקשרו אלינו» (cta_call) — сесії за кнопкою + заявки lead_source=callback; кроки не змінюються
@@ -606,6 +609,89 @@ class ComputeTests(unittest.TestCase):
         self.assertIn("(n=4) · деск. нет данных", only_mobile)
         self.assertNotIn("m1", json.dumps(rep["pdp_depth"]))
 
+    def test_cart_page_visit_without_add_is_not_the_cart_step(self):
+        # №42: крок «корзина» — лише AddToCart; захід на сторінку кошика (порожнього чи з товаром з минулого візиту)
+        # — окремий рядок cart_view, крок не росте. Зріз 06.11: 13 сесій поклали в кошик, ще 14 бачили лише порожній
+        def cart(rep):
+            return next(s["n"] for s in rep["steps"] if s["key"] == "cart")
+        base = funnel.compute(EVENTS, [])
+        events = EVENTS + [row("PageView", "e1", T), row("view_cart", "e1", T, num_items=0, value=0),
+                           row("view_cart", "e1", T, num_items=0, value=0),
+                           row("PageView", "e2", T), row("view_cart", "e2", T, num_items=1, value=4490, content_ids=["tavor"])]
+        rep = funnel.compute(events, [])
+        self.assertEqual(cart(rep), cart(base))
+        self.assertEqual(cart(rep), 2)   # s1 і s2 — AddToCart
+        self.assertEqual(rep["cart_view"], {"sessions": 3, "with_items": 1, "empty": 2, "no_add": 1})
+        tavor = next(r for r in rep["by_product"] if r["key"] == "tavor")
+        self.assertEqual(next(s["n"] for s in tavor["steps"] if s["key"] == "cart"), 1)
+        txt = funnel.text(funnel.report(events, [], 0))
+        self.assertIn("Заходили на страницу корзины: 3 (с товаром 1, только пустая 2; "
+                      "с товаром, но без добавления в этой сессии 1) — не шаг «корзина»", txt)
+
+    def test_pulse_gives_card_time_without_leave(self):
+        # №42: вбудований браузер iOS не шле уходу — час на картці бере найбільший пульс; уход і пульси одного
+        # перегляду — одне значення (найбільше), а не кілька
+        def t(name, sid, s, px=0):
+            return row(name, sid, T, step="pdp", product="tavor", seconds=s, scroll_px=px, vh=800)
+        views = [row("ViewContent", "p1", T, content_ids=["tavor"]), row("ViewContent", "p2", T, content_ids=["tavor"])]
+        events = EVENTS + views + [t("pulse", "p1", 15, 900), t("pulse", "p1", 30, 1700), t("pulse", "p1", 45, 1700),
+                                   t("pulse", "p2", 15), t("leave", "p2", 21, 300)]
+        rep = funnel.compute(events, [])
+        self.assertEqual(rep["card_seconds"], {"tavor": {"median": 45, "n": 2}})
+        self.assertEqual(rep["median_seconds"]["pdp"], 45)
+        pt = rep["pdp_time"]
+        self.assertEqual((pt["timed"], pt["pulse_only"], pt["engaged"], pt["n"]), (2, 1, 1, 2))
+        self.assertEqual((pt["product"], pt["no_time"]), (5, 3))
+        self.assertEqual(rep["leave_by_step"].get("pdp"), 1)   # пульс — не уход
+        self.assertEqual(rep["pdp_depth"]["mobile"]["n"], 2)
+        self.assertEqual(rep["steps"], funnel.compute(EVENTS + views, [])["steps"])
+
+    def test_preload_peak_without_scroll_is_not_in_the_median(self):
+        # №42: 28–34 с без прокрутки — пік, схожий на передзавантаження Facebook; не в медіані, окремим рядком.
+        # 30 с з прокруткою і 27 / 35 с без неї — звичайні перегляди
+        def leave(sid, s, px):
+            return row("leave", sid, T, step="pdp", product="tavor", seconds=s, scroll_px=px, vh=800)
+        events = EVENTS + [leave("a", 30, 0), leave("b", 28, 0), leave("c", 34, 0), leave("d", 30, 900),
+                           leave("e", 27, 0), leave("f", 35, 0), leave("g", 120, 2400)]
+        rep = funnel.compute(events, [])
+        pt = rep["pdp_time"]
+        self.assertEqual(pt["preload"], 3)
+        self.assertEqual(pt["n"], 4)
+        self.assertEqual(pt["median"], 35)          # 27, 30, 35, 120 → найближчий ранг
+        self.assertEqual(rep["card_seconds"]["tavor"]["n"], 4)
+        self.assertEqual(pt["engaged"], 2)          # d (30 с, 1,1 екрана) і g
+        txt = funnel.text(funnel.report(events, [], 0))
+        self.assertIn("Время на карточке: медиана 35 с (n=4) · вовлечённые (от 20 с и от ½ экрана) 2", txt)
+        self.assertIn("похоже на предзагрузку (28–34 с без прокрутки, не в медиане): 3", txt)
+
+    def test_order_form_events_and_order_leads_counted(self):
+        # №41 (форма замовлення на картці): order_open, form_start по формах, form_error по формах і кодах,
+        # заявки lead_source=order окремим числом; до виходу №41 — нулі
+        self.assertEqual(funnel.compute(EVENTS, [])["order"], {"open": 0, "leads": 0, "form_start": {}, "form_error": {}})
+        events = EVENTS + [row("order_open", "o1", T, content_ids=["tavor"]), row("order_open", "o1", T),
+                           row("order_open", "o2", T), row("form_start", "o1", T, form="order"),
+                           row("form_start", "o1", T, form="order"), row("form_start", "o2", T, form="callback"),
+                           row("form_error", "o1", T, form="order", code="phone"),
+                           row("form_error", "o1", T, form="order", code="phone"),
+                           row("form_error", "o2", T, form="order", code="consent")]
+        leads = [{"session_id": "o1", "lead_source": "order", "product_id": "tavor", "ts": T},
+                 {"session_id": "o2", "lead_source": "callback", "ts": T}]
+        rep = funnel.compute(events, leads)
+        self.assertEqual(rep["order"], {"open": 2, "leads": 1, "form_start": {"callback": 1, "order": 1},
+                                        "form_error": {"order:phone": 2, "order:consent": 1}})
+        txt = funnel.text(funnel.report(events, leads, 0))
+        self.assertIn("Форма заказа на карточке: открыли 2, заявок order 1 · начали: callback 1, order 1 · "
+                      "ошибки: order:phone 2, order:consent 1", txt)
+
+    def test_report_text_keeps_line_3_for_the_conductor(self):
+        # дирижер щогодини читає «funnel_report.py --days 1 | sed -n '3,9p'»: 3-й рядок — «Всего:» з тими самими кроками
+        lines = funnel.text(funnel.report(EVENTS, [], 0)).splitlines()
+        self.assertTrue(lines[2].startswith("Всего:  сессии 4 → карточка 3 (75%) → корзина 2 (67%) → «לתשלום» 1"))
+        self.assertTrue(lines[2].endswith("→ Lead 1 (100%)"))
+        self.assertEqual([lines[i].split(":")[0] for i in (3, 4, 5, 6, 7, 8)],
+                         ["Заявок в таблице", "Вопрос с карточки", "Дошли до «что входит в цену»/выбора размера",
+                          "«Позвоните нам»", "Визит", "Голоса «אני רוצה כזה» (следующее издание)"])
+
     def test_no_personal_data_in_the_report(self):
         blob = json.dumps(self.rep, ensure_ascii=False) + funnel.text(
             funnel.report(EVENTS, [], 0))
@@ -647,6 +733,24 @@ class AdminFunnelTests(Base):
         block = page.split("глубина на карточке")[1].split("</section>")[0]
         self.assertNotIn("sd", block)
 
+    def test_page_shows_honest_counters(self):
+        # №42: підписи блоків, захід у кошик окремо від кроку, час на картці з пульсом і без передзавантаження
+        self.send([ev("PageView"), ev("ViewContent", content_ids=["tavor"]), ev("see_price_block", content_ids=["tavor"]),
+                   ev("pulse", step="pdp", product="tavor", seconds=45, scroll_px=1600, vh=800)],
+                  session="zq-pulse", ctx={"page": "/p/tavor/", "device": "mobile"})
+        self.send([ev("PageView"), ev("view_cart", num_items=0, value=0)], session="zq-empty")
+        page = self.admin("/admin/funnel", {"range": "1"})["body"]
+        self.assertIn("<tr><td>дошли до «что входит в цену» (מה כלול במחיר)</td><td class='n'>1</td></tr>", page)
+        self.assertIn("<tr><td>заходили на страницу корзины</td><td class='n'>1</td></tr>"
+                      "<tr><td>· с товаром</td><td class='n'>0</td></tr>"
+                      "<tr><td>· только пустая</td><td class='n'>1</td></tr>", page)
+        self.assertIn("<tr><td>медиана, с (n=1)</td><td class='n'>45</td></tr>", page)
+        self.assertIn("<tr><td>· только по пульсу (без ухода)</td><td class='n'>1</td></tr>", page)
+        self.assertIn("<tr><td>открыли форму заказа (order_open)</td><td class='n'>0</td></tr>", page)
+        self.assertRegex(page, r"הוספה לסל · корзина</span><span class='val'>0 ")
+        for sid in ("zq-pulse", "zq-empty"):
+            self.assertNotIn(sid, page)
+
     def test_page_shows_call_button_and_callback_leads(self):
         self.send([ev("PageView"), ev("cta_call", content_ids=["tavor"], content_type="product", cta="pdp")],
                   session="sc")
@@ -687,6 +791,43 @@ class FunnelReportScriptTests(unittest.TestCase):
             with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", os.path.join(tmp, "nope.db")), \
                     contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(funnel_report.main([]), 2)
+            self.assertFalse(os.path.exists(os.path.join(tmp, "nope.db")))
+
+    def test_report_opens_the_database_read_only(self):
+        # №42: звіт іде по бойовій базі — з'єднання mode=ro: запис неможливий, журнал не перемикається, таблиць не створює
+        import sqlite3
+
+        from tools import funnel_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db = os.path.join(tmp, "aluma.db")
+            events_t, _leads_t, _ = h.store.tables(db)
+            now = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(seconds=5)
+            events_t.put_item(Item=dict(EVENTS[1], pk="D#" + now.strftime("%Y-%m-%d"), sk=f"{now.isoformat()}#0001"))
+            events_t._store.close()
+            with contextlib.closing(sqlite3.connect(db)) as c:
+                c.execute("PRAGMA journal_mode=DELETE")
+            before = pathlib.Path(db).read_bytes()
+            opened = []
+            real = h.store.SqliteStore.__init__
+
+            def spy(self, path, readonly=False):
+                opened.append(readonly)
+                real(self, path, readonly=readonly)
+            out = io.StringIO()
+            with mock.patch.object(funnel_report.daily_report, "FX_DB_PATH", db), \
+                    mock.patch.object(h.store.SqliteStore, "__init__", spy), contextlib.redirect_stdout(out):
+                self.assertEqual(funnel_report.main(["--days", "1"]), 0)
+            self.assertEqual(opened, [True])
+            self.assertIn("карточка 1", out.getvalue())
+            self.assertEqual(pathlib.Path(db).read_bytes(), before)
+            self.assertFalse(os.path.exists(db + "-wal"))
+            ro_events, _l, _s = h.store.tables(db, readonly=True)
+            with self.assertRaises(sqlite3.OperationalError):
+                ro_events.put_item(Item={"pk": "D#x", "sk": "1"})
+            with self.assertRaises(sqlite3.OperationalError):
+                h.store.tables(os.path.join(tmp, "nope.db"), readonly=True)
+            self.assertFalse(os.path.exists(os.path.join(tmp, "nope.db")))
 
 
 if __name__ == "__main__":

@@ -78,6 +78,10 @@
   var leaving = false;
   window.addEventListener("pagehide", function () { leaving = true; send(true); });
   window.addEventListener("pageshow", function () { leaving = false; });
+  // №42: схована вкладка (вбудований браузер iOS pagehide не шле) — черга маяком одразу; повернувся — знову таймер
+  doc.addEventListener("visibilitychange", function () {
+    if (doc.visibilityState === "hidden") { leaving = true; send(true); } else leaving = false;
+  });
   // перед переходом зі shop.js (go): черга маяком одразу — маяк із pagehide доходить не в кожному браузері
   window.alumaFlush = function () { clearTimeout(flushTimer); send(true); };
 

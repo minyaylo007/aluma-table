@@ -7,7 +7,8 @@
 
 Лише рахунок: сесії, кроки, slug товару, utm, ціни каталогу. Імен, телефонів, текстів заявок
 скрипт не друкує — він їх навіть не читає в звіт (api/funnel.py бере тільки session_id і product_id).
-Бази за FX_DB_PATH нема — вихід 2, порожню не створює.
+Бази за FX_DB_PATH нема — вихід 2, порожню не створює. База відкрита лише на читання (SQLite mode=ro, №42):
+звіт не створює таблиць, не перемикає журнал і не може нічого записати в бойову базу.
 """
 
 from __future__ import annotations
@@ -31,7 +32,7 @@ def main(argv=None) -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
     try:
-        tables = daily_report.open_tables(daily_report.FX_DB_PATH)
+        tables = daily_report.open_tables(daily_report.FX_DB_PATH, readonly=True)
     except FileNotFoundError:
         print(f"no database at FX_DB_PATH={daily_report.FX_DB_PATH}", file=sys.stderr)
         return 2

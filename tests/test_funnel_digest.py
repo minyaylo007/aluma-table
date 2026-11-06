@@ -101,7 +101,7 @@ class DigestTests(unittest.TestCase):
         lines = text.splitlines()
         self.assertTrue(lines[0].startswith("ALUMA · воронка · "))
         # Тестова сесія «t» і тестова заявка не рахуються.
-        self.assertEqual(lines[1], "Сегодня: визиты 2 → карточка 2 → корзина 1 → доставка 0 → "
+        self.assertEqual(lines[1], "Сегодня: визиты 2 → карточка 2 → в корзину 1 → доставка 0 → "
                                    "подтверждение 0 → заявок 1")
         self.assertTrue(lines[2].startswith("7 дней: визиты 2 → "))
         self.assertIn("TAVOR 1/1", text)

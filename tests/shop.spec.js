@@ -667,6 +667,43 @@ test('телефон 390: прокрутка на екран → leave зі scro
   expect(await fbNamed(page, 'leave')).toEqual([]);
 });
 
+// №42: час на картці є й без уходу — пульс кожні 15 с, поки вкладку видно; схована вкладка → leave маяком одразу
+test('картка: пульс кожні 15 с без уходу, схована вкладка → leave маяком; у Meta не йде (№42)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.install();
+  const net = await setup(page);
+  await page.goto(`${ORIGIN}/p/tavor/`);
+  await page.waitForLoadState('load');
+  await page.clock.runFor(31000);
+  await expect.poll(() => firstParty(net, 'pulse').length, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
+  const pulses = firstParty(net, 'pulse');
+  for (const p of pulses) {
+    expect(p.props.step).toBe('pdp');
+    expect(p.props.product).toBe('tavor');
+    expect(p.props.vh).toBe(844);
+  }
+  expect(Math.max(...pulses.map((p) => p.props.seconds))).toBeGreaterThanOrEqual(30);
+  expect(firstParty(net, 'leave')).toEqual([]);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await pullBeacons(page, net);
+  const leaves = firstParty(net, 'leave');
+  // той самий маяк буває і в page.route, і в __beacons — рахуємо за event_id
+  expect(new Set(leaves.map((l) => l.props.event_id)).size).toBe(1);
+  expect(leaves[0].props.step).toBe('pdp');
+  expect(leaves[0].props.seconds).toBeGreaterThanOrEqual(30);
+  // схована вкладка — пульсу нема
+  const uniq = (name) => new Set(firstParty(net, name).map((e) => e.props.event_id)).size;
+  const n = uniq('pulse');
+  await page.clock.runFor(31000);
+  await pullBeacons(page, net);
+  expect(uniq('pulse')).toBe(n);
+  expect(await fbNamed(page, 'pulse')).toEqual([]);
+  expect(await fbNamed(page, 'leave')).toEqual([]);
+});
+
 // №38: збій заявки — текст помилки, кнопка «לנסות שוב», поля на місці, checkout_error лише в нашу аналітику, Lead не йде;
 // повтор після відновлення — підтвердження
 for (const [kind, reply, msg] of [['offline', null, HE.js.offline], ['429', { status: 429, json: { ok: false, error: 'rate_limited' } }, HE.js.rate]]) {
