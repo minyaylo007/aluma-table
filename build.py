@@ -75,6 +75,15 @@ def esc_bidi(s) -> str:
     return esc(s).replace("\u2066", '<bdi dir="ltr">').replace("\u2069", "</bdi>")
 
 
+def og_image(name: str) -> str:
+    """Превью посилання site/assets/og/<name>.jpg (tools/make-og-products.js). Нема файлу — збірка падає:
+    запасної картинки GOREN більше нема (№44), а сторінка без превью в WhatsApp/Facebook гірша за зупинену збірку."""
+    rel = f"/assets/og/{name}.jpg"
+    if not (SITE / rel.lstrip("/")).is_file():
+        raise SystemExit(f"og: нема site{rel} — згенеруйте node tools/make-og-products.js")
+    return rel
+
+
 def write_text_lf(f: pathlib.Path, text: str) -> None:
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_bytes(text.replace("\r\n", "\n").encode("utf-8"))
@@ -1203,10 +1212,9 @@ def main() -> None:
             toks.setdefault("DESC", "{{t." + desc_key + "}}")
             toks.setdefault("JSONLD", "")
             toks.setdefault("OG_TITLE", toks["TITLE"])
-            # загальні сторінки: превью головної своєю мовою з героєм HERO_PRODUCT (tools/make-og-products.js), інакше старе
-            # og.png — його тест не пропускає (№37: hero змінили, превью лишилось старим)
-            home_og = f"/assets/og/home-{CONTENT['HERO_PRODUCT']}-{loc}.jpg"
-            toks.setdefault("OG_IMAGE", home_og if (SITE / home_og.lstrip("/")).is_file() else "/assets/og.png")
+            # загальні сторінки: превью головної своєю мовою з героєм HERO_PRODUCT (tools/make-og-products.js, №37)
+            if "OG_IMAGE" not in toks:
+                toks["OG_IMAGE"] = og_image(f"home-{CONTENT['HERO_PRODUCT']}-{loc}")
             toks.setdefault("BODY_CLASS", "")
             toks.setdefault("ROBOTS", "")
             toks["CANONICAL"] = CONTENT["SITE_URL"] + prefix + path
@@ -1254,7 +1262,7 @@ def main() -> None:
                 "P_INC": included(p, loc), "P_FACTS": facts(p, loc), "P_TERMS": buy_terms(p), "P_TRUST": trust_strip(p, loc),
                 "P_PRICE_NOTE": "{{t.vat_incl}} · " + ("{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}"), "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "P_STEPS": steps_acc(), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
-                "OG_IMAGE": f"/assets/og/{p['slug']}.jpg" if (SITE / "assets" / "og" / f"{p['slug']}.jpg").is_file() else "/assets/og.png",
+                "OG_IMAGE": og_image(p["slug"]),
                 "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
             }
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{p['slug']}/index.html",

@@ -33,7 +33,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from api import funnel  # noqa: E402
-from scripts import daily_report  # noqa: E402
+from api import funnel_io  # noqa: E402
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 OWNER_TELEGRAM_CHAT_ID = os.environ.get("OWNER_TELEGRAM_CHAT_ID", "")
@@ -151,8 +151,8 @@ def send(text: str) -> None:
 
 def load_rows(db_path: str):
     """Сирі події за 7 днів і заявки (з тестовими — їх відкидає funnel.report). Нема бази — FileNotFoundError."""
-    tables = daily_report.open_tables(db_path)
-    return daily_report.load(7, True, tables)
+    tables = funnel_io.open_tables(db_path)
+    return funnel_io.load(7, True, tables)
 
 
 def main(argv=None) -> int:
@@ -164,7 +164,7 @@ def main(argv=None) -> int:
         print(json.dumps({"event": event, **kw}), flush=True)
 
     try:
-        events, leads = load_rows(daily_report.FX_DB_PATH)
+        events, leads = load_rows(funnel_io.FX_DB_PATH)
     except FileNotFoundError:
         out("digest_failed", reason="no_db")
         return 2

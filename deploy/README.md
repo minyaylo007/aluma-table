@@ -387,7 +387,7 @@ curl -s http://127.0.0.1:8005/api/fx/health           # {"ok": true, ...}
 
 | Що | Де / як |
 |---|---|
-| скрипт | `scripts/funnel_digest.py` — stdlib + `requests`; цифри з `api/funnel.report()` (кроки `funnel.STEPS`, як `/admin/funnel`), база через `scripts/daily_report.open_tables/load` |
+| скрипт | `scripts/funnel_digest.py` — stdlib + `requests`; цифри з `api/funnel.report()` (кроки `funnel.STEPS`, як `/admin/funnel`), база через `api/funnel_io.open_tables/load` (лише читання) |
 | текст | plain text без `parse_mode`, ≤ 1500 символів, рос.: «сьогодні» і «7 днів» кроками визиты → карточка → корзина → доставка → подтверждение → заявок, по товарах (заявки/картки), по джерелу (`utm_source`), де пішли сьогодні. Лише числа: ні імен, ні телефонів; рядки `x-test` не рахуються. Нуль візитів — однаково шле «Сегодня: визитов 0» (видно, що зведення живе) |
 | розклад | `OnCalendar=*-*-* 09,20:00:00 Asia/Jerusalem` — зона в самому розкладі, машина живе в Europe/Kyiv; `Persistent=true`, `Nice=10` |
 | оточення | `%h/.config/aluma/aluma.env`: `FX_DB_PATH`, `TELEGRAM_BOT_TOKEN`, `OWNER_TELEGRAM_CHAT_ID` (значення не друкуються) |

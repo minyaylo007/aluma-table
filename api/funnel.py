@@ -1,5 +1,5 @@
 """Воронка магазину (specs/003-shop-funnel): одне вікно і одні кроки для /admin/funnel,
-tools/funnel_report.py і scripts/daily_report.py.
+tools/funnel_report.py і scripts/funnel_digest.py (рядки з бази — api/funnel_io.py).
 
 Вікно — календарні дні Asia/Jerusalem: days=1 — сьогодні, 7 — сьогодні і шість днів до, 0 — усе.
 День події — за серверним часом запису (початок sk), а не за годинником браузера.

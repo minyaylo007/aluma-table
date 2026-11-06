@@ -53,8 +53,10 @@ content-hashed at build time. Provenance detail: `assets-src/product/RENDER-LOG.
 | goren-edge-detail-{tone} | A4 material detail, 1:1, 640/1000 | render, view `edge` | provisional, labelled "render, not a photograph" | mat_edge_alt / mat_caption | paired with the labelled schematic edge section (build.py edge_svg) |
 | goren-frame-detail-{tone} | A5 structure detail, 4:3, 640/1000 | render, view `frame` | provisional | mat_frame_alt / mat_caption | |
 | goren-finish-{tone} | A7 finish swatches 160/240 | crop of goren-compare-{tone}-closed, same region | provisional | text label + visible marker | not physical samples |
-| goren-social (site/assets/og.png) | A8 social preview 1200×630 | studio hero master + vector logo + HTML text (tools/og.html) | provisional | — | no price on the card |
 | Dimensions drawings | A6 | build.py SVG from content.json numbers | provisional (numbers), illustrative (chairs) | draw_elev_*, draw_plan_*, dim_caption | trestle footprints marked; clearances labelled estimates |
+
+A8 social preview (goren-social, `site/assets/og.png`, `tools/og.html`) removed 06.11.2026 (№44): link previews are
+`site/assets/og/*.jpg` from `tools/make-og-products.js`.
 
 Legacy sets kept as source (not published): site/assets/renders (180 files), site/assets/photos
 (5 AI scenes, olive-tree / lemons props, rejected for the page), site/assets/editorial

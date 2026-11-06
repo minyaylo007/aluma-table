@@ -1,18 +1,16 @@
-"""scripts/daily_report.py — звіт читає SQLite коробки, а не DynamoDB.
+"""api/funnel_io.py — рядки воронки з SQLite коробки, а не з DynamoDB (до №44 — scripts/daily_report.py).
 
-Справжній api/store.py, справжній файл бази в тимчасовій теці; boto3 не потрібен
-і не імпортується. Модель не кличеться: скрізь --no-ai або порожній ключ.
+Справжній api/store.py, справжній файл бази в тимчасовій теці; boto3 не потрібен і не імпортується.
 
 Запуск з кореня репозиторію:
 
-    python -m unittest discover -s tests -p 'test_daily_report.py' -t .
+    python -m unittest discover -s tests -p 'test_funnel_io.py' -t .
 """
 
 from __future__ import annotations
 
 import contextlib
 import importlib.util
-import io
 import json
 import os
 import pathlib
@@ -30,9 +28,9 @@ from api import store  # noqa: E402
 
 
 def import_report(blocked=()):
-    """Свіжий модуль scripts/daily_report.py; імена з blocked імпортувати не можна."""
-    spec = importlib.util.spec_from_file_location("daily_report_under_test",
-                                                  ROOT / "scripts" / "daily_report.py")
+    """Свіжий модуль api/funnel_io.py; імена з blocked імпортувати не можна."""
+    spec = importlib.util.spec_from_file_location("funnel_io_under_test",
+                                                  ROOT / "api" / "funnel_io.py")
     mod = importlib.util.module_from_spec(spec)
     with mock.patch.dict(sys.modules, {name: None for name in blocked}):
         spec.loader.exec_module(mod)
@@ -52,7 +50,7 @@ def day_pk(dt: datetime) -> str:
 
 @contextlib.contextmanager
 def frozen(at: datetime):
-    """datetime.now() у scripts/daily_report.py повертає at — час тесту не залежить від годинника."""
+    """datetime.now() у api/funnel_io.py повертає at — час тесту не залежить від годинника."""
     class Frozen(datetime):
         @classmethod
         def now(cls, tz=None):
@@ -90,7 +88,7 @@ class Box:
         self.leads.put_item(Item=item)
 
 
-class DailyReportSqliteTests(unittest.TestCase):
+class FunnelIoSqliteTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -194,55 +192,16 @@ class DailyReportSqliteTests(unittest.TestCase):
         self.box.event("page_view", self.now, session="a")
         events, _ = mod.load(7, False, mod.open_tables(self.db))
         self.assertEqual(len(events), 1)
-        code = (ROOT / "scripts" / "daily_report.py").read_text(encoding="utf-8").splitlines()
+        code = (ROOT / "api" / "funnel_io.py").read_text(encoding="utf-8").splitlines()
         self.assertEqual([l for l in code if l.lstrip().startswith(("import boto3", "from boto3"))], [])
 
-    def test_missing_database_exits_2_and_creates_nothing(self):
+    def test_missing_database_raises_and_creates_nothing(self):
         missing = os.path.join(self.tmp.name, "nope", "aluma.db")
-        reports = pathlib.Path(self.tmp.name, "reports")
-        err = io.StringIO()
-        with mock.patch.object(report, "FX_DB_PATH", missing), \
-                mock.patch.object(report, "REPORTS", reports), \
-                contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
-            rc = report.main(["--no-ai"])
-        self.assertEqual(rc, 2)
-        self.assertFalse(os.path.exists(missing))
+        with self.assertRaises(FileNotFoundError):
+            report.open_tables(missing)
+        with self.assertRaises(FileNotFoundError):
+            report.open_tables(missing, readonly=True)
         self.assertFalse(os.path.exists(os.path.dirname(missing)))
-        self.assertFalse(reports.exists())
-        self.assertIn("FX_DB_PATH", err.getvalue())
-
-    # ------------------------------------------------------------ main()
-
-    def test_main_writes_the_same_report_from_sqlite(self):
-        b, now = self.box, self.now
-        b.event("page_view", now, session="a")
-        b.event("section_view", now, session="a", section="price")
-        b.event("form_start", now, session="a")
-        b.event("lead_success", now, session="a")
-        b.event("page_view", now, session="b")
-        b.event("whatsapp_click", now, session="b")
-        b.lead(now - timedelta(minutes=5), utm_source="fb")
-        reports = pathlib.Path(self.tmp.name, "reports")
-        out = io.StringIO()
-        with mock.patch.object(report, "FX_DB_PATH", self.db), \
-                mock.patch.object(report, "REPORTS", reports), \
-                mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": ""}), \
-                contextlib.redirect_stdout(out):
-            rc = report.main(["--no-ai"])
-        self.assertEqual(rc, 0)
-        self.assertIn("visits=2 leads=1 whatsapp=1", out.getvalue())
-        files = list(reports.glob("REPORT-*.md"))
-        self.assertEqual(len(files), 1)
-        text = files[0].read_text(encoding="utf-8")
-        self.assertIn("Window: last 7 days (calendar, Asia/Jerusalem) · 6 events · 1 leads", text)
-        self.assertIn("## Shop funnel (Asia/Jerusalem days)", text)
-        self.assertIn("| visits | 2 | 100% |", text)
-        self.assertIn("| saw the price | 1 | 50% |", text)
-        self.assertIn("| left a lead | 1 | 50% |", text)
-        self.assertIn("## AI analysis", text)   # --no-ai: промпт вбудовано, моделі не кликали
-        raw = json.loads(text.split("```json\n", 1)[1].split("\n```", 1)[0])
-        self.assertEqual(raw["leads"][0]["source"], "fb")
-        self.assertEqual(raw["lead_status_counts"], {"new": 1})
 
     def test_default_table_names_follow_env_like_handler(self):
         self.assertEqual((report.EVENTS_TABLE, report.LEADS_TABLE), ("fx_events", "fx_leads"))

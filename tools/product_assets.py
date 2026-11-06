@@ -300,29 +300,10 @@ def main():
         sizes = ", ".join(f"{w}: " + " / ".join(f"{files[f][str(w)]['bytes'] // 1024} KB {f}" for f in files if str(w) in files[f]) for w in asset["widths"])
         print(f"{aid}: {im.width}x{im.height} width={m.get('table_width_fraction')} geo={m.get('geometry_width_fraction')} checks={entry['checks']} -> {sizes}")
 
-    # social card: not encoded here (tools/make-og.js), listed so the build sees the whole set
-    og = ROOT / "site" / "assets" / "og.png"
-    if og.exists():
-        ogim = Image.open(og).convert("RGB")
-        og_ok = all(int(np.abs(c - BG).max()) <= 1 for c in corners(ogim))
-        manifest_assets.append({
-            "id": "goren-social", "role": "social", "tone": "natural", "state": "closed", "aspect": "1.91:1",
-            "width": ogim.width, "height": ogim.height, "widths": [ogim.width], "formats": ["png"],
-            "files": {"png": {str(ogim.width): {"path": "../og.png", "bytes": og.stat().st_size}}},
-            "source": "renders-master/product/goren-studio-hero-natural-closed.png + tools/og.html",
-            "pipeline": "node tools/make-og.js (tools/og.html: hero master, inlined logo lockup, IBM Plex Sans Hebrew, ground #F4F1EA)",
-            "reference_version": f"goren3d.js {sha} VIEWS.studio", "kind": "composite", "status": "provisional",
-            "camera": next((e["camera"] for e in manifest_assets if e["id"] == "goren-studio-hero-natural-closed"), None),
-            "table_width_fraction": None,
-            "checks": dict(ends_inside=None, feet_inside=None, shadow_inside=None, ground_ok=og_ok),
-            "notes": "1200x630 social preview; Hebrew title + 160/220 line only, no price; the hero render composited on the page ground",
-        })
-        sheet_entries.append(("goren-social (og.png)", ogim))
-
     manifest = {"version": 1, "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "background": BG_HEX, "assets": manifest_assets}
     (DST / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    total = sum(f["bytes"] for e in manifest_assets for fmt in e["files"].values() for f in fmt.values() if e["role"] != "social")
+    total = sum(f["bytes"] for e in manifest_assets for fmt in e["files"].values() for f in fmt.values())
     print(f"\nmanifest: {len(manifest_assets)} assets, encoded variants total {total / 1024:.0f} KB (avif={'yes' if AVIF else 'no'}, grain={GRAIN})")
     if missing:
         print("MISSING masters:", ", ".join(missing))
