@@ -1142,6 +1142,13 @@ def main() -> None:
     locales = load_locales()
     products = load_catalog()
     next_items = load_next(products)
+    # №46: вітрина — лише товари без "unlisted"; решта збирається за прямим адресом (noindex, поза sitemap і посиланнями)
+    shelf = [p for p in products if not p.get("unlisted")]
+    if not shelf:
+        raise SystemExit("catalog: no shelf products")
+    # одна модель на вітрині — «каталог» у шапці, підвалі й кнопках веде просто на її картку
+    shop_path = f"/p/{shelf[0]['slug']}/" if len(shelf) == 1 else "/catalog/"
+    noindex = '<meta name="robots" content="noindex">\n'
     layout = read_text(SITE / "_layout.html")
     templates = {f.stem: read_text(f) for f in sorted(PAGES.glob("*.html"))}
     tracking = (SITE / "assets" / "tracking.js").is_file()
@@ -1158,23 +1165,23 @@ def main() -> None:
                          'var s=document.createElement("script");s.src="/assets/tracking.js";document.head.appendChild(s)})})</script>'
                          if tracking else ""),
             "FAQ_ALL": faq_html(s.get("faq", [])), "FAQ_TOP": faq_html(s.get("faq", [])[:5]),
-            "GRID_ALL": grid(products, loc, prefix, sizes=CARD_SIZES_TWO_UP, eager=4, cta=True), "GRID_HOME": grid(products, loc, prefix, int(CONTENT.get("HOME_PRODUCTS") or 5)),
-            "PRODUCT_COUNT": str(len(products)), "SEAT_CM": str(SEAT_CM),
-            **catalog_facts(products, loc),
-            "SIZE_BARS": size_bars(products),
+            "GRID_ALL": grid(shelf, loc, prefix, sizes=CARD_SIZES_TWO_UP, eager=4, cta=True),
+            "SHOP_PATH": shop_path, "SEAT_CM": str(SEAT_CM),
+            **catalog_facts(shelf, loc),
+            "SIZE_BARS": size_bars(shelf),
             # способи отримання — числа з content.json, у форматі ціни мови (₪950 / 950 ₪)
             **{t: money(ship_fees()[v], loc) for v, _, t in SHIP_WAYS},
             "SHIP_CHOICE": ship_choice(), "ORDER_SHIP": ship_choice(order=True), "TRUST_CART": trust_strip(None, loc),
             "CITY_OPTIONS": "".join(f'<option value="{esc(c["id"])}">{esc(c["name"])}</option>' for c in s.get("cities", [])),
             **{"PART_" + k[1:].upper(): v for k, v in templates.items() if k.startswith("_")},
-            "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in products),
+            "FORM_PRODUCTS": "".join(f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>' for p in shelf),
             "DATA": json.dumps({"lang": loc, "prefix": prefix, "consent": CONTENT.get("CONSENT_VERSION", "v1"),
                                 "s": s.get("js", {}), "products": product_data(products, loc),
                                 "cities": s.get("cities", []),
                                 "ship": ship_fees()},
                                ensure_ascii=False).replace("</", "<\\/"),
         }
-        hero_p = next((p for p in products if p["slug"] == CONTENT.get("HERO_PRODUCT")), products[0])
+        hero_p = next((p for p in shelf if p["slug"] == CONTENT.get("HERO_PRODUCT")), shelf[0])
         hero_imgs = [i for i in hero_p.get("images") or [] if i.get("src")]
         base_tokens["HERO_MEDIA"] = (
             f'<div class="hero-media">{picture(hero_imgs[0], loc, eager=True, sizes="100vw")}'
@@ -1197,7 +1204,7 @@ def main() -> None:
             f'<figcaption class="band-cap"><span class="wrap">{{{{t.band_cap}}}}</span></figcaption></figure>' if band else "")
 
         # «עץ אמיתי, בלי סיפורים»: крупний план фанери й крайки з каталогу, тони — з каталогу
-        tex = next((i for q in [hero_p] + products for i in q.get("images") or [] if i.get("view") == "texture" and i.get("src")), None)
+        tex = next((i for q in [hero_p] + shelf for i in q.get("images") or [] if i.get("view") == "texture" and i.get("src")), None)
         base_tokens["MAT_MEDIA"] = (
             f'<figure class="media media--img mat-media">{picture(tex, loc, sizes="(min-width: 900px) 50vw, 100vw")}'
             f'</figure>' if tex else "")
@@ -1229,7 +1236,7 @@ def main() -> None:
                 "index.html" if path == "/" else path.strip("/") + ("/index.html" if path.endswith("/") else ".html"))
             toks = {"BODY_CLASS": f"page-{name}"}
             if name in NOINDEX:
-                toks["ROBOTS"] = '<meta name="robots" content="noindex">\n'
+                toks["ROBOTS"] = noindex
             if name == "about":
                 # слот «תמונות מבית המלאכה יעלו בקרוב» — прихований, доки немає фото (content.json WORKSHOP_PHOTOS, аудит 22.10)
                 toks["PHOTO_SLOT_HIDDEN"] = "" if CONTENT.get("WORKSHOP_PHOTOS") == "1" else " hidden"
@@ -1263,11 +1270,19 @@ def main() -> None:
                 "P_PRICE_NOTE": "{{t.vat_incl}} · " + ("{{t.series_price_n}}" if listed("SERIES_PRODUCTS", p) else "{{t.series_price}}"), "P_SIZE_HELP": size_help(p, loc),
                 "P_SPECS": specs(p, loc), "P_INSIDE": inside(p, loc), "P_VENEER": CONTENT["VENEER_MM"].replace(".", ",") if loc == "ru" else CONTENT["VENEER_MM"], "P_HOW": p_how, "P_LIGHT": p_light, "P_CHAPTERS": chapters(p_how, p_light), "P_STEPS": steps_acc(), "JSONLD": f'<script type="application/ld+json">{product_jsonld(p, loc, CONTENT["SITE_URL"] + prefix + path)}</script>',
                 "OG_IMAGE": og_image(p["slug"]),
-                "P_MORE": grid([q for q in products if q is not p], loc, prefix, 3),
+                # крихта «каталог»: на картці єдиної моделі вітрини вела б на саму себе — її там нема
+                "P_CRUMB": ("" if shop_path == path else
+                            '<a href="{{PREFIX}}{{SHOP_PATH}}">{{t.nav_catalog}}</a><span aria-hidden="true">/</span>'),
             }
+            if p.get("unlisted"):
+                tokens["ROBOTS"] = noindex
+                # форма на прихованій картці й далі знає свій товар (lead.product_id) — як до №46
+                tokens["FORM_PRODUCTS"] = base_tokens["FORM_PRODUCTS"] + (
+                    f'<option value="{esc(p["id"])}">{esc(L(p.get("name"), loc))}</option>')
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{p['slug']}/index.html",
                  templates["product"], tokens, "", "", path)
-            pages_out.append(prefix + path)
+            if not p.get("unlisted"):
+                pages_out.append(prefix + path)
 
         # «наступне видання»: картка без кошика й конфігуратора — одна кнопка «אני רוצה כזה» (lead_source=vote)
         for n in next_items:
@@ -1285,12 +1300,12 @@ def main() -> None:
                 "N_LIKE": like["slug"], "N_LIKE_NAME": like_name,
                 "N_PRICE_NOTE": esc(s.get("next_price_note", "")).replace("{like}", like_name),
                 "N_SPECS": "".join(f"<li>{esc_bidi(x)}</li>" for x in (n.get("specs") or {}).get(loc) or []),
+                "ROBOTS": noindex,                 # №46: голосування — лише за прямим посиланням
             }
             if (SITE / "assets" / "og" / f"{n['slug']}.jpg").is_file():
                 tokens["OG_IMAGE"] = f"/assets/og/{n['slug']}.jpg"
             emit((prefix.lstrip("/") + "/" if prefix else "") + f"p/{n['slug']}/index.html",
                  templates["next"], tokens, "", "", path)
-            pages_out.append(prefix + path)
         missing |= render.missing
 
     if missing:

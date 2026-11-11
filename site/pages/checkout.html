@@ -2,7 +2,7 @@
   <div class="wrap shop-wrap co-grid">
     <div class="co-head">
       <h1 class="h2 shop-h1" tabindex="-1" data-co-h>{{t.co_h1}}</h1>
-      <p class="cart-empty" data-co-empty hidden>{{t.co_empty}} <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a></p>
+      <p class="cart-empty" data-co-empty hidden>{{t.co_empty}} <a class="link-arrow" href="{{PREFIX}}{{SHOP_PATH}}">{{t.cart_continue}}</a></p>
     </div>
     <div class="co-main">
 
@@ -47,7 +47,7 @@
           <li>{{t.co_thx_2}}</li>
           <li>{{t.co_thx_3}}</li>
         </ol>
-        <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.cart_continue}}</a>
+        <a class="link-arrow" href="{{PREFIX}}{{SHOP_PATH}}">{{t.cart_continue}}</a>
       </div>
       <noscript><p class="f-status">{{t.cart_nojs}}</p></noscript>
     </div>

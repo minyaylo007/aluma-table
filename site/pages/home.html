@@ -9,7 +9,6 @@
       <p class="lede">{{t.hero_lede}}</p>
       <div class="actions">
         <a class="btn btn--dark" href="{{PREFIX}}/p/{{HERO_SLUG}}/" data-cta="hero-tavor">{{t.hero_cta_product}}</a>
-        <a class="btn btn--line" href="{{PREFIX}}/catalog/" data-cta="hero-catalog">{{t.cta_collection}}</a>
       </div>
       <p class="hero-note">{{t.hero_note}}</p>
     </div>
@@ -25,18 +24,6 @@
   </ul>
 </section>
 
-<section class="sec" id="collection">
-  <div class="wrap">
-    <div class="sec-head">
-      <p class="eyebrow">{{t.col_eyebrow}}</p>
-      <h2 class="h2">{{t.col_h2}}</h2>
-      <p class="sec-lede">{{t.col_lede}}</p>
-    </div>
-    {{GRID_HOME}}
-    <p class="price-note">{{t.price_note}}</p>
-  </div>
-</section>
-
 {{BAND_MEDIA}}
 
 <section class="sec sec--paper split">
@@ -49,7 +36,7 @@
       <h2 class="h2">{{t.fit_h2}}</h2>
       <p>{{t.fit_p1}}</p>
       <p>{{t.fit_p2}}</p>
-      <a class="link-arrow" href="{{PREFIX}}/catalog/">{{t.fit_link}}</a>
+      <a class="link-arrow" href="{{PREFIX}}{{SHOP_PATH}}">{{t.fit_link}}</a>
     </div>
   </div>
 </section>
@@ -98,5 +85,5 @@
 
 {{PART_FORM}}
 <div class="sticky-cta" data-sticky hidden>
-  <a class="btn btn--dark btn--block" href="{{PREFIX}}/catalog/" data-cta="sticky">{{t.cta_collection}}</a>
+  <a class="btn btn--dark btn--block" href="{{PREFIX}}{{SHOP_PATH}}" data-cta="sticky">{{t.hero_cta_product}}</a>
 </div>

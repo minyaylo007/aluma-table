@@ -382,6 +382,7 @@
   {
     "id": "sahar",
     "slug": "sahar",
+    "unlisted": true,
     "name": {
       "he": "סהר",
       "en": "SAHAR",
@@ -659,6 +660,7 @@
   {
     "id": "ofek",
     "slug": "ofek",
+    "unlisted": true,
     "name": {
       "he": "אופק",
       "en": "OFEK",
@@ -902,6 +904,7 @@
   {
     "id": "saf",
     "slug": "saf",
+    "unlisted": true,
     "name": {
       "he": "סף",
       "en": "SAF",
@@ -1154,6 +1157,7 @@
   {
     "id": "tal",
     "slug": "tal",
+    "unlisted": true,
     "name": {
       "he": "טל",
       "en": "TAL",
