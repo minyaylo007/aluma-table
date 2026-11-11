@@ -23,7 +23,7 @@ tests.test_deploy_box             # викат на прод: лише свій 
 tests.test_caddy_404_locale    # Caddy: 404 своєї мови (/en/, /ru/) замість івритської, без запуску caddy
 tests.test_next_variants      # №22: голос vote, Telegram, воронка, варіанти поза каталогом
 tests.test_visit_lead         # №30: lead_source=visit, Telegram, воронка «Визит»
-tests.test_next_build         # №22: /p/tavor-fluted/, /p/tavor-oval/ трьома мовами, sitemap, поза каталогом і кошиком
+tests.test_next_build         # №22: /p/tavor-fluted/, /p/tavor-oval/ трьома мовами, noindex, поза sitemap, каталогом і кошиком
 tests.test_build_showroom     # №30: район показу з факту власника — порожній нічого не рендерить, заповнений у трьох мовах
 tests.test_order_lead         # №41: lead_source=order, Telegram, /admin і CSV, order_open / form_start / form_error
 tests.test_funnel_io          # №44: рядки воронки для funnel_report і дайджесту (таймер ihor-aluma-digest)

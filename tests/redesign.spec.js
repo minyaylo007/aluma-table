@@ -5,6 +5,8 @@ const { test, expect } = require('@playwright/test');
 const CATALOG = require('../catalog/products.json');
 const SHOWROOM = !!require('../content.json').OWNER_FACTS.SHOWROOM_AREA_HE;   // №30: плитка «לראות מקרוב» — лише з факту
 const PRODUCTS = (CATALOG.products || CATALOG).filter(p => !p.hidden);
+// №46: вітрина — лише товари без unlisted (TAVOR); решта карток живе за прямим адресом, сайт на них не веде
+const SHELF = PRODUCTS.filter(p => !p.unlisted), UNLISTED = PRODUCTS.filter(p => p.unlisted);
 const EMPTY_CONFIG = { pixel_id: null, wa_number: null, clarity_id: null, contact: { name: null, phone: null, email: null, city: null }, launch_mode: true };
 const FULL_CONFIG = { ...EMPTY_CONFIG, wa_number: '972500000000', contact: { name: 'ALUMA', phone: null, email: 'hello@example.com', city: null } };
 
@@ -38,7 +40,7 @@ const reveal = page => page.evaluate(() => { scrollTo(0, 400); dispatchEvent(new
 // ---------------------------------------------------------------- сторінки й мови
 for (const [path, lang, dir] of [['/', 'he', 'rtl'], ['/en/', 'en', 'ltr']]) {
   for (const [w, h] of [[360, 740], [390, 844], [1440, 900]]) {
-    test(`${lang} ${w}px: home renders all catalog products, no overflow, no errors`, async ({ page }) => {
+    test(`${lang} ${w}px: home shows one table — no product grid, no link to another card, no overflow, no errors`, async ({ page }) => {
       await mockApi(page);
       const errors = watchErrors(page);
       await page.setViewportSize({ width: w, height: h });
@@ -46,7 +48,11 @@ for (const [path, lang, dir] of [['/', 'he', 'rtl'], ['/en/', 'en', 'ltr']]) {
       await expect(page.locator('html')).toHaveAttribute('lang', lang);
       await expect(page.locator('html')).toHaveAttribute('dir', dir);
       await expect(page.locator('h1')).toHaveCount(1);
-      await expect(page.locator('.cards .card')).toHaveCount(Math.min(PRODUCTS.length, 5));
+      await expect(page.locator('.cards .card')).toHaveCount(0);
+      const cards = await page.evaluate(() => [...new Set([...document.querySelectorAll('a[href*="/p/"]')]
+        .map(a => a.getAttribute('href').replace(/^\/(en|ru)(?=\/)/, '')))]);
+      expect(cards).toEqual(SHELF.map(p => `/p/${p.slug}/`));
+      await expect(page.locator('a[href$="/catalog/"]')).toHaveCount(0);
       expect(await noOverflow(page)).toBeLessThanOrEqual(0);
       await expect(page.locator('body')).not.toContainText('להשלמה');
       await expect(page.locator('body')).not.toContainText('{{');
@@ -122,10 +128,12 @@ test('header: cart button, accessibility button and menu do not overlap on phone
   }
 });
 
-test('catalog lists every product with a link to its card', async ({ page }) => {
+test('catalog lists only the shelf product with a link to its card', async ({ page }) => {
   await mockApi(page);
   await page.goto('/catalog/');
-  for (const p of PRODUCTS) await expect(page.locator(`a[href="/p/${p.slug}/"]`).first()).toBeVisible();
+  for (const p of SHELF) await expect(page.locator(`a[href="/p/${p.slug}/"]`).first()).toBeVisible();
+  await expect(page.locator('.cards .card')).toHaveCount(SHELF.length);
+  for (const p of UNLISTED) await expect(page.locator(`a[href="/p/${p.slug}/"]`)).toHaveCount(0);
 });
 
 // №27: реклама «collection» веде в каталог, 86 % ішли без картки — на телефоні кожна картка каже, що це за річ,
@@ -142,7 +150,7 @@ for (const prefix of ['', '/ru']) {
         loading: c.querySelector('.card-media img').getAttribute('loading'),
         alt: c.querySelector('.card-alt') ? getComputedStyle(c.querySelector('.card-alt')).display : 'none' };
     }));
-    expect(r.length).toBe(PRODUCTS.length);
+    expect(r.length).toBe(SHELF.length);
     for (const c of r) {
       expect(c.kind.trim().length).toBeGreaterThan(0);
       expect(c.kind).not.toContain('{{');
@@ -150,10 +158,10 @@ for (const prefix of ['', '/ru']) {
       expect(c.h).toBeGreaterThanOrEqual(40);
       expect(c.alt).toBe('none');
     }
-    expect(r.slice(0, 4).map(c => c.loading)).toEqual(['eager', 'eager', 'eager', 'eager']);
+    expect(r.slice(0, 4).every(c => c.loading === 'eager')).toBe(true);
     expect(r.slice(4).every(c => c.loading === 'lazy')).toBe(true);
     await page.goto(prefix + '/');
-    expect(await page.locator('.cards .card-cta').count()).toBe(0);       // головна — як була, без кнопок
+    expect(await page.locator('.cards .card-cta').count()).toBe(0);       // головна — без плиток і їхніх кнопок
     await ctx.close();
   });
 }
@@ -184,7 +192,7 @@ for (const prefix of ['', '/ru']) {
     }));
     expect(r.map(c => c.href)[0]).toBe(`${prefix}/p/tavor/`);             // TAVOR — перший
     for (const [i, c] of r.entries()) {
-      const p = PRODUCTS[i];
+      const p = SHELF[i];
       expect(c.href).toBe(`${prefix}/p/${p.slug}/`);
       expect(c.corner).toBe(true);
       expect(c.price).toBe(priceText(p, prefix === '/ru'));
@@ -194,9 +202,10 @@ for (const prefix of ['', '/ru']) {
         expect(c.open).toContain(String(p.seats.extended[p.seats.extended.length - 1]));
       } else expect(c.open).toBe('');
     }
-    await page.evaluate(() => document.querySelectorAll('.cards .card')[1].scrollIntoView({ block: 'center', behavior: 'instant' }));
+    expect(r.length).toBe(SHELF.length);
+    await page.evaluate(() => document.querySelectorAll('.cards .card')[0].scrollIntoView({ block: 'center', behavior: 'instant' }));
     const second = await page.evaluate(() => {
-      const c = document.querySelectorAll('.cards .card')[1], a = c.querySelector('a.card-link').getBoundingClientRect();
+      const c = document.querySelectorAll('.cards .card')[0], a = c.querySelector('a.card-link').getBoundingClientRect();
       const k = c.querySelector('.card-kind').getBoundingClientRect();
       return { href: c.querySelector('a.card-link').getAttribute('href'), x: document.dir === 'rtl' ? a.left + 3 : a.right - 3, y: k.top + k.height / 2 };
     });
@@ -218,7 +227,8 @@ for (const [prefix, ru] of [['', false], ['/ru', true], ['/en', false]]) {
     await expect(cta).toHaveAttribute('href', `${prefix}/p/tavor/`);
     await expect(page.locator('.hero .hero-price')).toHaveText(priceText(tavor, ru));
     await expect(page.locator('.hero .hero-facts')).toContainText('280');
-    await expect(page.locator('.hero a[data-cta="hero-catalog"]')).toHaveAttribute('href', `${prefix}/catalog/`);
+    await expect(page.locator('.hero a[data-cta="hero-catalog"]')).toHaveCount(0);      // №46: одна кнопка — на стіл
+    await expect(page.locator('.top .nav a').first()).toHaveAttribute('href', `${prefix}/p/tavor/`);
     await expect(page.locator('.hero a[href="#register"]')).toHaveCount(0);
     const bottom = await page.evaluate(() => Math.max(...[...document.querySelectorAll('.hero .actions .btn, .hero-price, .hero-facts')]
       .map(e => e.getBoundingClientRect().bottom)));
@@ -922,7 +932,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
 }
 
 // №15: каталог на телефоні — дві колонки, тож sizes «46vw», а не «92vw»: на 390 px × DPR 3 браузер бере 800w, не 1200w
-test('catalog photos on a 390 px phone (DPR 3) load the half-width file; the home page keeps the full-width one', async ({ browser }) => {
+test('catalog photos on a 390 px phone (DPR 3) load the half-width file', async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
   const page = await ctx.newPage();
   await mockApi(page);
@@ -939,15 +949,13 @@ test('catalog photos on a 390 px phone (DPR 3) load the half-width file; the hom
   expect(r.w).toBeGreaterThan(0);
   expect(r.w).toBe(Math.min(...r.all.filter(x => x >= 0.46 * 390 * 3)));   // найменший файл, що покриває пів-ширини
   expect(r.w).toBeLessThanOrEqual(r.slot * 1.6);
-  await page.goto('/');
-  expect(await page.locator('.cards .card-media img').first().getAttribute('sizes')).toBe('(min-width: 1000px) 30vw, (min-width: 600px) 46vw, 92vw');
   await ctx.close();
 });
 
-// 24.10: каталог на телефоні — дві колонки, фото 1:1, під ним назва й ціна; після заголовка видно ≥ 4 картки з цінами
+// 24.10: каталог на телефоні — дві колонки, фото 1:1, під ним назва й ціна; №46: на вітрині одна картка, вона на першому екрані
 for (const [w, h] of [[390, 844], [360, 780]]) {
   for (const prefix of ['', '/ru']) {
-    test(`catalog ${w}×${h} ${prefix || 'he'}: two columns, square photos, at least four prices on the first screen`, async ({ page }) => {
+    test(`catalog ${w}×${h} ${prefix || 'he'}: two-column grid, square photo, the price on the first screen`, async ({ page }) => {
       await page.setViewportSize({ width: w, height: h });
       await mockApi(page);
       await page.goto(`${prefix}/catalog/`);
@@ -961,14 +969,14 @@ for (const [w, h] of [[390, 844], [360, 780]]) {
         return { cards, vh: innerHeight, over: document.documentElement.scrollWidth - innerWidth };
       });
       expect(r.over).toBeLessThanOrEqual(0);
-      expect(r.cards[0].top).toBe(r.cards[1].top);                     // дві в ряд
-      expect(r.cards[0].left).not.toBe(r.cards[1].left);
+      expect(r.cards.length).toBe(SHELF.length);
+      expect(r.cards[0].w).toBeLessThan(w / 2);                        // сітка лишилась у дві колонки
       for (const c of r.cards) {
         expect(Math.abs(c.w - c.h)).toBeLessThanOrEqual(1);              // 1:1
         expect(c.name.top).toBeGreaterThanOrEqual(c.top + c.h - 1);       // назва й ціна — під фото
         expect(c.price.top).toBeGreaterThanOrEqual(c.name.bottom - 1);
       }
-      expect(r.cards.filter(c => c.price.bottom <= r.vh).length).toBeGreaterThanOrEqual(4);
+      expect(r.cards.filter(c => c.price.bottom <= r.vh).length).toBe(r.cards.length);
     });
   }
 }

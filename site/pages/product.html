@@ -1,5 +1,5 @@
 <nav class="wrap crumbs" aria-label="{{t.crumbs_label}}">
-  <a href="{{PREFIX}}/">{{t.nav_home}}</a><span aria-hidden="true">/</span><a href="{{PREFIX}}/catalog/">{{t.nav_catalog}}</a><span aria-hidden="true">/</span><span aria-current="page">{{P_NAME}}</span>
+  <a href="{{PREFIX}}/">{{t.nav_home}}</a><span aria-hidden="true">/</span>{{P_CRUMB}}<span aria-current="page">{{P_NAME}}</span>
 </nav>
 <article class="wrap pdp" data-pdp data-product="{{P_ID}}" data-slug="{{P_SLUG}}">
   <div class="pdp-media">{{P_GALLERY}}</div>
@@ -116,15 +116,6 @@
 {{P_LIGHT}}
 
 {{P_STEPS}}
-
-<section class="sec sec--acc" id="more" aria-labelledby="more-h">
-  <div class="wrap">
-    <details class="pdp-acc" data-acc>
-      <summary class="pdp-acc-sum"><h2 class="h2 pdp-acc-h" id="more-h">{{t.more_h2}}</h2></summary>
-      <div class="pdp-acc-body">{{P_MORE}}</div>
-    </details>
-  </div>
-</section>
 
 {{PART_FORM}}
 <div class="sticky-cta sticky-cta--pdp" data-sticky hidden>

@@ -26,8 +26,9 @@ def i18n(lang):
 
 
 class AccordionTests(unittest.TestCase):
-    def test_spec_and_more_are_closed_details_with_visible_heading(self):
-        for sid, key in (("spec", "spec_h2"), ("more", "more_h2")):
+    def test_spec_is_closed_details_with_visible_heading(self):
+        self.assertNotIn('id="more"', TEMPLATE)        # №46: блоку «ще з серії» на картці нема
+        for sid, key in (("spec", "spec_h2"),):
             with self.subTest(sid=sid):
                 sec = re.search(rf'<section class="sec sec--acc" id="{sid}" aria-labelledby="{sid}-h">(.*?)</section>', TEMPLATE, re.S)
                 self.assertIsNotNone(sec)

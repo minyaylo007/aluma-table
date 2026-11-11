@@ -20,6 +20,8 @@ from tests.test_build_eol import make_tree, run_build
 PROJECT = pathlib.Path(__file__).resolve().parent.parent
 CATALOG = json.loads((PROJECT / "catalog" / "products.json").read_text(encoding="utf-8"))
 PRODUCTS = [p for p in (CATALOG["products"] if isinstance(CATALOG, dict) else CATALOG) if not p.get("hidden")]
+SHELF = [p for p in PRODUCTS if not p.get("unlisted")]          # вітрина (№46); решта — лише за прямим адресом
+UNLISTED = [p for p in PRODUCTS if p.get("unlisted")]
 PAGES = ("", "catalog/", "how/", "about/", "faq/", "privacy", "terms", "accessibility", "cart/", "checkout/")
 
 
@@ -745,9 +747,56 @@ class BuiltSiteTests(unittest.TestCase):
 
     def test_sitemap_lists_products_and_robots_points_to_it(self):
         sm = (self.dist / "sitemap.xml").read_text(encoding="utf-8")
-        for p in PRODUCTS:
+        for p in SHELF:
             for prefix in LOCALES.values():
                 self.assertIn(f"{prefix}/p/{p['slug']}/", sm)
+
+    # ---- №46: вітрина веде лише на одну модель; решта карток живе за прямим адресом
+
+    def test_showcase_is_one_product(self):
+        self.assertEqual([p["slug"] for p in SHELF], ["tavor"])
+        self.assertEqual({p["slug"] for p in UNLISTED}, {"sahar", "ofek", "saf", "tal"})
+
+    def test_no_page_of_the_showcase_links_to_a_card_other_than_the_shelf(self):
+        # головна, каталог, статичні сторінки, 404 і сама картка вітрини: жодного href на /p/<інший>/
+        own = {p["slug"] for p in SHELF}
+        card = re.compile(r'href="(?:https?://[^/"]+)?(?:/(?:%s))?/p/([a-z0-9-]+)/' % "|".join(
+            re.escape(v.strip("/")) for v in LOCALES.values() if v))
+        for prefix in DIST_PREFIX.values():
+            for rel in PAGES + ("404.html",) + tuple(f"p/{s}/" for s in sorted(own)):
+                html = self.page(prefix + rel)
+                with self.subTest(page=prefix + rel):
+                    self.assertFalse(set(card.findall(html)) - own)
+                    self.assertNotIn(f'href="/{prefix}catalog/"', html, "«каталог» веде на картку моделі")
+            for rel in ("", "catalog/"):
+                self.assertIn(f'href="/{prefix}p/tavor/"', self.page(prefix + rel), prefix + rel)
+                for p in UNLISTED:
+                    self.assertNotIn(f'data-product="{p["id"]}"', self.page(prefix + rel), prefix + rel)
+
+    def test_unlisted_cards_are_built_noindex_and_out_of_sitemap(self):
+        sm = (self.dist / "sitemap.xml").read_text(encoding="utf-8")
+        self.assertTrue(UNLISTED)
+        for p in UNLISTED:
+            for loc, prefix in DIST_PREFIX.items():
+                html = self.page(f"{prefix}p/{p['slug']}/")
+                with self.subTest(page=f"{prefix}p/{p['slug']}/"):
+                    self.assertIn(f'<html lang="{loc}"', html)
+                    self.assertIn('<meta name="robots" content="noindex">', html)
+                    self.assertIn(f'data-product="{p["id"]}"', html)
+                    self.assertIn("data-add-cart", html)                      # купити можна, як раніше
+                    self.assertIn(f'<option value="{p["id"]}">', html)         # форма знає свій товар
+                    self.assertNotIn(f"/p/{p['slug']}/</loc>", sm)
+        for p in SHELF:
+            for prefix in DIST_PREFIX.values():
+                self.assertNotIn("noindex", self.page(f"{prefix}p/{p['slug']}/"))
+
+    def test_cart_still_knows_unlisted_products(self):
+        # кошик і оформлення беруть товар із DATA.products — приховане з вітрини там лишається
+        for prefix in DIST_PREFIX.values():
+            for rel in ("cart/", "checkout/"):
+                html = self.page(prefix + rel)
+                data = json.loads(re.search(r'id="aluma-data"[^>]*>(.*?)</script>', html, re.S).group(1).replace("<\\/", "</"))
+                self.assertEqual({p["id"] for p in data["products"]}, {p["id"] for p in PRODUCTS}, prefix + rel)
         robots = (self.dist / "robots.txt").read_text(encoding="utf-8")
         self.assertRegex(robots, r"Sitemap: https://[^\s{]+/sitemap\.xml")
 

@@ -1,6 +1,6 @@
 """Зібрані сторінки «наступного видання» (№22): /p/tavor-fluted/ і /p/tavor-oval/ трьома мовами.
 
-Одна збірка в тимчасовій копії дерева (як test_build_site). Сторінка є, в sitemap, без noindex, з чесним статусом,
+Одна збірка в тимчасовій копії дерева (як test_build_site). Сторінка є за прямим адресом (№46: noindex, поза sitemap), з чесним статусом,
 ціною TAVOR і однією кнопкою; каталог, головна, кошик і дані кошика (DATA.products) варіантів не містять.
 """
 
@@ -49,15 +49,15 @@ class BuiltNextTests(unittest.TestCase):
                     self.assertIn(f">{CTA[lang]}</button>", html)
                     self.assertIn(f'data-next data-product="{slug}"', html)
                     self.assertIn(f'<input type="hidden" name="product_id" value="{slug}">', html)
-                    self.assertNotIn("noindex", html)
+                    self.assertIn('<meta name="robots" content="noindex">', html)
                     self.assertNotIn("data-add-cart", html)
                     self.assertRegex(html, r'<span class="price"><bdi dir="ltr">(₪4,490|4\xa0490\xa0₪)</bdi>')
                     self.assertRegex(html, r'<img src="/assets/next/' + slug + r'/life-1600\.[0-9a-f]{8,}\.webp"')
 
-    def test_sitemap_has_them_catalog_and_cart_do_not(self):
+    def test_sitemap_catalog_and_cart_do_not_have_them(self):
         sitemap = (self.dist / "sitemap.xml").read_text(encoding="utf-8")
         for slug in SLUGS:
-            self.assertEqual(sitemap.count(f"/p/{slug}/</loc>"), 3)
+            self.assertNotIn(f"/p/{slug}/", sitemap)
         for prefix in DIST_PREFIX.values():
             for rel in ("", "catalog/", "cart/", "checkout/", "p/tavor/"):
                 html = self.page(prefix + rel)
